@@ -1,15 +1,13 @@
 package ru.itclover.streammachine
 
+import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult._
-import ru.itclover.streammachine.core.{InitialState, PhaseParser}
 
 import scala.collection.mutable
 
-case class StateMachineMapper[Event, State: InitialState, Out](phaseParser: PhaseParser[Event, State, Out]) {
+case class StateMachineMapper[Event, State, Out](phaseParser: PhaseParser[Event, State, Out]) {
 
-  private val initial: State = implicitly[InitialState[State]].initial
-
-  private var state: State = initial
+  private var state: State = phaseParser.initialState
 
   private val collector = mutable.ListBuffer.empty[Out]
 
@@ -23,7 +21,7 @@ case class StateMachineMapper[Event, State: InitialState, Out](phaseParser: Phas
       case Failure(msg) =>
         //todo Should we try to run this message again?
         println(msg)
-        state = initial
+        state = phaseParser.initialState
       case Success(out) =>
         collector += out
     }

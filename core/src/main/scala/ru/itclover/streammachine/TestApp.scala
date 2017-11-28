@@ -2,6 +2,8 @@ package ru.itclover.streammachine
 
 import java.time.Instant
 
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Timer}
+
 object TestApp extends App {
 
   val now = Instant.now()

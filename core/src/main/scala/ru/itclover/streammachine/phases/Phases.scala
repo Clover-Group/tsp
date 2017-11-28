@@ -20,6 +20,8 @@ object Phases {
       if (predicate(event)) Success(true) -> ()
       else Failure("Event does not match condition!") -> ()
     }
+
+    override def initialState: Unit = ()
   }
 
   /**
@@ -53,6 +55,8 @@ object Phases {
         }
       }
     }
+
+    override def initialState: Option[T] = None
   }
 
   /**
@@ -84,6 +88,8 @@ object Phases {
           } else processNewValue
       }
     }
+
+    override def initialState: Option[T] = None
   }
 
 
@@ -104,6 +110,8 @@ object Phases {
         case None => Stay -> Some(field)
       }
     }
+
+    override def initialState: Option[T] = None
   }
 
 
@@ -143,6 +151,8 @@ object Phases {
           }) -> state
       }
     }
+
+    override def initialState: Option[Instant] = None
   }
 
 
@@ -164,6 +174,8 @@ object Phases {
         Success(diffValues) -> newState
       }
     }
+
+    override def initialState: Option[Set[T]] = None
   }
 
 }

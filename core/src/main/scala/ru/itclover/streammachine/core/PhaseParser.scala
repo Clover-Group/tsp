@@ -10,8 +10,8 @@ import ru.itclover.streammachine.core.PhaseResult._
   * @tparam State - inner state
   * @tparam T     - output type, used if phase successfully terminated
   */
-trait PhaseParser[Event, State, T] extends ((Event, State) => (PhaseResult[T], State)){
-  val initialState: State
+trait PhaseParser[Event, State, T] extends ((Event, State) => (PhaseResult[T], State)) {
+  def initialState: State
 }
 
 object PhaseParser {
@@ -95,6 +95,8 @@ object PhaseParser {
         val (phaseResult, state) = parser.apply(v1, v2)
         (phaseResult.map(f), state)
       }
+
+      override def initialState = parser.initialState
     }
   }
 
@@ -127,6 +129,8 @@ case class AndParser[Event, LState, RState, LOut, ROut]
       case (_, _) => Stay
     }) -> newState
   }
+
+  override def initialState = leftParser.initialState -> rightParser.initialState
 }
 
 // todo think about using shapeless here.
@@ -176,6 +180,8 @@ case class AndThenParser[Event, FirstState, SecondState, FirstOut, SecondOut]
         }) -> (firstState, newSecondState, optFirstOut)
     }
   }
+
+  override def initialState = (first.initialState, second.initialState, None)
 }
 
 case class OrParser[Event, LState, RState, LOut, ROut]
@@ -199,4 +205,6 @@ case class OrParser[Event, LState, RState, LOut, ROut]
       case (Failure(msg1), Failure(msg2)) => Failure(s"Or Failed: 1) $msg1 2) $msg2")
     }) -> newState
   }
+
+  override def initialState = (leftParser.initialState, rightParser.initialState)
 }
