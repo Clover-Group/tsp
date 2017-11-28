@@ -22,9 +22,8 @@ object Phases {
     }
   }
 
-
   /**
-    * Expect decreasing of value. If value has entered to range between from and to, it should monotonically decrease to `to` for success.
+    * Expect decreasing of value. If value has entered to range between from and to, it must monotonically decrease to `to` for success.
     *
     * @param extract - function to extract value to compare
     * @param from    - value to start. if field is bigger than from, result is Stay
@@ -56,6 +55,14 @@ object Phases {
     }
   }
 
+  /**
+    * Expect increasing of value. If value has entered to range between from and to, it must monotonically increase to `to` for success.
+    *
+    * @param extract - function to extract value to compare
+    * @param from    - value to start. if field is bigger than from, result is Stay
+    * @param to      - value to stop.
+    * @tparam Event - events to process
+    */
   case class Increasing[Event, T: Ordering](extract: Event => T, from: T, to: T) extends PhaseParser[Event, Option[T], T] {
 
     override def apply(event: Event, oldValue: Option[T]): (PhaseResult[T], Option[T]) = {
@@ -79,6 +86,13 @@ object Phases {
     }
   }
 
+
+  /**
+    * Phase checking that extract(event) is the same.
+    *
+    * @param extract
+    * @tparam Event
+    */
   case class Constant[Event, T](extract: Event => T) extends PhaseParser[Event, Option[T], T] {
     override def apply(event: Event, state: Option[T]): (PhaseResult[T], Option[T]) = {
 
@@ -89,7 +103,6 @@ object Phases {
         case Some(old) => Failure("Field has changed!") -> state
         case None => Stay -> Some(field)
       }
-
     }
   }
 
@@ -133,6 +146,10 @@ object Phases {
   }
 
 
+  /**
+    * Phase waiting for changes of `extract(event)`. Returns Stay if `extract(event)` is the same for subsequence of events.
+    * @param extract - function to extract value from Event
+    */
   case class Changed[Event, T](extract: Event => T) extends PhaseParser[Event, Option[Set[T]], Set[T]] {
     override def apply(event: Event, state: Option[Set[T]]): (PhaseResult[Set[T]], Option[Set[T]]) = {
 
@@ -145,20 +162,6 @@ object Phases {
         Stay -> newState
       } else {
         Success(diffValues) -> newState
-      }
-    }
-  }
-
-  case class Wait[Event](extract: Event => Instant, howLongToWait: Int) extends PhaseParser[Event, Option[Instant], Instant] {
-
-    override def apply(event: Event, state: Option[Instant]): (PhaseResult[Instant], Option[Instant]) = {
-      val eventTime = extract(event)
-
-      state match {
-        case None => Stay -> Some(eventTime)
-        case Some(startTime) if startTime.plusSeconds(howLongToWait).isBefore(eventTime) =>
-          Success(startTime) -> Some(startTime)
-        case Some(_) => Stay -> state
       }
     }
   }
