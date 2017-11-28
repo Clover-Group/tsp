@@ -58,6 +58,22 @@ object PhaseParser {
     AndParser[Event, State, RightState, T, RightOut] = and(rightParser)
 
     /**
+      * Allows easily create LazyAndParser like:
+      * `parser1 lazyAnd parser2`
+      *
+      * @param rightParser - phase parser to add.
+      * @return new AndParser
+      */
+    def lazyAnd[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
+    LazyAndParser[Event, State, RightState, T, RightOut] = LazyAndParser(parser, rightParser)
+
+    /**
+      * Alias for `lazyAnd`
+      */
+    def &&[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
+    LazyAndParser[Event, State, RightState, T, RightOut] = lazyAnd(rightParser)
+
+    /**
       * Allows easily create AndThenParser like:
       * {@code parser1 andThen parser2 }
       *
@@ -204,6 +220,43 @@ case class OrParser[Event, LState, RState, LOut, ROut]
       case (_, Stay) => Stay
       case (Failure(msg1), Failure(msg2)) => Failure(s"Or Failed: 1) $msg1 2) $msg2")
     }) -> newState
+  }
+
+  override def initialState = (leftParser.initialState, rightParser.initialState)
+}
+
+/**
+  * Parser combining two other parsers. The second parser starts only if the first has finished succesfully at least once.
+  * Uses the following rules:
+  * Success only if both parts are Success.
+  *         Only in that case try second parser.
+  * Failure if any of sides is Failure
+  * Else Stay
+  */
+case class LazyAndParser[Event, LState, RState, LOut, ROut]
+(
+  leftParser: PhaseParser[Event, LState, LOut],
+  rightParser: PhaseParser[Event, RState, ROut]
+)
+  extends PhaseParser[Event, LState And RState, LOut And ROut] {
+
+  override def apply(event: Event, state: LState And RState): (PhaseResult[LOut And ROut], LState And RState) = {
+    val (leftState, rightState) = state
+
+    val (leftResult, newLeftState) = leftParser(event, leftState)
+    leftResult match {
+      case (Success(leftOut)) => {
+        val (rightResult, newRightState) = rightParser(event, rightState)
+        val newState = newLeftState -> newRightState
+        (rightResult match {
+          case Success(rightOut) => Success(leftOut -> rightOut)
+          case f@Failure(msg) => Failure(msg)
+          case Stay => Stay
+        }) -> newState
+      }
+      case f@Failure(msg) => f -> (newLeftState -> rightState)
+      case Stay => Stay -> (newLeftState -> rightState)
+    }
   }
 
   override def initialState = (leftParser.initialState, rightParser.initialState)

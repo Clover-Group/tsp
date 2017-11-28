@@ -39,7 +39,7 @@ object Phases {
       val newValue = extract(event)
 
       def processNewValue = if (newValue > from) {
-        Stay -> None
+        Failure("Not in range") -> None
       } else if (newValue <= to) {
         Success(newValue) -> Some(newValue)
       } else {
@@ -155,7 +155,6 @@ object Phases {
     override def initialState: Option[Instant] = None
   }
 
-
   /**
     * Phase waiting for changes of `extract(event)`. Returns Stay if `extract(event)` is the same for subsequence of events.
     * @param extract - function to extract value from Event
@@ -177,5 +176,4 @@ object Phases {
 
     override def initialState: Option[Set[T]] = None
   }
-
 }
