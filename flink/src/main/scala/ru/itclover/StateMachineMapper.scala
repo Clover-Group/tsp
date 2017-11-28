@@ -103,7 +103,7 @@ object StreamingDemo {
  * events are consistent with the current state of the state machine. If the event is not
  * consistent with the current state, the function produces an alert.
  */
-class StateMachineMapper[Event, State, Out] extends RichFlatMapFunction[Event, Out] {
+case class StateMachineMapper[Event, State, Out](rules: PhaseParser) extends RichFlatMapFunction[Event, Out] {
   
   private[this] var currentState: ValueState[State] = _
     

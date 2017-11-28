@@ -6,7 +6,7 @@ version := "0.1-SNAPSHOT"
 
 organization := "ru.itclover"
 
-scalaVersion in ThisBuild := "2.11.7"
+scalaVersion in ThisBuild := "2.11.8"
 
 lazy val root = (project in file("."))
   .aggregate(core, config, http)
@@ -14,7 +14,7 @@ lazy val root = (project in file("."))
 mainClass in assembly := Some("Job")
 
 // make run command include the provided dependencies
-run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
+//run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
 // exclude Scala library from assembly
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
@@ -30,16 +30,3 @@ lazy val http = project.in(file("http"))
 
 lazy val flinkConnector = project.in(file("flink"))
   .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest)
-
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(RootProject(file("."))).settings(
-  // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
-  libraryDependencies := (libraryDependencies in RootProject(file("."))).value.map{
-    module =>
-      if (module.configurations.equals(Some("provided"))) {
-        module.copy(configurations = None)
-      } else {
-        module
-      }
-  }
-)
-

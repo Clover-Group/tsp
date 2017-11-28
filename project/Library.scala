@@ -7,7 +7,6 @@ object Version {
   val scalaTest = "3.0.4"
 }
 
-
 object Library {
 
   val flink = Seq(

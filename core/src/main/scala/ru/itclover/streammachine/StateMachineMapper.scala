@@ -1,5 +1,8 @@
 package ru.itclover.streammachine
 
+import ru.itclover.streammachine.core.PhaseResult._
+import ru.itclover.streammachine.core.{InitialState, PhaseParser}
+
 import scala.collection.mutable
 
 case class StateMachineMapper[Event, State: InitialState, Out](phaseParser: PhaseParser[Event, State, Out]) {
