@@ -37,8 +37,9 @@ import scala.reflect.ClassTag
   * events are consistent with the current state of the state machine. If the event is not
   * consistent with the current state, the function produces an alert.
   */
-case class StateMachineMapper[Event, State: ClassTag, Out](phaseParser: PhaseParser[Event, State, Out]) extends RichFlatMapFunction[Event, Out] {
+case class StateMachineMapper[Event, State: ClassTag, Out](phaseParser: PhaseParser[Event, State, Out]) extends RichFlatMapFunction[Event, Out] with Serializable {
 
+  @transient
   private[this] var currentState: ValueState[State] = _
 
   override def open(config: Configuration): Unit = {
@@ -53,15 +54,15 @@ case class StateMachineMapper[Event, State: ClassTag, Out](phaseParser: PhasePar
     currentState.update(newState)
 
     result match {
-      case Stay => println(s"stay for event $t")
+      case Stay => println(s"Stay for event $t")
       case Failure(msg) =>
         //todo Should we try to run this message again?
-        println(msg)
+        println(s"Failure for event $t: $msg")
         currentState.update(phaseParser.initialState)
       case Success(out) =>
+        println(s"Success for event $t")
         outCollector.collect(out)
     }
-    this
   }
 
 }

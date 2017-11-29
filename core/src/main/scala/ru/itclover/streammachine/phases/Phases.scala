@@ -157,6 +157,7 @@ object Phases {
 
   /**
     * Phase waiting for changes of `extract(event)`. Returns Stay if `extract(event)` is the same for subsequence of events.
+    *
     * @param extract - function to extract value from Event
     */
   case class Changed[Event, T](extract: Event => T) extends PhaseParser[Event, Option[Set[T]], Set[T]] {
@@ -176,4 +177,17 @@ object Phases {
 
     override def initialState: Option[Set[T]] = None
   }
+
+  case class Wait[Event](condition: Event => Boolean) extends PhaseParser[Event, Unit, Boolean] {
+
+    override def apply(event: Event, v2: Unit): (PhaseResult[Boolean], Unit) = {
+      condition(event) match {
+        case true => Success(true) -> ()
+        case false => Stay -> ()
+      }
+    }
+
+    override def initialState: Unit = ()
+  }
+
 }

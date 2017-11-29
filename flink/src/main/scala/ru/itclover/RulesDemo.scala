@@ -9,7 +9,8 @@ import org.apache.flink.api.java.typeutils.TupleTypeInfo
 import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
 import org.apache.flink.core.fs.Path
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Timer}
+import org.apache.flink.streaming.api.functions.source.FileProcessingMode
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Timer, Wait}
 
 
 /**
@@ -29,7 +30,7 @@ object RulesDemo {
     val filePath = new Path(args(0))
 
     // create the environment to create streams and configure execution
-//    val env = ExecutionEnvironment.getExecutionEnvironment
+    //    val env = ExecutionEnvironment.getExecutionEnvironment
 
     //datetime,SpeedEngine,ContuctorOilPump,wagon_id
     import org.apache.flink.api.scala._
@@ -38,47 +39,34 @@ object RulesDemo {
 
     case class Row(time: Instant, speedEngine: Int, contuctorOilPump: Int, wagonId: Int)
 
-    //2017-09-13 10:00:00
-    val format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+    //"2017-09-13 10:00:00"
+    val format = new SimpleDateFormat("\"yyyy-MM-dd HH:mm:ss\"")
 
     import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 
-    //    val tupleTypeInfoBase = implicitly[TypeInformation[(String, Int, Int, Int)]].asInstanceOf[CaseClassTypeInfo[(String, Int, Int, Int)]]
+    val tupleTypeInfoBase = implicitly[TypeInformation[(String, Int, Int, Int)]].asInstanceOf[CaseClassTypeInfo[(String, Int, Int, Int)]]
 
     val streamEnv = StreamExecutionEnvironment.createLocalEnvironment()
 
-    val dataSet = streamEnv
-      .createInput(new RowCsvInputFormat(filePath,
-        Array(
-          BasicTypeInfo.STRING_TYPE_INFO,
-          BasicTypeInfo.INT_TYPE_INFO,
-          BasicTypeInfo.INT_TYPE_INFO,
-          BasicTypeInfo.INT_TYPE_INFO
-        )
-      ))
+    val dataSet = streamEnv.readFile(
+      new TupleCsvInputFormat[(String, Int, Int, Int)](filePath, tupleTypeInfoBase),
+      args(0),
+      FileProcessingMode.PROCESS_ONCE, 100)
 
-    dataSet.writeAsCsv("/tmp/output.csv")
 
-    val rows = dataSet.map(r =>
-      Row(format.parse(r.getField(0).asInstanceOf[String]).toInstant,
-      r.getField(1).asInstanceOf[Int],
-      r.getField(2).asInstanceOf[Int],
-      r.getField(3).asInstanceOf[Int]
-    ))
-    //
-    //    val rows = dataSet.map { line =>
-    //      line match {
-    //        case (timeString, speed, pump, wagonId) => Row(format.parse(timeString).toInstant, speed, pump, wagonId)
-    //      }
-    //    }
+    val rows = dataSet.map(r => Row(format.parse(r._1).toInstant, r._2, r._3, r._4))
 
+    //    +1_____________Остановка без прокачки масла
+    //    1. начало куска ContuctorOilPump не равен 0 И SpeedEngine уменьшается с 260 до 0
+    //    2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
+    //      """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
     val phase =
-      Decreasing[Row, Int](_.speedEngine, 250, 50)
-        .andThen(
-          Assert[Row](_.speedEngine > 0)
-//            and
-//            Timer[Row](_.time, 10, 30)
-        )
+    ((Assert[Row](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
+      .andThen(Assert(_.speedEngine == 0)) &
+      (Wait[Row](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60)))
+      .map{
+        case (_, (condition, (start, end)))=> ""
+      }
 
     val alerts = rows
       // partition on the address to make sure equal addresses
@@ -89,9 +77,9 @@ object RulesDemo {
 
 
     //    alerts.print()
-    alerts.printToErr()
+    alerts.writeAsCsv("/tmp/output.csv")
 
-//    alerts.writeAsCsv("/tmp/output.csv")
+    //    alerts.writeAsCsv("/tmp/output.csv")
 
     //      // output to standard-out
     //      .print()

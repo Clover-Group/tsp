@@ -12,6 +12,10 @@ import ru.itclover.streammachine.core.PhaseResult._
   */
 trait PhaseParser[Event, State, T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
+
+  def name: String = ""
+
+  def id: String = ""
 }
 
 object PhaseParser {
@@ -229,7 +233,7 @@ case class OrParser[Event, LState, RState, LOut, ROut]
   * Parser combining two other parsers. The second parser starts only if the first has finished succesfully at least once.
   * Uses the following rules:
   * Success only if both parts are Success.
-  *         Only in that case try second parser.
+  * Only in that case try second parser.
   * Failure if any of sides is Failure
   * Else Stay
   */
