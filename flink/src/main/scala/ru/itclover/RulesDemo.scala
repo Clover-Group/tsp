@@ -64,8 +64,8 @@ object RulesDemo {
     ((Assert[Row](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
       .andThen(Assert(_.speedEngine == 0)) &
       (Wait[Row](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60)))
-      .map{
-        case (_, (condition, (start, end)))=> ""
+      .map {
+        case (row, (_, (condition, (start, end)))) => row.wagonId -> s"Result: $start, $end"
       }
 
     val alerts = rows

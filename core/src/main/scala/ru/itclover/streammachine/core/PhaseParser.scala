@@ -10,7 +10,7 @@ import ru.itclover.streammachine.core.PhaseResult._
   * @tparam State - inner state
   * @tparam T     - output type, used if phase successfully terminated
   */
-trait PhaseParser[Event, State, T] extends ((Event, State) => (PhaseResult[T], State)) {
+trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
 
   def name: String = ""
@@ -110,14 +110,7 @@ object PhaseParser {
     OrParser[Event, State, RightState, T, RightOut] = or(rightParser)
 
 
-    def map[B](f: T => B): PhaseParser[Event, State, B] = new PhaseParser[Event, State, B] {
-      override def apply(v1: Event, v2: State): (PhaseResult[B], State) = {
-        val (phaseResult, state) = parser.apply(v1, v2)
-        (phaseResult.map(f), state)
-      }
-
-      override def initialState = parser.initialState
-    }
+    def map[B](f: (Event, T) => B): MapParser[Event, State, T, B] = MapParser(parser, f.curried)
   }
 
 }
@@ -264,4 +257,15 @@ case class LazyAndParser[Event, LState, RState, LOut, ROut]
   }
 
   override def initialState = (leftParser.initialState, rightParser.initialState)
+}
+
+
+case class MapParser[Event, State, In, Out](phaseParser: PhaseParser[Event, State, In], f: Event => In => Out) extends PhaseParser[Event, State, Out] {
+
+  override def apply(event: Event, oldState: State): (PhaseResult[Out], State) = {
+    val (phaseResult, state) = phaseParser.apply(event, oldState)
+    (phaseResult.map(f(event)), state)
+  }
+
+  override def initialState = phaseParser.initialState
 }

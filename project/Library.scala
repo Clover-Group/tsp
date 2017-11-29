@@ -11,7 +11,9 @@ object Library {
 
   val flink = Seq(
     "org.apache.flink" %% "flink-scala" % Version.flink % "provided",
-    "org.apache.flink" %% "flink-streaming-scala" % Version.flink % "provided")
+    "org.apache.flink" %% "flink-streaming-scala" % Version.flink % "provided",
+    "org.apache.flink" %% "flink-connector-kafka-0.10" % Version.flink
+  )
 
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
