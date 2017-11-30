@@ -7,7 +7,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.TupleCsvInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
-import org.apache.flink.core.fs.Path
+import org.apache.flink.core.fs.{FileSystem, Path}
 import org.apache.flink.streaming.api.functions.source.FileProcessingMode
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig}
@@ -53,20 +53,17 @@ object RulesDemo {
     import org.apache.flink.api.scala._
     case class Temp(wagon: Int, datetime: String, temp: Float)
 
-    implicit val rowti: RowTypeInfo = new RowTypeInfo(TypeInformation.of(classOf[Int]), TypeInformation.of(classOf[String]), TypeInformation.of(classOf[Float]))
-
     val dataStream = streamEnv.createInput(ClickhouseInput.getSource(
       JDBCConfig(
         jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamed",
         query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100",
         driverName = "ru.yandex.clickhouse.ClickHouseDriver"
-      ),
-      rowti
-    ))
+      )
+    ).right.get)
 
     val ds = dataStream.map(row => Temp(row.getField(0).asInstanceOf[Int], row.getField(1).asInstanceOf[String], row.getField(2).asInstanceOf[Float]))
 
-    ds.writeAsText("/tmp/output.csv")
+    ds.writeAsText("/tmp/output.csv", FileSystem.WriteMode.OVERWRITE)
 
     //    val rows = dataSet.map(r => Row(format.parse(r._1).toInstant, r._2, r._3, r._4))
     //
