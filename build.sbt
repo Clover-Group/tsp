@@ -29,7 +29,7 @@ lazy val http = project.in(file("http"))
   .dependsOn(core, config)
 
 lazy val flinkConnector = project.in(file("flink"))
-  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest)
+  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest :+ Library.clickhouse)
   .dependsOn(core, config)
 
 lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).settings(
@@ -42,7 +42,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
         module
       }
   },
-  mainClass in(Compile, run) := Some("ru.itclover.RulesDemo")
+  mainClass in(Compile, run) := Some("ru.itclover.streammachine.RulesDemo")
 )
 
 
