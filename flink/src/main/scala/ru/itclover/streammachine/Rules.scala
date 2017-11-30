@@ -1,7 +1,11 @@
 package ru.itclover.streammachine
 
+import java.time.Instant
+
 import ru.itclover.streammachine.RulesDemo.Row2
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Timer, Wait}
+import ru.itclover.streammachine.core.{AndThenParser, PhaseParser}
+import ru.itclover.streammachine.phases.Phases._
+
 import scala.language.dynamics
 
 object Rules {
@@ -20,14 +24,23 @@ object Rules {
     }
 
 
-//  val myObject = new Myclass
-//
-//  myObject.anotherParam = 3
+  //  ++6_______________Повторный запуск дизеля через малый промежуток времени
+  //  Если CurrentStarterGenerator принял значение 100 меньше, чем за 180 секунд после того,
+  //  как CurrentStarterGenerator стал равен 0 (перешел из не0 в 0
+
+  case class Generator(value: Int, time: Instant)
+
+  val repeatedDieselStart =
+    Decreasing[Generator, Int](_.value, 1, 0) andThen (Wait[Generator](_.value > 100)
+    & Timer(_.time, atMaxSeconds = 100))
+
+  //  +?+7_______________Низкая производительность тормозного компрессора
+  //    CurrentCompressorMotor > 0 И PAirMainRes возрастает с 7,5 до 8 больше чем за 23 секунды
+
+  case class Compressor(currentCompressorMotor: Double, pAirMainRes: Double, time: Instant)
+
+  type Phase[Event] = PhaseParser[Event, _, _]
+
+  val lowPerformanceOfCompressor: Phase[Compressor] = Assert[Compressor](_.currentCompressorMotor > 0) & (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0)  )
 
 }
-
- class Myclass extends Dynamic{
-   val map: Map[String, String] = Map("foo" -> "bar").withDefaultValue("baz")
-
-   def selectDynamic[A](name: String) = map(name).asInstanceOf[A]
- }

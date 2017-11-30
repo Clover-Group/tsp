@@ -36,7 +36,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
   // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
   libraryDependencies := (libraryDependencies in flinkConnector).value.map {
     module =>
-      if (module.configurations.equals(Some("provided"))) {
+      if (module.configurations.contains("provided")) {
         module.withConfigurations(configurations = None)
       } else {
         module
@@ -45,5 +45,8 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
   mainClass in(Compile, run) := Some("ru.itclover.streammachine.RulesDemo")
 )
 
+lazy val integration = project.in(file("integration"))
+  .settings(libraryDependencies ++= Library.scalaTest :+ Library.clickhouse)
+  .dependsOn(core, flinkConnector, http, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

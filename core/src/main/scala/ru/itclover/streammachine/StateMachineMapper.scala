@@ -17,10 +17,10 @@ case class StateMachineMapper[Event, State, Out](phaseParser: PhaseParser[Event,
     state = newState
 
     result match {
-      case Stay => println(s"stay for event $t")
+      case Stay => // println(s"stay for event $t")
       case Failure(msg) =>
         //todo Should we try to run this message again?
-        println(msg)
+        //        println(msg)
         state = phaseParser.initialState
       case Success(out) =>
         collector += out

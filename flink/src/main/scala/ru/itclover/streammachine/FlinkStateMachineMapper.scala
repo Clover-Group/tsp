@@ -27,20 +27,27 @@ case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: Pha
   }
 
   override def flatMap(t: Event, outCollector: Collector[Out]): Unit = {
-    val (result, newState) = phaseParser.apply(t, currentState.value())
 
-    currentState.update(newState)
+    def processElement(restartIfFailed: Boolean): Unit = {
 
-    result match {
-      case Stay => println(s"Stay for event $t")
-      case Failure(msg) =>
-        //todo Should we try to run this message again?
-        println(s"Failure for event $t: $msg")
-        currentState.update(phaseParser.initialState)
-      case Success(out) =>
-        println(s"Success for event $t")
-        outCollector.collect(out)
+      val (result, newState) = phaseParser.apply(t, currentState.value())
+
+      currentState.update(newState)
+
+      result match {
+        case Stay => // println(s"Stay for event $t")
+        case Failure(msg) =>
+          //todo Should we try to run this message again?
+//          println(s"Fail ure for event $t: $msg")
+          currentState.update(phaseParser.initialState)
+          if (restartIfFailed) processElement(restartIfFailed = false)
+        case Success(out) =>
+//          println(s"Success for event $t")
+          outCollector.collect(out)
+      }
     }
+
+    processElement(restartIfFailed = true)
   }
 
 }
