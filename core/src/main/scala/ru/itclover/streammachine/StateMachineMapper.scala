@@ -15,7 +15,7 @@ case class StateMachineMapper[Event, State, Out](phaseParser: PhaseParser[Event,
   def apply(t: Event): this.type = {
     val (firstTerminal, newStates) = process(t, states)
     //todo emit only one Failure in a row
-    firstTerminal.foreach(collector :+ _)
+    firstTerminal.foreach(x => collector.append(x))
 
     states = newStates
 

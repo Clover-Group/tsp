@@ -16,10 +16,8 @@ object Rules {
   //    2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
   //      """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
   val stopWithoutOilPumping =
-  (
-    (Assert[Row2](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
-    .andThen(Assert(_.speedEngine == 0)) &
-    (Wait[Row2](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60)))
+  (Assert[Row2](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
+    .andThen(Assert[Row2](_.speedEngine == 0) & Wait[Row2](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60))
     .map {
       case (row, (_, (condition, (start, end)))) => row.wagonId -> s"Result: $start, $end"
     }
@@ -33,7 +31,7 @@ object Rules {
 
   val repeatedDieselStart =
     Decreasing[Generator, Int](_.value, 1, 0) andThen (Wait[Generator](_.value > 100)
-    & Timer(_.time, atMaxSeconds = 100))
+      & Timer(_.time, atMaxSeconds = 100))
 
   //  +?+7_______________Низкая производительность тормозного компрессора
   //    CurrentCompressorMotor > 0 И PAirMainRes возрастает с 7,5 до 8 больше чем за 23 секунды
@@ -43,6 +41,6 @@ object Rules {
   type Phase[Event] = PhaseParser[Event, _, _]
 
   val lowPerformanceOfCompressor: Phase[Compressor] = Assert[Compressor](_.currentCompressorMotor > 0) &
-    (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0)  )
+    (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0))
 
 }

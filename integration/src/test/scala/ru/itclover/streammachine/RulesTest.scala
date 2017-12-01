@@ -7,7 +7,8 @@ import ru.itclover.streammachine.Rules.Phase
 import ru.itclover.streammachine.RulesDemo.Row2
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult.Success
-import ru.itclover.streammachine.utils._
+import ru.itclover.streammachine.phases.Phases.{Assert, Timer, Wait}
+import ru.itclover.streammachine.utils.{Timer => TimerGenerator, _}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
@@ -25,16 +26,16 @@ class RulesTest extends WordSpec with Matchers {
 
   "stopWithoutOilPumping" should {
 
-    //    +1 Остановка без прокачки масла
-    //    1. начало куска ContuctorOilPump не равен 0 И SpeedEngine уменьшается с 260 до 0
-    //    2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
-    //      """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
+    //        +1 Остановка без прокачки масла
+    //        1. начало куска ContuctorOilPump не равен 0 И SpeedEngine уменьшается с 260 до 0
+    //        2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
+    //          """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
 
     implicit val random: Random = new java.util.Random(345l)
 
     "match for valid-1" in {
       val rows = (
-        for (time <- Timer(from = Instant.now());
+        for (time <- TimerGenerator(from = Instant.now());
              pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
                .after(Constant(0));
              speed <- Constant(261.0).timed(1.seconds)
@@ -50,7 +51,7 @@ class RulesTest extends WordSpec with Matchers {
 
     "match for valid-2" in {
       val rows = (
-        for (time <- Timer(from = Instant.now());
+        for (time <- TimerGenerator(from = Instant.now());
              pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
                .after(Constant(0));
              speed <- Change(from = 1.0, to = 261, 15.seconds).timed(1.seconds)
@@ -65,21 +66,44 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "not to match" in {
+//      val rows = (
+//        for (time <- TimerGenerator(from = Instant.now());
+//             pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
+//               .after(Constant(0));
+//             speed <- Constant(250d).timed(1.seconds)
+//               .after(Change(from = 250.0, to = 0.0, howLong = 10.seconds))
+//               .after(Constant(0.0))
+//        ) yield Row2(time, speed.toInt, pump.toInt, 1)
+//        ).run(seconds = 100)
+//
+//      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
+//
+//      assert(results.isEmpty)
+    }
+
+  }
+
+  "customTest" should {
+
+    implicit val random: Random = new java.util.Random(345l)
+
+    "match" in {
       val rows = (
-        for (time <- Timer(from = Instant.now());
+        for (time <- TimerGenerator(from = Instant.now());
              pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
                .after(Constant(0));
              speed <- Constant(250d).timed(1.seconds)
-               .after(Change(from = 250.0, to = 0.0, howLong = 10.seconds))
+               .after(Change(from = 250.0, to = 0.0, howLong = 30.seconds))
                .after(Constant(0.0))
-        ) yield Row2(time, speed.toInt, pump.toInt, 1)
-        ).run(seconds = 100)
+        ) yield Row2(time, speed.toInt, pump.toInt, 1))
+        .run(seconds = 100)
 
-      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
+      val rule = Assert[Row2](_.speedEngine > 240) andThen (Wait[Row2](_.contuctorOilPump == 0) & Timer[Row2](_.time, atLeastSeconds = 5))
 
-      assert(results.isEmpty)
+      val results = run(rule, rows).collect { case Success(x) => x }
+
+      assert(results.nonEmpty)
     }
-
   }
 
 

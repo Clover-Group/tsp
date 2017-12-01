@@ -1,12 +1,12 @@
 package ru.itclover.streammachine.core
 
-sealed trait PhaseResult[+T]{
+sealed trait PhaseResult[+T] {
   def map[B](f: T => B): PhaseResult[B]
 }
 
 object PhaseResult {
 
-  trait TerminalResult[+T] extends PhaseResult[T]
+  sealed trait TerminalResult[+T] extends PhaseResult[T]
 
   case class Success[T](t: T) extends TerminalResult[T] {
     override def map[B](f: T => B): PhaseResult[B] = Success(f(t))
