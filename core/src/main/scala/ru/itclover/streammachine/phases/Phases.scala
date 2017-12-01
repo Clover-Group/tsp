@@ -73,7 +73,7 @@ object Phases {
       val newValue = extract(event)
 
       def processNewValue = if (newValue < from) {
-        Stay -> None
+        Failure("Not in range") -> None
       } else if (newValue >= to) {
         Success(newValue) -> Some(newValue)
       } else {

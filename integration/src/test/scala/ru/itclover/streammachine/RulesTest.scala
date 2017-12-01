@@ -6,6 +6,7 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.Rules.Phase
 import ru.itclover.streammachine.RulesDemo.Row2
 import ru.itclover.streammachine.core.PhaseParser
+import ru.itclover.streammachine.core.PhaseResult.Success
 import ru.itclover.streammachine.utils._
 
 import scala.concurrent.duration.Duration
@@ -42,7 +43,7 @@ class RulesTest extends WordSpec with Matchers {
         ) yield Row2(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
-      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows)
+      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
 
       assert(results.nonEmpty)
     }
@@ -58,7 +59,7 @@ class RulesTest extends WordSpec with Matchers {
         ) yield Row2(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
-      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows)
+      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
 
       assert(results.nonEmpty)
     }
@@ -74,7 +75,7 @@ class RulesTest extends WordSpec with Matchers {
         ) yield Row2(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
-      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows)
+      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
 
       assert(results.isEmpty)
     }

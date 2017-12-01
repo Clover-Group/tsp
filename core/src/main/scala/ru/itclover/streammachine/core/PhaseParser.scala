@@ -269,3 +269,28 @@ case class MapParser[Event, State, In, Out](phaseParser: PhaseParser[Event, Stat
 
   override def initialState = phaseParser.initialState
 }
+
+
+/**
+  * Phase terminating inner parser. If inner parser at least once got to the TerminalResult it will stay there forever
+  *
+  * @param inner - parser to be terminated
+  * @tparam Event - events to process
+  * @tparam State - inner state
+  * @tparam Out
+  */
+case class Terminate[Event, State, Out](inner: PhaseParser[Event, State, Out]) extends PhaseParser[Event, (PhaseResult[Out], State), Out] {
+
+  override def apply(event: Event, v2: (PhaseResult[Out], State)): (PhaseResult[Out], (PhaseResult[Out], State)) = {
+    val (phaseResult, state) = v2
+
+    phaseResult match {
+      case x: TerminalResult[Out] => x -> v2
+      case Stay =>
+        val (nextResult, nextState) = inner.apply(event, state)
+        nextResult -> (nextResult, nextState)
+    }
+  }
+
+  override def initialState = Stay -> inner.initialState
+}

@@ -16,7 +16,8 @@ object Rules {
   //    2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
   //      """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
   val stopWithoutOilPumping =
-  ((Assert[Row2](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
+  (
+    (Assert[Row2](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
     .andThen(Assert(_.speedEngine == 0)) &
     (Wait[Row2](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60)))
     .map {
@@ -41,6 +42,7 @@ object Rules {
 
   type Phase[Event] = PhaseParser[Event, _, _]
 
-  val lowPerformanceOfCompressor: Phase[Compressor] = Assert[Compressor](_.currentCompressorMotor > 0) & (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0)  )
+  val lowPerformanceOfCompressor: Phase[Compressor] = Assert[Compressor](_.currentCompressorMotor > 0) &
+    (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0)  )
 
 }
