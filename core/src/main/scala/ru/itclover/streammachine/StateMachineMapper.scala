@@ -8,7 +8,7 @@ import scala.collection.mutable
 case class StateMachineMapper[Event, State, Out](phaseParser: PhaseParser[Event, State, Out])
   extends AbstractStateMachineMapper[Event, State, Out] {
 
-  private var states: Seq[(PhaseResult[Out], State)] = Vector.empty
+  private var states: Seq[State] = Vector.empty
 
   private val collector = mutable.ListBuffer.empty[TerminalResult[Out]]
 

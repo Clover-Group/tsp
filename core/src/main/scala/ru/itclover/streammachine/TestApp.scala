@@ -2,7 +2,9 @@ package ru.itclover.streammachine
 
 import java.time.Instant
 
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Timer}
+import ru.itclover.streammachine.core.Aggregators.Timer
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
+import ru.itclover.streammachine.core.TimeImplicits._
 
 object TestApp extends App {
 
@@ -16,7 +18,7 @@ object TestApp extends App {
       .andThen(
         Assert[Event](_.speed > 0)
           and
-          Timer[Event](_.time, 10, 30)
+          Timer[Event, Instant](_.time, 10, 30)
       )
 
   val collector = events.foldLeft(StateMachineMapper(phase)) { case (mapper, event) => mapper(event) }

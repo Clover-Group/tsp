@@ -116,46 +116,6 @@ object Phases {
 
 
   /**
-    * Timer parser. Returns:
-    * Stay - if passed less than atLeastSeconds
-    * Success - if passed time is between atLeastSeconds and atMaxSeconds
-    * Failure - if passed more than atMaxSeconds.
-    *
-    * @param extract
-    * @param atLeastSeconds
-    * @param atMaxSeconds
-    * @tparam Event - events to process
-    */
-  case class Timer[Event](extract: Event => Instant, atLeastSeconds: Int = 0, atMaxSeconds: Int = Int.MaxValue)
-    extends PhaseParser[Event, Option[Instant], (Instant, Instant)] {
-
-    assert(atLeastSeconds >= 0 && atMaxSeconds >= 0 && atMaxSeconds > atLeastSeconds,
-      s"Incorrect Timer configuration (atLeastSeconds: $atLeastSeconds, atMaxSeconds: $atMaxSeconds)")
-
-    override def apply(event: Event, state: Option[Instant]): (PhaseResult[(Instant, Instant)], Option[Instant]) = {
-
-      val eventTime = extract(event)
-
-      val eventMilliSeconds = eventTime.toEpochMilli
-
-      state match {
-        case None =>
-          Stay -> Some(eventTime)
-        case Some(startTime) =>
-          val oldMilliSeconds = startTime.toEpochMilli
-          (eventMilliSeconds - oldMilliSeconds match {
-            case x if x < atLeastSeconds.toLong * 1000l => Stay
-            case x if x >= atLeastSeconds.toLong * 1000l && x <= atMaxSeconds.toLong * 1000l => Success(startTime -> eventTime)
-            case x if x > atMaxSeconds.toLong * 1000l => Failure(s"Timeout expired at $eventTime")
-            case x => Failure("Illegal time!")
-          }) -> state
-      }
-    }
-
-    override def initialState: Option[Instant] = None
-  }
-
-  /**
     * Phase waiting for changes of `extract(event)`. Returns Stay if `extract(event)` is the same for subsequence of events.
     *
     * @param extract - function to extract value from Event
@@ -181,9 +141,10 @@ object Phases {
   case class Wait[Event](condition: Event => Boolean) extends PhaseParser[Event, Unit, Boolean] {
 
     override def apply(event: Event, v2: Unit): (PhaseResult[Boolean], Unit) = {
-      condition(event) match {
-        case true => Success(true) -> ()
-        case false => Stay -> ()
+      if (condition(event)) {
+        Success(true) -> ()
+      } else {
+        Stay -> ()
       }
     }
 
