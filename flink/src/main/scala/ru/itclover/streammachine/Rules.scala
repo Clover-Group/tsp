@@ -3,8 +3,10 @@ package ru.itclover.streammachine
 import java.time.Instant
 
 import ru.itclover.streammachine.RulesDemo.Row2
+import ru.itclover.streammachine.core.Aggregators.Timer
 import ru.itclover.streammachine.core.{AndThenParser, PhaseParser}
 import ru.itclover.streammachine.phases.Phases._
+import ru.itclover.streammachine.core.TimeImplicits._
 
 import scala.language.dynamics
 
@@ -18,7 +20,7 @@ object Rules {
   val stopWithoutOilPumping =
   (Assert[Row2](_.contuctorOilPump != 0) & Decreasing(_.speedEngine, 260, 0))
     .andThen(Assert[Row2](_.speedEngine == 0) & Wait[Row2](_.contuctorOilPump == 0) & Timer(_.time, atMaxSeconds = 60))
-    .map {
+    .mapWithEvent {
       case (row, (_, (condition, (start, end)))) => row.wagonId -> s"Result: $start, $end"
     }
 
@@ -41,6 +43,8 @@ object Rules {
   type Phase[Event] = PhaseParser[Event, _, _]
 
   val lowPerformanceOfCompressor: Phase[Compressor] = Assert[Compressor](_.currentCompressorMotor > 0) &
-    (Timer[Compressor](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0))
+    (Timer[Compressor,Instant](_.time, atLeastSeconds = 23) & Increasing(_.pAirMainRes, 7.5, 8.0))
+
+
 
 }

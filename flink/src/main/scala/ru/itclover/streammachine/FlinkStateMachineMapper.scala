@@ -16,12 +16,12 @@ case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: Pha
   with Serializable {
 
   @transient
-  private[this] var currentState: ValueState[Seq[(PhaseResult[Out], State)]] = _
+  private[this] var currentState: ValueState[Seq[State]] = _
 
   override def open(config: Configuration): Unit = {
     val classTag = implicitly[ClassTag[State]]
     currentState = getRuntimeContext.getState(
-      new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[Seq[(PhaseResult[Out], State)]]], Seq.empty))
+      new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[Seq[State]]], Seq.empty))
   }
 
   override def flatMap(t: Event, outCollector: Collector[Out]): Unit = {

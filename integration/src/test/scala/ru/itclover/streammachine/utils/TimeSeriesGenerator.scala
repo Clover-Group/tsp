@@ -75,6 +75,14 @@ case class Timer(from: Instant) extends TimeSeriesGenerator[Instant] {
   override def howLong = Duration.Inf
 }
 
+case object Milliseconds extends TimeSeriesGenerator[Long] {
+
+  override def apply(v1: Duration) = v1.toMillis
+
+  override def howLong = Duration.Inf
+}
+
+
 case class RandomInRange(from: Int, to: Int)(implicit random: Random) extends TimeSeriesGenerator[Int] {
   override def apply(v1: Duration): Int = random.nextInt(to - from + 1) + from
 
