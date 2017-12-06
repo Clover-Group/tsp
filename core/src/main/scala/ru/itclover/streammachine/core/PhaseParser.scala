@@ -1,7 +1,10 @@
 package ru.itclover.streammachine.core
 
+import ru.itclover.streammachine.core.Aggregators.Timer
 import ru.itclover.streammachine.core.PhaseParser.{And, AndThen, Or}
 import ru.itclover.streammachine.core.PhaseResult._
+import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.phases.Phases.Wait
 
 /**
   * Base trait. Used for statefully processing Event's. In each step returns some PhaseResult and new State
@@ -10,7 +13,7 @@ import ru.itclover.streammachine.core.PhaseResult._
   * @tparam State - inner state
   * @tparam T     - output type, used if phase successfully terminated
   */
-trait PhaseParser[-Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
+trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
 
   def name: String = ""
@@ -79,7 +82,7 @@ object PhaseParser {
 
     /**
       * Allows easily create AndThenParser like:
-      * {@code parser1 andThen parser2 }
+      * `parser1 andThen parser2`
       *
       * @param nextParser - phase parser to add after this one
       * @return new AndThenParser
@@ -109,6 +112,9 @@ object PhaseParser {
     def |[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
     OrParser[Event, State, RightState, T, RightOut] = or(rightParser)
 
+    def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]) = parser and Timer(timeInterval)
+
+    def until[State2](condition: PhaseParser[Event, State2, Boolean]) = Wait(condition)
 
     def mapWithEvent[B](f: (Event, T) => B): MapWithEventParser[Event, State, T, B] = MapWithEventParser(parser, f.curried)
 
@@ -147,7 +153,7 @@ case class AndParser[Event, LState, RState, LOut, ROut]
     }) -> newState
   }
 
-  override def initialState = leftParser.initialState -> rightParser.initialState
+  override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
 }
 
 // todo think about using shapeless here.

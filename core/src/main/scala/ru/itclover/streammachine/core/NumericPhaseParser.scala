@@ -56,8 +56,24 @@ object NumericPhaseParser {
 
   import Numeric.Implicits._
 
-  implicit class NumberExtractor[N: Numeric](n: N) extends TrivialNumericPhaseParser[Any] {
-    override def apply(v1: Any, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
+  implicit class DoubleExtractor[E](n: Double) extends TrivialNumericPhaseParser[E] {
+    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n) -> ()
+  }
+
+  implicit class FloatExtractor[E](n: Float) extends TrivialNumericPhaseParser[E] {
+    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
+  }
+
+  implicit class IntExtractor[E](n: Int) extends TrivialNumericPhaseParser[E] {
+    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
+  }
+
+  implicit class LongExtractor[E](n: Long) extends TrivialNumericPhaseParser[E] {
+    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
+  }
+
+  implicit class FunctionNumberExtractor[Event, N: Numeric](val f: Event => N) extends TrivialNumericPhaseParser[Event] {
+    override def apply(v1: Event, v2: Unit) = Success(f(v1).toDouble()) -> ()
   }
 
   def apply[Event, State](inner: PhaseParser[Event, State, Double]): NumericPhaseParser[Event, State] =
@@ -66,6 +82,8 @@ object NumericPhaseParser {
 
       override def apply(v1: Event, v2: State) = inner.apply(v1, v2)
     }
+
+
 
   case class ComparePhaseParser[Event, S1, S2](
                                                 left: PhaseParser[Event, S1, Double],
@@ -77,6 +95,12 @@ object NumericPhaseParser {
       (left and right).map { case (a, b) => compare(a, b) }.apply(v1, v2)
 
     override def initialState: (S1, S2) = (left.initialState, right.initialState)
+  }
+
+  def field[Event: SymbolNumberExtractor](symbol: Symbol): SymbolExtractor[Event] = symbolToExtract(symbol)
+
+  def value[E, N: Numeric](n: N) = new TrivialNumericPhaseParser[E] {
+    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
   }
 
 }

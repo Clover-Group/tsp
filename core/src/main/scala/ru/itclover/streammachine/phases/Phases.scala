@@ -138,17 +138,19 @@ object Phases {
     override def initialState: Option[Set[T]] = None
   }
 
-  case class Wait[Event](condition: Event => Boolean) extends PhaseParser[Event, Unit, Boolean] {
+  case class Wait[Event, State](conditionParser: PhaseParser[Event, State, Boolean]) extends PhaseParser[Event, State, Boolean] {
 
-    override def apply(event: Event, v2: Unit): (PhaseResult[Boolean], Unit) = {
-      if (condition(event)) {
-        Success(true) -> ()
-      } else {
-        Stay -> ()
-      }
+    override def apply(event: Event, v2: State): (PhaseResult[Boolean], State) = {
+
+      val (res, newState) = conditionParser(event, v2)
+
+      (res match {
+        case s@Success(true) => s
+        case _ => Stay
+      }) -> newState
     }
 
-    override def initialState: Unit = ()
+    override def initialState = conditionParser.initialState
   }
 
 }

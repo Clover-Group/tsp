@@ -1,70 +1,74 @@
 package ru.itclover.streammachine.core
 
 import java.time.{Duration, Instant}
+import java.util.Date
 
-import scala.math.Ordering.LongOrdering
+import ru.itclover.streammachine.core.Time.{MaxWindow, MinWindow}
 
-object TimeImplicits extends TimeLike.Implicits {
+import scala.math.Ordering.Long
 
+trait Time {
+  def plus(window: Window): Time
+
+  def toMillis: Long
 }
 
-trait TimeLike[T] extends Ordering[T] {
-  def plus[D: DurationLike](t: T, duration: D): T
+trait Window {
+  def toMillis: Long
 }
 
-object TimeLike {
+case class TimeInterval(min: Window = MinWindow, max: Window = MaxWindow){
+  assert(min.toMillis >= 0 && max.toMillis >= 0 && max.toMillis >= min.toMillis,
+    s"Incorrect Timer configuration (min: ${min.toMillis}, max: ${max.toMillis})")
+}
 
+object Time {
+  type TimeExtractor[Event] = Event => Time
 
-  trait Implicits extends DurationLike.Implicits {
-
-    implicit def timeLikeSyntax[T: TimeLike](t: T) = new Object {
-      def plus[D: DurationLike](d: D): T = implicitly[TimeLike[T]].plus(t, d)
-    }
-
-    implicit object LongTimeLike extends TimeLike[Long] with LongOrdering {
-      def plus[D: DurationLike](l: Long, duration: D): Long = l + durationLikeSyntax(duration).toMillis
-    }
-
-    implicit object InstantTimeLike extends TimeLike[Instant] {
-      def plus[D: DurationLike](i: Instant, duration: D): Instant = i.plusMillis(durationLikeSyntax(duration).toMillis)
-
-      def compare(x: Instant, y: Instant): Int = x.compareTo(y)
-    }
-
-    implicit object javaDateTimeLike extends TimeLike[java.util.Date] {
-      def plus[D: DurationLike](d: java.util.Date, duration: D): java.util.Date =
-        new java.util.Date(d.getTime + durationLikeSyntax(duration).toMillis)
-
-      def compare(x: java.util.Date, y: java.util.Date): Int = x.compareTo(y)
-    }
-
+  implicit val timeOrdering: Ordering[Time] = new Ordering[Time] {
+    override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
   }
 
-}
-
-trait DurationLike[D] {
-  def toMillis(d: D): Long
-}
-
-object DurationLike {
-
-  trait Implicits {
-
-    implicit object durationDurationLike extends DurationLike[Duration] {
-      override def toMillis(d: Duration): Long = d.toMillis
-    }
-
-    implicit object scalaDurationDurationLike extends DurationLike[scala.concurrent.duration.Duration] {
-      override def toMillis(d: scala.concurrent.duration.Duration): Long = d.toMillis
-    }
-
-    implicit object longDurationLike extends DurationLike[Long] {
-      override def toMillis(d: Long): Long = d
-    }
-
-    implicit def durationLikeSyntax[D: DurationLike](d: D) = new Object {
-      def toMillis: Long = implicitly[DurationLike[D]].toMillis(d)
-    }
+  implicit class durationWindow(val duration: Duration) extends Window {
+    override def toMillis: Long = duration.toMillis
   }
+
+  implicit class scalaDurationWindow(val d: scala.concurrent.duration.Duration) extends Window {
+    override def toMillis: Long = d.toMillis
+  }
+
+  implicit class longWindow(d: Long) extends Window {
+    override def toMillis: Long = d
+  }
+
+  implicit class LongTimeLike(t: Long) extends Time {
+    override def plus(window: Window): Time = t + window.toMillis
+
+    override def toMillis: Long = t
+  }
+
+  implicit class InstantTimeLike(t: Instant) extends Time {
+    override def plus(window: Window): Time = t.plusMillis(window.toMillis)
+
+    override def toMillis: Long = t.toEpochMilli
+  }
+
+  implicit class javaDateTimeLike(t: Date) extends Time {
+    override def plus(window: Window): Time = t.getTime + window.toMillis
+
+    override def toMillis: Long = t.getTime
+  }
+
+  object MinWindow extends Window {
+    override def toMillis: Long = 0l
+  }
+
+  object MaxWindow extends Window {
+    override def toMillis: Long = java.lang.Long.MAX_VALUE
+  }
+
+  def less(w: Window) = TimeInterval(max = w)
+
+  def more(w: Window) = TimeInterval(min = w)
 
 }

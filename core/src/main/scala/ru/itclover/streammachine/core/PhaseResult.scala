@@ -14,7 +14,7 @@ object PhaseResult {
     override def isTerminal: Boolean = true
   }
 
-  case class Success[T](t: T) extends TerminalResult[T] {
+  case class Success[+T](t: T) extends TerminalResult[T] {
     override def map[B](f: T => B): PhaseResult[B] = Success(f(t))
 
     override def flatMap[B](f: T => PhaseResult[B]): PhaseResult[B] = f(t)

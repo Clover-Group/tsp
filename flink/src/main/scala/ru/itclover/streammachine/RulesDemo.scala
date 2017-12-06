@@ -67,14 +67,12 @@ object RulesDemo {
 
     //    val rows = dataSet.map(r => Row(format.parse(r._1).toInstant, r._2, r._3, r._4))
     //
-    //    val alerts = rows
-    //       partition on the address to make sure equal addresses
-    //       end up in the same state machine flatMap function
-    //      .keyBy(_.wagonId)
+//        val alerts = rows
+//          .keyBy(_.wagonId)
     //       the function that evaluates the state machine over the sequence of events
-    //      .flatMap(FlinkStateMachineMapper(Rules.stopWithoutOilPumping))
+//          .flatMap(FlinkStateMachineMapper(Rules.stopWithoutOilPumping))
     //
-    //    alerts.writeAsCsv("/tmp/output.csv")
+//        alerts.writeAsCsv("/tmp/output.csv")
 
     streamEnv.execute()
   }
