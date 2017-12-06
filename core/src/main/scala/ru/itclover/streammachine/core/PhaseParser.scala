@@ -156,6 +156,23 @@ case class AndParser[Event, LState, RState, LOut, ROut]
   override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
 }
 
+
+case class AliasedParser[Event, InnerState, InnerOut](innerParser: PhaseParser[Event, InnerState, InnerOut], alias: String)
+  extends PhaseParser[Event, InnerState, InnerOut] {
+
+  override def apply(event: Event, state: InnerState): (PhaseResult[InnerOut], InnerState) = {
+    val(result, newState) = innerParser(event, state)
+    // TODO inherit from Success
+    (result match {
+      case Success(x) => AliasedSuccess(x, alias)
+      case any => any
+    }) -> newState
+  }
+
+  override def initialState: (InnerState) = innerParser.initialState
+}
+
+
 // todo think about using shapeless here.
 /**
   * PhaseParser chaining two parsers one after another.

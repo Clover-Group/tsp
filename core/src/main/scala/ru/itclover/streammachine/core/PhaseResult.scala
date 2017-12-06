@@ -34,6 +34,7 @@ object PhaseResult {
     override def flatMap[B](f: T => PhaseResult[B]): PhaseResult[B] = f(t)
   }
 
+  // TODO Inherit from Success
   case class AliasedSuccess[T](t: T, alias: String) extends TerminalResult[T] {
     override def map[B](f: T => B): PhaseResult[B] = AliasedSuccess(f(t), alias)
 
