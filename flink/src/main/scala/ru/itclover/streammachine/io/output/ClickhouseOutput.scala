@@ -2,7 +2,6 @@ package ru.itclover.streammachine.io.output
 
 // import org.apache.flink.api.java.io.jdbc.JDBCAppendTableSink
 import org.apache.flink.api.java.io.jdbc.JDBCOutputFormat
-import ru.itclover.streammachine.io.output.JDBCConfig
 
 object ClickhouseOutput {
   val DEFAULT_BATCH_INTERVAL = 1000000
