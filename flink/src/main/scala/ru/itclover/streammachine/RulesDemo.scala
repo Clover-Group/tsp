@@ -25,7 +25,7 @@ object RulesDemo {
 
   def main(args: Array[String]): Unit = {
 
-    if (args.isEmpty || args.size > 1) {
+    if (args.isEmpty || args.length > 1) {
       println("Usage: /path/to/csv/file")
       sys.exit(1)
     }
@@ -53,13 +53,17 @@ object RulesDemo {
     import org.apache.flink.api.scala._
     case class Temp(wagon: Int, datetime: String, temp: Float)
 
-    val dataStream = streamEnv.createInput(ClickhouseInput.getSource(
-      JDBCConfig(
-        jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamed",
-        query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100",
-        driverName = "ru.yandex.clickhouse.ClickHouseDriver"
-      )
-    ).right.get)
+    val inpConfig = JDBCConfig(
+      jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamed",
+      query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100",
+      driverName = "ru.yandex.clickhouse.ClickHouseDriver"
+    )
+    val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
+      case Right(typesInfo) => typesInfo
+      case Left(err) => throw err
+    }
+    val inpFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
+    val dataStream = streamEnv.createInput(inpFormat)
 
     val ds = dataStream.map(row => Temp(row.getField(0).asInstanceOf[Int], row.getField(1).asInstanceOf[String], row.getField(2).asInstanceOf[Float]))
 

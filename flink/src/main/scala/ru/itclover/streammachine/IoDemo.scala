@@ -30,16 +30,17 @@ object IoDemo {
 
     val streamEnv = StreamExecutionEnvironment.createLocalEnvironment()
 
-
     val inpConfig = InpJDBCConfig(
       jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
-      query = "select Wagon_id, datetime, Tin_1 from series765_data limit 0, 100",
+      query = "select Wagon_id, datetime, Tin_1 from series765_data limit 110100, 4000000",
       driverName = "ru.yandex.clickhouse.ClickHouseDriver"
     )
-    val chInputFormat = ClickhouseInput.getInputFormat(inpConfig) match {
-      case Right(source) => source
+    val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
+      case Right(typesInfo) => typesInfo
       case Left(err) => throw err
     }
+    val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
+    val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
 
     val dataStream = streamEnv.createInput(chInputFormat)
     val ds = dataStream.map(row => Temp(row.getField(0).asInstanceOf[Int], row.getField(1).asInstanceOf[String],
@@ -51,12 +52,9 @@ object IoDemo {
       sinkTable = "series765_data_sink",
       sinkColumnsNames = List[Symbol]('Wagon_id, 'datetime, 'Tin_1),
       driverName = "ru.yandex.clickhouse.ClickHouseDriver",
-      batchInterval = Some(5000)
+      batchInterval = Some(1000000)
     )
-    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig) match {
-      case Right(format) => format
-      case Left(err) => throw err
-    }
+    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig)
 
     class DictMapFunction(val sinkColumnsNames: List[Symbol]) extends RichMapFunction[Map[Symbol, Any], Row] {
       assert(sinkColumnsNames.nonEmpty, "Cannot map out format - out columns not defined.")
@@ -64,6 +62,7 @@ object IoDemo {
       val rowSize: Int = sinkColumnsNames.size
 
       def map(inItem: Map[Symbol, Any]): Row = {
+        println(inItem)
         val row = new Row(rowSize)
         for ((columnName, colIndex) <- sinkColumnsNames.zip(0 until rowSize)) {
           row.setField(colIndex, inItem(columnName))
@@ -72,16 +71,23 @@ object IoDemo {
       }
     }
 
-    def productToMap(cc: Product) = {
+    def productToMap(cc: Product, namesMap: Map[Symbol, Symbol]) = {
       // TODO Rm symbol?
       val values = cc.productIterator
-      cc.getClass.getDeclaredFields.map(f => Symbol(f.getName) -> values.next).toMap
+      cc.getClass.getDeclaredFields.map(f => namesMap(Symbol(f.getName)) -> values.next).toMap
     }
 
     // TODO Mb to sink function: ds.addSink(new JDBCSinkFunction(chOutputFormat))
-    val outStream = ds.map(x => productToMap(x)).map(x => new DictMapFunction(outConfig.sinkColumnsNames).map(x))
+    val outStream = ds.map(x => productToMap(x, Map('wagon -> 'Wagon_id, 'datetime -> 'datetime, 'temp -> 'Tin_1)))
+                      .map(x => new DictMapFunction(outConfig.sinkColumnsNames).map(x))
     outStream.writeUsingOutputFormat(chOutputFormat)
 
+    val t0 = System.nanoTime()
+    println("Strart timer")
+
     streamEnv.execute()
+
+    val t1 = System.nanoTime()
+    println("Elapsed time: " + (t1 - t0) / 1000000000.0 + " seconds")
   }
 }

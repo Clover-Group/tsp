@@ -13,34 +13,32 @@ import scala.util.Try
 
 object ClickhouseInput {
 
-  def getInputFormat(config: JDBCConfig): Either[Throwable, JDBCInputFormat] = {
-    for (typesInfoMap <- queryTypeInformation(config)) yield {
-      val rowTypesInfo = new RowTypeInfo(typesInfoMap.values.toSeq :_*)
-      JDBCInputFormat.buildJDBCInputFormat()
-        .setDrivername(config.driverName)
-        .setDBUrl(config.jdbcUrl)
-        .setUsername(config.userName.getOrElse(""))
-        .setPassword(config.password.getOrElse(""))
-        .setQuery(config.query)
-        .setRowTypeInfo(rowTypesInfo)
-        .finish()
-    }
+  def getInputFormat(config: JDBCConfig, fieldTypesInfo: Array[(String, TypeInformation[_])]): JDBCInputFormat = {
+    val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1))
+    JDBCInputFormat.buildJDBCInputFormat()
+      .setDrivername(config.driverName)
+      .setDBUrl(config.jdbcUrl)
+      .setUsername(config.userName.getOrElse(""))
+      .setPassword(config.password.getOrElse(""))
+      .setQuery(config.query)
+      .setRowTypeInfo(rowTypesInfo)
+      .finish()
   }
 
-  def queryTypeInformation(config: JDBCConfig): Either[Throwable, Map[String, TypeInformation[_]]] = {
+  def queryFieldsTypeInformation(config: JDBCConfig): Either[Throwable, IndexedSeq[(String, TypeInformation[_])]] = {
     val classTry = Try(Class.forName(config.driverName))
     val connectionTry = Try(DriverManager.getConnection(config.jdbcUrl, config.userName.getOrElse(""),
-                                                           config.password.getOrElse("")))
+                                                        config.password.getOrElse("")))
     (for {
       _ <- classTry
       connection <- connectionTry
       resultSet <- Try(connection.createStatement().executeQuery(s"SELECT * FROM (${config.query}) LIMIT 1"))
       metaData <- Try(resultSet.getMetaData)
     } yield {
-      ((1 to metaData.getColumnCount) map { i: Int =>
+      (1 to metaData.getColumnCount) map { i: Int =>
         val className = metaData.getColumnClassName(i)
         (metaData.getColumnName(i), TypeInformation.of(Class.forName(className)))
-      }).toMap[String, TypeInformation[_]]
+      }
     }).toEither
   }
 }
