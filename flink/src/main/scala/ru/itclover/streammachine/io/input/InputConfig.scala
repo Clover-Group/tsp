@@ -15,5 +15,6 @@ case class JDBCConfig(jdbcUrl: String,
 
 case class FileConfig(filePath: String) extends InputConfig
 
-case class KafkaConfig(brokers: String, topic: String, group: String = UUID.randomUUID().toString, offsetReset: String = "largest")
+case class KafkaConfig(brokers: String, topic: String, group: String = UUID.randomUUID().toString,
+                       offsetReset: String = "largest")
 

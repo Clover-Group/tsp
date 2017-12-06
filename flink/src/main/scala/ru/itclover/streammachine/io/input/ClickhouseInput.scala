@@ -7,11 +7,13 @@ import org.apache.flink.api.java.typeutils.{RowTypeInfo, TupleTypeInfoBase}
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
 import ru.itclover.streammachine.utils.ImplicitUtils.{RightBiasedEither, TryOps}
 
+// import import org.apache.flink.streaming.connectors
+
 import scala.util.Try
 
 object ClickhouseInput {
 
-  def getSource(config: JDBCConfig): Either[Throwable, JDBCInputFormat] = {
+  def getInputFormat(config: JDBCConfig): Either[Throwable, JDBCInputFormat] = {
     for (typesInfoMap <- queryTypeInformation(config)) yield {
       val rowTypesInfo = new RowTypeInfo(typesInfoMap.values.toSeq :_*)
       JDBCInputFormat.buildJDBCInputFormat()
