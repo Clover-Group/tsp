@@ -3,7 +3,7 @@ package ru.itclover.streammachine
 import java.time.Instant
 
 import ru.itclover.streammachine.core.Aggregators.Timer
-import ru.itclover.streammachine.core.{PhaseParser, TimeInterval, Window}
+import ru.itclover.streammachine.core.{AndParser, PhaseParser, TimeInterval, Window}
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
 
@@ -18,11 +18,11 @@ object TestApp extends App {
 
   val phase =
     Decreasing[Event, Int](_.speed, 250, 50)
-      .andThen(
-        Assert[Event](_.speed > 0)
-          and
-          Timer[Event]( TimeInterval(10.seconds, 30.seconds))(_.time)
-      )
+//      .andThen(
+//        Assert[Event](_.speed > 0)
+//          and
+//          Timer[Event]( TimeInterval(10.seconds, 30.seconds))(_.time)
+//      )
 
   val collector = events.foldLeft(StateMachineMapper(phase)) { case (mapper, event) => mapper(event) }
 
@@ -46,7 +46,7 @@ object TestApp extends App {
     }
 
 
-    implicit val timeExtractor = new TimeExtractor[Event] {
+    implicit val timeExtractor: TimeExtractor[Event] = new TimeExtractor[Event] {
       override def apply(v1: Event) = v1.time
     }
 
@@ -54,11 +54,12 @@ object TestApp extends App {
     val window = new Window {
       override def toMillis: Long = 5000
     }
+
     type Phase[Event] = PhaseParser[Event, _, _]
 
     val phase: Phase[Event] = ((e: Event) => e.speed) > 4
 
-    val phase2: Phase[Event] = avg('speed, window) > avg('pump, window)
+    val phase2: Phase[Event] = avg(field('speed), window) > avg('pump, window)
 
     val phase3 = avg('speed, 5.seconds) >= 5.0 andThen avg('pump, 3.seconds) > 0
 

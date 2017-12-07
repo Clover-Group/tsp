@@ -163,7 +163,7 @@ class RulesTest extends WordSpec with Matchers {
 
       type Phase[Row] = PhaseParser[Row, _, _]
 
-      val phase: Phase[Row] = ((e: Row) => e.speed) > 100
+      val phase: Phase[Row] = avg((e: Row) => e.speed, 2.seconds) > 100
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -174,7 +174,6 @@ class RulesTest extends WordSpec with Matchers {
                .after(Constant(0.0))
         ) yield Row(time, speed.toInt, pump.toInt)
         ).run(seconds = 10)
-
 
       val results = run(phase, rows)
 

@@ -1,9 +1,9 @@
 package ru.itclover.streammachine.core
 
-import ru.itclover.streammachine.core.NumericPhaseParser.ComparePhaseParser
-import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
+import ru.itclover.streammachine.core.NumericPhaseParser._
 
-import Predef.{any2stringadd => _, _}
+import scala.Numeric.Implicits._
+import scala.Predef.{any2stringadd => _, _}
 
 
 trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
@@ -21,60 +21,41 @@ trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
   def *[S2](right: NumericPhaseParser[Event, S2]): NumericPhaseParser[Event, (S, S2)] =
     NumericPhaseParser[Event, (S, S2)]((this and right).map { case (a, b) => a * b })
 
-  def >[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ > _)
+  def >[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a > b })
 
-  def >=[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ >= _)
+  def >=[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a >= b })
 
-  def <[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ < _)
+  def <[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a < b })
 
-  def <=[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ <= _)
+  def <=[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a <= b })
 
-  def ==[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ == _)
+  def ==[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a == b })
 
-  def !=[S2](right: NumericPhaseParser[Event, S2]) = ComparePhaseParser(this, right, _ != _)
-
+  def !=[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a != b })
 }
 
 
 object NumericPhaseParser {
 
-  trait TrivialNumericPhaseParser[Event] extends NumericPhaseParser[Event, Unit] {
-    override def initialState: Unit = ()
-  }
+  type BooleanPhaseParser[Event, State] = PhaseParser[Event, State, Boolean]
+
+  type ConstantPhaseParser[Event, +T] = OneRowPhaseParser[Event, T]
+
+  type NumericPhaseParser2[Event, S] = PhaseParser[Event, S, Double]
 
   trait SymbolNumberExtractor[Event] {
     def extract(event: Event, symbol: Symbol): Double
   }
 
-  case class SymbolExtractor[Event: SymbolNumberExtractor](symbol: Symbol) extends TrivialNumericPhaseParser[Event] {
+  implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, Unit] = NumericPhaseParser(ConstantPhaseParser[E, Double](value))
 
-    override def apply(v1: Event, v2: Unit): (PhaseResult[Double], Unit) =
-      Success(implicitly[SymbolNumberExtractor[Event]].extract(v1, symbol)) -> ()
-  }
+  implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, Unit] = NumericPhaseParser(ConstantPhaseParser[E, Double](value.toDouble))
 
-  implicit def symbolToExtract[Event: SymbolNumberExtractor](symbol: Symbol): SymbolExtractor[Event] = SymbolExtractor(symbol)
+  implicit def intExtractor[E](value: Int): NumericPhaseParser[E, Unit] = NumericPhaseParser(ConstantPhaseParser[E, Double](value.toDouble))
 
-  import Numeric.Implicits._
+  implicit def longExtractor[E](value: Long): NumericPhaseParser[E, Unit] = NumericPhaseParser(ConstantPhaseParser[E, Double](value.toDouble))
 
-  implicit class DoubleExtractor[E](n: Double) extends TrivialNumericPhaseParser[E] {
-    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n) -> ()
-  }
-
-  implicit class FloatExtractor[E](n: Float) extends TrivialNumericPhaseParser[E] {
-    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
-  }
-
-  implicit class IntExtractor[E](n: Int) extends TrivialNumericPhaseParser[E] {
-    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
-  }
-
-  implicit class LongExtractor[E](n: Long) extends TrivialNumericPhaseParser[E] {
-    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
-  }
-
-  implicit class FunctionNumberExtractor[Event, N: Numeric](val f: Event => N) extends TrivialNumericPhaseParser[Event] {
-    override def apply(v1: Event, v2: Unit) = Success(f(v1).toDouble()) -> ()
-  }
+  implicit def functionNumberExtractor[Event, N: Numeric](f: Event => N): NumericPhaseParser[Event, Unit] = NumericPhaseParser(OneRowPhaseParser(f.andThen(_.toDouble())))
 
   def apply[Event, State](inner: PhaseParser[Event, State, Double]): NumericPhaseParser[Event, State] =
     new NumericPhaseParser[Event, State] {
@@ -83,24 +64,29 @@ object NumericPhaseParser {
       override def apply(v1: Event, v2: State) = inner.apply(v1, v2)
     }
 
+  /**
+    * PhaseParser returning only Success(true), Failure and Stay. Cannot return Success(false)
+    *
+    * @param condition - inner boolean parser. Resulted parser returns Failure if condition returned Success(true)
+    * @tparam Event - event type
+    * @tparam State - possible inner state
+    */
+  def assertParser[Event, State](condition: BooleanPhaseParser[Event, State]) =
+    condition.flatMap[Unit, Boolean](b => if (b) ConstantPhaseParser[Event, Boolean](true) else FailurePhaseParser("not match"))
 
+  /**
+    * PhaseParser returning only Success(true), Failure and Stay. Cannot return Success(false)
+    *
+    * @param inner - inner parser.
+    * @tparam Event - event type
+    * @tparam State - possible inner state
+    */
+  def assertParser[Event, State, Out](inner: PhaseParser[Event, State, Out])(predicate: Out => Boolean):
+  FlatMapParser[Event, State, Unit, Out, Boolean] =
+    inner.flatMap(out => if (predicate(out)) ConstantPhaseParser(true) else FailurePhaseParser[Event]("not match"))
 
-  case class ComparePhaseParser[Event, S1, S2](
-                                                left: PhaseParser[Event, S1, Double],
-                                                right: PhaseParser[Event, S2, Double],
-                                                compare: (Double, Double) => Boolean
-                                              ) extends PhaseParser[Event, (S1, S2), Boolean] {
+  implicit def field[Event: SymbolNumberExtractor](symbol: Symbol): NumericPhaseParser[Event, Unit] = NumericPhaseParser(OneRowPhaseParser(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol)))
 
-    override def apply(v1: Event, v2: (S1, S2)): (PhaseResult[Boolean], (S1, S2)) =
-      (left and right).map { case (a, b) => compare(a, b) }.apply(v1, v2)
-
-    override def initialState: (S1, S2) = (left.initialState, right.initialState)
-  }
-
-  def field[Event: SymbolNumberExtractor](symbol: Symbol): SymbolExtractor[Event] = symbolToExtract(symbol)
-
-  def value[E, N: Numeric](n: N) = new TrivialNumericPhaseParser[E] {
-    override def apply(v1: E, v2: Unit): (Success[Double], Unit) = Success(n.toDouble) -> ()
-  }
+  def value[E, N: Numeric](n: N): NumericPhaseParser[E, Unit] = NumericPhaseParser(ConstantPhaseParser[E, Double](n.toDouble))
 
 }

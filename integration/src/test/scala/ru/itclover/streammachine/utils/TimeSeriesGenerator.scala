@@ -48,7 +48,7 @@ case class Constant[T](v: T) extends TimeSeriesGenerator[T] {
 case class Change(from: Double, to: Double, howLong: Duration) extends TimeSeriesGenerator[Double] {
 
   override def apply(v1: Duration) = {
-    (to - from) / (howLong.toMillis) * v1.toMillis
+   from +  (to - from) / (howLong.toMillis) * v1.toMillis
   }
 }
 
