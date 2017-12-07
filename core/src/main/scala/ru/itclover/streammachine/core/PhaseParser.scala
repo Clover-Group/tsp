@@ -7,6 +7,8 @@ import ru.itclover.streammachine.core.PhaseResult._
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.Phases.Wait
 
+import scala.language.higherKinds
+
 /**
   * Base trait. Used for statefully processing Event's. In each step returns some PhaseResult and new State
   *
@@ -16,10 +18,6 @@ import ru.itclover.streammachine.phases.Phases.Wait
   */
 trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
-
-  def name: String = ""
-
-  def id: String = ""
 }
 
 object PhaseParser {
@@ -115,7 +113,7 @@ object PhaseParser {
 
     def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]) = parser and Timer(timeInterval)
 
-    def until[State2](condition: PhaseParser[Event, State2, Boolean]) = Wait(condition)
+    def until[State2](condition: PhaseParser[Event, State2, Boolean]) = UntilParser(parser, condition)
 
     def mapWithEvent[B](f: (Event, T) => B): MapWithEventParser[Event, State, T, B] = MapWithEventParser(parser, f.curried)
 
@@ -336,4 +334,37 @@ case class Terminate[Event, State, Out](inner: PhaseParser[Event, State, Out]) e
   }
 
   override def initialState = Stay -> inner.initialState
+}
+
+
+/**
+  * Parser waiting for the next condition. Allows to create fail-fast patterns.
+  * @param first
+  * @param second
+  * @tparam Event - events to process
+  * @tparam State - inner state
+  * @tparam T     - output type, used if phase successfully terminated
+  * @tparam State2
+  */
+case class UntilParser[Event, State, T, State2](first: PhaseParser[Event, State, T], second: PhaseParser[Event, State2, Boolean]) extends PhaseParser[Event, (State, State2), T] {
+
+  override def apply(event: Event, v2: (State, State2)) = {
+
+    val (oldFirstState, oldSecondState) = v2
+
+    val (firstResult, newFirstState) = first(event, oldFirstState)
+    val (secondResult, newSecondState) = second(event, oldSecondState)
+
+    val newState = (newFirstState, newSecondState)
+
+    ((firstResult, secondResult) match {
+      case (Failure(msg), _) => Failure(msg)
+      case (Success(t1), Success(_)) => Success(t1)
+      case (Stay, Success(_)) => Failure("second condition has got earlier that first one")
+      case (_, _) => Stay
+    } )-> newState
+
+  }
+
+  override def initialState = (first.initialState, second.initialState)
 }

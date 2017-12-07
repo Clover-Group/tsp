@@ -16,6 +16,8 @@ trait OneRowPhaseParser[Event, +T] extends PhaseParser[Event, Unit, T] {
   def extract(event: Event): T
 
   override def initialState = ()
+
+  override def size: Int = 0
 }
 
 object OneRowPhaseParser {

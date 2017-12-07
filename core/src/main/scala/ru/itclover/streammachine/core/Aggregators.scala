@@ -14,6 +14,9 @@ trait AggregatingPhaseParser[Event, S] extends NumericPhaseParser[Event, S]
 object AggregatingPhaseParser {
 
   def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)(implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] = Average(numeric, window)
+
+
+  def deriv[Event, S](numeric: NumericPhaseParser[Event, S]): Derivation[Event, S] = Derivation(numeric)
 }
 
 object Aggregators {
@@ -124,4 +127,17 @@ object Aggregators {
     override def initialState: Option[Time] = None
   }
 
+}
+
+// case class DerivationState[Event](old)
+
+case class Derivation[Event](numeric: NumericPhaseParser[Event, Double]) extends NumericPhaseParser[Event, Double] {
+  var derivation = 0.0
+
+  override def apply(v1: Event, v2: Double): (PhaseResult[Double], Double) = {
+    val derivation = v2 - derivation
+
+  }
+
+  override def initialState = numeric.initialState
 }

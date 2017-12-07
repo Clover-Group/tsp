@@ -67,7 +67,13 @@ object TestApp extends App {
 
     val phase5: Phase[Event] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
 
+    val phase6 = 'currentCompressorMotor > 0 & ('PAirMainRes <= 7.5 andThen (deriv(avg('PAirMainRes, 5.seconds) ) > 0).timed(more(23.seconds) ) until 'PAirMainRes >= 8.0 )
 
+  20  7.5
+  23  7.77
+  25  7.8
+  45  7.9
+  56  8.0 -
   }
 }
 
