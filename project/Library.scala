@@ -6,6 +6,7 @@ object Version {
   val clickhouse = "0.1.34"
   val flink = "1.3.2"
   val scalaTest = "3.0.4"
+  val jodaTime = "2.9.9"
 }
 
 object Library {
@@ -23,4 +24,6 @@ object Library {
     "org.scalactic" %% "scalactic" % Version.scalaTest,
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test"
   )
+
+  val jodaTime = "joda-time" % "joda-time" % Version.jodaTime
 }

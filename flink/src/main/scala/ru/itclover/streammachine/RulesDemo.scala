@@ -1,83 +1,99 @@
 package ru.itclover.streammachine
 
-import java.text.SimpleDateFormat
 import java.time.Instant
+import javassist.bytecode.stackmap.TypeTag
 
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.io.TupleCsvInputFormat
-import org.apache.flink.api.java.typeutils.RowTypeInfo
-import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
+import akka.actor.FSM.Failure
+import org.apache.flink.api.common.operators.GenericDataSinkBase
+import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.api.common.functions.util.ListCollector
+import org.apache.flink.api.common.io.OutputFormat
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.{FileSystem, Path}
-import org.apache.flink.streaming.api.functions.source.FileProcessingMode
+import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.flink.types.Row
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig}
-//import ru.itclover.streammachine.io.input.{ClickhouseInput, KafkaInput}
-import ru.itclover.streammachine.phases.Phases._
+import org.apache.flink.util.Collector
+import org.joda.time.DateTime
+import ru.itclover.streammachine.core.PhaseParser
+import ru.itclover.streammachine.core.PhaseResult.Success
+import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCConfig => OutJDBCConfig}
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
 
-/**
-  * Demo streaming program that receives (or generates) a stream of events and evaluates
-  * a state machine (per originating IP address) to validate that the events follow
-  * the state machine's rules.
-  */
+import scala.collection.immutable.SortedMap
+//import ru.itclover.streammachine.io.input.{ClickhouseInput, KafkaInput}
+
+
+
 object RulesDemo {
 
   case class Row2(time: Instant, speedEngine: Int, contuctorOilPump: Int, wagonId: Int)
 
   def main(args: Array[String]): Unit = {
 
-    if (args.isEmpty || args.length > 1) {
-      println("Usage: /path/to/csv/file")
-      sys.exit(1)
-    }
-
-    val filePath = new Path(args(0))
-
-    import org.apache.flink.api.scala._
-
-
-    //    //"2017-09-13 10:00:00"
-    //    val format = new SimpleDateFormat("\"yyyy-MM-dd HH:mm:ss\"")
-    //
-    import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-    //
-    //    val tupleTypeInfoBase = implicitly[TypeInformation[(String, Int, Int, Int)]].asInstanceOf[CaseClassTypeInfo[(String, Int, Int, Int)]]
-    //
-    val streamEnv = StreamExecutionEnvironment.createLocalEnvironment()
-    //
-    //    val dataSet = streamEnv.readFile(
-    //      new TupleCsvInputFormat[(String, Int, Int, Int)](filePath, tupleTypeInfoBase),
-    //      args(0),
-    //      FileProcessingMode.PROCESS_ONCE, 100)
-
-
-    import org.apache.flink.api.scala._
     case class Temp(wagon: Int, datetime: String, temp: Float)
 
-    val inpConfig = JDBCConfig(
-      jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamed",
-      query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100",
+    import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+    import org.apache.flink.api.scala._
+
+    import core.Aggregators._
+    import core.AggregatingPhaseParser._
+    import core.NumericPhaseParser._
+    import Predef.{any2stringadd => _, _}
+    // import ru.itclover.streammachine.core.Time._
+
+    val streamEnv = StreamExecutionEnvironment.createLocalEnvironment()
+
+    val inpConfig = InpJDBCConfig(
+      jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
+      query = "select date, timestamp, Wagon_id, SpeedEngine, ContuctorOilPump from series765_data_test_speed limit 0, 30000",
       driverName = "ru.yandex.clickhouse.ClickHouseDriver"
     )
     val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
       case Right(typesInfo) => typesInfo
       case Left(err) => throw err
     }
-    val inpFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
-    val dataStream = streamEnv.createInput(inpFormat)
+    val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
+//    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
+    val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
 
-    val ds = dataStream.map(row => Temp(row.getField(0).asInstanceOf[Int], row.getField(1).asInstanceOf[String], row.getField(2).asInstanceOf[Float]))
+    implicit val symbolNumberExtractorRow = new SymbolNumberExtractor[Row] {
+      override def extract(event: Row, symbol: Symbol) = {
+        event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
+      }
+    }
 
-    ds.writeAsText("/tmp/output.csv", FileSystem.WriteMode.OVERWRITE)
+    implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
+      val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
-    //    val rows = dataSet.map(r => Row(format.parse(r._1).toInstant, r._2, r._3, r._4))
-    //
-//        val alerts = rows
-//          .keyBy(_.wagonId)
-    //       the function that evaluates the state machine over the sequence of events
-//          .flatMap(FlinkStateMachineMapper(Rules.stopWithoutOilPumping))
-    //
-//        alerts.writeAsCsv("/tmp/output.csv")
+      override def apply(v1: Row) = {
+        dateFormat.parse(v1.getField(1).asInstanceOf[String])
+      }
+    }
+
+    type Phase[Event] = PhaseParser[Event, _, _]
+
+    val assertPhase = Assert[Row](event => event.getField(3).asInstanceOf[Float].toDouble > 250)
+    val decreasePhase = Decreasing[Row, Double](event => event.getField(3).asInstanceOf[Float].toDouble, 250, 50)
+
+    val stateMachine = FlinkStateMachineMapper(assertPhase)
+
+//    stateMachine.open(new Configuration())
+//    val resultList = new java.util.ArrayList[Boolean]()
+//    val flinkCollector = new ListCollector(resultList)
+
+    val dataStream = streamEnv.createInput(chInputFormat)
+    dataStream.keyBy(row => row.getField(2)).flatMap(stateMachine).map(result => println(s"R = $result"))
+//    dataStream.map(result => println(s"R = $result"))
+
+
+    val t0 = System.nanoTime()
+    println("Strart timer")
 
     streamEnv.execute()
+
+    val t1 = System.nanoTime()
+    println("Elapsed time: " + (t1 - t0) / 1000000000.0 + " seconds")
   }
 }

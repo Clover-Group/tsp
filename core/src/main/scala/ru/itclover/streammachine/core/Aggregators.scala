@@ -1,6 +1,7 @@
 package ru.itclover.streammachine.core
 
 import ru.itclover.streammachine.core.Aggregators.Average
+import ru.itclover.streammachine.core.PhaseParser.And
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
 
@@ -131,13 +132,22 @@ object Aggregators {
 
 // case class DerivationState[Event](old)
 
-case class Derivation[Event](numeric: NumericPhaseParser[Event, Double]) extends NumericPhaseParser[Event, Double] {
-  var derivation = 0.0
+case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, InnerState]) extends
+  NumericPhaseParser[Event, InnerState And Option[Double]] {
 
-  override def apply(v1: Event, v2: Double): (PhaseResult[Double], Double) = {
-    val derivation = v2 - derivation
+  // TODO: Add time
+  override def apply(event: Event, state: InnerState And Option[Double]): (PhaseResult[Double], InnerState And Option[Double]) = {
+    val (innerState, prevValueOpt) = state
+    val (innerResult, newInnerState) = numeric(event, innerState)
+
+    (innerResult, prevValueOpt) match {
+      case (Success(t), Some(prevValue)) => Success(t - prevValue) -> (newInnerState, Some(t))
+      case (Success(t), None) => Stay -> (newInnerState, Some(t))
+      case (Stay, Some(prevValue)) => Stay -> (newInnerState, Some(prevValue)) // pushing prev value on stay phases
+      case (f: Failure, _) => f -> initialState
+    }
 
   }
 
-  override def initialState = numeric.initialState
+  override def initialState = (numeric.initialState, None)
 }

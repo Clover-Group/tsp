@@ -14,14 +14,14 @@ object Phases {
     * @param predicate
     * @tparam Event - events to process
     */
-  case class Assert[Event](predicate: Event => Boolean) extends PhaseParser[Event, Unit, Boolean] {
-    override def apply(event: Event, s: Unit) = {
+  case class Assert[Event](predicate: Event => Boolean) extends PhaseParser[Event, Option[Unit], Boolean] {
+    override def apply(event: Event, s: Option[Unit]) = {
 
-      if (predicate(event)) Success(true) -> ()
-      else Failure("Event does not match condition!") -> ()
+      if (predicate(event)) Success(true) -> None
+      else Failure("Event does not match condition!") -> None
     }
 
-    override def initialState: Unit = ()
+    override def initialState: Option[Unit] = None
   }
 
   /**
@@ -94,7 +94,7 @@ object Phases {
 
 
   /**
-    * Phase checking that extract(event) is the same.
+    * Phase checking that extract(event) is the same (not changing).
     *
     * @param extract
     * @tparam Event
@@ -116,7 +116,8 @@ object Phases {
 
 
   /**
-    * Phase waiting for changes of `extract(event)`. Returns Stay if `extract(event)` is the same for subsequence of events.
+    * Phase waiting for changes of `extract(event)`.
+    * Returns Stay if `extract(event)` is the same for subsequence of events.
     *
     * @param extract - function to extract value from Event
     */
