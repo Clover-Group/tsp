@@ -138,7 +138,7 @@ object Aggregators {
     */
   case class ToSegments[Event, InnerState](innerParser: PhaseParser[Event, InnerState, _])
     (implicit timeExtractor: TimeExtractor[Event]) extends PhaseParser[Event, InnerState And Option[Time], (Time, Time)] {
-    // TODO Add gap interval `maxGapInterval: TimeInterval`:
+    // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)
 
     override def apply(event: Event, state: InnerState And Option[Time]): (PhaseResult[Time And Time], InnerState And Option[Time]) = {
@@ -146,11 +146,15 @@ object Aggregators {
       val (innerState, prevEventTimeOpt) = state
 
       innerParser(event, innerState) match {
+        // Accumulate Success to segment TODO until timeout.
         case (Success(_), newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
-        case (Stay, newInnerState) => (prevEventTimeOpt match {
-            case Some(t) => Success(t -> eventTime)
-            case None => Stay
-          }) -> (newInnerState -> None)
+        // Accumulate here stay as segment, if it not goes after success (i.e. segments not closing)
+        // otherwise close the segment with previous Success value.
+        case (Stay, newInnerState) => prevEventTimeOpt match {
+            case Some(t) => Success(t -> eventTime) -> (newInnerState -> None)
+            case None => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
+          }
+        // Close segment if we hold some, else raise Failure. Also clean segment state.
         case (failure: Failure, newInnerState) => (prevEventTimeOpt match {
             case Some(t) => Success(t -> eventTime)
             case None => failure
@@ -158,7 +162,7 @@ object Aggregators {
       }
     }
 
-    override def initialState = (innerParser.initialState, None)
+    override def initialState: (InnerState, Option[Time]) = (innerParser.initialState, None)
   }
 
 }
