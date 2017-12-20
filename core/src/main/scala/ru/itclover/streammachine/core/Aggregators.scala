@@ -1,5 +1,7 @@
 package ru.itclover.streammachine.core
 
+import java.time.Instant
+
 import ru.itclover.streammachine.core.Aggregators.Average
 import ru.itclover.streammachine.core.PhaseParser.And
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
@@ -129,40 +131,45 @@ object Aggregators {
   }
 
 
+  case class Segment(from: Time, to: Time)
+
   /**
     * Transform chain of Success results to one Success result in format of `(fromTime, toTime)`
     * @param innerParser - parser to wrap with gaps
     * @param timeExtractor - function returning time from Event
     * @tparam Event - events to process
-    * @tparam InnerState type of state for innerParser
+    * @tparam State type of state for innerParser
     */
-  case class ToSegments[Event, InnerState](innerParser: PhaseParser[Event, InnerState, _])
-    (implicit timeExtractor: TimeExtractor[Event]) extends PhaseParser[Event, InnerState And Option[Time], (Time, Time)] {
+  case class ToSegments[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
+                                          (implicit timeExtractor: TimeExtractor[Event])
+    extends PhaseParser[Event, State And Option[Time], Segment] {
     // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)
 
-    override def apply(event: Event, state: InnerState And Option[Time]): (PhaseResult[Time And Time], InnerState And Option[Time]) = {
+    override def apply(event: Event, state: State And Option[Time]):
+    (PhaseResult[Segment], State And Option[Time]) = {
       val eventTime = timeExtractor(event)
       val (innerState, prevEventTimeOpt) = state
 
       innerParser(event, innerState) match {
         // Accumulate Success to segment TODO until timeout.
         case (Success(_), newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
-        // Accumulate here stay as segment, if it not goes after success (i.e. segments not closing)
-        // otherwise close the segment with previous Success value.
+        // Accumulate here Stay as segment, if it not goes after success (i.e. segments not closing)
+        // otherwise return the segment with previous Success value.
         case (Stay, newInnerState) => prevEventTimeOpt match {
-            case Some(t) => Success(t -> eventTime) -> (newInnerState -> None)
-            case None => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
+            case Some(startTime) => Success(Segment(startTime, eventTime)) -> (newInnerState -> None)
+            case None => Stay -> (newInnerState -> Some(eventTime))
           }
-        // Close segment if we hold some, else raise Failure. Also clean segment state.
+
+        // Return segment if we hold some Success elements, else raise Failure. Also clean segment state.
         case (failure: Failure, newInnerState) => (prevEventTimeOpt match {
-            case Some(t) => Success(t -> eventTime)
+            case Some(t) => Success(Segment(t, eventTime))
             case None => failure
           }) -> (newInnerState -> None)
       }
     }
 
-    override def initialState: (InnerState, Option[Time]) = (innerParser.initialState, None)
+    override def initialState: (State, Option[Time]) = (innerParser.initialState, None)
   }
 
 }
