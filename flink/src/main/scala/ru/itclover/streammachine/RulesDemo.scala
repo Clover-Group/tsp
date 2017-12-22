@@ -83,9 +83,32 @@ object RulesDemo {
 //    val resultList = new java.util.ArrayList[Boolean]()
 //    val flinkCollector = new ListCollector(resultList)
 
+    type Segmented[X] = Option[X]
+
     val dataStream = streamEnv.createInput(chInputFormat)
-    dataStream.keyBy(row => row.getField(2)).flatMap(stateMachine).map(result => println(s"R = $result"))
-//    dataStream.map(result => println(s"R = $result"))
+    val resultStream = dataStream.keyBy(row => row.getField(2)).flatMap(stateMachine)
+//      .map({ f =>
+//      f match {
+//        case (Segment(from, to), _) => write to db
+//        case (_, _) => raise
+//      }
+//    })
+
+    resultStream.map(result => println(s"R = $result"))
+
+    val outConfig = OutJDBCConfig(
+      jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
+      sinkTable = "series765_data_sink_test_speed",
+      sinkColumnsNames = List[Symbol]('if_rule_success),
+      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+      batchInterval = Some(1000)
+    )
+    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig)
+    resultStream.map(res => {
+      val r = new Row(1)
+      r.setField(0, res)
+      r
+    }).writeUsingOutputFormat(chOutputFormat)
 
 
     val t0 = System.nanoTime()

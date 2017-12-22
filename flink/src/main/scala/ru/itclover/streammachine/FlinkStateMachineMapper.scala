@@ -10,6 +10,7 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import scala.reflect.ClassTag
 
 
+// Try resultsParser in AbstractStateMachineMapper
 case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: PhaseParser[Event, State, Out]) extends
   RichFlatMapFunction[Event, Out]
   with AbstractStateMachineMapper[Event, State, Out]
@@ -31,7 +32,7 @@ case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: Pha
     currentState.update(newStates)
 
     firstEmitted.foreach {
-      case Success(x) => outCollector.collect(x)
+      case Success(x, _) => outCollector.collect(x)
       case Failure(_) =>
     }
 

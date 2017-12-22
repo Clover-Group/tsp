@@ -4,9 +4,10 @@ import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.RulesDemo.Row2
-import ru.itclover.streammachine.core.Aggregators.Average
-import ru.itclover.streammachine.core.{PhaseParser, Window}
-import ru.itclover.streammachine.core.PhaseResult.Success
+import ru.itclover.streammachine.core.Aggregators.{Average, ToSegments}
+import ru.itclover.streammachine.core.NumericPhaseParser.field
+import ru.itclover.streammachine.core.{AliasedParser, PhaseParser, Window}
+import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
 import ru.itclover.streammachine.phases.Phases.{Assert, Wait}
 import ru.itclover.streammachine.utils.{Timer => TimerGenerator, _}
@@ -18,12 +19,63 @@ import scala.util.Random
 class RulesTest extends WordSpec with Matchers {
 
   import Rules._
+  import core.Aggregators._
+  import core.AggregatingPhaseParser._
+  import core.NumericPhaseParser._
+  import ru.itclover.streammachine.core.Time._
+  import Predef.{any2stringadd => _, assert => _, _}
+
 
   def run[T, Out](rule: PhaseParser[T, _, Out], events: Seq[T]) = {
     events
       .foldLeft(StateMachineMapper(rule)) { case (machine, event) => machine(event) }
       .result
   }
+
+  implicit val random: Random = new java.util.Random(345l)
+
+  implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
+    override def extract(event: Row, symbol: Symbol) = {
+      symbol match {
+        case 'speed => event.speed
+        case 'pump => event.pump
+        case _ => sys.error(s"No field $symbol in $event")
+      }
+    }
+  }
+
+  implicit val timeExtractor = new TimeExtractor[Row] {
+    override def apply(v1: Row) = v1.time
+  }
+
+  type Phase[Row] = PhaseParser[Row, _, _]
+
+  "Combine And & Assert parsers" should {
+    "work correctly" in {
+      val phase: Phase[Row] = 'speed > 10 and 'speed < 20
+
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(30.0).timed(1.seconds)
+               .after(Change(from = 30.0, to = 0.0, howLong = 10.seconds))
+               .after(Constant(0.0))
+        ) yield Row(time, speed.toInt, 0)
+        ).run(seconds = 10)
+
+      val results = run(phase, rows)
+
+      assert(results.nonEmpty)
+
+      val (success, failures) = results partition {
+        case Success(_, _) => true
+        case Failure(_) => false
+      }
+
+      success.length should be > 1
+      failures.length should be > 1
+    }
+  }
+
 
   "stopWithoutOilPumping" should {
 
@@ -84,55 +136,6 @@ class RulesTest extends WordSpec with Matchers {
 
   }
 
-  "customTest" should {
-
-    //    implicit val random: Random = new java.util.Random(345l)
-    //
-    //    "match" in {
-    //      val rows = (
-    //        for (time <- TimerGenerator(from = Instant.now());
-    //             pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
-    //               .after(Constant(0));
-    //             speed <- Constant(250d).timed(1.seconds)
-    //               .after(Change(from = 250.0, to = 0.0, howLong = 30.seconds))
-    //               .after(Constant(0.0))
-    //        ) yield Row2(time, speed.toInt, pump.toInt, 1))
-    //        .run(seconds = 100)
-    //
-    //      val rule = Assert[Row2](_.speedEngine > 240) andThen (Wait[Row2](_.contuctorOilPump == 0) & Timer[Row2](_.time, atLeastSeconds = 5))
-    //
-    //      val results = run(rule, rows).collect { case Success(x) => x }
-    //
-    //      assert(results.nonEmpty)
-    //    }
-    //
-    //    "works with FlatMap + Average" in {
-    //      case class Temp(timeMilliseconds: Long, value: Int)
-    //      val rule: Phase[Temp] =
-    //        Average(_.timeMilliseconds, _.value, 5.seconds)
-    //          .flatMap(avg => Assert[Temp](_.value > avg + 10))
-    //          .map { case (event, b) => (event.timeMilliseconds, b) }
-    //
-    //      for (avg <- Average[Temp, Long, Duration, Int](_.timeMilliseconds, _.value, 5.seconds);
-    //           result <- Assert[Temp](_.value > avg + 10)
-    //      ) yield {
-    //        (result, avg)
-    //      }
-    //
-    //
-    //      val points = (
-    //        for (time <- Milliseconds;
-    //             value <- Constant(0).timed(10.second).after(Constant(100))
-    //        ) yield Temp(time, value.toInt)
-    //        )
-    //        .run(seconds = 100)
-    //
-    //      val result = run(rule, points).filter(_.isInstanceOf[Success[_]])
-    //
-    //      assert(result.nonEmpty)
-    //    }
-  }
-
   "dsl" should {
 
     "works" in {
@@ -144,20 +147,6 @@ class RulesTest extends WordSpec with Matchers {
       import Predef.{any2stringadd => _, assert => _, _}
 
       implicit val random: Random = new java.util.Random(345l)
-
-      implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
-        override def extract(event: Row, symbol: Symbol) = {
-          symbol match {
-            case 'speed => event.speed
-            case 'pump => event.pump
-            case _ => sys.error(s"No field $symbol in $event")
-          }
-        }
-      }
-
-      implicit val timeExtractor = new TimeExtractor[Row] {
-        override def apply(v1: Row) = v1.time
-      }
 
       val window: Window = 5.seconds
 
@@ -177,8 +166,6 @@ class RulesTest extends WordSpec with Matchers {
 
       val results = run(phase, rows)
 
-      println(results)
-
       assert(results.nonEmpty)
       //
       //    val phase2: Phase[Row] = avg('speed, window) > avg('pump, window)
@@ -190,6 +177,78 @@ class RulesTest extends WordSpec with Matchers {
       //    val phase5: Phase[Row] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
     }
 
+  }
+
+  // todo to PhaseTests
+  "Aliased parser" should {
+    "Work on different levels of phases trees" in {
+      val phase: Phase[Row] = ('speed > 10 and ('speed < 20 as 'upperLimit)) as 'isSpeedInRange
+
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(30.0).timed(1.seconds)
+               .after(Change(from = 30.0, to = 0.0, howLong = 10.seconds))
+               .after(Constant(0.0))
+        ) yield Row(time, speed.toInt, 0)
+        ).run(seconds = 10)
+
+      val results = run(phase, rows)
+
+      val upperLimitsOpts = results map { result =>
+        result.getValue('upperLimit)
+      }
+
+      val inRangeOpts = results map { result =>
+        result.getValue('isSpeedInRange)
+      }
+
+      upperLimitsOpts should contain atLeastOneElementOf None :: Nil
+      upperLimitsOpts should contain atLeastOneElementOf Some(true) :: Nil
+
+      inRangeOpts should contain atLeastOneElementOf None :: Nil
+      inRangeOpts should contain atLeastOneElementOf Some(true, true) :: Nil
+    }
+  }
+
+  "ToSegments aggregator" should {
+
+    implicit val random: Random = new java.util.Random(345l)
+
+    implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
+      override def extract(event: Row, symbol: Symbol) = {
+        symbol match {
+          case 'speed => event.speed
+          case 'pump => event.pump
+          case _ => sys.error(s"No field $symbol in $event")
+        }
+      }
+    }
+
+    implicit val timeExtractor = new TimeExtractor[Row] {
+      override def apply(v1: Row) = v1.time
+    }
+
+    "work on correct input" in {
+      val phase: Phase[Row] = ToSegments('speed > 35) // ... Go through again
+
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(50.0).timed(1.seconds)
+               .after(Change(from = 50.0, to = 30.0, howLong = 20.seconds))
+               .after(Constant(0.0))
+        ) yield Row(time, speed.toInt, 0)
+        ).run(seconds = 20)
+
+      val results = run(phase, rows)
+
+      println(rows)
+      println(results)
+
+      println(results.map(x => (x.map(_.asInstanceOf[Segment].from.toMillis), x.map(_.asInstanceOf[Segment].to.toMillis)))
+        .zip(rows.map(r => s" is ${r.speed}")))
+
+      assert(results.nonEmpty)
+    }
   }
 
   case class Row(time: Instant, speed: Double, pump: Double)

@@ -8,6 +8,7 @@ object ClickhouseOutput {
 
   def getOutputFormat(config: JDBCConfig): JDBCOutputFormat = {
     val insertQuery = getInsertQuery(config.sinkTable, config.sinkColumnsNames.map(_.toString().tail))
+    println(s"Configure ClickhouseOutput with insertQuery = `$insertQuery`")
     JDBCOutputFormat.buildJDBCOutputFormat()
         .setDrivername(config.driverName)
         .setDBUrl(config.jdbcUrl)
