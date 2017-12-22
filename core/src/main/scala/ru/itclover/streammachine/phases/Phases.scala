@@ -17,7 +17,7 @@ object Phases {
   case class Assert[Event](predicate: Event => Boolean) extends PhaseParser[Event, Option[Unit], Boolean] {
     override def apply(event: Event, s: Option[Unit]) = {
 
-      if (predicate(event)) Success(true) -> None
+      if (predicate(event)) Success(true, Map.empty) -> None
       else Failure("Event does not match condition!") -> None
     }
 
@@ -41,7 +41,7 @@ object Phases {
       def processNewValue = if (newValue > from) {
         Failure("Not in range") -> None
       } else if (newValue <= to) {
-        Success(newValue) -> Some(newValue)
+        Success(newValue, Map.empty) -> Some(newValue)
       } else {
         Stay -> Some(newValue)
       }
@@ -75,7 +75,7 @@ object Phases {
       def processNewValue = if (newValue < from) {
         Failure("Not in range") -> None
       } else if (newValue >= to) {
-        Success(newValue) -> Some(newValue)
+        Success(newValue, Map.empty) -> Some(newValue)
       } else {
         Stay -> Some(newValue)
       }
@@ -105,7 +105,7 @@ object Phases {
       val field = extract(event)
 
       state match {
-        case Some(old) if old == field => Success(field) -> state
+        case Some(old) if old == field => Success(field, Map.empty) -> state
         case Some(old) => Failure("Field has changed!") -> state
         case None => Stay -> Some(field)
       }
@@ -132,7 +132,7 @@ object Phases {
       if (diffValues.size == 1) {
         Stay -> newState
       } else {
-        Success(diffValues) -> newState
+        Success(diffValues, Map.empty) -> newState
       }
     }
 
@@ -146,7 +146,7 @@ object Phases {
       val (res, newState) = conditionParser(event, v2)
 
       (res match {
-        case s@Success(true) => s
+        case s@Success(true, ctx) => s
         case _ => Stay
       }) -> newState
     }

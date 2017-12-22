@@ -65,11 +65,21 @@ object TestApp extends App {
 
     val phase3 = avg('speed, 5.seconds) >= 5.0 andThen avg('pump, 3.seconds) > 0
 
+    // val namedPhase = avg('speed, 5.seconds) >= 5.0 andThen avg('pump, 3.seconds) > 0
+    // flatMap {
+    //  case Success(_) => True
+    //  case _ => False
+    // }
+
     val phase4: Phase[Event] = avg((e: Event) => e.speed, 5.seconds) >= value(5.0)
 
     val phase5: Phase[Event] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
 
-    val phase6 = 'currentCompressorMotor > 0 & ('PAirMainRes <= 7.5 andThen (deriv(avg('PAirMainRes, 5.seconds) ) > 0).timed(more(23.seconds) ) until 'PAirMainRes >= 8.0 )
+    val phase6 = 'currentCompressorMotor > 0 & ('PAirMainRes <= 7.5 andThen (derivation(avg('PAirMainRes, 5.seconds) ) >
+      0).timed(more(23.seconds) ) until 'PAirMainRes >= 8.0 )
+
+    // flatMapNamed
+    val collector1 = events.foldLeft(StateMachineMapper(phase3)) { case (mapper, event) => mapper(event) }
   }
 }
 

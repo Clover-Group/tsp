@@ -19,7 +19,7 @@ object AggregatingPhaseParser {
   def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)(implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] = Average(numeric, window)
 
 
-  def deriv[Event, S](numeric: NumericPhaseParser[Event, S]): Derivation[Event, S] = Derivation(numeric)
+  def derivation[Event, S](numeric: NumericPhaseParser[Event, S]): Derivation[Event, S] = Derivation(numeric)
 }
 
 object Aggregators {
@@ -76,11 +76,11 @@ object Aggregators {
       val (innerResult, newInnerState) = extract(event, oldInnerState)
 
       innerResult match {
-        case Success(t) => {
+        case Success(t, ctx) => {
           val newAverageState = oldAverageState.updated(time, t)
 
           val newAverageResult = newAverageState.startTime match {
-            case Some(startTime) if time >= startTime.plus(window) => Success(newAverageState.result)
+            case Some(startTime) if time >= startTime.plus(window) => Success(newAverageState.result, ctx)
             case _ => Stay
           }
 
@@ -120,7 +120,7 @@ object Aggregators {
           Stay -> Some(eventTime)
         case Some(startTime) =>
           val result = if (startTime.plus(timeInterval.min) < eventTime) Stay
-          else if (startTime.plus(timeInterval.max) <= eventTime) Success(startTime -> eventTime)
+          else if (startTime.plus(timeInterval.max) <= eventTime) Success(startTime -> eventTime, Map.empty)
           else Failure(s"Timeout expired at $eventTime")
 
           result -> state
@@ -151,21 +151,16 @@ object Aggregators {
       val eventTime = timeExtractor(event)
       val (innerState, prevEventTimeOpt) = state
 
-      innerParser(event, innerState) match {
-        // Accumulate Success to segment TODO until timeout.
-        case (Success(_), newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
+      innerParser(event, innerState) match { // ?? Why computations stops if return Stay here? Bcs of одноразовость?
+        // Return segment. If we `prevEventTimeOpt` is None then segment collapses to the one point.
+        case (Success(_, _), newInnerState) => Success(
+            Segment(prevEventTimeOpt.getOrElse(eventTime), eventTime), Map.empty
+          ) -> (newInnerState -> None)
         // Accumulate here Stay as segment, if it not goes after success (i.e. segments not closing)
         // otherwise return the segment with previous Success value.
-        case (Stay, newInnerState) => prevEventTimeOpt match {
-            case Some(startTime) => Success(Segment(startTime, eventTime)) -> (newInnerState -> None)
-            case None => Stay -> (newInnerState -> Some(eventTime))
-          }
+        case (Stay, newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
 
-        // Return segment if we hold some Success elements, else raise Failure. Also clean segment state.
-        case (failure: Failure, newInnerState) => (prevEventTimeOpt match {
-            case Some(t) => Success(Segment(t, eventTime))
-            case None => failure
-          }) -> (newInnerState -> None)
+        case (failure: Failure, newInnerState) => failure  -> (newInnerState -> None)
       }
     }
 
@@ -174,7 +169,7 @@ object Aggregators {
 
 }
 
-// TODO: To numeric parsers
+
 case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, InnerState]) extends
   NumericPhaseParser[Event, InnerState And Option[Double]] {
 
@@ -184,8 +179,8 @@ case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, Inne
     val (innerResult, newInnerState) = numeric(event, innerState)
 
     (innerResult, prevValueOpt) match {
-      case (Success(t), Some(prevValue)) => Success(t - prevValue) -> (newInnerState, Some(t))
-      case (Success(t), None) => Stay -> (newInnerState, Some(t))
+      case (Success(t, ctx), Some(prevValue)) => Success(t - prevValue, ctx) -> (newInnerState, Some(t))
+      case (Success(t, _), None) => Stay -> (newInnerState, Some(t))
       case (Stay, Some(prevValue)) => Stay -> (newInnerState, Some(prevValue)) // pushing prev value on stay phases
       // case (Stay, None) => Stay -> (newInnerState, None) // pushing prev value on stay phases // TODO
       case (f: Failure, _) => f -> initialState
