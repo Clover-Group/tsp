@@ -11,7 +11,7 @@ object ConstantPhaseParser {
 
 trait OneRowPhaseParser[Event, +T] extends PhaseParser[Event, Unit, T] {
 
-  override def apply(v1: Event, v2: Unit): (PhaseResult[T], Unit) = Success(extract(v1), Map.empty) -> ()
+  override def apply(v1: Event, v2: Unit): (PhaseResult[T], Unit) = Success(extract(v1)) -> ()
 
   def extract(event: Event): T
 

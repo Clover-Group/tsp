@@ -1,6 +1,7 @@
 package ru.itclover.streammachine.core
 
 import ru.itclover.streammachine.core.Aggregators.Timer
+import ru.itclover.streammachine.core.AliasedParser.Aliased
 import ru.itclover.streammachine.core.PhaseParser.{And, AndThen, Or}
 import ru.itclover.streammachine.core.PhaseResult._
 import ru.itclover.streammachine.core.Time.TimeExtractor
@@ -55,11 +56,6 @@ object PhaseParser {
       */
     def and[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
     AndParser[Event, State, RightState, T, RightOut] = AndParser(parser, rightParser)
-
-    /**
-      * Alias for AliasedParser
-      */
-    def as(alias: Symbol): AliasedParser[Event, State, T] = AliasedParser(parser, alias)
 
     /**
       * Alias for `and`
@@ -149,7 +145,7 @@ case class AndParser[Event, LState, RState, LOut, ROut]
     val (rightResult, newRightState) = rightParser(event, rightState)
     val newState = newLeftState -> newRightState
     ((leftResult, rightResult) match {
-      case (Success(leftOut, leftCtx), Success(rightOut, rightCtx)) => Success(leftOut -> rightOut, leftCtx ++ rightCtx)
+      case (Success(leftOut), Success(rightOut)) => Success(leftOut -> rightOut)
       case (Failure(msg), _) => Failure(msg)
       case (_, Failure(msg)) => Failure(msg)
       case (_, _) => Stay
@@ -159,28 +155,32 @@ case class AndParser[Event, LState, RState, LOut, ROut]
   override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
 }
 
-/** Adds an alias to result of other parser by which one can get result out of final PhaseResult. */
-case class AliasedParser[Event, InnerState, InnerOut](innerParser: PhaseParser[Event, InnerState, InnerOut], alias: Symbol)
-  extends PhaseParser[Event, InnerState, InnerOut] {
 
-  override def apply(event: Event, state: InnerState): (PhaseResult[InnerOut], InnerState) = {
+case class AliasedParser[Event, InnerState, InnerOut](innerParser: PhaseParser[Event, InnerState, InnerOut], alias: String)
+  extends PhaseParser[Event, InnerState, Aliased[InnerOut]] {
+
+  val curriedAlias: InnerOut => Aliased[InnerOut] = (Aliased.apply[InnerOut] _).curried(alias)
+
+  override def apply(event: Event, state: InnerState): (PhaseResult[Aliased[InnerOut]], InnerState) = {
     val (result, newState) = innerParser(event, state)
-    (result match {
-      case Success(x, ctx) =>
-        assert(!ctx.contains(alias), s"Duplicated aliases - $alias")
-        Success(x, ctx + (alias -> x))
-      case otherOut => otherOut
-    }) -> newState
+    // TODO inherit from Success
+    result.map(curriedAlias) -> newState
   }
 
   override def initialState: (InnerState) = innerParser.initialState
+}
+
+object AliasedParser {
+
+  case class Aliased[T](alias: String, value: T)
+
 }
 
 
 // todo think about using shapeless here.
 /**
   * PhaseParser chaining two parsers one after another.
-  * Success if first phase finished successfully and second is successful too.
+  * Success if first phase finished successfully and second is successfull too.
   * Failure if any of phases finished with Failure.
   * If first phase is in Stay or first phase has finished but second in Stay the result is Stay.
   */
@@ -201,15 +201,12 @@ case class AndThenParser[Event, FirstState, SecondState, FirstOut, SecondOut]
       case None =>
         val (firstResult, newFirstState) = first(event, firstState)
         firstResult match {
-          case Success(firstOut, firstCtx) => {
+          case Success(firstOut) => {
             //we should try to reapply this event to the second phase
             val (secondResult, newSecondState) = second(event, secondState)
             val newState = (newFirstState, newSecondState, Some(firstOut))
             (secondResult match {
-              case Success(secondOut, secondCtx) =>
-                val duplicates = secondCtx.keys.filter(k => firstCtx.contains(k))
-                assert(duplicates.isEmpty, s"Duplicated aliases - $duplicates.")
-                Success(firstOut -> secondOut, firstCtx ++ secondCtx)
+              case Success(secondOut) => Success(firstOut -> secondOut)
               case f@Failure(msg) => f
               case Stay => Stay
             }) -> newState
@@ -221,7 +218,7 @@ case class AndThenParser[Event, FirstState, SecondState, FirstOut, SecondOut]
         val (secondResult, newSecondState) = second(event, secondState)
 
         (secondResult match {
-          case Success(secondOut, ctx) => Success(firstOut -> secondOut, ctx)
+          case Success(secondOut) => Success(firstOut -> secondOut)
           case f@Failure(msg) => f
           case Stay => Stay
         }) -> (firstState, newSecondState, optFirstOut)
@@ -245,8 +242,8 @@ case class OrParser[Event, LState, RState, LOut, ROut]
     val (rightResult, newRightState) = rightParser(event, rightState)
     val newState = newLeftState -> newRightState
     ((leftResult, rightResult) match {
-      case (Success(leftOut, ctx), _) => Success(Left(leftOut), ctx)
-      case (_, Success(rightOut, ctx)) => Success(Right(rightOut), ctx)
+      case (Success(leftOut), _) => Success(Left(leftOut))
+      case (_, Success(rightOut)) => Success(Right(rightOut))
       case (Stay, _) => Stay
       case (_, Stay) => Stay
       case (Failure(msg1), Failure(msg2)) => Failure(s"Or Failed: 1) $msg1 2) $msg2")
@@ -276,11 +273,11 @@ case class LazyAndParser[Event, LState, RState, LOut, ROut]
 
     val (leftResult, newLeftState) = leftParser(event, leftState)
     leftResult match {
-      case (Success(leftOut, leftCtx)) => {
+      case (Success(leftOut)) => {
         val (rightResult, newRightState) = rightParser(event, rightState)
         val newState = newLeftState -> newRightState
         (rightResult match {
-          case Success(rightOut, rightCtx) => Success(leftOut -> rightOut, leftCtx ++ rightCtx)
+          case Success(rightOut) => Success(leftOut -> rightOut)
           case f@Failure(msg) => Failure(msg)
           case Stay => Stay
         }) -> newState
@@ -362,8 +359,8 @@ case class UntilParser[Event, State, T, State2](first: PhaseParser[Event, State,
 
     ((firstResult, secondResult) match {
       case (Failure(msg), _) => Failure(msg)
-      case (Success(t1, leftCtx), Success(_, rightCtx)) => Success(t1, leftCtx ++ rightCtx)
-      case (Stay, Success(_, _)) => Failure("second condition has got earlier than first one")
+      case (Success(t1), Success(_)) => Success(t1)
+      case (Stay, Success(_)) => Failure("second condition has got earlier that first one")
       case (_, _) => Stay
     } )-> newState
 

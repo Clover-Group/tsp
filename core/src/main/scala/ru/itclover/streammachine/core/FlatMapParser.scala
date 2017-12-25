@@ -10,12 +10,16 @@ case class FlatMapParser[Event, State1, State2, Out1, Out2](parser: PhaseParser[
       case Left(firstState) =>
         val (firstResult, newFirstState) = parser(event, firstState)
         firstResult match {
-          case Success(firstOut, firstCtx) => {
+          case Success(firstOut) => {
             //we should try to reapply this event to the second phase
             val nextParser = f(firstOut)
             val (secondResult, newSecondState) = nextParser(event, nextParser.initialState)
             val newState = Right(nextParser, newSecondState)
-            secondResult -> newState
+            (secondResult match {
+              case Success(secondOut) => Success(secondOut)
+              case f@Failure(msg) => f
+              case Stay => Stay
+            }) -> newState
           }
           case f@Failure(msg) => f -> Left(newFirstState)
           case Stay => Stay -> Left(newFirstState)
