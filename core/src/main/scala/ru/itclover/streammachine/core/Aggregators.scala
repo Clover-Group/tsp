@@ -145,8 +145,8 @@ object Aggregators {
     * @tparam Event - events to process
     * @tparam State - type of state for innerParser
     */
-  case class IncludeStays[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
-                                            (implicit timeExtractor: TimeExtractor[Event])
+  case class ToSegments[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
+                                          (implicit timeExtractor: TimeExtractor[Event])
     extends PhaseParser[Event, State And Option[Time], Segment] {
     // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)

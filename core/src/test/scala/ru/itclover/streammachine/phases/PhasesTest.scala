@@ -5,7 +5,7 @@ import org.joda.time.format.DateTimeFormatter
 import org.scalatest.{FunSuite, Matchers, WordSpec}
 import ru.itclover.streammachine.Event
 import ru.itclover.streammachine.core.AggregatingPhaseParser.derivation
-import ru.itclover.streammachine.core.Aggregators.{IncludeStays, Segment}
+import ru.itclover.streammachine.core.Aggregators.{ToSegments, Segment}
 import ru.itclover.streammachine.core.{NumericPhaseParser, PhaseResult}
 import ru.itclover.streammachine.core.NumericPhaseParser.{SymbolNumberExtractor, field}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
@@ -54,7 +54,7 @@ class PhasesTest extends WordSpec with Matchers {
 
     "work on stay-success" in {
       val wwsStream = Stay #:: Stay #:: Success(()) #:: Stream.empty[PhaseResult[Unit]]
-      val stay_success = IncludeStays(TestPhase[Event, Unit](wwsStream))
+      val stay_success = ToSegments(TestPhase[Event, Unit](wwsStream))
 
       val (result1, state1) = stay_success.apply(Event(100, t1), stay_success.initialState)
       val (result2, state2) = stay_success.apply(Event(200, t2), state1)
@@ -75,7 +75,7 @@ class PhasesTest extends WordSpec with Matchers {
 
     "not work on stay-failure" in {
       val wwfStream = Stay #:: Stay #:: Failure("Test failure") #:: Stream.empty[PhaseResult[Unit]]
-      val stay_failure = IncludeStays(TestPhase[Event, Unit](wwfStream))
+      val stay_failure = ToSegments(TestPhase[Event, Unit](wwfStream))
 
       val (result1, state1) = stay_failure.apply(Event(100, t1), stay_failure.initialState)
       val (result2, state2) = stay_failure.apply(Event(200, t2), state1)

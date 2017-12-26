@@ -239,8 +239,8 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "work on segmented output" in {
-      val phase: Phase[Row] = IncludeStays(Decreasing(_.speed, 50.0, 35.0))
-      // val phase: Phase[Row] = ('speed >= 50.0) andThen (derivation('speed) <= 0.0) until ('speed <= 35.0)
+      val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
+      // val phase: Phase[Row] = ToSegments(('speed >= 50.0) andThen (derivation('speed) <= 0.0) until ('speed <= 35.0))
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(51.0).timed(1.seconds)
@@ -252,9 +252,9 @@ class RulesTest extends WordSpec with Matchers {
         ) yield Row(time, speed.toInt, 0)
         ).run(seconds = 20)
       println(rows.map(_.speed))
-      val (successes, failures) = run(phase, rows).partition(_.isInstanceOf[Success[_]])
+      val (successes, failures) = runWithSegmentation(phase, rows).partition(_.isInstanceOf[Success[_]])
 
-//      failures should not be empty
+      failures should not be empty
       successes should not be empty
       successes.length should equal(1)
 
