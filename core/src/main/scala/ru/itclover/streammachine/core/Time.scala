@@ -1,14 +1,23 @@
 package ru.itclover.streammachine.core
 
+import java.sql.Timestamp
 import java.time.{Duration, Instant}
 import java.util.Date
 
 import ru.itclover.streammachine.core.Time.{MaxWindow, MinWindow}
 
 import scala.math.Ordering.Long
+import org.joda.time.DateTime
 
 trait Time {
   def plus(window: Window): Time
+
+  // TODO:
+  // def plusWindow(window: Window): Time
+  // def minusWindow(window: Window): Time
+
+  // def plus(t: Time): Time e.g. Time(toMillis + t.toMillis)
+  // def minus(t: Time): Time
 
   def toMillis: Long
 }
@@ -23,7 +32,7 @@ case class TimeInterval(min: Window = MinWindow, max: Window = MaxWindow){
 }
 
 object Time {
-  type TimeExtractor[Event] = Event => Time
+  trait TimeExtractor[Event] extends (Event => Time) with Serializable
 
   implicit val timeOrdering: Ordering[Time] = new Ordering[Time] {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
@@ -55,6 +64,18 @@ object Time {
 
   implicit class javaDateTimeLike(t: Date) extends Time {
     override def plus(window: Window): Time = t.getTime + window.toMillis
+
+    override def toMillis: Long = t.getTime
+  }
+
+  implicit class jodaDateTimeLike(t: DateTime) extends Time {
+    override def plus(window: Window): Time = t.plus(window.toMillis)
+
+    override def toMillis: Long = t.getMillis
+  }
+
+  implicit class javaSqlTimestampLike(t: Timestamp) extends Time {
+    override def plus(window: Window): Time = new Timestamp(t.getTime + window.toMillis)
 
     override def toMillis: Long = t.getTime
   }

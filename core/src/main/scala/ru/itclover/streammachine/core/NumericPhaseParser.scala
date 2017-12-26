@@ -29,7 +29,7 @@ trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
 
   def <=[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a <= b })
 
-  def ==[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a == b })
+  def ===[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a == b })
 
   def !=[S2](right: NumericPhaseParser[Event, S2]) = assertParser(this and right)({ case (a, b) => a != b })
 }
@@ -72,7 +72,8 @@ object NumericPhaseParser {
     * @tparam State - possible inner state
     */
   def assertParser[Event, State](condition: BooleanPhaseParser[Event, State]) =
-    condition.flatMap[Unit, Boolean](b => if (b) ConstantPhaseParser[Event, Boolean](true) else FailurePhaseParser("not match"))
+    condition.flatMap[Unit, Boolean](b => if (b) ConstantPhaseParser[Event, Boolean](true)
+                                          else FailurePhaseParser("not match"))
 
   /**
     * PhaseParser returning only Success(true), Failure and Stay. Cannot return Success(false)

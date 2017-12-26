@@ -8,6 +8,17 @@ import Ordered._
 
 object Phases {
 
+  case class TestPhase[Event, T](resultsStream: Stream[PhaseResult[T]])
+    extends PhaseParser[Event, Stream[PhaseResult[T]], T]
+  {
+    override def initialState = resultsStream
+
+    override def apply(event: Event, resultsStream: Stream[PhaseResult[T]]) = resultsStream match {
+        case x #:: xs => x -> xs
+        case Stream.Empty => Failure("Test stream is empty.") -> Stream.empty
+      }
+  }
+
   /**
     * PhaseParser to check some condition on any event.
     *
@@ -18,7 +29,7 @@ object Phases {
     override def apply(event: Event, s: Option[Unit]) = {
 
       if (predicate(event)) Success(true) -> None
-      else Failure("Event does not match condition!") -> None
+      else Failure("Event does not match condition.") -> None
     }
 
     override def initialState: Option[Unit] = None
@@ -47,7 +58,13 @@ object Phases {
       }
 
       oldValue match {
-        case None => processNewValue
+        case None => {
+          if (from == newValue) {
+            if (to == from) Success(newValue) -> Some(newValue)
+            else Stay -> Some(newValue)
+          }
+          else Failure(s"Not hit from($from) value before decrease.") -> None
+        }
         case Some(value) => {
           if (newValue > value) {
             Failure("It does not decrease") -> oldValue

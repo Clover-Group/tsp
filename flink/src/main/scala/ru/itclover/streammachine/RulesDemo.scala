@@ -1,6 +1,7 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
+import java.util.Date
 import javassist.bytecode.stackmap.TypeTag
 
 import akka.actor.FSM.Failure
@@ -14,6 +15,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.joda.time.DateTime
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult.Success
 import ru.itclover.streammachine.core.Time.TimeExtractor
@@ -55,20 +57,18 @@ object RulesDemo {
       case Left(err) => throw err
     }
     val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
-//    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
+    //    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
     val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
 
-    implicit val symbolNumberExtractorRow = new SymbolNumberExtractor[Row] {
+    implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
       override def extract(event: Row, symbol: Symbol) = {
         event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
       }
     }
 
     implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
-      val dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-
       override def apply(v1: Row) = {
-        dateFormat.parse(v1.getField(1).asInstanceOf[String])
+        v1.getField(1).asInstanceOf[java.sql.Timestamp]
       }
     }
 
@@ -77,22 +77,21 @@ object RulesDemo {
     val assertPhase = Assert[Row](event => event.getField(3).asInstanceOf[Float].toDouble > 250)
     val decreasePhase = Decreasing[Row, Double](event => event.getField(3).asInstanceOf[Float].toDouble, 250, 50)
 
-    val stateMachine = FlinkStateMachineMapper(assertPhase)
+    def fakeMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut]) = FakeMapper[Event, PhaseOut]()
+    def segmentMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut], te: TimeExtractor[Event]) =
+      SegmentResultsMapper[Event, PhaseOut]()(te)
 
-//    stateMachine.open(new Configuration())
-//    val resultList = new java.util.ArrayList[Boolean]()
-//    val flinkCollector = new ListCollector(resultList)
+    val stateMachine = FlinkStateMachineMapper(assertPhase, segmentMapper(assertPhase, timeExtractor))
 
-    type Segmented[X] = Option[X]
 
     val dataStream = streamEnv.createInput(chInputFormat)
     val resultStream = dataStream.keyBy(row => row.getField(2)).flatMap(stateMachine)
-//      .map({ f =>
-//      f match {
-//        case (Segment(from, to), _) => write to db
-//        case (_, _) => raise
-//      }
-//    })
+    //      .map({ f =>
+    //      f match {
+    //        case (Segment(from, to), _) => write to db
+    //        case (_, _) => raise
+    //      }
+    //    })
 
     resultStream.map(result => println(s"R = $result"))
 
@@ -103,12 +102,12 @@ object RulesDemo {
       driverName = "ru.yandex.clickhouse.ClickHouseDriver",
       batchInterval = Some(1000)
     )
-    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig)
-    resultStream.map(res => {
-      val r = new Row(1)
-      r.setField(0, res)
-      r
-    }).writeUsingOutputFormat(chOutputFormat)
+//    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig)
+//    resultStream.map(res => {
+//      val r = new Row(1)
+//      r.setField(0, res)
+//      r
+//    }).writeUsingOutputFormat(chOutputFormat)
 
 
     val t0 = System.nanoTime()

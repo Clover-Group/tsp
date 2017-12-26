@@ -2,11 +2,9 @@ package ru.itclover.streammachine.core
 
 import java.time.Instant
 
-import ru.itclover.streammachine.core.Aggregators.Average
 import ru.itclover.streammachine.core.PhaseParser.And
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
-
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
@@ -15,14 +13,23 @@ import scala.math.Numeric.Implicits._
 trait AggregatingPhaseParser[Event, S] extends NumericPhaseParser[Event, S]
 
 object AggregatingPhaseParser {
+  import ru.itclover.streammachine.core.Aggregators._
 
-  def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)(implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] = Average(numeric, window)
+  def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)
+                   (implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] =
+    Average(numeric, window)
 
 
-  def deriv[Event, S](numeric: NumericPhaseParser[Event, S]): Derivation[Event, S] = Derivation(numeric)
+  def derivation[Event, S](numeric: NumericPhaseParser[Event, S])
+                          (implicit timeExtractor: TimeExtractor[Event]): Derivation[Event, S] =
+    Derivation(numeric)
 }
 
 object Aggregators {
+
+  case class Segment(from: Time, to: Time)
+
+  type ValueAndTime = Double And Time
 
   case class AverageState[T: Numeric]
   (window: Window, sum: Double = 0d, count: Long = 0l, queue: Queue[(Time, T)] = Queue.empty) {
@@ -131,17 +138,15 @@ object Aggregators {
   }
 
 
-  case class Segment(from: Time, to: Time)
-
   /**
-    * Transform chain of Success results to one Success result in format of `(fromTime, toTime)`
+    * Accumulates Stay and consequent Success to a single Success [[Segment]]
     * @param innerParser - parser to wrap with gaps
     * @param timeExtractor - function returning time from Event
     * @tparam Event - events to process
-    * @tparam State type of state for innerParser
+    * @tparam State - type of state for innerParser
     */
-  case class ToSegments[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
-                                          (implicit timeExtractor: TimeExtractor[Event])
+  case class IncludeStays[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
+                                            (implicit timeExtractor: TimeExtractor[Event])
     extends PhaseParser[Event, State And Option[Time], Segment] {
     // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)
@@ -152,46 +157,50 @@ object Aggregators {
       val (innerState, prevEventTimeOpt) = state
 
       innerParser(event, innerState) match {
-        // Accumulate Success to segment TODO until timeout.
-        case (Success(_), newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
-        // Accumulate here Stay as segment, if it not goes after success (i.e. segments not closing)
-        // otherwise return the segment with previous Success value.
-        case (Stay, newInnerState) => prevEventTimeOpt match {
-            case Some(startTime) => Success(Segment(startTime, eventTime)) -> (newInnerState -> None)
-            case None => Stay -> (newInnerState -> Some(eventTime))
-          }
+        // Return accumulated Stay and resulting Success as single segment
+        case (Success(_), newInnerState) =>
+          Success(Segment(prevEventTimeOpt.getOrElse(eventTime), eventTime)) -> (newInnerState -> None)
 
-        // Return segment if we hold some Success elements, else raise Failure. Also clean segment state.
-        case (failure: Failure, newInnerState) => (prevEventTimeOpt match {
-            case Some(t) => Success(Segment(t, eventTime))
-            case None => failure
-          }) -> (newInnerState -> None)
+        // TODO accumulate until timeout
+        case (Stay, newInnerState) =>  Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
+
+        case (failure: Failure, newInnerState) => failure -> (newInnerState -> None)
       }
     }
 
     override def initialState: (State, Option[Time]) = (innerParser.initialState, None)
   }
 
-}
 
-// TODO: To numeric parsers
-case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, InnerState]) extends
-  NumericPhaseParser[Event, InnerState And Option[Double]] {
+  /**
+    * Computation of derivative by time (todo).
+    * @param numeric inner numeric parser
+    */
+  case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, InnerState])
+                                          (implicit extractTime: TimeExtractor[Event])
+    extends
+      NumericPhaseParser[Event, InnerState And Option[ValueAndTime]] {
 
-  // TODO: Add time
-  override def apply(event: Event, state: InnerState And Option[Double]): (PhaseResult[Double], InnerState And Option[Double]) = {
-    val (innerState, prevValueOpt) = state
-    val (innerResult, newInnerState) = numeric(event, innerState)
+    // TODO: Add time
+    override def apply(event: Event, state: InnerState And Option[ValueAndTime]):
+      (PhaseResult[Double], InnerState And Option[ValueAndTime]) =
+    {
+      val t = extractTime(event)
+      val (innerState, prevValueAndTimeOpt) = state
+      val (innerResult, newInnerState) = numeric(event, innerState)
 
-    (innerResult, prevValueOpt) match {
-      case (Success(t), Some(prevValue)) => Success(t - prevValue) -> (newInnerState, Some(t))
-      case (Success(t), None) => Stay -> (newInnerState, Some(t))
-      case (Stay, Some(prevValue)) => Stay -> (newInnerState, Some(prevValue)) // pushing prev value on stay phases
-      // case (Stay, None) => Stay -> (newInnerState, None) // pushing prev value on stay phases // TODO
-      case (f: Failure, _) => f -> initialState
+      (innerResult, prevValueAndTimeOpt) match {
+        case (Success(v), Some((prevValue, prevTime))) =>
+          Success(v - prevValue) -> (newInnerState, Some(v, t))
+        case (Success(v), None) => Stay -> (newInnerState, Some(v, t))
+        case (Stay, Some(prevValue)) => Stay -> (newInnerState, Some(prevValue)) // pushing prev value on stay phases
+        case (Stay, None) => Stay -> (newInnerState, None)
+        case (f: Failure, _) => f -> initialState
+      }
+
     }
 
+    override def initialState = (numeric.initialState, None)
   }
 
-  override def initialState = (numeric.initialState, None)
 }

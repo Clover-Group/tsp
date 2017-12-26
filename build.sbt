@@ -20,7 +20,7 @@ mainClass in assembly := Some("Job")
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
 lazy val core = project.in(file("core"))
-  .settings(libraryDependencies ++= Library.scalaTest)
+  .settings(libraryDependencies ++= Library.scalaTest :+ Library.jodaTime)
 
 lazy val config = project.in(file("config"))
   .dependsOn(core)
@@ -46,7 +46,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
 )
 
 lazy val integration = project.in(file("integration"))
-  .settings(libraryDependencies ++= Library.scalaTest :+ Library.clickhouse)
+  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest :+ Library.clickhouse)
   .dependsOn(core, flinkConnector, http, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

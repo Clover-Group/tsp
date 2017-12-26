@@ -4,12 +4,11 @@ import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.RulesDemo.Row2
-import ru.itclover.streammachine.core.Aggregators.{Average, ToSegments}
 import ru.itclover.streammachine.core.NumericPhaseParser.field
 import ru.itclover.streammachine.core.{AliasedParser, PhaseParser, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
-import ru.itclover.streammachine.phases.Phases.{Assert, Wait}
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Wait}
 import ru.itclover.streammachine.utils.{Timer => TimerGenerator, _}
 
 import scala.concurrent.duration.Duration
@@ -26,12 +25,6 @@ class RulesTest extends WordSpec with Matchers {
   import Predef.{any2stringadd => _, assert => _, _}
 
 
-  def run[T, Out](rule: PhaseParser[T, _, Out], events: Seq[T]) = {
-    events
-      .foldLeft(StateMachineMapper(rule)) { case (machine, event) => machine(event) }
-      .result
-  }
-
   implicit val random: Random = new java.util.Random(345l)
 
   implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
@@ -43,10 +36,33 @@ class RulesTest extends WordSpec with Matchers {
       }
     }
   }
-
-  implicit val timeExtractor = new TimeExtractor[Row] {
+  implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
     override def apply(v1: Row) = v1.time
   }
+
+  def fakeMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut]) = FakeMapper[Event, PhaseOut]()
+
+
+  def segmentMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut])(implicit te: TimeExtractor[Event]) =
+    SegmentResultsMapper[Event, PhaseOut]()(te)
+
+
+  def run[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event]) = {
+    val mapResults = fakeMapper(rule)
+    events
+      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .result
+  }
+
+  def runWithSegmentation[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event])
+                                     (implicit te: TimeExtractor[Event]) = {
+    val mapResults = segmentMapper(rule)(te)
+    events
+      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .result
+  }
+
+
 
   type Phase[Row] = PhaseParser[Row, _, _]
 
@@ -67,7 +83,7 @@ class RulesTest extends WordSpec with Matchers {
       assert(results.nonEmpty)
 
       val (success, failures) = results partition {
-        case Success(_, _) => true
+        case Success(_) => true
         case Failure(_) => false
       }
 
@@ -179,38 +195,8 @@ class RulesTest extends WordSpec with Matchers {
 
   }
 
-  // todo to PhaseTests
-  "Aliased parser" should {
-    "Work on different levels of phases trees" in {
-      val phase: Phase[Row] = ('speed > 10 and ('speed < 20 as 'upperLimit)) as 'isSpeedInRange
 
-      val rows = (
-        for (time <- TimerGenerator(from = Instant.now());
-             speed <- Constant(30.0).timed(1.seconds)
-               .after(Change(from = 30.0, to = 0.0, howLong = 10.seconds))
-               .after(Constant(0.0))
-        ) yield Row(time, speed.toInt, 0)
-        ).run(seconds = 10)
-
-      val results = run(phase, rows)
-
-      val upperLimitsOpts = results map { result =>
-        result.getValue('upperLimit)
-      }
-
-      val inRangeOpts = results map { result =>
-        result.getValue('isSpeedInRange)
-      }
-
-      upperLimitsOpts should contain atLeastOneElementOf None :: Nil
-      upperLimitsOpts should contain atLeastOneElementOf Some(true) :: Nil
-
-      inRangeOpts should contain atLeastOneElementOf None :: Nil
-      inRangeOpts should contain atLeastOneElementOf Some(true, true) :: Nil
-    }
-  }
-
-  "ToSegments aggregator" should {
+  "Result segmentation" should {
 
     implicit val random: Random = new java.util.Random(345l)
 
@@ -228,9 +214,8 @@ class RulesTest extends WordSpec with Matchers {
       override def apply(v1: Row) = v1.time
     }
 
-    "work on correct input" in {
-      val phase: Phase[Row] = ToSegments('speed > 35) // ... Go through again
-
+    "work on not segmented output" in {
+      val phase: Phase[Row] = 'speed > 35
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
@@ -238,16 +223,48 @@ class RulesTest extends WordSpec with Matchers {
                .after(Constant(0.0))
         ) yield Row(time, speed.toInt, 0)
         ).run(seconds = 20)
+      val (successes, failures) = runWithSegmentation(phase, rows).partition(_.isInstanceOf[Success[Segment]])
 
-      val results = run(phase, rows)
+      failures should not be empty
+      successes should not be empty
+      successes.length should equal(1)
 
-      println(rows)
-      println(results)
+      val segmentLengthOpt = successes.head match {
+        case Success(Segment(from, to)) => Some(to.toMillis - from.toMillis)
+        case _ => None
+      }
+      segmentLengthOpt should not be empty
+      segmentLengthOpt.get should be > 12000L
+      segmentLengthOpt.get should be < 20000L
+    }
 
-      println(results.map(x => (x.map(_.asInstanceOf[Segment].from.toMillis), x.map(_.asInstanceOf[Segment].to.toMillis)))
-        .zip(rows.map(r => s" is ${r.speed}")))
+    "work on segmented output" in {
+      val phase: Phase[Row] = IncludeStays(Decreasing(_.speed, 50.0, 35.0))
+      // val phase: Phase[Row] = ('speed >= 50.0) andThen (derivation('speed) <= 0.0) until ('speed <= 35.0)
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(51.0).timed(1.seconds)
+               .after(Constant(50.0).timed(1.seconds))
+               .after(Change(from = 50.0, to = 35.0, howLong = 15.seconds))
+               .after(Constant(35.0).timed(1.seconds))
+               .after(Change(from = 35.0, to = 30.0, howLong = 5.seconds))
+               .after(Constant(0.0))
+        ) yield Row(time, speed.toInt, 0)
+        ).run(seconds = 20)
+      println(rows.map(_.speed))
+      val (successes, failures) = run(phase, rows).partition(_.isInstanceOf[Success[_]])
 
-      assert(results.nonEmpty)
+//      failures should not be empty
+      successes should not be empty
+      successes.length should equal(1)
+
+      val segmentLengthOpt = successes.head match {
+        case Success(Segment(from, to)) => Some(to.toMillis - from.toMillis)
+        case _ => None
+      }
+      segmentLengthOpt should not be empty
+      segmentLengthOpt.get should be > 12000L
+      segmentLengthOpt.get should be < 15000L
     }
   }
 

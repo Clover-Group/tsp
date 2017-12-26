@@ -1,8 +1,10 @@
 //package ru.itclover.streammachine.vectorState
 //
+//import ru.itclover.streammachine.core.Aggregators.Timer
 //import ru.itclover.streammachine.core.AliasedParser.Aliased
-//import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
+//import ru.itclover.streammachine.core._
 //import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
+//import ru.itclover.streammachine.core.Time.TimeExtractor
 //import ru.itclover.streammachine.vectorState.VectorPhaseParser.{And, AndThen, Or, Packed}
 //
 //import scala.language.higherKinds

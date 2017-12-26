@@ -4,17 +4,18 @@ import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.util.Collector
-import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
-import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
-
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time}
+import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import scala.reflect.ClassTag
 
 
-// Try resultsParser in AbstractStateMachineMapper
-case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: PhaseParser[Event, State, Out]) extends
-  RichFlatMapFunction[Event, Out]
-  with AbstractStateMachineMapper[Event, State, Out]
-  with Serializable {
+case class FlinkStateMachineMapper[Event, State: ClassTag, PhaseOut, MapperOut]
+(phaseParser: PhaseParser[Event, State, PhaseOut],
+ mapResults: ResultMapper[Event, PhaseOut, MapperOut])
+  extends
+    RichFlatMapFunction[Event, MapperOut]
+    with AbstractStateMachineMapper[Event, State, PhaseOut]
+    with Serializable {
 
   @transient
   private[this] var currentState: ValueState[Seq[State]] = _
@@ -25,14 +26,14 @@ case class FlinkStateMachineMapper[Event, State: ClassTag, Out](phaseParser: Pha
       new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[Seq[State]]], Seq.empty))
   }
 
-  override def flatMap(t: Event, outCollector: Collector[Out]): Unit = {
+  override def flatMap(event: Event, outCollector: Collector[MapperOut]): Unit = {
 
-    val (firstEmitted, newStates) = process(t, currentState.value())
+    val (results, newStates) = process(event, currentState.value())
 
     currentState.update(newStates)
 
-    firstEmitted.foreach {
-      case Success(x, _) => outCollector.collect(x)
+    mapResults(event, results).foreach {
+      case Success(x) => outCollector.collect(x)
       case Failure(_) =>
     }
 
