@@ -15,7 +15,7 @@ object Phases {
 
     override def apply(event: Event, resultsStream: Stream[PhaseResult[T]]) = resultsStream match {
         case x #:: xs => x -> xs
-        case Stream.Empty => Failure("Test stream is empty.") -> Stream.empty
+        case Stream.Empty => throw new NoSuchElementException("Test stream is empty.")
       }
   }
 
