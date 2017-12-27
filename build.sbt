@@ -26,6 +26,7 @@ lazy val config = project.in(file("config"))
   .dependsOn(core)
 
 lazy val http = project.in(file("http"))
+  .settings(libraryDependencies ++= Seq(Library.akkaStreams, Library.akkaHttp))
   .dependsOn(core, config)
 
 lazy val flinkConnector = project.in(file("flink"))

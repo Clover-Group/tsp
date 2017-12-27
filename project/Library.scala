@@ -7,6 +7,8 @@ object Version {
   val flink = "1.3.2"
   val scalaTest = "3.0.4"
   val jodaTime = "2.9.9"
+  val akkaHttp = "10.1.0-RC1"
+  val akkaStreams = "2.5.8"
 }
 
 object Library {
@@ -20,10 +22,13 @@ object Library {
     "org.apache.flink" % "flink-jdbc" % Version.flink
   )
 
+  val akkaHttp = "com.typesafe.akka" %% "akka-http" % Version.akkaHttp
+  val akkaStreams = "com.typesafe.akka" %% "akka-stream" % Version.akkaStreams
+
+  val jodaTime = "joda-time" % "joda-time" % Version.jodaTime
+
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test"
   )
-
-  val jodaTime = "joda-time" % "joda-time" % Version.jodaTime
 }
