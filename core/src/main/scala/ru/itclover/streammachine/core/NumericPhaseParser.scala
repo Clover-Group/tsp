@@ -37,6 +37,10 @@ trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
 
 object NumericPhaseParser {
 
+  trait PhaseGetter[Event] extends (() => PhaseParser[Event, _, _]) {
+    def getPhase()
+  }
+
   type BooleanPhaseParser[Event, State] = PhaseParser[Event, State, Boolean]
 
   type ConstantPhaseParser[Event, +T] = OneRowPhaseParser[Event, T]

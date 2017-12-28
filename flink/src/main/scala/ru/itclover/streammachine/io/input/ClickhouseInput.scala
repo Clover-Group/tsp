@@ -5,7 +5,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.{RowTypeInfo, TupleTypeInfoBase}
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
-import ru.itclover.streammachine.utils.ImplicitUtils.{RightBiasedEither, TryOps}
+import ru.itclover.streammachine.http.utils.ImplicitUtils.{RightBiasedEither, TryOps}
 
 // import import org.apache.flink.streaming.connectors
 

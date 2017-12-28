@@ -9,7 +9,7 @@ import ru.itclover.streammachine.core.{AliasedParser, PhaseParser, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Wait}
-import ru.itclover.streammachine.utils.{Timer => TimerGenerator, _}
+import ru.itclover.streammachine.http.utils.{Timer => TimerGenerator, _}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._

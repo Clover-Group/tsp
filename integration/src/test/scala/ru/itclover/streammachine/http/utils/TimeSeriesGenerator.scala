@@ -1,4 +1,4 @@
-package ru.itclover.streammachine.utils
+package ru.itclover.streammachine.http.utils
 
 import java.time.Instant
 

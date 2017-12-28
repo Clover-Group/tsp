@@ -41,7 +41,7 @@ object RulesDemo {
 
     import core.Aggregators._
     import core.AggregatingPhaseParser._
-    import core.NumericPhaseParser._
+    import ru.itclover.streammachine.core.NumericPhaseParser._
     import Predef.{any2stringadd => _, _}
     // import ru.itclover.streammachine.core.Time._
 
