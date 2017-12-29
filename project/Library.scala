@@ -9,18 +9,18 @@ object Version {
   val jodaTime = "2.9.9"
   val akkaHttp = "10.1.0-RC1"
   val akkaStreams = "2.5.8"
-  val twitterUtilVersion = "6.27.0"
+  val twitterUtilVersion = "6.43.0"
 }
 
 object Library {
 
   val clickhouse = "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse
 
-  val flinkCore = "org.apache.flink" %% "flink-scala" % Version.flink % "provided"
+  val flinkCore = "org.apache.flink" %% "flink-scala" % Version.flink
 
   val flink = Seq(
     flinkCore,
-    "org.apache.flink" %% "flink-streaming-scala" % Version.flink % "provided",
+    "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" %% "flink-connector-kafka-0.10" % Version.flink,
     "org.apache.flink" % "flink-jdbc" % Version.flink
   )

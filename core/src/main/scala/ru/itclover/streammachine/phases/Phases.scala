@@ -8,6 +8,8 @@ import Ordered._
 
 object Phases {
 
+  type Phase[Event] = PhaseParser[Event, _, _]
+
   case class TestPhase[Event, T](resultsStream: Stream[PhaseResult[T]])
     extends PhaseParser[Event, Stream[PhaseResult[T]], T]
   {

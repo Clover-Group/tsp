@@ -26,11 +26,12 @@ lazy val config = project.in(file("config"))
   .dependsOn(core)
 
 lazy val flinkConnector = project.in(file("flink"))
-  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest :+ Library.clickhouse)
+  .settings(libraryDependencies ++= Library.twitterUtil +: (Library.flink ++ Library.scalaTest :+ Library.clickhouse))
   .dependsOn(core, config)
 
 lazy val http = project.in(file("http"))
-  .settings(libraryDependencies ++= Library.flink +: Library.twitterUtil +: Library.akkaStreams +: Library.akkaHttp)
+  .settings(libraryDependencies ++=
+    Library.scalaTest ++ Library.flink ++ (Library.twitterUtil +: Library.akkaStreams +: Library.akkaHttp))
   .dependsOn(core, config, flinkConnector)
 
 lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).settings(
