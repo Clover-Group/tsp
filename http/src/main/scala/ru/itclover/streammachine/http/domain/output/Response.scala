@@ -1,4 +1,4 @@
-package ru.itclover.streammachine.domain.output
+package ru.itclover.streammachine.http.domain.output
 
 trait Response
 

@@ -1,20 +1,23 @@
-package ru.itclover.streammachine.utils
+package ru.itclover.streammachine.http.utils
 
-import com.twitter.util.Eval
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseParser
-import ru.itclover.streammachine.phases.Phases.Phase
 
 import scala.reflect.ClassTag
 
+object A {
+  def f[T: ClassTag](a: T, b: Any) = {
+    val aClass = a.getClass.getCanonicalName
+    b.asInstanceOf[T]
+  }
+}
 
 object EvalUtils {
 
+   def evalPhaseUsingRowExtractors(phaseCode: String, timestampFieldIndex: Int, fieldsIndexesMap: Map[Symbol, Int]) = {
 
-
-   def evalPhaseUsingRowExtractors(phaseCode: String, timestampFieldIndex: Int, fieldsIndexesMap: Map[Symbol, Int]) =
-
-     new com.twitter.util.Eval().apply[PhaseParser[Row, _, _]](s"""
+     new com.twitter.util.Eval().apply[(PhaseParser[Row, Any, Any])](
+       s"""
         |import ru.itclover.streammachine.core.Aggregators._
         |import ru.itclover.streammachine.core.AggregatingPhaseParser._
         |import ru.itclover.streammachine.core.NumericPhaseParser._
@@ -40,4 +43,6 @@ object EvalUtils {
         |val phase = $phaseCode
         |phase
       """.stripMargin)
+   }
+
 }

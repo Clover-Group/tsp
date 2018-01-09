@@ -6,7 +6,7 @@ import scala.Numeric.Implicits._
 import scala.Predef.{any2stringadd => _, _}
 
 
-trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
+trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] with Serializable {
 
   def +[S2](right: NumericPhaseParser[Event, S2]): NumericPhaseParser[Event, (S, S2)] =
     NumericPhaseParser[Event, (S, S2)]((this and right).map { case (a, b) => a + b })
@@ -37,7 +37,7 @@ trait NumericPhaseParser[Event, S] extends PhaseParser[Event, S, Double] {
 
 object NumericPhaseParser {
 
-  trait PhaseGetter[Event] extends (() => PhaseParser[Event, _, _]) {
+  trait PhaseGetter[Event] extends (() => PhaseParser[Event, _, _]) with Serializable {
     def getPhase()
   }
 
@@ -47,7 +47,7 @@ object NumericPhaseParser {
 
   type NumericPhaseParser2[Event, S] = PhaseParser[Event, S, Double]
 
-  trait SymbolNumberExtractor[Event] {
+  trait SymbolNumberExtractor[Event] extends Serializable {
     def extract(event: Event, symbol: Symbol): Double
   }
 

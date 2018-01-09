@@ -1,13 +1,10 @@
-package ru.itclover.streammachine
+package ru.itclover.streammachine.http
 
-import akka.actor.ActorSystem
+import akka.actor.{Props, Actor, PoisonPill, ActorSystem, Terminated}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import ru.itclover.streammachine.utils.EvalUtils
-import scala.concurrent.{Await, ExecutionContextExecutor}
-import scala.concurrent.duration.Duration
+import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
-
 
 object WebServer extends App with HttpService {
   override val isDebug: Boolean = true

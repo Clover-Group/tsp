@@ -20,18 +20,18 @@ mainClass in assembly := Some("Job")
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
 lazy val core = project.in(file("core"))
-  .settings(libraryDependencies ++= Library.scalaTest :+ Library.jodaTime)
+  .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging)
 
 lazy val config = project.in(file("config"))
   .dependsOn(core)
 
 lazy val flinkConnector = project.in(file("flink"))
-  .settings(libraryDependencies ++= Library.twitterUtil +: (Library.flink ++ Library.scalaTest :+ Library.clickhouse))
+  .settings(libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.clickhouse)
   .dependsOn(core, config)
 
 lazy val http = project.in(file("http"))
   .settings(libraryDependencies ++=
-    Library.scalaTest ++ Library.flink ++ (Library.twitterUtil +: Library.akkaStreams +: Library.akkaHttp))
+    Library.scalaTest ++ Library.flink ++ Library.akka ++ Library.akkaHttp ++ Library.twitterUtil)
   .dependsOn(core, config, flinkConnector)
 
 lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).settings(
@@ -48,7 +48,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
 )
 
 lazy val integration = project.in(file("integration"))
-  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest :+ Library.clickhouse)
+  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.clickhouse)
   .dependsOn(core, flinkConnector, http, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

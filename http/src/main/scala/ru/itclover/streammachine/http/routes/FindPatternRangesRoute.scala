@@ -1,4 +1,4 @@
-package ru.itclover.streammachine.routes
+package ru.itclover.streammachine.http.routes
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http

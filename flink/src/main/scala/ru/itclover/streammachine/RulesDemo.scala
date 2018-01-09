@@ -58,9 +58,10 @@ object RulesDemo {
     }
     val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
     //    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
-    val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
 
     implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
+      // TODO: Make it serializable
+      val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
       override def extract(event: Row, symbol: Symbol) = {
         event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
       }
@@ -81,6 +82,7 @@ object RulesDemo {
     def segmentMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut], te: TimeExtractor[Event]) =
       SegmentResultsMapper[Event, PhaseOut]()(te)
 
+    // TODO: Make it serializable
     val stateMachine = FlinkStateMachineMapper(assertPhase, segmentMapper(assertPhase, timeExtractor))
 
 
