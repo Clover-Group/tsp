@@ -12,15 +12,17 @@ import scala.reflect.ClassTag
 
 
 // TODO: To Either - try to compile code in advance
-case class FlinkStateCodeMachineMapper[MapperOut](phaseParserCode: String, fieldIndexesMap: Map[Symbol, Int],
+case class FlinkStateCodeMachineMapper[MapperOut](phasesCodes: List[String], fieldIndexesMap: Map[Symbol, Int],
                                                   mapResults: ResultMapper[Row, Any, MapperOut],
                                                   timestampFieldIndex: Int)
   extends
     RichFlatMapFunction[Row, MapperOut]
     with AbstractStateMachineMapper[Row, Any, Any]
     with Serializable {
+  require(phasesCodes.nonEmpty)
 
-  var phaseParser: PhaseParser[Row, Any, Any] = null
+
+  var phaseParser: PhaseParser[Row, Any, Any] = _
 
   @transient
   private[this] var currentState: ValueState[Seq[Any]] = _
@@ -30,8 +32,12 @@ case class FlinkStateCodeMachineMapper[MapperOut](phaseParserCode: String, field
     currentState = getRuntimeContext.getState(
       new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[Seq[Any]]], Seq.empty))
     val evaluator = new Eval(getRuntimeContext.getUserCodeClassLoader)
+    // TODO: List phases (FlinkPhasesCombinator?)
+    if (phasesCodes.length > 1) {
+      throw new NotImplementedError()
+    }
     phaseParser = evaluator.apply[(PhaseParser[Row, Any, Any])](
-      EvalUtils.composePhaseCodeUsingRowExtractors(phaseParserCode, timestampFieldIndex, fieldIndexesMap)
+      EvalUtils.composePhaseCodeUsingRowExtractors(phasesCodes.head, timestampFieldIndex, fieldIndexesMap)
     )
   }
 

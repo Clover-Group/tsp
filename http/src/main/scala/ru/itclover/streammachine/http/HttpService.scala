@@ -16,7 +16,7 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.api.scala._
 import ru.itclover.streammachine.{FlinkStream, SegmentResultsMapper}
 import com.typesafe.scalalogging.Logger
-import ru.itclover.streammachine.http.domain.input.IORequest
+import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
 
 
 trait HttpService extends Directives with JsonProtocols with FindPatternRangesRoute {
@@ -37,27 +37,24 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
     handleExceptions(defaultErrorsHandler) {
       path("streaming" / "find-patterns" / "wide-dense-table" /) {
         requestEntityPresent {
-          entity(as[IORequest]) { ioRequest =>
-            parameters('phaseCode.as[String]) { phaseCode =>
+          entity(as[FindPatternsRequest]) { patternsRequest =>
+            val (inConf, outConf, codes) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patternsCodes)
 
-              val (inConf, outConf) = (ioRequest.source, ioRequest.sink)
+            val (streamEnv, stream) = FlinkStream.createPatternSearchStream(inConf, outConf, codes,
+              StorageFormat.WideAndDense)(streamEnvironment)
 
-              val (streamEnv, stream) = FlinkStream.createPatternSearchStream(inConf, outConf, phaseCode,
-                StorageFormat.WideAndDense)(streamEnvironment)
+            stream.map(result => println(s"R = $result"))
 
-              stream.map(result => println(s"R = $result"))
+            val resultFuture = Future {
+              log.info(s"Start searching for pattern: `${patternsRequest.patternsCodes}`")
+              val t0 = System.nanoTime()
+              val result = streamEnv.execute()
+              log.info(s"Finish pattern finding for ${(System.nanoTime() - t0) / 1000000000.0} seconds.")
+              result
+            }
 
-              val resultFuture = Future {
-                log.info(s"Start pattern finding with phaseCode = `$phaseCode`")
-                val t0 = System.nanoTime()
-                val result = streamEnv.execute()
-                log.info(s"Finish pattern finding for ${(System.nanoTime() - t0) / 1000000000.0} seconds.")
-                result
-              }
-
-              onSuccess(resultFuture) {
-                jobResult => complete(SuccessfulResponse(jobResult.hashCode))
-              }
+            onSuccess(resultFuture) {
+              jobResult => complete(SuccessfulResponse(jobResult.hashCode))
             }
           }
         }

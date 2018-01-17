@@ -6,4 +6,4 @@ import ru.itclover.streammachine.io.output.{JDBCOutputConfig => OutputConfigs}
 trait Request
 
 
-final case class IORequest(source: InputConfigs, sink: OutputConfigs) extends Request
+final case class FindPatternsRequest(source: InputConfigs, sink: OutputConfigs, patternsCodes: List[String]) extends Request

@@ -27,7 +27,7 @@ object FlinkStream {
   val defaultFieldTimeout: Long = 60000L
 
   // TODO: Other configs
-  def createPatternSearchStream(input: JDBCInputConfig, output: JDBCOutputConfig, phaseCode: String,
+  def createPatternSearchStream(input: JDBCInputConfig, output: JDBCOutputConfig, phasesCodes: List[String],
                                 storageType: StorageFormat)
                                (implicit streamEnv: StreamExecutionEnvironment):
       (StreamExecutionEnvironment, DataStream[Aggregators.Segment]) = {
@@ -66,7 +66,7 @@ object FlinkStream {
       case StorageFormat.WideAndDense => stream
     }
 
-    val mapper = FlinkStateCodeMachineMapper(phaseCode, fieldsIndexesMap, SegmentResultsMapper[Row, Any],
+    val mapper = FlinkStateCodeMachineMapper(phasesCodes, fieldsIndexesMap, SegmentResultsMapper[Row, Any],
       fieldsIndexesMap(input.datetimeColname))
 
     val resultStream = denseStream.flatMap(mapper)
