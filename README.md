@@ -11,20 +11,23 @@ In order to run your application from within IntelliJ, you have to select the cl
 API endpoints
 -------------
 
-### Формат ответа
-#### Успех:
+### Response format
+#### Success:
 `{'response': ...}`
-#### Неудачно:
+#### Failure:
 `{'errorCode': Int, 'message': String, 'errors': List[String], ...}`
 
 
-### Методы
+### Methods
 
 #### 1. POST "streaming" / "find-patterns" / "wide-dense-table" /
+
 __GET Params:__
 - `phaseCode: String` - url-escaped phase code to compile
+
 __Request body:__
-```json
+
+```
 {
     "source": {
         "jdbcUrl": String,
