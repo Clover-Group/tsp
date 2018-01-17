@@ -23,7 +23,6 @@ API endpoints
 #### 1. POST "streaming" / "find-patterns" / "wide-dense-table" /
 
 __GET Params:__
-- `` - url-escaped phase code to compile
 
 __Request body:__
 
