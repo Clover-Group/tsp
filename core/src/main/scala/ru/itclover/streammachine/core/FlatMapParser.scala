@@ -4,6 +4,7 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 
 case class FlatMapParser[Event, State1, State2, Out1, Out2](parser: PhaseParser[Event, State1, Out1], f: Out1 => PhaseParser[Event, State2, Out2]) extends PhaseParser[Event, Either[State1, (PhaseParser[Event, State2, Out2], State2)], Out2] {
 
+  // TODO: Either => Tuple
   override def apply(event: Event, state: (Either[State1, (PhaseParser[Event, State2, Out2], State2)])): (PhaseResult[Out2], (Either[State1, (PhaseParser[Event, State2, Out2], State2)])) = {
 
     state match {

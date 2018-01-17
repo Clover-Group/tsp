@@ -126,13 +126,17 @@ object Aggregators {
         case None =>
           Stay -> Some(eventTime)
         case Some(startTime) =>
-          val result = if (startTime.plus(timeInterval.min) < eventTime) Stay
-          else if (startTime.plus(timeInterval.max) <= eventTime) Success(startTime -> eventTime)
-          else Failure(s"Timeout expired at $eventTime")
+          val lowerBound = startTime.plus(timeInterval.min)
+          val upperBound = startTime.plus(timeInterval.max)
+          val result = if (eventTime < lowerBound) Stay
+            else if (eventTime <= upperBound) Success(startTime -> eventTime)
+                 else Failure(s"Timeout expired at $eventTime")
 
           result -> state
       }
     }
+
+    override def aggregate(event: Event, state: Option[Time]): (PhaseResult[(Time, Time)], Option[Time]) = Stay -> state
 
     override def initialState: Option[Time] = None
   }

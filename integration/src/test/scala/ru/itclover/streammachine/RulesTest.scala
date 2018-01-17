@@ -5,7 +5,7 @@ import java.time.Instant
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.RulesDemo.Row2
 import ru.itclover.streammachine.core.NumericPhaseParser.field
-import ru.itclover.streammachine.core.{AliasedParser, PhaseParser, Window}
+import ru.itclover.streammachine.core.{PhaseParser, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Wait}
@@ -15,6 +15,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
 import scala.util.Random
 
+
 class RulesTest extends WordSpec with Matchers {
 
   import Rules._
@@ -23,7 +24,6 @@ class RulesTest extends WordSpec with Matchers {
   import core.NumericPhaseParser._
   import ru.itclover.streammachine.core.Time._
   import Predef.{any2stringadd => _, assert => _, _}
-
 
   implicit val random: Random = new java.util.Random(345l)
 
@@ -62,9 +62,35 @@ class RulesTest extends WordSpec with Matchers {
       .result
   }
 
-
-
   type Phase[Row] = PhaseParser[Row, _, _]
+
+  "Timer phase" should {
+    "work correctly" in {
+      val speedGte100ForSomeTime = ('speed >= 99).timed(TimeInterval(1.seconds, 2.seconds))
+
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(100.0).timed(4.seconds)
+               .after(Change(from = 100.0, to = 0.0, howLong = 10.seconds))
+               .after(Constant(0.0))
+        ) yield Row(time, speed.toInt, 0)
+        ).run(seconds = 11)
+
+      println(rows)
+
+      val results = run(speedGte100ForSomeTime, rows)
+
+      assert(results.nonEmpty)
+
+      val (success, failures) = results partition {
+        case Success(_) => true
+        case Failure(_) => false
+      }
+
+      success.length should be > 0
+      failures.length should be > 1
+    }
+  }
 
   "Combine And & Assert parsers" should {
     "work correctly" in {
@@ -94,14 +120,10 @@ class RulesTest extends WordSpec with Matchers {
 
 
   "stopWithoutOilPumping" should {
-
     //        +1 Остановка без прокачки масла
     //        1. начало куска ContuctorOilPump не равен 0 И SpeedEngine уменьшается с 260 до 0
     //        2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
     //          """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
-
-    implicit val random: Random = new java.util.Random(345l)
-
     "match for valid-1" in {
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -129,26 +151,7 @@ class RulesTest extends WordSpec with Matchers {
         ) yield Row2(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
-      //      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
-      //
-      //      assert(results.nonEmpty)
     }
-
-    //    "not to match" in {
-    //      val rows = (
-    //        for (time <- TimerGenerator(from = Instant.now());
-    //             pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
-    //               .after(Constant(0));
-    //             speed <- Constant(250d).timed(1.seconds)
-    //               .after(Change(from = 250.0, to = 0.0, howLong = 10.seconds))
-    //               .after(Constant(0.0))
-    //        ) yield Row2(time, speed.toInt, pump.toInt, 1)
-    //        ).run(seconds = 100)
-    //
-    //      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
-    //
-    //      assert(results.isEmpty)
-    //    }
 
   }
 
@@ -183,14 +186,6 @@ class RulesTest extends WordSpec with Matchers {
       val results = run(phase, rows)
 
       assert(results.nonEmpty)
-      //
-      //    val phase2: Phase[Row] = avg('speed, window) > avg('pump, window)
-      //
-      //    val phase3 = (avg('speed, 5.seconds) >= 5.0) andThen avg('pump, 3.seconds) > 0
-      //
-      //    val phase4: Phase[Row] = avg((e: Row) => e.speed, 5.seconds) >= value(5.0)
-      //
-      //    val phase5: Phase[Row] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
     }
 
   }
@@ -269,13 +264,5 @@ class RulesTest extends WordSpec with Matchers {
   }
 
   case class Row(time: Instant, speed: Double, pump: Double)
-
-}
-
-
-object RulesTest extends App {
-
-
-  //  (1 to 100).map(_.seconds).map(generator).foreach(println)
 
 }

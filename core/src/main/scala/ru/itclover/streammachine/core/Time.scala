@@ -8,8 +8,11 @@ import ru.itclover.streammachine.core.Time.{MaxWindow, MinWindow}
 
 import scala.math.Ordering.Long
 import org.joda.time.DateTime
+import java.text.SimpleDateFormat
 
-trait Time {
+import org.joda.time.format.DateTimeFormat
+
+trait Time extends Serializable {
   def plus(window: Window): Time
 
   // TODO:
@@ -20,6 +23,8 @@ trait Time {
   // def minus(t: Time): Time
 
   def toMillis: Long
+
+  override def toString: String = toMillis.toString
 }
 
 trait Window {
@@ -72,12 +77,22 @@ object Time {
     override def plus(window: Window): Time = t.plus(window.toMillis)
 
     override def toMillis: Long = t.getMillis
+
+    override def toString: String = {
+      val dtf = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
+      dtf.print(t)
+    }
   }
 
   implicit class javaSqlTimestampLike(t: Timestamp) extends Time {
     override def plus(window: Window): Time = new Timestamp(t.getTime + window.toMillis)
 
     override def toMillis: Long = t.getTime
+
+    override def toString: String = {
+      val dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
+      dateFormat.format(t)
+    }
   }
 
   object MinWindow extends Window {

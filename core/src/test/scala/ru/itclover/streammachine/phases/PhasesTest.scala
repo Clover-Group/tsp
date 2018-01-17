@@ -3,14 +3,21 @@ package ru.itclover.streammachine.phases
 import org.joda.time.{DateTime, Instant}
 import org.joda.time.format.DateTimeFormatter
 import org.scalatest.{FunSuite, Matchers, WordSpec}
-import ru.itclover.streammachine.Event
+import ru.itclover.streammachine.{Event, core}
 import ru.itclover.streammachine.core.AggregatingPhaseParser.derivation
-import ru.itclover.streammachine.core.Aggregators.{ToSegments, Segment}
+import ru.itclover.streammachine.core.Aggregators.{Segment, ToSegments}
 import ru.itclover.streammachine.core.{NumericPhaseParser, PhaseResult}
 import ru.itclover.streammachine.core.NumericPhaseParser.{SymbolNumberExtractor, field}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.Phases.TestPhase
+import java.time.Instant
+import ru.itclover.streammachine.core.Aggregators.Timer
+import ru.itclover.streammachine.core._
+import ru.itclover.streammachine.core.Time._
+import ru.itclover.streammachine.core.Time
+import scala.concurrent.duration._
+
 
 class PhasesTest extends WordSpec with Matchers {
   import Predef.{any2stringadd => _, assert => _, _}
@@ -30,6 +37,34 @@ class PhasesTest extends WordSpec with Matchers {
     override def apply(v1: Event) = v1.time
   }
 
+  val t = DateTime.now()
+  val t0 = t.minusMillis(5000)
+  val t1 = t.minusMillis(4000)
+  val t2 = t.minusMillis(3000)
+  val t3 = t.minusMillis(2000)
+  val t4 = t.minusMillis(1000)
+  println(t1)
+  println(t2)
+  println(t3)
+
+  "Timer phase" should {
+    "work" in {
+      val timer1to3 = Timer(TimeInterval(2.seconds, 3.seconds))
+      val (r1, state1) = timer1to3(Event(100, t0), timer1to3.initialState)
+      val (r2, state2) = timer1to3(Event(200, t1), state1)
+      val (r3, state3) = timer1to3(Event(300, t2), state2)
+
+      r1 should not be an [Success[_]]
+      r1 should not be an [Failure]
+
+      r2 should not be an [Success[_]]
+      r2 should not be an [Failure]
+
+      r3 shouldBe a [Success[_]]
+    }
+  }
+
+  // TODO: Account time
   "Derivation phase" should {
     "work" in {
       val speed = field('speed)
@@ -47,11 +82,6 @@ class PhasesTest extends WordSpec with Matchers {
   }
 
   "IncludeStays phase" should {
-    val t = DateTime.now()
-    val t1 = t.minusMillis(3000)
-    val t2 = t.minusMillis(2000)
-    val t3 = t.minusMillis(1000)
-
     "work on stay-success" in {
       val wwsStream = Stay #:: Stay #:: Success(()) #:: Stream.empty[PhaseResult[Unit]]
       val stay_success = ToSegments(TestPhase[Event, Unit](wwsStream))
