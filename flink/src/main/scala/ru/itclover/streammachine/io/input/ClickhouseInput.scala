@@ -13,7 +13,7 @@ import scala.util.Try
 
 object ClickhouseInput {
 
-  def getInputFormat(config: JDBCConfig, fieldTypesInfo: Array[(String, TypeInformation[_])]): JDBCInputFormat = {
+  def getInputFormat(config: JDBCInputConfig, fieldTypesInfo: Array[(String, TypeInformation[_])]): JDBCInputFormat = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1))
     JDBCInputFormat.buildJDBCInputFormat()
       .setDrivername(config.driverName)
@@ -25,7 +25,7 @@ object ClickhouseInput {
       .finish()
   }
 
-  def queryFieldsTypeInformation(config: JDBCConfig): Either[Throwable, IndexedSeq[(String, TypeInformation[_])]] = {
+  def queryFieldsTypeInformation(config: JDBCInputConfig): Either[Throwable, IndexedSeq[(String, TypeInformation[_])]] = {
     val classTry = Try(Class.forName(config.driverName))
     val connectionTry = Try(DriverManager.getConnection(config.jdbcUrl, config.userName.getOrElse(""),
                                                         config.password.getOrElse("")))

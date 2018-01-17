@@ -1,7 +1,6 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
-
 import ru.itclover.streammachine.core.Aggregators.Timer
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.Time._
@@ -70,7 +69,7 @@ object TestApp extends App {
 
     val phase3 = avg('speed, 5.seconds) >= 5.0 andThen avg('pump, 3.seconds) > 0
 
-    val phase4: Phase[Event] = avg((e: Event) => e.speed, 5.seconds) >= value(5.0)
+    val phase4: Phase[Event] = avg('speed, 5.seconds) >= value(5.0)
 
     val phase5: Phase[Event] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
 

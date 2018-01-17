@@ -9,8 +9,8 @@ import org.apache.flink.core.fs.{FileSystem, Path}
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseResult.Success
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCInputConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConfig => OutJDBCConfig}
 
 import scala.collection.immutable.SortedMap
 //import ru.itclover.streammachine.io.input.{ClickhouseInput, KafkaInput}
@@ -33,7 +33,9 @@ object IoDemo {
     val inpConfig = InpJDBCConfig(
       jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
       query = "select Wagon_id, datetime, Tin_1 from series765_data limit 110100, 4000000",
-      driverName = "ru.yandex.clickhouse.ClickHouseDriver"
+      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+      datetimeColname = 'datetime,
+      partitionColnames = Seq('Wagon_id)
     )
     val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
       case Right(typesInfo) => typesInfo

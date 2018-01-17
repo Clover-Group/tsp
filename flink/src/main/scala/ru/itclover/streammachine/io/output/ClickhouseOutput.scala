@@ -6,7 +6,7 @@ import org.apache.flink.api.java.io.jdbc.JDBCOutputFormat
 object ClickhouseOutput {
   val DEFAULT_BATCH_INTERVAL = 1000000
 
-  def getOutputFormat(config: JDBCConfig): JDBCOutputFormat = {
+  def getOutputFormat(config: JDBCOutputConfig): JDBCOutputFormat = {
     val insertQuery = getInsertQuery(config.sinkTable, config.sinkColumnsNames.map(_.toString().tail))
     println(s"Configure ClickhouseOutput with insertQuery = `$insertQuery`")
     JDBCOutputFormat.buildJDBCOutputFormat()

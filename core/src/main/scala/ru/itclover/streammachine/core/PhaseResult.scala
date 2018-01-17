@@ -1,7 +1,5 @@
 package ru.itclover.streammachine.core
 
-import ru.itclover.streammachine.core.AliasedParser.Aliased
-
 import scala.reflect.ClassTag
 
 

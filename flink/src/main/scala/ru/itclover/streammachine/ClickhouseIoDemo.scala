@@ -2,8 +2,8 @@ package ru.itclover.streammachine
 
 import java.time.Instant
 import org.apache.flink.api.common.functions.RichMapFunction
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCInputConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConfig => OutJDBCConfig}
 
 
 object ClickhouseIoDemo {
@@ -17,7 +17,9 @@ object ClickhouseIoDemo {
     val inpConfig = InpJDBCConfig(
       jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
       query = "select Wagon_id, datetime, Tin_1 from series765_data limit 110100, 400",
-      driverName = "ru.yandex.clickhouse.ClickHouseDriver"
+      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+      datetimeColname = 'datetime,
+      partitionColnames = Seq('Wagon_id)
     )
     val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
       case Right(typesInfo) => typesInfo

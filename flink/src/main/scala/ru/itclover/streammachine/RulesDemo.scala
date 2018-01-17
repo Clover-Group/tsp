@@ -19,9 +19,10 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult.Success
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCInputConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConfig => OutJDBCConfig}
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
+import ru.itclover.streammachine.transformers.FlinkStateMachineMapper
 
 import scala.collection.immutable.SortedMap
 //import ru.itclover.streammachine.io.input.{ClickhouseInput, KafkaInput}
@@ -50,7 +51,9 @@ object RulesDemo {
     val inpConfig = InpJDBCConfig(
       jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
       query = "select date, timestamp, Wagon_id, SpeedEngine, ContuctorOilPump from series765_data_test_speed limit 0, 30000",
-      driverName = "ru.yandex.clickhouse.ClickHouseDriver"
+      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+      datetimeColname = 'datetime,
+      partitionColnames = Seq('Wagon_id)
     )
     val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
       case Right(typesInfo) => typesInfo
@@ -59,10 +62,13 @@ object RulesDemo {
     val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
     //    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
 
+//    implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Map[Symbol, Double]] {
+//      override def extract(event: Map, symbol: Symbol): Double = event(symbol)
+//    }
     implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
       // TODO: Make it serializable
       val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
-      override def extract(event: Row, symbol: Symbol) = {
+      override def extract(event: Row, symbol: Symbol): Double = {
         event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
       }
     }

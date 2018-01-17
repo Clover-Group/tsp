@@ -5,10 +5,12 @@ import org.scalatest.{FunSuite, Matchers}
 
 class ClickhouseInputTest extends FunSuite with Matchers {
   val wid_dt_tin1__query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100"
-  val jdbcConf = JDBCConfig(
+  val jdbcConf = JDBCInputConfig(
         jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamedTest",
         query = wid_dt_tin1__query,
-        driverName = "ru.yandex.clickhouse.ClickHouseDriver"
+        driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+        datetimeColname = 'datetime,
+        partitionColnames = Seq('Wagon_id)
       )
 
   test("ClickhouseInput.getTypeInformation correct") {

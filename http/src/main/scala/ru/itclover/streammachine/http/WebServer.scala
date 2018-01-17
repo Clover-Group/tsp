@@ -1,8 +1,10 @@
 package ru.itclover.streammachine.http
 
-import akka.actor.{Props, Actor, PoisonPill, ActorSystem, Terminated}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props, Terminated}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
 
@@ -12,6 +14,8 @@ object WebServer extends App with HttpService {
   implicit val system: ActorSystem = ActorSystem("my-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+  val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
 
   val bindingFuture = Http().bindAndHandle(route, "localhost", 8080)
 

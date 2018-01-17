@@ -1,7 +1,12 @@
 package ru.itclover.streammachine.http.domain.output
 
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
+import spray.json.JsonFormat
+
+
 trait Response
 
-final case class SuccessfulResponse(data: Int, code: Int = 0) extends Response
+final case class SuccessfulResponse[T](response: T) extends Response
 
-final case class FailureResponse(message: String, code: Int = 1, reason: String = "") extends Response
+final case class FailureResponse(errorCode: Int, message: String, errors: List[String]) extends Response

@@ -1,7 +1,6 @@
 package ru.itclover.streammachine.core
 
 import ru.itclover.streammachine.core.Aggregators.Timer
-import ru.itclover.streammachine.core.AliasedParser.Aliased
 import ru.itclover.streammachine.core.PhaseParser.{And, AndThen, Or}
 import ru.itclover.streammachine.core.PhaseResult._
 import ru.itclover.streammachine.core.Time.TimeExtractor
@@ -18,6 +17,9 @@ import scala.language.higherKinds
   */
 trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
+
+  // TODO
+  def aggregate(event: Event, state: State): (PhaseResult[T], State) = apply(event, state)
 }
 
 object PhaseParser {
@@ -153,27 +155,6 @@ case class AndParser[Event, LState, RState, LOut, ROut]
   }
 
   override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
-}
-
-
-case class AliasedParser[Event, InnerState, InnerOut](innerParser: PhaseParser[Event, InnerState, InnerOut], alias: String)
-  extends PhaseParser[Event, InnerState, Aliased[InnerOut]] {
-
-  val curriedAlias: InnerOut => Aliased[InnerOut] = (Aliased.apply[InnerOut] _).curried(alias)
-
-  override def apply(event: Event, state: InnerState): (PhaseResult[Aliased[InnerOut]], InnerState) = {
-    val (result, newState) = innerParser(event, state)
-    // TODO inherit from Success
-    result.map(curriedAlias) -> newState
-  }
-
-  override def initialState: (InnerState) = innerParser.initialState
-}
-
-object AliasedParser {
-
-  case class Aliased[T](alias: String, value: T)
-
 }
 
 

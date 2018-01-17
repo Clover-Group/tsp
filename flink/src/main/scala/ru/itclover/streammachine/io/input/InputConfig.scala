@@ -6,12 +6,24 @@ trait InputConfig {
 
 }
 
-case class JDBCConfig(jdbcUrl: String,
-                      query: String,
-                      driverName: String,
-                      userName: Option[String] = None,
-                      password: Option[String] = None
-                     ) extends InputConfig
+object StorageFormat extends Enumeration {
+  type StorageFormat = Value
+  // Tables of format: `ts, params, sensor_id, value` (value, possibly stored in 3 columns: int, double, string)
+  val Narrow = Value("Narrow")
+  val WideAndDense = Value("Wide")
+}
+
+
+case class JDBCInputConfig(jdbcUrl: String,
+                           query: String,
+                           driverName: String,
+                           datetimeColname: Symbol,
+                           partitionColnames: Seq[Symbol],
+                           userName: Option[String] = None,
+                           password: Option[String] = None
+                          ) extends InputConfig
+
+
 
 case class FileConfig(filePath: String) extends InputConfig
 
