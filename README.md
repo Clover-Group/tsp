@@ -29,7 +29,7 @@ __Request body:__
 ```
 {
     "source": {
-        "jdbcUrl": String, // e.g.
+        "jdbcUrl": String,
         "query": String,
         "driverName": String,
         "datetimeColname": String,
@@ -39,12 +39,13 @@ __Request body:__
     },
     "sink": {
         "jdbcUrl": String,
-        "sinkTable": String,
-        "sinkColumnsNames": Array[String],
+        "sinkSchema": (tableName: String, fromTimeField: Symbol, fromTimeMillisField: Symbol,
+                       toTimeField: Symbol, toTimeMillisField: Symbol,
+                       patternIdField: Symbol, forwardedFields: Array[Symbol])
         "driverName": String,
         "batchInterval": Option[Int]
     },
-    "patternsCodes": Array[String]
+    "patternsIdsAndCodes": Map[String, String]
 }
 ```
 
@@ -53,21 +54,21 @@ __Example request body__
 ```
 {
     "source": {
-        "jdbcUrl": "jdbc:clickhouse://localhost:8123/test",
-        "query": "select timestamp, Wagon_id, speed from series765_data limit 0, 50000",
+        "jdbcUrl": "jdbc:clickhouse://localhost:8123/default",
+        "query": "select date_time, loco_id, CurrentBattery from TE116U_062_SM_TEST limit 0, 50000",
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "datetimeColname": "date_time",
-        "partitionColnames": ["Wagon_id"],
+        "partitionColnames": ["loco_id"],
         "userName": "test",
         "password": "test"
     },
     "sink": {
         "jdbcUrl": "jdbc:clickhouse://localhost:8123/renamedTest",
-        "sinkTable": "series765_data_sink_test_speed",
-        "sinkColumnsNames": ["is_rule_success"],
+        "sinkSchema": {"tableName": "series765_data_res", "fromTimeField": "from", "fromTimeMillisField": "from_millis",
+            "toTimeField": "to", "toTimeMillisField": "to_millis", "patternIdField": "rule_id", "forwardedFields": ["loco_id"]},
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "batchInterval": 5000
     },
-    "patternsCodes": ["Assert[Row](event => event.getField(3).asInstanceOf[Float].toDouble > 250)"]
+    "patternsIdsAndCodes": {"1": "Assert[Row](event => event.getField(2).asInstanceOf[Float].toDouble > 10)"}
 }
 ```
