@@ -29,3 +29,4 @@ trait AbstractStateMachineMapper[Event, State, Out] {
   }
 
 }
+

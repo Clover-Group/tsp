@@ -2,8 +2,9 @@ package ru.itclover.streammachine.io.input
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.scalatest.{FunSuite, Matchers}
+import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 
-class ClickhouseInputTest extends FunSuite with Matchers {
+class JDBCSourceInfoTest extends FunSuite with Matchers {
   val wid_dt_tin1__query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100"
   val jdbcConf = JDBCInputConfig(
         jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamedTest",
@@ -13,22 +14,22 @@ class ClickhouseInputTest extends FunSuite with Matchers {
         partitionColnames = Seq('Wagon_id)
       )
 
-  test("ClickhouseInput.getTypeInformation correct") {
+  test("JDBCSourceInfo query correct") {
     val wid_dt_tin1__conf = jdbcConf.copy(query = wid_dt_tin1__query)
-    val typeInfoEither = ClickhouseInput.queryFieldsTypeInformation(wid_dt_tin1__conf)
-    assert(typeInfoEither.isRight)
-    val typeInfo = typeInfoEither.right.get
-    assert(typeInfo.size == 3)
+    val srcInfo = JDBCSourceInfo(wid_dt_tin1__conf)
+    assert(srcInfo.isRight)
+    val typeInfo = srcInfo.right.get
+    assert(typeInfo.fieldsInfo.length == 3)
 
     val refTypes = Map[String, TypeInformation[_]]("Wagon_id" -> TypeInformation.of(classOf[Int]),
       "datetime" -> TypeInformation.of(classOf[String]), "Tin_1" -> TypeInformation.of(classOf[Float]))
-    refTypes.keys should contain allElementsOf typeInfo.map(_._1)
-    refTypes.values should contain allElementsOf typeInfo.map(_._2)
+    refTypes.keys should contain allElementsOf typeInfo.fieldsInfo.map(_._1)
+    refTypes.values should contain allElementsOf typeInfo.fieldsInfo.map(_._2)
   }
 
-  test("ClickhouseInput.getTypeInformation invalid") {
+  test("JDBCSourceInfo query incorrect") {
     val invalidUrlConf = jdbcConf.copy(jdbcUrl = "jdbc:CH11://0.0.0.0:8123/renamedTest")
-    val invalidUrlTypeInfoEither = ClickhouseInput.queryFieldsTypeInformation(invalidUrlConf)
-    invalidUrlTypeInfoEither should be ('left)
+    val invalidQuerySrcInfo = JDBCSourceInfo(invalidUrlConf)
+    invalidQuerySrcInfo should be ('left)
   }
 }

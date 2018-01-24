@@ -1,9 +1,11 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
+
 import org.apache.flink.api.common.functions.RichMapFunction
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCInputConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
+import ru.itclover.streammachine.io.input.{JDBCInputConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink, JDBCOutputConfig => OutJDBCConfig}
 
 
 object ClickhouseIoDemo {
@@ -21,19 +23,17 @@ object ClickhouseIoDemo {
       datetimeColname = 'datetime,
       partitionColnames = Seq('Wagon_id)
     )
-    val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
-      case Right(typesInfo) => typesInfo
+    val srcInfo = JDBCSourceInfo(inpConfig) match {
+      case Right(srcInfo) => srcInfo
       case Left(err) => throw err
     }
-    val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
-    val fieldsIndexesMap = fieldsTypesInfo.map(_._1).map(Symbol(_)).zipWithIndex.toMap
 
-    val dataStream = streamEnv.createInput(chInputFormat)
+    val dataStream = streamEnv.createInput(srcInfo.inputFormat)
 
-    val outConfig = OutJDBCConfig(
+    // TODO: Separate config for generic sink schema
+    /*val outConfig = OutJDBCConfig(
       jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
-      sinkTable = "series765_data_sink",
-      sinkColumnsNames = List[Symbol]('Wagon_id, 'datetime, 'Tin_1),
+      sinkSchema = JDBCSinkSchema("series765_data_sink", '),
       driverName = "ru.yandex.clickhouse.ClickHouseDriver",
       batchInterval = Some(1000000)
     )
@@ -46,6 +46,6 @@ object ClickhouseIoDemo {
 
     streamEnv.execute()
 
-    println("Elapsed time: " + (System.nanoTime() - t0) / 1000000000.0 + " seconds")
+    println("Elapsed time: " + (System.nanoTime() - t0) / 1000000000.0 + " seconds")*/
   }
 }

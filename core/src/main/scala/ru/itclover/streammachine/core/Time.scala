@@ -79,7 +79,7 @@ object Time {
     override def toMillis: Long = t.getMillis
 
     override def toString: String = {
-      val dtf = DateTimeFormat.forPattern("dd-MM-yyyy HH:mm:ss")
+      val dtf = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
       dtf.print(t)
     }
   }
@@ -90,7 +90,7 @@ object Time {
     override def toMillis: Long = t.getTime
 
     override def toString: String = {
-      val dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss")
+      val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
       dateFormat.format(t)
     }
   }

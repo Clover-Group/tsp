@@ -18,6 +18,7 @@ case class FakeMapper[Event, PhaseOut]() extends ResultMapper[Event, PhaseOut, P
 case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeExtractor[Event])
   extends ResultMapper[Event, PhaseOut, Segment]
 {
+  // TODO(0): distribute (open()?)
   var currSegmentOpt: Option[Segment] = None
 
   def apply(event: Event, results: Seq[TerminalResult[PhaseOut]]): Seq[TerminalResult[Segment]] = {

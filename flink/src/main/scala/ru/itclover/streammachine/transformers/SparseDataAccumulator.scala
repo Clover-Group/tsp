@@ -5,7 +5,6 @@ import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import org.joda.time.{DateTime, Duration}
 import ru.itclover.streammachine.{Eval, EvalUtils}
 import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.Time.TimeExtractor
@@ -13,34 +12,12 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
-case class SparseDataAccumulator[Key, Value, Event](eventKeysTimeouts: Map[Key, Double])
-  extends RichFlatMapFunction[(Key, Value), Map[Key, Value]] with Serializable {
-  // potential event values with receive time
-  val event: mutable.Map[Key, (Value, DateTime)] = mutable.Map.empty
-  val targetKeySet: Set[Key] = eventKeysTimeouts.keySet
-
-  override def flatMap(item: (Key, Value), out: Collector[Map[Key, Value]]): Unit = {
-    val (key, value) = item
-    event(key) = (value, DateTime.now())
-    dropExpiredKeys(event)
-    val eventKeySet = event.map { case (`key`, _) => key }.toSet
-    if (targetKeySet subsetOf eventKeySet) {
-      val eventKeyValues = event.map { case (`key`, (`value`, _)) => key -> value }.toMap
-      out.collect(eventKeyValues)
-    }
-  }
-
-  private def dropExpiredKeys(event: mutable.Map[Key, (Value, DateTime)]): Unit = {
-    event.retain((k, v) => DateTime.now().getMillis - v._2.getMillis < eventKeysTimeouts(k))
-  }
-}
-
 
 // Row -> subset(Row) + Row.keys-values-set
 // Dt Key + Partition Keys + Rule Keys
 
 /**
-  * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts per each (collect by-hand for now)
+  * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param keyValIndexes - row indexes for k/v
   * @param extraFieldIndexesAndNames - will be added to every emitting event
   */

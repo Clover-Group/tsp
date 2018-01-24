@@ -1,13 +1,11 @@
 package ru.itclover.streammachine.io.output
 
 
-trait OutputConfig {
+trait OutputConfig
 
-}
 
 case class JDBCOutputConfig(jdbcUrl: String,
-                            sinkTable: String,
-                            sinkColumnsNames: List[Symbol],
+                            sinkSchema: JDBCSegmentsSink,
                             driverName: String,
                             userName: Option[String] = None,
                             password: Option[String] = None,

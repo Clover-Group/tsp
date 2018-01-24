@@ -7,7 +7,9 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseParser
 import scala.reflect.ClassTag
 
-
+/**
+  * Implementation on [[com.twitter.util.Eval]] with classloader as argument.
+  */
 class Eval(classLoader: ClassLoader) extends com.twitter.util.Eval {
   override lazy val impliedClassPath: List[String] = {
     def getClassPath(cl: ClassLoader, acc: List[List[String]] = List.empty): List[List[String]] = {
@@ -43,7 +45,7 @@ class Eval(classLoader: ClassLoader) extends com.twitter.util.Eval {
 
 object EvalUtils {
 
-  def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampFieldIndex: Int, fieldsIndexesMap: Map[Symbol, Int]) = {
+  def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampField: Symbol, fieldsIndexesMap: Map[Symbol, Int]) = {
       s"""
          |import ru.itclover.streammachine.core.Aggregators._
          |import ru.itclover.streammachine.core.AggregatingPhaseParser._
@@ -54,20 +56,20 @@ object EvalUtils {
          |import ru.itclover.streammachine.phases.Phases._
          |import org.apache.flink.types.Row
          |
-        |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
-         |  val fieldsIndexesMap: Map[Symbol, Int] = ${fieldsIndexesMap.toString}
+         |val fieldsIndexesMap: Map[Symbol, Int] = ${fieldsIndexesMap.toString}
          |
-        |  override def extract(event: Row, symbol: Symbol) = {
+         |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
+         |  override def extract(event: Row, symbol: Symbol) = {
          |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
          |  }
          |}
          |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
          |  override def apply(v1: Row) = {
-         |    v1.getField($timestampFieldIndex).asInstanceOf[java.sql.Timestamp]
+         |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[java.sql.Timestamp]
          |  }
          |}
          |
-        |val phase = $phaseCode
+         |val phase = $phaseCode
          |phase
       """.stripMargin
   }

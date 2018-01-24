@@ -5,21 +5,21 @@ import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import ru.itclover.streammachine.core.PhaseParser
+import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
+import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.{AbstractStateMachineMapper, Eval, EvalUtils, ResultMapper}
 import scala.reflect.ClassTag
 
 
-// TODO: To Either - try to compile code in advance
-case class FlinkStateCodeMachineMapper[MapperOut](phasesCodes: List[String], fieldIndexesMap: Map[Symbol, Int],
+// TODO: To Either - try to compile code in advance in companion
+case class FlinkStateCodeMachineMapper[MapperOut](phaseIdAndCode: (String, String), fieldIndexesMap: Map[Symbol, Int],
                                                   mapResults: ResultMapper[Row, Any, MapperOut],
-                                                  timestampFieldIndex: Int)
+                                                  timestampField: Symbol)
   extends
-    RichFlatMapFunction[Row, MapperOut]
-    with AbstractStateMachineMapper[Row, Any, Any]
-    with Serializable {
-  require(phasesCodes.nonEmpty)
+    RichFlatMapFunction[Row, MapperOut] with AbstractStateMachineMapper[Row, Any, Any] with Serializable {
+  require(fieldIndexesMap.nonEmpty)
+  require(fieldIndexesMap.contains(timestampField))
 
 
   var phaseParser: PhaseParser[Row, Any, Any] = _
@@ -32,12 +32,8 @@ case class FlinkStateCodeMachineMapper[MapperOut](phasesCodes: List[String], fie
     currentState = getRuntimeContext.getState(
       new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[Seq[Any]]], Seq.empty))
     val evaluator = new Eval(getRuntimeContext.getUserCodeClassLoader)
-    // TODO: List phases (FlinkPhasesCombinator?)
-    if (phasesCodes.length > 1) {
-      throw new NotImplementedError()
-    }
     phaseParser = evaluator.apply[(PhaseParser[Row, Any, Any])](
-      EvalUtils.composePhaseCodeUsingRowExtractors(phasesCodes.head, timestampFieldIndex, fieldIndexesMap)
+      EvalUtils.composePhaseCodeUsingRowExtractors(phaseIdAndCode._2, timestampField, fieldIndexesMap)
     )
   }
 
@@ -46,6 +42,7 @@ case class FlinkStateCodeMachineMapper[MapperOut](phasesCodes: List[String], fie
 
     currentState.update(newStates)
 
+    // TODO(r): collect with events and segmentate outside instead of mapResults
     mapResults(event, results).foreach {
       case Success(x) => outCollector.collect(x)
       case Failure(_) =>

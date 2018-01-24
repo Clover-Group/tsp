@@ -3,7 +3,6 @@ package ru.itclover.streammachine
 import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.RulesDemo.Row2
 import ru.itclover.streammachine.core.NumericPhaseParser.field
 import ru.itclover.streammachine.core.{PhaseParser, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
@@ -15,6 +14,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
 import scala.util.Random
 
+case class Row2(time: Instant, speedEngine: Int, contuctorOilPump: Int, wagonId: Int)
 
 class RulesTest extends WordSpec with Matchers {
 

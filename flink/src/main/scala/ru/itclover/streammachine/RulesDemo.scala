@@ -1,3 +1,4 @@
+/*
 package ru.itclover.streammachine
 
 import java.time.Instant
@@ -11,7 +12,7 @@ import org.apache.flink.api.common.functions.util.ListCollector
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.core.fs.{FileSystem, Path}
-import org.apache.flink.streaming.api.functions.sink.SinkFunction
+import org.apache.flink.streaming.api.functions.sink.{OutputFormatSinkFunction, SinkFunction}
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.joda.time.DateTime
@@ -19,7 +20,7 @@ import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult.Success
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.io.input.{ClickhouseInput, JDBCInputConfig => InpJDBCConfig}
+import ru.itclover.streammachine.io.input.{JDBCInputConfig => InpJDBCConfig}
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConfig => OutJDBCConfig}
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
 import ru.itclover.streammachine.transformers.FlinkStateMachineMapper
@@ -55,11 +56,11 @@ object RulesDemo {
       datetimeColname = 'datetime,
       partitionColnames = Seq('Wagon_id)
     )
-    val fieldsTypesInfo = ClickhouseInput.queryFieldsTypeInformation(inpConfig) match {
+    val fieldsTypesInfo = JDBCInput.queryFieldsTypeInformation(inpConfig) match {
       case Right(typesInfo) => typesInfo
       case Left(err) => throw err
     }
-    val chInputFormat = ClickhouseInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
+    val chInputFormat = JDBCInput.getInputFormat(inpConfig, fieldsTypesInfo.toArray)
     //    val fieldsTypesInfoMap = fieldsTypesInfo.map({ case (f, ty) => (Symbol(f), ty) }).toMap
 
 //    implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Map[Symbol, Double]] {
@@ -103,27 +104,35 @@ object RulesDemo {
 
     resultStream.map(result => println(s"R = $result"))
 
-    val outConfig = OutJDBCConfig(
-      jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
-      sinkTable = "series765_data_sink_test_speed",
-      sinkColumnsNames = List[Symbol]('if_rule_success),
-      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
-      batchInterval = Some(1000)
-    )
+//    val outConfig = OutJDBCConfig(
+//      jdbcUrl = "jdbc:clickhouse://localhost:8123/renamedTest",
+//      sinkTable = "series765_data_sink_test_speed",
+//      sinkColumnsNames = List[Symbol]('if_rule_success),
+//      driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+//      batchInterval = Some(1000)
+//    )
+//
 //    val chOutputFormat = ClickhouseOutput.getOutputFormat(outConfig)
+//    val sink = new OutputFormatSinkFunction(chOutputFormat)
 //    resultStream.map(res => {
 //      val r = new Row(1)
-//      r.setField(0, res)
+//      r.setField(0, true)
 //      r
-//    }).writeUsingOutputFormat(chOutputFormat)
-
-
-    val t0 = System.nanoTime()
-    println("Strart timer")
-
-    streamEnv.execute()
-
-    val t1 = System.nanoTime()
-    println("Elapsed time: " + (t1 - t0) / 1000000000.0 + " seconds")
+//    }).addSink(sink)
+////    resultStream.map(res => {
+////      val r = new Row(1)
+////      r.setField(0, true)
+////      r
+////    }).writeUsingOutputFormat(chOutputFormat)
+//
+//
+//    val t0 = System.nanoTime()
+//    println("Strart timer")
+//
+//    streamEnv.execute()
+//
+//    val t1 = System.nanoTime()
+//    println("Elapsed time: " + (t1 - t0) / 1000000000.0 + " seconds")
   }
 }
+*/
