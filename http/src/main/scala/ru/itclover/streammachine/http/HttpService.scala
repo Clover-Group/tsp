@@ -18,7 +18,6 @@ import org.apache.flink.api.scala._
 import ru.itclover.streammachine.transformers.FlatMappersCombinator
 import ru.itclover.streammachine.{ResultMapper, SegmentResultsMapper}
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.cep.scala.pattern.Pattern
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
