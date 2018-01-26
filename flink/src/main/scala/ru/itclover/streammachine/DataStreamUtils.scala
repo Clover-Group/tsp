@@ -2,6 +2,7 @@ package ru.itclover.streammachine
 
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.api.scala.typeutils.UnitTypeInfo
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
@@ -21,7 +22,10 @@ object DataStreamUtils {
     stream.flatMap(dataAccumulator)*/
     }
 
-    def flatMapAll[Out: TypeInformation](flatMappers: Iterable[RichFlatMapFunction[T, Out]]) =
+    def flatMapAll[Out: TypeInformation](flatMappers: Iterable[RichFlatMapFunction[T, Out]]): DataStream[Out] =
       dataStream.flatMap(FlatMappersCombinator(flatMappers))
+
+    def foreach(fn: T => Unit): DataStream[Unit] = dataStream.map[Unit](fn)(new UnitTypeInfo)
+
   }
 }

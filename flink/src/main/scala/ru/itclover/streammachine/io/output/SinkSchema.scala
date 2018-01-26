@@ -15,7 +15,7 @@ trait SinkSchema
   */
 case class JDBCSegmentsSink(tableName: String, fromTimeField: Symbol, fromTimeMillisField: Symbol,
                             toTimeField: Symbol, toTimeMillisField: Symbol,
-                            patternIdField: Symbol, forwardedFields: List[Symbol] = List.empty)
+                            patternIdField: Symbol, forwardedFields: Seq[Symbol] = List.empty)
     extends SinkSchema {
   val fieldsCount: Int = forwardedFields.length + 5
 
