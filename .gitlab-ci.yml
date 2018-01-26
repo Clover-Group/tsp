@@ -1,0 +1,43 @@
+stages:
+  - build
+  - dev
+  - deploy
+
+variables:
+  CONTAINER_TEST_IMAGE: registry.itclover.ru/clover/streammachine:$CI_COMMIT_REF_SLUG
+  CONTAINER_DEV_IMAGE: registry.itclover.ru/clover/streammachine:dev
+  CONTAINER_RELEASE_IMAGE: registry.itclover.ru/clover/streammachine:latest
+
+build_image:
+  stage: build
+  tags:
+    - shell-runner
+  script:
+    - docker pull registry.itclover.ru/clover/streammachine:core
+    - docker build -t $CONTAINER_TEST_IMAGE .
+    - docker push $CONTAINER_TEST_IMAGE
+  only:
+    - master
+
+dev-image:
+  stage: dev
+  tags:
+    - shell-runner
+  script:
+    - docker pull $CONTAINER_TEST_IMAGE
+    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_DEV_IMAGE
+    - docker push $CONTAINER_DEV_IMAGE
+  only:
+    - master
+
+deploy_to_dev:
+  stage: deploy
+  tags:
+    - ssh-runner-to-56
+  script:
+    - cd /opt/clover/projects/streammachine
+    - docker-compose pull streammachine
+    - docker-compose up -d
+  only:
+    - master
+  when: manual
