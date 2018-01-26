@@ -63,6 +63,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     connection.createStatement().executeUpdate(Files.readResource("/sql/wide/sink-schema.sql").mkString)
   }
 
+  // Test123
   "Streaming patterns search" should "work for wide table" in {
 
       Post("/streaming/find-patterns/wide-dense-table/", FindPatternsRequest(inputConf, outputConf, patterns)) ~>
