@@ -5,13 +5,15 @@ import java.time.DateTimeException
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.server.{Directives, ExceptionHandler, RequestContext, Route}
+import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
+import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.http.routes.FindPatternRangesRoute
 import ru.itclover.streammachine.io.input
 import ru.itclover.streammachine.io.output
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.api.scala._
@@ -31,6 +33,8 @@ import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink}
 import ru.itclover.streammachine.transformers.FlinkStateCodeMachineMapper
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 
+import scala.collection.immutable
+
 
 trait HttpService extends Directives with JsonProtocols with FindPatternRangesRoute {
   val isDebug = false
@@ -45,10 +49,26 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
 
   implicit def streamEnvironment: StreamExecutionEnvironment
 
-  // SrcInfo -> Stream -> result
+  implicit def myRejectionHandler =
+    RejectionHandler.newBuilder()
+      .handle { case MissingCookieRejection(cookieName) =>
+        complete((StatusCodes.BadRequest, "qqq cookies"))
+      }
+      .handle { case AuthorizationFailedRejection =>
+        complete((StatusCodes.Forbidden, "qqqYou're out of your depth!"))
+      }
+      .handle { case ValidationRejection(msg, _) =>
+        complete((StatusCodes.InternalServerError, "qqqThat wasn't valid! " + msg))
+      }
+      .handleAll[Rejection] { methodRejections =>
+        complete((StatusCodes.MethodNotAllowed, s"qqqCan't do that! Supported!"))
+      }
+      .handleNotFound { complete((StatusCodes.NotFound, "qqqNot here!")) }
+      .result()
+
 
   override val route: Route =
-    handleExceptions(defaultErrorsHandler) {
+     handleRejections(myRejectionHandler) { handleExceptions(defaultErrorsHandler) {
       path("streaming" / "find-patterns" / "wide-dense-table" /) {
         requestEntityPresent {
           entity(as[FindPatternsRequest]) { patternsRequest =>
@@ -72,7 +92,9 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
                 event.getField(srcInfo.fieldsIndexesMap(symbol)).asInstanceOf[Double]
               }
             }
+
             val stream = streamEnvironment.createInput(srcInfo.inputFormat).keyBy(e => e.getField(srcInfo.partitionIndex))
+
 
             val flatMappers = patternsIdsAndCodes.map { case (patternId, patternCode) =>
               val packInMapper = getPackInRowMapper(outputConf.sinkSchema, srcInfo.fieldsIndexesMap, patternId)
@@ -81,6 +103,8 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
             }
 
             val resultStream = stream.flatMapAll[Row](flatMappers)
+
+            resultStream.foreach { row: Row => println(s"ROWWW = $row") }
 
             val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
 
@@ -92,7 +116,7 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
           }
         }
       }
-    }
+    } }
 
   private def getPackInRowMapper(schema: JDBCSegmentsSink, fieldsIndexesMap: Map[Symbol, Int], patternId: String)
                                 (implicit timeExtractor: TimeExtractor[Row]) = new ResultMapper[Row, Segment, Row] {
@@ -123,7 +147,8 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
             }
             Success(resultRow)
           }
-          case f@Failure(msg) => f
+          case f@Failure(msg) =>
+            f
         }
       }
     }

@@ -30,13 +30,3 @@ class JDBCContainer(imageName: String,
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
 }
-
-//object JDBCContainer {
-//  def apply(imageName: String,
-//            exposedPorts: Seq[Int] = Seq(),
-//            env: Map[String, String] = Map(),
-//            command: Seq[String] = Seq(),
-//            classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
-//            waitStrategy: WaitStrategy = null) =
-//    new JDBCContainer(imageName, exposedPorts, env, command, classpathResourceMapping, Option(waitStrategy))
-//}

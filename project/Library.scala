@@ -59,8 +59,6 @@ object Library {
   )
 
   val testContainers = Seq(
-    "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
-    "org.testcontainers" % "postgresql" % Version.testContainersPgsql,
-    "org.postgresql" % "postgresql" % Version.pgsql
+    "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
   )
 }
