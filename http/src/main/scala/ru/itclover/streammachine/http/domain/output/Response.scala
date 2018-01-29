@@ -9,4 +9,4 @@ trait Response
 
 final case class SuccessfulResponse[T](response: T) extends Response
 
-final case class FailureResponse(errorCode: Int, message: String, errors: List[String]) extends Response
+final case class FailureResponse(errorCode: Int, message: String, errors: Seq[String]) extends Response

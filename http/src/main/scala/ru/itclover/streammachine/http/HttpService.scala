@@ -49,26 +49,23 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
 
   implicit def streamEnvironment: StreamExecutionEnvironment
 
-  implicit def myRejectionHandler =
+  implicit def serviceRejections =
     RejectionHandler.newBuilder()
-      .handle { case MissingCookieRejection(cookieName) =>
-        complete((StatusCodes.BadRequest, "qqq cookies"))
+      .handle { case ValidationRejection(msg, cause) =>
+        val reason = cause.getOrElse(new IllegalArgumentException("")).getMessage
+        complete(FailureResponse(StatusCodes.InternalServerError.intValue, msg, reason :: Nil))
       }
-      .handle { case AuthorizationFailedRejection =>
-        complete((StatusCodes.Forbidden, "qqqYou're out of your depth!"))
+      .handleNotFound {
+        complete(FailureResponse(StatusCodes.NotFound.intValue, "Not found.", Seq.empty))
       }
-      .handle { case ValidationRejection(msg, _) =>
-        complete((StatusCodes.InternalServerError, "qqqThat wasn't valid! " + msg))
+      .handleAll[Rejection] { _ =>
+        complete(FailureResponse(StatusCodes.MethodNotAllowed.intValue, "Not allowed.", Seq.empty))
       }
-      .handleAll[Rejection] { methodRejections =>
-        complete((StatusCodes.MethodNotAllowed, s"qqqCan't do that! Supported!"))
-      }
-      .handleNotFound { complete((StatusCodes.NotFound, "qqqNot here!")) }
       .result()
 
 
   override val route: Route =
-     handleRejections(myRejectionHandler) { handleExceptions(defaultErrorsHandler) {
+     handleRejections(serviceRejections) { handleExceptions(defaultErrorsHandler) {
       path("streaming" / "find-patterns" / "wide-dense-table" /) {
         requestEntityPresent {
           entity(as[FindPatternsRequest]) { patternsRequest =>

@@ -1,14 +1,16 @@
 package ru.itclover.streammachine.http
 
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props, Terminated}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{Await, ExecutionContextExecutor}
+import scala.concurrent.duration._
 import scala.io.StdIn
 
-object WebServer extends App with HttpService {
+object DockerWebServer extends App with HttpService {
   override val isDebug: Boolean = true
 
   implicit val system: ActorSystem = ActorSystem("my-system")
@@ -20,8 +22,12 @@ object WebServer extends App with HttpService {
   val bindingFuture = Http().bindAndHandle(route, "0.0.0.0", 8080)
 
   println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
-  StdIn.readLine()
-  bindingFuture
-    .flatMap(_.unbind())
-    .onComplete(_ => system.terminate())
+
+  // shutdown Hook
+  scala.sys.addShutdownHook {
+    log.info("Terminating...")
+    system.terminate()
+    Await.result(system.whenTerminated, 30.seconds)
+    log.info("Terminated... Bye!")
+  }
 }
