@@ -36,8 +36,6 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9000 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
-  var connection: Connection = _
-
   val inputConf = JDBCInputConfig(
     jdbcUrl = container.jdbcUrl,
     query = "select datetime, mechanism_id, speed from SM_Integration_wide limit 1000",
@@ -49,18 +47,14 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConfig(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
-  val patterns = Map("1" -> "'speed > 10.0")
+  val patterns = Map("1" -> "'speed < 10.0", "2" -> "'speed > 10.0")
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    connection = {
-      Class.forName(container.driverName)
-      DriverManager.getConnection(container.jdbcUrl)
-    }
-    connection.createStatement().executeUpdate(Files.readResource("/sql/test-db-schema.sql").mkString)
-    connection.createStatement().executeUpdate(Files.readResource("/sql/wide/source-schema.sql").mkString)
-    connection.createStatement().executeUpdate(Files.readResource("/sql/wide/source-inserts.sql").mkString)
-    connection.createStatement().executeUpdate(Files.readResource("/sql/wide/sink-schema.sql").mkString)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
   "Streaming patterns search" should "work for wide table" in {
@@ -68,13 +62,20 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       Post("/streaming/find-patterns/wide-dense-table/", FindPatternsRequest(inputConf, outputConf, patterns)) ~>
         route ~> check {
         status shouldEqual StatusCodes.OK
-        val resultSet = connection.createStatement()
-          .executeQuery("SELECT from, to FROM SM_Integration_wide_patterns WHERE pattern_id = '1'")
-        resultSet.next() shouldEqual true
-        val from = resultSet.getTime(1)
-        val to: Time = resultSet.getTime(2)
-        val segmentSeconds = to.toLocalTime.getSecond - from.toLocalTime.getSecond
-        segmentSeconds should ===(2)
+
+        val pattern1_result = container.executeQuery("SELECT from, to FROM SM_Integration_wide_patterns WHERE pattern_id = '1'")
+        pattern1_result.next() shouldEqual true
+        val from1 = pattern1_result.getTime(1)
+        val to1: Time = pattern1_result.getTime(2)
+        val segmentSeconds1 = to1.toLocalTime.getSecond - from1.toLocalTime.getSecond
+        segmentSeconds1 should ===(1)
+
+        val pattern2_result = container.executeQuery("SELECT from, to FROM SM_Integration_wide_patterns WHERE pattern_id = '2'")
+        pattern2_result.next() shouldEqual true
+        val from2 = pattern2_result.getTime(1)
+        val to2: Time = pattern2_result.getTime(2)
+        val segmentSeconds2 = to2.toLocalTime.getSecond - from2.toLocalTime.getSecond
+        segmentSeconds2 should ===(2)
       }
 
   }

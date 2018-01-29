@@ -1,8 +1,12 @@
 package ru.itclover.streammachine.http.utils
 
+import java.sql.{Connection, DriverManager, ResultSet}
+
 import com.dimafeng.testcontainers.SingleContainer
+import org.junit.runner.Description
 import org.testcontainers.containers.wait.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
+
 import collection.JavaConverters._
 
 
@@ -29,4 +33,23 @@ class JDBCContainer(imageName: String,
   }
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
+
+  var connection: Connection = _
+
+  override def starting()(implicit description: Description): Unit = {
+    super.starting()
+    connection = {
+      Class.forName(driverName)
+      DriverManager.getConnection(jdbcUrl)
+    }
+  }
+
+  override def finished()(implicit description: Description): Unit = {
+    super.finished()
+    connection.close()
+  }
+
+  def executeQuery(sql: String): ResultSet = connection.createStatement().executeQuery(sql)
+
+  def executeUpdate(sql: String): Int = connection.createStatement().executeUpdate(sql)
 }
