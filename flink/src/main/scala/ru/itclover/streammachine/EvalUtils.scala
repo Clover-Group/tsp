@@ -60,7 +60,7 @@ object EvalUtils {
          |
          |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
          |  override def extract(event: Row, symbol: Symbol) = {
-         |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Double]
+         |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Float].toDouble
          |  }
          |}
          |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
