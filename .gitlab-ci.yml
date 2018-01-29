@@ -35,7 +35,7 @@ deploy_to_dev:
   tags:
     - ssh-runner-to-56
   script:
-    - cd /opt/clover/projects/streammachine
+    - cd /opt/clover/projects/streamMachine
     - docker-compose pull streammachine
     - docker-compose up -d
   only:
