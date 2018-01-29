@@ -100,7 +100,13 @@ object Phases {
       }
 
       oldValue match {
-        case None => processNewValue
+        case None => {
+          if (from == newValue) {
+            if (to == from) Success(newValue) -> Some(newValue)
+            else Stay -> Some(newValue)
+          }
+          else Failure(s"Not hit from($from) value before increase.") -> None
+        }
         case Some(value) =>
           if (newValue < value) {
             Failure("It does not increase") -> oldValue

@@ -25,7 +25,6 @@ object ClickhouseOutput {
   private def getInsertQuery(sinkSchema: JDBCSegmentsSink) = {
     val columns = sinkSchema.fieldsNames.map(_.toString().tail)
     val statements = columns.map(_ => "?").mkString(", ")
-    log.info(s"Statements = $statements, --- $columns")
     s"INSERT INTO ${sinkSchema.tableName} (${columns.mkString(", ")}) VALUES (${statements})"
   }
 }

@@ -1,5 +1,6 @@
 package ru.itclover.streammachine
 
+import com.typesafe.scalalogging.Logger
 import ru.itclover.streammachine.core.PhaseResult._
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
@@ -10,6 +11,7 @@ case class StateMachineMapper[Event, State, PhaseOut, MapperOut]
   (phaseParser: PhaseParser[Event, State, PhaseOut], mapResults: ResultMapper[Event, PhaseOut, MapperOut])
   extends AbstractStateMachineMapper[Event, State, PhaseOut]
 {
+  val log: Logger = Logger[StateMachineMapper[Event, State, PhaseOut, MapperOut]]
 
   private var states: Seq[State] = Vector.empty
 
@@ -17,6 +19,8 @@ case class StateMachineMapper[Event, State, PhaseOut, MapperOut]
 
 
   def apply(event: Event): this.type = {
+    log.info(s"Map new event: $event")
+
     val (results, newStates) = process(event, states)
 
     mapResults(event, results).foreach(x => collector.append(x))

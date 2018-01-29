@@ -7,14 +7,14 @@ import ru.itclover.streammachine.core.NumericPhaseParser.field
 import ru.itclover.streammachine.core.{PhaseParser, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Wait}
+import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Increasing, Wait}
 import ru.itclover.streammachine.http.utils.{Timer => TimerGenerator, _}
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
 import scala.util.Random
 
-case class Row2(time: Instant, speedEngine: Int, contuctorOilPump: Int, wagonId: Int)
+case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 
 class RulesTest extends WordSpec with Matchers {
 
@@ -132,7 +132,7 @@ class RulesTest extends WordSpec with Matchers {
              speed <- Constant(261.0).timed(1.seconds)
                .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
                .after(Constant(0.0))
-        ) yield Row2(time, speed.toInt, pump.toInt, 1)
+        ) yield Row(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
       //      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
@@ -148,7 +148,7 @@ class RulesTest extends WordSpec with Matchers {
              speed <- Change(from = 1.0, to = 261, 15.seconds).timed(1.seconds)
                .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
                .after(Constant(0.0))
-        ) yield Row2(time, speed.toInt, pump.toInt, 1)
+        ) yield Row(time, speed.toInt, pump.toInt, 1)
         ).run(seconds = 100)
 
     }
@@ -233,23 +233,22 @@ class RulesTest extends WordSpec with Matchers {
       segmentLengthOpt.get should be < 20000L
     }
 
-    "work on segmented output" in {
+    "Segment Decreasing" in {
       val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
-      // val phase: Phase[Row] = ToSegments(('speed >= 50.0) andThen (derivation('speed) <= 0.0) until ('speed <= 35.0))
+      // val phase: Phase[Row] = (derivation('speed) <= 0.0) until ('speed <= 35.0)
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
-             speed <- Constant(51.0).timed(1.seconds)
-               .after(Constant(50.0).timed(1.seconds))
-               .after(Change(from = 50.0, to = 35.0, howLong = 15.seconds))
+             speed <- Constant(50.0).timed(1.seconds)
+               .after(Change(from = 50.0, to = 35.0, howLong = 5.seconds))
                .after(Constant(35.0).timed(1.seconds))
-               .after(Change(from = 35.0, to = 30.0, howLong = 5.seconds))
+               .after(Change(from = 35.0, to = 30.0, howLong = 2.seconds))
                .after(Constant(0.0))
         ) yield Row(time, speed.toInt, 0)
-        ).run(seconds = 20)
+        ).run(seconds = 8)
       println(rows.map(_.speed))
       val (successes, failures) = runWithSegmentation(phase, rows).partition(_.isInstanceOf[Success[_]])
 
-      failures should not be empty
+      failures.length should be > 0
       successes should not be empty
       successes.length should equal(1)
 
@@ -258,11 +257,40 @@ class RulesTest extends WordSpec with Matchers {
         case _ => None
       }
       segmentLengthOpt should not be empty
-      segmentLengthOpt.get should be > 12000L
-      segmentLengthOpt.get should be < 15000L
+      segmentLengthOpt.get should be > 3000L
+      segmentLengthOpt.get should be < 10000L
+    }
+
+    "Segment Increasing" in {
+      val phase: Phase[Row] = ToSegments(Increasing(_.speed, 35.0, 50.0))
+      val rows = (
+        for (time <- TimerGenerator(from = Instant.now());
+             speed <- Constant(30.0).timed(2.seconds)
+               .after(Change(from = 30.0, to = 35.0, howLong = 5.seconds))
+               .after(Constant(35.0).timed(1.seconds))
+               .after(Change(from = 35.0, to = 50.0, howLong = 13.seconds))
+               .after(Constant(51.0).timed(1.seconds))
+        ) yield Row(time, speed.toInt, 0)
+          ).run(seconds = 15)
+
+      println(rows.map(_.speed))
+
+      val (successes, failures) = runWithSegmentation(phase, rows).partition(_.isInstanceOf[Success[_]])
+
+      println(successes)
+
+      failures.length should be > 0
+      successes should not be empty
+      successes.length should equal(1)
+
+      val segmentLengthOpt = successes.head match {
+        case Success(Segment(from, to)) => Some(to.toMillis - from.toMillis)
+        case _ => None
+      }
+      segmentLengthOpt should not be empty
+      segmentLengthOpt.get should be > 3000L
+      segmentLengthOpt.get should be < 10000L
     }
   }
-
-  case class Row(time: Instant, speed: Double, pump: Double)
 
 }
