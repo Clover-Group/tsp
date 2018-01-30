@@ -22,22 +22,6 @@ object Phases {
   }
 
   /**
-    * PhaseParser to check some condition on any event.
-    *
-    * @param predicate
-    * @tparam Event - events to process
-    */
-  case class Assert[Event](predicate: Event => Boolean) extends PhaseParser[Event, Option[Unit], Boolean] {
-    override def apply(event: Event, s: Option[Unit]) = {
-
-      if (predicate(event)) Success(true) -> None
-      else Failure("Event does not match condition.") -> None
-    }
-
-    override def initialState: Option[Unit] = None
-  }
-
-  /**
     * Expect decreasing of value. If value has entered to range between from and to, it must monotonically decrease to `to` for success.
     *
     * @param extract - function to extract value to compare
@@ -164,19 +148,30 @@ object Phases {
     override def initialState: Option[Set[T]] = None
   }
 
-  case class Wait[Event, State](conditionParser: PhaseParser[Event, State, Boolean]) extends PhaseParser[Event, State, Boolean] {
 
-    override def apply(event: Event, v2: State): (PhaseResult[Boolean], State) = {
+  /**
+    * Phase terminating inner parser. If inner parser at least once got to the TerminalResult it will stay there forever
+    *
+    * @param inner - parser to be terminated
+    * @tparam Event - events to process
+    * @tparam State - inner state
+    * @tparam Out
+    */
+  case class Terminate[Event, State, Out](inner: PhaseParser[Event, State, Out]) extends PhaseParser[Event, (PhaseResult[Out], State), Out] {
 
-      val (res, newState) = conditionParser(event, v2)
+    override def apply(event: Event, v2: (PhaseResult[Out], State)): (PhaseResult[Out], (PhaseResult[Out], State)) = {
+      val (phaseResult, state) = v2
 
-      (res match {
-        case s@Success(true) => s
-        case _ => Stay
-      }) -> newState
+      phaseResult match {
+        case x: TerminalResult[Out] => x -> v2
+        case Stay =>
+          val (nextResult, nextState) = inner.apply(event, state)
+          nextResult -> (nextResult, nextState)
+      }
     }
 
-    override def initialState = conditionParser.initialState
+    override def initialState = Stay -> inner.initialState
   }
+
 
 }

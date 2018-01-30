@@ -24,7 +24,6 @@ import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import ru.itclover.streammachine.core.Aggregators.Segment
-import ru.itclover.streammachine.core.NumericPhaseParser.SymbolNumberExtractor
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
@@ -32,6 +31,7 @@ import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink}
 import ru.itclover.streammachine.transformers.FlinkStateCodeMachineMapper
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 
 import scala.collection.immutable
 

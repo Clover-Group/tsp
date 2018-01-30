@@ -1,10 +1,12 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
-import ru.itclover.streammachine.core.Aggregators.Timer
-import ru.itclover.streammachine.core._
+
 import ru.itclover.streammachine.core.Time._
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing}
+import ru.itclover.streammachine.core._
+import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
+import ru.itclover.streammachine.phases.NumericPhases._
+import ru.itclover.streammachine.phases.Phases.Decreasing
 
 import scala.concurrent.duration._
 
@@ -18,7 +20,7 @@ object TestApp extends App {
     val mapResults = FakeMapper[T, Out]()
     events
       .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
-       .result
+      .result
   }
 
   val now = Instant.now()
@@ -41,12 +43,11 @@ object TestApp extends App {
   collector.foreach(println)
 
   {
-    import core.Aggregators._
     import core.AggregatingPhaseParser._
-    import core.NumericPhaseParser._
+
     import Predef.{any2stringadd => _, _}
 
-    implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Event] {
+    implicit val symbolNumberExtractorEvent: SymbolNumberExtractor[Event] = new SymbolNumberExtractor[Event] {
       override def extract(event: Event, symbol: Symbol) = {
         symbol match {
           case 'speed => event.speed
@@ -56,30 +57,34 @@ object TestApp extends App {
     }
 
 
-
     val window = new Window {
       override def toMillis: Long = 5000
     }
 
     type Phase[Event] = PhaseParser[Event, _, _]
 
-    val phase: Phase[Event] = ((e: Event) => e.speed) > 4
+//    val phase: Phase[Event] = ((e: Event) => e.speed) > 4
 
-    val phase2: Phase[Event] = avg(field('speed), window) > avg('pump, window)
+    val phase2: Phase[Event] = avg('speed.field[Event], window) > avg('pump.field, window)
 
-    val phase3 = avg('speed, 5.seconds) >= 5.0 andThen avg('pump, 3.seconds) > 0
+    val phase3 = avg('speed.field, 5.seconds) >= 5.0 andThen avg('pump.field, 3.seconds) > 0
 
-    val phase4: Phase[Event] = avg('speed, 5.seconds) >= value(5.0)
+    val phase4: Phase[Event] = avg('speed.field, 5.seconds) >= value(5.0)
 
-    val phase5: Phase[Event] = ('speed > 4 & 'pump > 100).timed(more(10.seconds))
+    val phase5: Phase[Event] = ('speed.field > 4 & 'pump.field > 100).timed(more(10.seconds))
 
-    val t: Phase[Event] = 'speed >= 100
-    val decr: Phase[Event] = ('speed === 100) andThen (derivation('speed) < 0) until ('speed <= 50)
+    val t: Phase[Event] = 'speed.field >= 100
+    val decr: Phase[Event] = ('speed.field === 100) andThen (avg(derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
 
-    val phase6 = 'currentCompressorMotor > 0 &
-      ('PAirMainRes <= 7.5 andThen (derivation(avg('PAirMainRes, 5.seconds) ) > 0).timed(more(23.seconds) )
-        until 'PAirMainRes >= 8.0 )
+    val phase6 = 'currentCompressorMotor.field > 0 &
+      ('PAirMainRes.field <= 7.5 andThen (derivation(avg('PAirMainRes.field, 5.seconds)) > 0).timed(more(23.seconds))
+        .until('PAirMainRes.field >= 8.0))
+
+    //    val phase7 = ('eventType == "TableJoin").andThen(no('eventType == "Bet1" or 'eventType == "Bet2").timed(more) )
+
   }
+
+
 }
 
 case class Event(speed: Int, time: Instant)

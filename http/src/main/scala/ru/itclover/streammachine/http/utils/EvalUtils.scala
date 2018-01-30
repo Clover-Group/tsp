@@ -49,7 +49,7 @@ object EvalUtils {
       s"""
          |import ru.itclover.streammachine.core.Aggregators._
          |import ru.itclover.streammachine.core.AggregatingPhaseParser._
-         |import ru.itclover.streammachine.core.NumericPhaseParser._
+         |import ru.itclover.streammachine.phases.NumericPhaseParser._
          |import ru.itclover.streammachine.core.Time._
          |import ru.itclover.streammachine.core.PhaseParser
          |import Predef.{any2stringadd => _, _}

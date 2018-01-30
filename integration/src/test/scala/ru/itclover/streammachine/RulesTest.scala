@@ -4,7 +4,7 @@ import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.core.NumericPhaseParser.field
-import ru.itclover.streammachine.core.{PhaseParser, TimeInterval, Window}
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
 import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Increasing, Wait}
@@ -47,7 +47,7 @@ class RulesTest extends WordSpec with Matchers {
     SegmentResultsMapper[Event, PhaseOut]()(te)
 
 
-  def run[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event]) = {
+  def run[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event]): Vector[PhaseResult.TerminalResult[Out]] = {
     val mapResults = fakeMapper(rule)
     events
       .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }

@@ -4,8 +4,7 @@ package ru.itclover.streammachine
 import java.time.Instant
 import ru.itclover.streammachine.core.Aggregators.Segment
 import ru.itclover.streammachine.core.Time.timeOrdering
-import ru.itclover.streammachine.core.PhaseParser.And
-import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Terminate, Time}
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time}
 import ru.itclover.streammachine.core.PhaseResult.{TerminalResult, _}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 

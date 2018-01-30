@@ -6,7 +6,7 @@ import org.scalatest.{FunSuite, Matchers, WordSpec}
 import ru.itclover.streammachine.{Event, core}
 import ru.itclover.streammachine.core.AggregatingPhaseParser.derivation
 import ru.itclover.streammachine.core.Aggregators.{Segment, ToSegments}
-import ru.itclover.streammachine.core.{NumericPhaseParser, PhaseResult}
+import ru.itclover.streammachine.core.PhaseResult
 import ru.itclover.streammachine.core.NumericPhaseParser.{SymbolNumberExtractor, field}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor

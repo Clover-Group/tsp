@@ -2,9 +2,12 @@ package ru.itclover.streammachine.core
 
 import java.time.Instant
 
-import ru.itclover.streammachine.core.PhaseParser.And
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
+import ru.itclover.streammachine.phases.CombiningPhases.And
+import ru.itclover.streammachine.phases.NumericPhases
+import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
+
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
@@ -103,44 +106,6 @@ object Aggregators {
 
 
   //todo MinParser, MaxParser, CountParser, MedianParser, ConcatParser, Timer
-
-  /**
-    * Timer parser. Returns:
-    * Stay - if passed less than min boundary of timeInterval
-    * Success - if passed time is between time interval
-    * Failure - if passed more than max boundary of timeInterval
-    *
-    * @param timeInterval - time limits
-    * @param timeExtractor - function returning time from Event
-    * @tparam Event - events to process
-    */
-  case class Timer[Event](timeInterval: TimeInterval)
-                         (implicit timeExtractor: TimeExtractor[Event])
-    extends PhaseParser[Event, Option[Time], (Time, Time)] {
-
-    override def apply(event: Event, state: Option[Time]): (PhaseResult[(Time, Time)], Option[Time]) = {
-
-      val eventTime = timeExtractor(event)
-
-      state match {
-        case None =>
-          Stay -> Some(eventTime)
-        case Some(startTime) =>
-          val lowerBound = startTime.plus(timeInterval.min)
-          val upperBound = startTime.plus(timeInterval.max)
-          val result = if (eventTime < lowerBound) Stay
-            else if (eventTime <= upperBound) Success(startTime -> eventTime)
-                 else Failure(s"Timeout expired at $eventTime")
-
-          result -> state
-      }
-    }
-
-    override def aggregate(event: Event, state: Option[Time]): (PhaseResult[(Time, Time)], Option[Time]) = Stay -> state
-
-    override def initialState: Option[Time] = None
-  }
-
 
   /**
     * Accumulates Stay and consequent Success to a single Success [[Segment]]
