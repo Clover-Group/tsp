@@ -23,6 +23,8 @@ object MonadPhases {
       (phaseResult.map(f(event)), state)
     }
 
+    override def aggregate(event: Event, oldState: State): State = phaseParser.aggregate(event, oldState)
+
     override def initialState = phaseParser.initialState
   }
 
@@ -32,6 +34,8 @@ object MonadPhases {
       val (phaseResult, state) = phaseParser.apply(event, oldState)
       (phaseResult.map(f), state)
     }
+
+    override def aggregate(event: Event, oldState: State): State = phaseParser.aggregate(event, oldState)
 
     override def initialState = phaseParser.initialState
   }
@@ -65,6 +69,9 @@ object MonadPhases {
           secondResult -> Right(secondParser, newSecondState)
       }
     }
+
+    // todo do not use aggregation with flatmap parsers
+    override def aggregate(event: Event, state: Either[State1, (PhaseParser[Event, State2, Out2], State2)]): Either[State1, (PhaseParser[Event, State2, Out2], State2)] = ???
 
     override def initialState = Left(parser.initialState)
   }

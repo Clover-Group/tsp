@@ -52,7 +52,14 @@ object TimePhases {
       }
     }
 
-    override def aggregate(event: Event, state: Option[Time]): (PhaseResult[(Time, Time)], Option[Time]) = Stay -> state
+    /**
+      * We override this method here because of don't want to start timer eagely.
+      *
+      * @param event
+      * @param state
+      * @return
+      */
+    override def aggregate(event: Event, state: Option[Time]): Option[Time] = state
 
     override def initialState: Option[Time] = None
   }
@@ -69,6 +76,8 @@ object TimePhases {
         case _ => Stay
       }) -> newState
     }
+
+    override def aggregate(v1: Event, v2: State) = conditionParser.aggregate(v1, v2)
 
     override def initialState = conditionParser.initialState
   }

@@ -112,6 +112,11 @@ object CombiningPhases {
       }) -> newState
     }
 
+    override def aggregate(event: Event, state: (LState, RState)): (LState, RState) = {
+      val (leftState, rightState) = state
+      leftParser.aggregate(event, leftState) -> rightParser.aggregate(event, rightState)
+    }
+
     override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
   }
 
@@ -123,7 +128,7 @@ object CombiningPhases {
   // todo think about using shapeless here.
   /**
     * PhaseParser chaining two parsers one after another.
-    * Success if first phase finished successfully and second is successfull too.
+    * Success if first phase finished successfully and second is successful too.
     * Failure if any of phases finished with Failure.
     * If first phase is in Stay or first phase has finished but second in Stay the result is Stay.
     */
@@ -154,8 +159,8 @@ object CombiningPhases {
                 case Stay => Stay
               }) -> newState
             }
-            case f@Failure(msg) => f -> (newFirstState, secondState, None)
-            case Stay => Stay -> (newFirstState, secondState, None)
+            case f@Failure(msg) => f -> (newFirstState, second.aggregate(event, secondState), None)
+            case Stay => Stay -> (newFirstState, second.aggregate(event, secondState), None)
           }
         case Some(firstOut) =>
           val (secondResult, newSecondState) = second(event, secondState)
@@ -166,6 +171,11 @@ object CombiningPhases {
             case Stay => Stay
           }) -> (firstState, newSecondState, optFirstOut)
       }
+    }
+
+    override def aggregate(event: Event, state: (FirstState, SecondState, Option[FirstOut])): (FirstState, SecondState, Option[FirstOut]) = {
+      val (firstState, secondState, optFirstOut) = state
+      (first.aggregate(event, firstState), second.aggregate(event, secondState), optFirstOut)
     }
 
     override def initialState = (first.initialState, second.initialState, None)
@@ -191,6 +201,11 @@ object CombiningPhases {
         case (_, Stay) => Stay
         case (Failure(msg1), Failure(msg2)) => Failure(s"Or Failed: 1) $msg1 2) $msg2")
       }) -> newState
+    }
+
+    override def aggregate(event: Event, state: (LState, RState)): (LState, RState) = {
+      val (leftState, rightState) = state
+      leftParser.aggregate(event, leftState) -> rightParser.aggregate(event, rightState)
     }
 
     override def initialState = (leftParser.initialState, rightParser.initialState)

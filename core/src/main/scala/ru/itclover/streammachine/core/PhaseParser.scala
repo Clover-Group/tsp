@@ -18,7 +18,7 @@ import scala.language.higherKinds
 trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
   def initialState: State
 
-  def aggregate(event: Event, state: State): (PhaseResult[T], State) = apply(event, state)
+  def aggregate(event: Event, state: State): State = apply(event, state)._2
 }
 
 object PhaseParser {
@@ -29,9 +29,10 @@ object PhaseParser {
 
   implicit class PhaseParserRich[Event, State, T](val parser: PhaseParser[Event, State, T])
     extends WithParser[Event, State, T]
-    with TimePhasesSyntax[Event, State, T]
-    with BooleanPhasesSyntax[Event, State, T]
-    with NumericPhasesSyntax[Event, State, T]
-    with CombiningPhasesSyntax[Event, State, T]
-    with MonadPhasesSyntax[Event, State, T]
+      with TimePhasesSyntax[Event, State, T]
+      with BooleanPhasesSyntax[Event, State, T]
+      with NumericPhasesSyntax[Event, State, T]
+      with CombiningPhasesSyntax[Event, State, T]
+      with MonadPhasesSyntax[Event, State, T]
+
 }

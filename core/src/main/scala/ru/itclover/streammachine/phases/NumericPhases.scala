@@ -54,6 +54,8 @@ object NumericPhases {
       override def initialState = inner.initialState
 
       override def apply(v1: Event, v2: State) = inner.apply(v1, v2)
+
+      override def aggregate(v1: Event, v2: State) = inner.aggregate(v1, v2)
     }
 
   implicit class SymbolParser(val symbol: Symbol) extends AnyVal {

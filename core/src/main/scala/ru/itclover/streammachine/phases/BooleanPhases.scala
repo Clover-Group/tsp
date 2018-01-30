@@ -67,6 +67,11 @@ object BooleanPhases {
       }) -> newState
     }
 
+    override def aggregate(event: Event, state: (State1, State2)): (State1, State2) = {
+      val (leftState, rightState) = state
+      left.aggregate(event, leftState) -> right.aggregate(event, rightState)
+    }
+
     override def initialState: (State1, State2) = (left.initialState, right.initialState)
   }
 

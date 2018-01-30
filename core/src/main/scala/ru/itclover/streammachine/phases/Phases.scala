@@ -11,14 +11,13 @@ object Phases {
   type Phase[Event] = PhaseParser[Event, _, _]
 
   case class TestPhase[Event, T](resultsStream: Stream[PhaseResult[T]])
-    extends PhaseParser[Event, Stream[PhaseResult[T]], T]
-  {
+    extends PhaseParser[Event, Stream[PhaseResult[T]], T] {
     override def initialState = resultsStream
 
     override def apply(event: Event, resultsStream: Stream[PhaseResult[T]]) = resultsStream match {
-        case x #:: xs => x -> xs
-        case Stream.Empty => throw new NoSuchElementException("Test stream is empty.")
-      }
+      case x #:: xs => x -> xs
+      case Stream.Empty => throw new NoSuchElementException("Test stream is empty.")
+    }
   }
 
   /**
@@ -169,6 +168,8 @@ object Phases {
           nextResult -> (nextResult, nextState)
       }
     }
+
+    override def aggregate(v1: Event, v2: (PhaseResult[Out], State)) = Stay -> inner.aggregate(v1, v2._2)
 
     override def initialState = Stay -> inner.initialState
   }

@@ -13,6 +13,8 @@ object ConstantPhases {
 
     override def apply(v1: Event, v2: Unit): (PhaseResult[T], Unit) = Success(extract(v1)) -> ()
 
+    override def aggregate(event: Event, state: Unit): Unit = initialState
+
     def extract(event: Event): T
 
     override def initialState: Unit = ()
