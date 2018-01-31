@@ -19,7 +19,7 @@ case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 class RulesTest extends WordSpec with Matchers {
 
   import Rules._
-  import core.Aggregators._
+  import ru.itclover.streammachine.phases.AggregatorPhases._
   import core.AggregatingPhaseParser._
   import core.NumericPhaseParser._
   import ru.itclover.streammachine.core.Time._
@@ -158,7 +158,7 @@ class RulesTest extends WordSpec with Matchers {
   "dsl" should {
 
     "works" in {
-      import core.Aggregators._
+      import ru.itclover.streammachine.phases.AggregatorPhases._
       import core.AggregatingPhaseParser._
       import core.NumericPhaseParser._
       import ru.itclover.streammachine.core.Time._

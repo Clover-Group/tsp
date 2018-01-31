@@ -4,6 +4,7 @@ import java.time.Instant
 
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core._
+import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
 import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.phases.Phases.Decreasing
@@ -43,8 +44,6 @@ object TestApp extends App {
   collector.foreach(println)
 
   {
-    import core.AggregatingPhaseParser._
-
     import Predef.{any2stringadd => _, _}
 
     implicit val symbolNumberExtractorEvent: SymbolNumberExtractor[Event] = new SymbolNumberExtractor[Event] {
@@ -56,6 +55,21 @@ object TestApp extends App {
       }
     }
 
+    case class Appevent(`type`: String, created: Long)
+
+    implicit val symbolNumberExtractorAppevent: SymbolExtractor[Appevent, String] = new SymbolExtractor[Appevent, String] {
+      override def extract(event: Appevent, symbol: Symbol): String = {
+        symbol match {
+          case 'eventType => event.`type`
+          case _ => sys.error(s"No field $symbol in $event")
+        }
+      }
+    }
+
+    implicit val extractTimeAppevent: TimeExtractor[Appevent] = new TimeExtractor[Appevent] {
+      override def apply(v1: Appevent): Time = v1.created
+    }
+
 
     val window = new Window {
       override def toMillis: Long = 5000
@@ -63,7 +77,7 @@ object TestApp extends App {
 
     type Phase[Event] = PhaseParser[Event, _, _]
 
-//    val phase: Phase[Event] = ((e: Event) => e.speed) > 4
+    //    val phase: Phase[Event] = ((e: Event) => e.speed) > 4
 
     val phase2: Phase[Event] = avg('speed.field[Event], window) > avg('pump.field, window)
 
@@ -74,14 +88,22 @@ object TestApp extends App {
     val phase5: Phase[Event] = ('speed.field > 4 & 'pump.field > 100).timed(more(10.seconds))
 
     val t: Phase[Event] = 'speed.field >= 100
+
     val decr: Phase[Event] = ('speed.field === 100) andThen (avg(derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
 
-    val phase6 = 'currentCompressorMotor.field > 0 &
+    val phase6 = 'currentCompressorMotor.field > 0 togetherWith
       ('PAirMainRes.field <= 7.5 andThen (derivation(avg('PAirMainRes.field, 5.seconds)) > 0).timed(more(23.seconds))
         .until('PAirMainRes.field >= 8.0))
 
-    //    val phase7 = ('eventType == "TableJoin").andThen(no('eventType == "Bet1" or 'eventType == "Bet2").timed(more) )
-
+    val phase7: Phase[Appevent] =
+      ('eventType.as[String] === "TableJoin")
+        .andThen(
+          not(
+            ('eventType.as[String] === "Bet_ACCEPTED")
+              or
+              ('eventType.as[String] === "Bet2")
+          ).timed(more(30.seconds))
+        )
   }
 
 

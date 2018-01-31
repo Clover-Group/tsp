@@ -2,7 +2,7 @@ package ru.itclover.streammachine
 
 
 import java.time.Instant
-import ru.itclover.streammachine.core.Aggregators.Segment
+import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.Time.timeOrdering
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time}
 import ru.itclover.streammachine.core.PhaseResult.{TerminalResult, _}

@@ -5,7 +5,7 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
-import ru.itclover.streammachine.phases.CombiningPhases.AndParserLike
+import ru.itclover.streammachine.phases.CombiningPhases.TogetherParserLike
 
 import scala.Ordered._
 
@@ -14,7 +14,7 @@ object TimePhases {
   trait TimePhasesSyntax[Event, State, T] {
     this: WithParser[Event, State, T] =>
 
-    def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.AndParser[Event, State, Option[Time], T, (Time, Time)] = this.parser and Timer(timeInterval)
+    def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.TogetherParser[Event, State, Option[Time], T, (Time, Time)] = this.parser togetherWith Timer(timeInterval)
 
     def until[State2](condition: BooleanPhaseParser[Event, State2]): Until[Event, State, State2, T] = Until(this.parser, condition)
 
@@ -93,6 +93,6 @@ object TimePhases {
     * @tparam T     - output type, used if phase successfully terminated
     * @tparam State2
     */
-  case class Until[Event, State, State2, +T](first: PhaseParser[Event, State, T], second: BooleanPhaseParser[Event, State2]) extends AndParserLike(first, Wait(second))
+  case class Until[Event, State, State2, +T](first: PhaseParser[Event, State, T], second: BooleanPhaseParser[Event, State2]) extends TogetherParserLike(first, Wait(second))
 
 }

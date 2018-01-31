@@ -2,6 +2,7 @@ package ru.itclover.streammachine.phases
 
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
+import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 
 object ConstantPhases {
 
@@ -30,6 +31,28 @@ object ConstantPhases {
     override def apply(v1: Event, v2: Unit): (Failure, Unit) = Failure(msg) -> ()
 
     override def extract(event: Event): Nothing = ???
+  }
+
+  trait LessPriorityImplicits {
+
+    implicit def value[E, T](n: T): PhaseParser[E, Unit, T] = ConstantPhases[E, T](n)
+
+  }
+
+  trait ConstantFunctions extends LessPriorityImplicits {
+
+    import scala.Numeric.Implicits._
+
+    implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value))
+
+    implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+
+    implicit def intExtractor[E](value: Int): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+
+    implicit def longExtractor[E](value: Long): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+
+    implicit def functionNumberExtractor[Event, N: Numeric](f: Event => N): NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(f.andThen(_.toDouble())))
+
   }
 
 }

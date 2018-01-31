@@ -41,14 +41,8 @@ object CombiningPhases {
       * @param rightParser - phase parser to add.
       * @return new AndParser
       */
-    def and[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
-    AndParser[Event, State, RightState, T, RightOut] = AndParser(parser, rightParser)
-
-    /**
-      * Alias for `and`
-      */
-    def &[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
-    AndParser[Event, State, RightState, T, RightOut] = and(rightParser)
+    def togetherWith[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
+    TogetherParser[Event, State, RightState, T, RightOut] = TogetherParser(parser, rightParser)
 
     /**
       * Allows easily create AndThenParser like:
@@ -73,14 +67,9 @@ object CombiningPhases {
       * @param rightParser - phase parser to add.
       * @return new OrParser
       */
-    def or[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
-    OrParser[Event, State, RightState, T, RightOut] = OrParser(parser, rightParser)
+    def either[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
+    EitherParser[Event, State, RightState, T, RightOut] = EitherParser(parser, rightParser)
 
-    /**
-      * Alias for `or`
-      */
-    def |[RightState, RightOut](rightParser: PhaseParser[Event, RightState, RightOut]):
-    OrParser[Event, State, RightState, T, RightOut] = or(rightParser)
   }
 
 
@@ -91,7 +80,7 @@ object CombiningPhases {
     * Failure if any of sides is Failure
     * Else Stay
     */
-  class AndParserLike[Event, LState, RState, +LOut, +ROut]
+  class TogetherParserLike[Event, LState, RState, +LOut, +ROut]
   (
     leftParser: PhaseParser[Event, LState, LOut],
     rightParser: PhaseParser[Event, RState, ROut]
@@ -120,9 +109,9 @@ object CombiningPhases {
     override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
   }
 
-  case class AndParser[Event, LState, RState, LOut, ROut](leftParser: PhaseParser[Event, LState, LOut],
-                                                          rightParser: PhaseParser[Event, RState, ROut])
-    extends AndParserLike[Event, LState, RState, LOut, ROut](leftParser, rightParser)
+  case class TogetherParser[Event, LState, RState, LOut, ROut](leftParser: PhaseParser[Event, LState, LOut],
+                                                               rightParser: PhaseParser[Event, RState, ROut])
+    extends TogetherParserLike[Event, LState, RState, LOut, ROut](leftParser, rightParser)
 
 
   // todo think about using shapeless here.
@@ -181,7 +170,7 @@ object CombiningPhases {
     override def initialState = (first.initialState, second.initialState, None)
   }
 
-  case class OrParser[Event, LState, RState, LOut, ROut]
+  case class EitherParser[Event, LState, RState, LOut, ROut]
   (
     leftParser: PhaseParser[Event, LState, LOut],
     rightParser: PhaseParser[Event, RState, ROut]

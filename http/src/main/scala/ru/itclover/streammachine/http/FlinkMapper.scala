@@ -5,7 +5,7 @@ import java.sql.Timestamp
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import ru.itclover.streammachine.SegmentResultsMapper
-import ru.itclover.streammachine.core.Aggregators.Segment
+import ru.itclover.streammachine.phases.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.utils.EvalUtils

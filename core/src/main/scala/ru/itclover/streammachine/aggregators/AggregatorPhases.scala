@@ -1,11 +1,9 @@
-package ru.itclover.streammachine.core
-
-import java.time.Instant
+package ru.itclover.streammachine.aggregators
 
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time, Window}
 import ru.itclover.streammachine.phases.CombiningPhases.And
-import ru.itclover.streammachine.phases.NumericPhases
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 
 import scala.Ordering.Implicits._
@@ -13,22 +11,21 @@ import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 import scala.math.Numeric.Implicits._
 
-trait AggregatingPhaseParser[Event, S] extends NumericPhaseParser[Event, S]
+trait AggregatorPhases[Event, S, T] extends PhaseParser[Event, S, T]
 
-object AggregatingPhaseParser {
-  import ru.itclover.streammachine.core.Aggregators._
+object AggregatorPhases {
 
-  def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)
-                   (implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] =
-    Average(numeric, window)
+  trait AggregatorFunctions {
+
+    def avg[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)
+                     (implicit timeExtractor: TimeExtractor[Event]): Average[Event, S] =
+      Average(numeric, window)
 
 
-  def derivation[Event, S](numeric: NumericPhaseParser[Event, S])
-                          (implicit timeExtractor: TimeExtractor[Event]): Derivation[Event, S] =
-    Derivation(numeric)
-}
-
-object Aggregators {
+    def derivation[Event, S](numeric: NumericPhaseParser[Event, S])
+                            (implicit timeExtractor: TimeExtractor[Event]): Derivation[Event, S] =
+      Derivation(numeric)
+  }
 
   case class Segment(from: Time, to: Time)
 
@@ -78,7 +75,7 @@ object Aggregators {
     * @tparam Event - events to process
     */
   case class Average[Event, InnerState](extract: NumericPhaseParser[Event, InnerState], window: Window)(implicit timeExtractor: TimeExtractor[Event])
-    extends NumericPhaseParser[Event, (InnerState, AverageState[Double])] {
+    extends AggregatorPhases[Event, (InnerState, AverageState[Double]), Double] {
 
     override def apply(event: Event, oldState: (InnerState, AverageState[Double])): (PhaseResult[Double], (InnerState, AverageState[Double])) = {
       val time = timeExtractor(event)
@@ -109,14 +106,15 @@ object Aggregators {
 
   /**
     * Accumulates Stay and consequent Success to a single Success [[Segment]]
-    * @param innerParser - parser to wrap with gaps
+    *
+    * @param innerParser   - parser to wrap with gaps
     * @param timeExtractor - function returning time from Event
     * @tparam Event - events to process
     * @tparam State - type of state for innerParser
     */
   case class ToSegments[Event, State, Out](innerParser: PhaseParser[Event, State, Out])
                                           (implicit timeExtractor: TimeExtractor[Event])
-    extends PhaseParser[Event, State And Option[Time], Segment] {
+    extends AggregatorPhases[Event, State And Option[Time], Segment] {
     // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)
 
@@ -131,7 +129,7 @@ object Aggregators {
           Success(Segment(prevEventTimeOpt.getOrElse(eventTime), eventTime)) -> (newInnerState -> None)
 
         // TODO accumulate until timeout
-        case (Stay, newInnerState) =>  Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
+        case (Stay, newInnerState) => Stay -> (newInnerState -> prevEventTimeOpt.orElse(Some(eventTime)))
 
         case (failure: Failure, newInnerState) => failure -> (newInnerState -> None)
       }
@@ -143,17 +141,17 @@ object Aggregators {
 
   /**
     * Computation of derivative by time (todo).
+    *
     * @param numeric inner numeric parser
     */
   case class Derivation[Event, InnerState](numeric: NumericPhaseParser[Event, InnerState])
                                           (implicit extractTime: TimeExtractor[Event])
     extends
-      NumericPhaseParser[Event, InnerState And Option[ValueAndTime]] {
+      AggregatorPhases[Event, InnerState And Option[ValueAndTime], Double] {
 
     // TODO: Add time
     override def apply(event: Event, state: InnerState And Option[ValueAndTime]):
-      (PhaseResult[Double], InnerState And Option[ValueAndTime]) =
-    {
+    (PhaseResult[Double], InnerState And Option[ValueAndTime]) = {
       val t = extractTime(event)
       val (innerState, prevValueAndTimeOpt) = state
       val (innerResult, newInnerState) = numeric(event, innerState)

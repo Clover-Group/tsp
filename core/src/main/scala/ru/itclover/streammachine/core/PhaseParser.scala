@@ -1,7 +1,9 @@
 package ru.itclover.streammachine.core
 
-import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhasesSyntax
+import ru.itclover.streammachine.aggregators.AggregatorPhases.AggregatorFunctions
+import ru.itclover.streammachine.phases.BooleanPhases.{BooleanFunctions, BooleanPhasesSyntax}
 import ru.itclover.streammachine.phases.CombiningPhases.CombiningPhasesSyntax
+import ru.itclover.streammachine.phases.ConstantPhases.ConstantFunctions
 import ru.itclover.streammachine.phases.MonadPhases.MonadPhasesSyntax
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhasesSyntax
 import ru.itclover.streammachine.phases.TimePhases.TimePhasesSyntax
@@ -34,5 +36,10 @@ object PhaseParser {
       with NumericPhasesSyntax[Event, State, T]
       with CombiningPhasesSyntax[Event, State, T]
       with MonadPhasesSyntax[Event, State, T]
+
+  object Functions
+    extends AggregatorFunctions
+      with BooleanFunctions
+      with ConstantFunctions
 
 }

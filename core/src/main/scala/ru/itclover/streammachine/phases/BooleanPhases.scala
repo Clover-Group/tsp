@@ -3,7 +3,7 @@ package ru.itclover.streammachine.phases
 import ru.itclover.streammachine.core.PhaseParser.WithParser
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core._
-import ru.itclover.streammachine.phases.CombiningPhases.And
+import ru.itclover.streammachine.phases.CombiningPhases.{And, EitherParser, TogetherParser}
 
 object BooleanPhases {
 
@@ -18,9 +18,30 @@ object BooleanPhases {
 
     def <=[S2](right: PhaseParser[Event, S2, T])(implicit ord: Ordering[T]) = LessOrEqualParser(this.parser, right)
 
-    def ===[S2](right: PhaseParser[Event, S2, T])(implicit ord: Ordering[T]) = EqualParser(this.parser, right)
+    def and[S2](right: BooleanPhaseParser[Event, S2])(implicit ev: T =:= Boolean) = AndParser(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)
 
-    def !=[S2](right: PhaseParser[Event, S2, T])(implicit ord: Ordering[T]) = NonEqualParser(this.parser, right)
+    def or[S2](right: BooleanPhaseParser[Event, S2])(implicit ev: T =:= Boolean) = OrParser(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)
+
+    /**
+      * Alias for `and`
+      */
+    def &[RightState](rightParser: BooleanPhaseParser[Event, RightState])(implicit ev: T =:= Boolean)  = and(rightParser)
+
+
+    /**
+      * Alias for `or`
+      */
+    def |[RightState](rightParser: BooleanPhaseParser[Event, RightState])(implicit ev: T =:= Boolean)  = or(rightParser)
+
+
+    def ===[S2](right: PhaseParser[Event, S2, T]) = EqualParser(this.parser, right)
+
+    def !=[S2](right: PhaseParser[Event, S2, T]) = NonEqualParser(this.parser, right)
+
+  }
+
+  trait BooleanFunctions {
+    def not[Event, S](inner: BooleanPhaseParser[Event, S]): NotParser[Event, S] = NotParser(inner)
   }
 
   type BooleanPhaseParser[Event, State] = PhaseParser[Event, State, Boolean]
@@ -53,7 +74,7 @@ object BooleanPhases {
    right: PhaseParser[Event, State2, T])
     extends BooleanPhaseParser[Event, State1 And State2] {
 
-    private val andParser = left and right
+    private val andParser = left togetherWith right
 
     def compare(a: T, b: T): Boolean
 
@@ -114,20 +135,50 @@ object BooleanPhases {
 
   case class EqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                    right: PhaseParser[Event, State2, T])
-                                                  (implicit ord: Ordering[T]) extends ComparingParser(left, right) {
+    extends ComparingParser(left, right) {
 
-    import ord._
-
-    override def compare(a: T, b: T): Boolean = a equiv b
+    override def compare(a: T, b: T): Boolean = a equals b
   }
 
   case class NonEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                       right: PhaseParser[Event, State2, T])
-                                                     (implicit ord: Ordering[T]) extends ComparingParser(left, right) {
+    extends ComparingParser(left, right) {
 
-    import ord._
+    override def compare(a: T, b: T): Boolean = !(a equals b)
+  }
 
-    override def compare(a: T, b: T): Boolean = !(a equiv b)
+  case class NotParser[Event, State](inner: BooleanPhaseParser[Event, State])
+    extends BooleanPhaseParser[Event, State] {
+
+    override def apply(e: Event, state: State): (PhaseResult[Boolean], State) = {
+
+      val (result, newState) = inner(e, state)
+      (result match {
+        case Success(b) => Success(!b)
+        case x: Failure => x
+        case Stay => Stay
+      }) -> newState
+    }
+
+    override def initialState: State = inner.initialState
+
+    override def aggregate(event: Event, state: State): State = inner.aggregate(event, state)
+  }
+
+  case class AndParser[Event, State1, State2](left: BooleanPhaseParser[Event, State1],
+                                              right: BooleanPhaseParser[Event, State2])
+    extends ComparingParser(left, right) {
+
+    override def compare(a: Boolean, b: Boolean): Boolean = a & b
+
+  }
+
+  case class OrParser[Event, State1, State2](left: BooleanPhaseParser[Event, State1],
+                                             right: BooleanPhaseParser[Event, State2])
+    extends ComparingParser(left, right) {
+
+    override def compare(a: Boolean, b: Boolean): Boolean = a | b
+
   }
 
 }

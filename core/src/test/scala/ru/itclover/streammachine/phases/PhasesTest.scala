@@ -5,14 +5,14 @@ import org.joda.time.format.DateTimeFormatter
 import org.scalatest.{FunSuite, Matchers, WordSpec}
 import ru.itclover.streammachine.{Event, core}
 import ru.itclover.streammachine.core.AggregatingPhaseParser.derivation
-import ru.itclover.streammachine.core.Aggregators.{Segment, ToSegments}
+import AggregatorPhases.{Segment, ToSegments}
 import ru.itclover.streammachine.core.PhaseResult
 import ru.itclover.streammachine.core.NumericPhaseParser.{SymbolNumberExtractor, field}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.Phases.TestPhase
 import java.time.Instant
-import ru.itclover.streammachine.core.Aggregators.Timer
+import AggregatorPhases.Timer
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core.Time

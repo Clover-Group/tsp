@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import ru.itclover.streammachine.core.Aggregators.Segment
+import ru.itclover.streammachine.phases.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest

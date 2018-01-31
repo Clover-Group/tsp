@@ -1,7 +1,9 @@
 package ru.itclover.streammachine.phases
 
+import ru.itclover.streammachine
 import ru.itclover.streammachine.core.PhaseParser.WithParser
 import ru.itclover.streammachine.core._
+import ru.itclover.streammachine.phases
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
 
 import scala.Numeric.Implicits._
@@ -14,17 +16,17 @@ object NumericPhases {
     this: WithParser[Event, S, T] =>
 
     def +[S2](right: NumericPhaseParser[Event, S2])(implicit ev: T <:< Double): NumericPhaseParser[Event, (S, S2)] =
-      NumericPhases[Event, (S, S2)]((this.parser and right).map { case (a, b) => a + b })
+      NumericPhases[Event, (S, S2)]((this.parser togetherWith right).map { case (a, b) => a + b })
 
     def -[S2](right: NumericPhaseParser[Event, S2])(implicit ev: T <:< Double): NumericPhaseParser[Event, (S, S2)] =
-      NumericPhases[Event, (S, S2)]((this.parser and right).map { case (a, b) => a - b })
+      NumericPhases[Event, (S, S2)]((this.parser togetherWith right).map { case (a, b) => a - b })
 
     //todo Failure if b is zero?
     def /[S2](right: NumericPhaseParser[Event, S2])(implicit ev: T <:< Double): NumericPhaseParser[Event, (S, S2)] =
-      NumericPhases[Event, (S, S2)]((this.parser and right).map { case (a, b) => a / b })
+      NumericPhases[Event, (S, S2)]((this.parser togetherWith right).map { case (a, b) => a / b })
 
     def *[S2](right: NumericPhaseParser[Event, S2])(implicit ev: T <:< Double): NumericPhaseParser[Event, (S, S2)] =
-      NumericPhases[Event, (S, S2)]((this.parser and right).map { case (a, b) => a * b })
+      NumericPhases[Event, (S, S2)]((this.parser togetherWith right).map { case (a, b) => a * b })
   }
 
   trait PhaseGetter[Event] extends (() => PhaseParser[Event, _, _]) with Serializable {
@@ -35,19 +37,13 @@ object NumericPhases {
 
   type NumericPhaseParser[Event, S] = PhaseParser[Event, S, Double]
 
-  trait SymbolNumberExtractor[Event] extends Serializable {
+  trait SymbolNumberExtractor[Event] extends SymbolExtractor[Event, Double] {
     def extract(event: Event, symbol: Symbol): Double
   }
 
-  implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value))
-
-  implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
-
-  implicit def intExtractor[E](value: Int): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
-
-  implicit def longExtractor[E](value: Long): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
-
-  implicit def functionNumberExtractor[Event, N: Numeric](f: Event => N): NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(f.andThen(_.toDouble())))
+  trait SymbolExtractor[Event, T] extends Serializable {
+    def extract(event: Event, symbol: Symbol): T
+  }
 
   def apply[Event, State](inner: PhaseParser[Event, State, Double]): NumericPhaseParser[Event, State] =
     new NumericPhaseParser[Event, State] {
@@ -58,12 +54,14 @@ object NumericPhases {
       override def aggregate(v1: Event, v2: State) = inner.aggregate(v1, v2)
     }
 
-  implicit class SymbolParser(val symbol: Symbol) extends AnyVal {
+  implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal {
 
     def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol)))
   }
 
+  implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal {
 
-  def value[E, N: Numeric](n: N): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](n.toDouble))
+    def as[T](implicit ev: SymbolExtractor[Event, T]): ConstantPhaseParser[Event, T] = OneRowPhaseParser[Event, T](e => implicitly[SymbolExtractor[Event, T]].extract(e, symbol))
+  }
 
 }
