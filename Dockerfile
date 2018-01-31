@@ -8,6 +8,6 @@ RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /code
 
-RUN env JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8' sbt http/compile
+RUN env JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8' sbt "http/compile"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
