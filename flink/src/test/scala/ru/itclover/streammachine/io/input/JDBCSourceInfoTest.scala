@@ -6,7 +6,7 @@ import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 
 class JDBCSourceInfoTest extends FunSuite with Matchers {
   val wid_dt_tin1__query = "select Wagon_id, datetime, Tin_1 from series765_data limit 10000, 100"
-  val jdbcConf = JDBCInputConfig(
+  val jdbcConf = JDBCInputConf(
         jdbcUrl = "jdbc:clickhouse://82.202.237.34:8123/renamedTest",
         query = wid_dt_tin1__query,
         driverName = "ru.yandex.clickhouse.ClickHouseDriver",

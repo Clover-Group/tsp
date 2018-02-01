@@ -11,6 +11,8 @@ object Version {
   val akka = "2.4.20"
   val akkaHttp = "10.0.11"
 
+  val cats = "1.0.1"
+
   val jodaTime = "2.9.9"
   val twitterUtilVersion = "6.43.0"
 
@@ -47,6 +49,10 @@ object Library {
     "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
+  )
+
+  val cats = Seq(
+    "org.typelevel" %% "cats-core" % Version.cats
   )
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)

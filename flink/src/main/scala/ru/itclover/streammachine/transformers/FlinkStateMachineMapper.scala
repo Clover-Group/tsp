@@ -7,7 +7,6 @@ import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
-import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.{AbstractStateMachineMapper, Eval, EvalUtils, ResultMapper}
 import scala.reflect.ClassTag
 

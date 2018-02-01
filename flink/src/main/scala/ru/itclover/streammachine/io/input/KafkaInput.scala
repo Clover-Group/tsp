@@ -7,7 +7,7 @@ import org.apache.flink.streaming.util.serialization.{DeserializationSchema, Typ
 
 object KafkaInput {
 
-  def getSource[Event: TypeInformationSerializationSchema](kafkaConfig: KafkaConfig): FlinkKafkaConsumerBase[Event] = {
+  def getSource[Event: TypeInformationSerializationSchema](kafkaConfig: KafkaConf): FlinkKafkaConsumerBase[Event] = {
 
     val kafkaProps = new Properties()
     kafkaProps.setProperty("bootstrap.servers", kafkaConfig.brokers)

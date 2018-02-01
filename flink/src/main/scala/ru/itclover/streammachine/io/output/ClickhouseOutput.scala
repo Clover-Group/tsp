@@ -8,7 +8,7 @@ object ClickhouseOutput {
   val log = Logger("ClickhouseOutput")
   val DEFAULT_BATCH_INTERVAL = 1000000
 
-  def getOutputFormat(config: JDBCOutputConfig): JDBCOutputFormat = {
+  def getOutputFormat(config: JDBCOutputConf): JDBCOutputFormat = {
     val insertQuery = getInsertQuery(config.sinkSchema)
     log.info(s"Configure ClickhouseOutput with insertQuery = `$insertQuery`")
     JDBCOutputFormat.buildJDBCOutputFormat()

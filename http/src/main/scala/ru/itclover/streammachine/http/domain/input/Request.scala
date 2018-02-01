@@ -1,10 +1,10 @@
 package ru.itclover.streammachine.http.domain.input
 
-import ru.itclover.streammachine.io.input.{JDBCInputConfig => InputConfigs}
-import ru.itclover.streammachine.io.output.{JDBCOutputConfig => OutputConfigs}
+import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf}
+import ru.itclover.streammachine.io.output.{JDBCOutputConf, OutputConf}
 
 trait Request
 
 
-final case class FindPatternsRequest(source: InputConfigs, sink: OutputConfigs, patternsIdsAndCodes: Map[String, String])
+final case class FindPatternsRequest[IN <: InputConf, OUT <: OutputConf](source: IN, sink: OUT, patternsIdsAndCodes: Map[String, String])
   extends Request

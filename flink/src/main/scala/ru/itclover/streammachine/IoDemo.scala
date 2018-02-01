@@ -11,8 +11,8 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseResult.Success
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
-import ru.itclover.streammachine.io.input.{JDBCInputConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink, JDBCOutputConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.{JDBCInputConf => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink, JDBCOutputConf => OutJDBCConfig}
 
 import scala.collection.immutable.SortedMap
 //import ru.itclover.streammachine.io.input.{ClickhouseInput, KafkaInput}

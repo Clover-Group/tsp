@@ -4,8 +4,8 @@ import java.time.Instant
 
 import org.apache.flink.api.common.functions.RichMapFunction
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
-import ru.itclover.streammachine.io.input.{JDBCInputConfig => InpJDBCConfig}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink, JDBCOutputConfig => OutJDBCConfig}
+import ru.itclover.streammachine.io.input.{JDBCInputConf => InpJDBCConfig}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCSegmentsSink, JDBCOutputConf => OutJDBCConfig}
 
 
 object ClickhouseIoDemo {
