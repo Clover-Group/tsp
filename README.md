@@ -24,6 +24,14 @@ API endpoints
 `{'errorCode': Int, 'message': String, 'errors': List[String], ...}`
 
 
+### Types
+Translated to json directly
+
+[InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala)
+[SinkSchema](flink/src/main/scala/ru/itclover/streammachine/io/output/SinkSchema.scala)
+
+[OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
+
 ### Methods
 
 #### 1. POST "streaming" / "find-patterns" / "wide-dense-table" /
@@ -34,23 +42,8 @@ __Request body:__
 
 ```
 {
-    "source": {
-        "jdbcUrl": String,
-        "query": String,
-        "driverName": String,
-        "datetimeColname": String,
-        "partitionColnames": Array[String],
-        "userName": Option[String],
-        "password": Option[String]
-    },
-    "sink": {
-        "jdbcUrl": String,
-        "sinkSchema": (tableName: String, fromTimeField: Symbol, fromTimeMillisField: Symbol,
-                       toTimeField: Symbol, toTimeMillisField: Symbol,
-                       patternIdField: Symbol, forwardedFields: Array[Symbol])
-        "driverName": String,
-        "batchInterval": Option[Int]
-    },
+    "source": [InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala),
+    "sink": [OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala),
     "patternsIdsAndCodes": Map[String, String]
 }
 ```
@@ -67,6 +60,48 @@ __Example request body__
         "partitionColnames": ["loco_id"],
         "userName": "test",
         "password": "test"
+    },
+    "sink": {
+        "jdbcUrl": "jdbc:clickhouse://localhost:8123/renamedTest",
+        "sinkSchema": {"tableName": "series765_data_res", "fromTimeField": "from", "fromTimeMillisField": "from_millis",
+            "toTimeField": "to", "toTimeMillisField": "to_millis", "patternIdField": "rule_id", "forwardedFields": ["loco_id"]},
+        "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+        "batchInterval": 5000
+    },
+    "patternsIdsAndCodes": {"1": "Assert[Row](event => event.getField(2).asInstanceOf[Float].toDouble > 10)"}
+}
+```
+
+#### 2. POST "streaming" / "find-patterns" / "narrow-table" /
+
+__GET Params:__
+
+__Request body:__
+
+```
+{
+    "source": [InputConf.JDBCNarrowInputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala),
+    "sink": [OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala),
+    "patternsIdsAndCodes": Map[String, String]
+}
+```
+
+__Example request body__
+```
+{
+    "source": {
+        "jdbcConf": {
+            "jdbcUrl": "jdbc:clickhouse://localhost:8123/default",
+            "query": "select date_time, loco_id, CurrentBattery from TE116U_062_SM_TEST limit 0, 50000",
+            "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+            "datetimeColname": "date_time",
+            "partitionColnames": ["loco_id"],
+            "userName": "test",
+            "password": "test"
+        },
+        keyColname: "sensor_id",
+        valColname: "value_float",
+        fieldsTimeoutsMs: {"speed": 1000, "pump": 10000}
     },
     "sink": {
         "jdbcUrl": "jdbc:clickhouse://localhost:8123/renamedTest",
