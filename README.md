@@ -13,6 +13,11 @@ Installation
 1. Install sbt 1.0+
 2. run `./start.sh` (Linux)
 
+Writing patterns
+----------------
+
+[Documentation](PatternsDoc.md)
+
 
 API endpoints
 -------------
