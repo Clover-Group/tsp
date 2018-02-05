@@ -24,13 +24,12 @@ API endpoints
 `{'errorCode': Int, 'message': String, 'errors': List[String], ...}`
 
 
-### Types
+### Types used in requests
 Translated to json directly
 
-[InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala)
-[SinkSchema](flink/src/main/scala/ru/itclover/streammachine/io/output/SinkSchema.scala)
+1. [@InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala)
 
-[OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
+2. [@OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
 
 ### Methods
 
@@ -42,8 +41,8 @@ __Request body:__
 
 ```
 {
-    "source": [InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala),
-    "sink": [OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala),
+    "source": @InputConf
+    "sink": @OutputConf
     "patternsIdsAndCodes": Map[String, String]
 }
 ```
@@ -80,8 +79,8 @@ __Request body:__
 
 ```
 {
-    "source": [InputConf.JDBCNarrowInputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala),
-    "sink": [OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala),
+    "source": @InputConf.JDBCNarrowInputConf
+    "sink": @OutputConf
     "patternsIdsAndCodes": Map[String, String]
 }
 ```
