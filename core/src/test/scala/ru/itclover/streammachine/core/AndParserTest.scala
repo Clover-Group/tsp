@@ -1,14 +1,14 @@
 package ru.itclover.streammachine.core
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.core.PhaseParser.And
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
+import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParser}
 
 class AndParserTest extends WordSpec with Matchers {
 
   "AndParser" should {
     "Success if both side is success" in {
-      val andPhase = AndParser(alwaysSuccess, alwaysSuccess)
+      val andPhase = TogetherParser(alwaysSuccess, alwaysSuccess)
 
       val (result, _) = andPhase(probe, andPhase.initialState)
 
@@ -16,9 +16,9 @@ class AndParserTest extends WordSpec with Matchers {
     }
 
     "Failure if any side is failure" in {
-      def andPhaseLeft(right: PhaseParser[TestEvent, Unit, Int]) = AndParser(alwaysFailure, right)
+      def andPhaseLeft(right: PhaseParser[TestEvent, Unit, Int]) = TogetherParser(alwaysFailure, right)
 
-      def andPhaseRight(left: PhaseParser[TestEvent, Unit, Int]) = AndParser(left, alwaysFailure)
+      def andPhaseRight(left: PhaseParser[TestEvent, Unit, Int]) = TogetherParser(left, alwaysFailure)
 
       val results = for (secondResult <- Set(alwaysFailure, alwaysSuccess, alwaysStay);
                          parserFunc <- Set(andPhaseLeft _, andPhaseRight _)
@@ -33,9 +33,9 @@ class AndParserTest extends WordSpec with Matchers {
 
     "Stay if (Stay and Stay) | (Success and Stay) | (Stay and Success)" in {
       Seq(
-        AndParser(alwaysStay, alwaysStay),
-        AndParser(alwaysSuccess, alwaysStay),
-        AndParser(alwaysStay, alwaysSuccess)
+        TogetherParser(alwaysStay, alwaysStay),
+        TogetherParser(alwaysSuccess, alwaysStay),
+        TogetherParser(alwaysStay, alwaysSuccess)
       ).map {
         phase =>
           val (result, _) = phase(probe, phase.initialState)

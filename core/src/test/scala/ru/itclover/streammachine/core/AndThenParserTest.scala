@@ -2,6 +2,7 @@ package ru.itclover.streammachine.core
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
+import ru.itclover.streammachine.phases.CombiningPhases.AndThenParser
 
 class AndThenParserTest extends WordSpec with Matchers {
 

@@ -9,7 +9,7 @@ organization := "ru.itclover"
 scalaVersion in ThisBuild := "2.11.8"
 
 lazy val root = (project in file("."))
-  .aggregate(core, config, http, flinkConnector)
+  .aggregate(core, config, http, flinkConnector, spark)
 
 mainClass in assembly := Some("Job")
 
@@ -19,9 +19,6 @@ mainClass in assembly := Some("Job")
 // exclude Scala library from assembly
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
-// Improved type inference via the fix for SI-2712 (for Cats dep.)
-scalacOptions += "-Ypartial-unification"
-
 lazy val core = project.in(file("core"))
   .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging)
 
@@ -29,8 +26,14 @@ lazy val config = project.in(file("config"))
   .dependsOn(core)
 
 lazy val flinkConnector = project.in(file("flink"))
-  .settings(libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++
-    Library.clickhouse ++ Library.cats)
+  .settings(
+    libraryDependencies
+      ++= Library.twitterUtil
+      ++ Library.flink
+      ++ Library.scalaTest
+      ++ Library.clickhouse
+      ++ Library.jackson
+  )
   .dependsOn(core, config)
 
 lazy val http = project.in(file("http"))
@@ -54,5 +57,9 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
 lazy val integration = project.in(file("integration"))
   .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.clickhouse ++ Library.testContainers)
   .dependsOn(core, flinkConnector, http, config)
+
+lazy val spark = project.in(file("spark"))
+  .settings(libraryDependencies ++= Library.sparkStreaming)
+  .dependsOn(core, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

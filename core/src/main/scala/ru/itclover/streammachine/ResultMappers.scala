@@ -16,8 +16,7 @@ case class FakeMapper[Event, PhaseOut]() extends ResultMapper[Event, PhaseOut, P
 
 /** Stateful. Emit Success even if Failure also present in results. */
 case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeExtractor[Event])
-  extends ResultMapper[Event, PhaseOut, Segment]
-{
+  extends ResultMapper[Event, PhaseOut, Segment] {
   // TODO(0): distribute (open()?)
   var currSegmentOpt: Option[Segment] = None
 
@@ -30,7 +29,7 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
       val segment = currSegmentOpt.map(_.copy(to = eventTime)).getOrElse(Segment(eventTime, eventTime))
       // Accumulate results if it already segmented (Stay-segmented)
       currSegmentOpt = Some(successes.foldLeft(segment) { (segment, result) =>
-        result match  {
+        result match {
           case Success(Segment(from, to)) =>
             Segment(timeOrdering.min(from, segment.from), timeOrdering.max(to, segment.to))
           case _ => segment // todo: separate segmentated out and not on type-level

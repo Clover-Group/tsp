@@ -52,7 +52,7 @@ case class FlinkStateCodeMachineMapper[MapperOut](phaseIdAndCode: (String, Strin
 
 
 case class FlinkStateMachineMapper[Event, State: ClassTag, PhaseOut, MapperOut]
-(phaseParser: PhaseParser[Event, State, PhaseOut],
+(phaseParser: PhaseParser[Event, State, PhaseOut])(
  mapResults: ResultMapper[Event, PhaseOut, MapperOut])
   extends
     RichFlatMapFunction[Event, MapperOut]

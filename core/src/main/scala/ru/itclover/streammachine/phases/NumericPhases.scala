@@ -54,12 +54,12 @@ object NumericPhases {
       override def aggregate(v1: Event, v2: State) = inner.aggregate(v1, v2)
     }
 
-  implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal {
+  implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal with Serializable {
 
     def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol)))
   }
 
-  implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal {
+  implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal with Serializable {
 
     def as[T](implicit ev: SymbolExtractor[Event, T]): ConstantPhaseParser[Event, T] = OneRowPhaseParser[Event, T](e => implicitly[SymbolExtractor[Event, T]].extract(e, symbol))
   }

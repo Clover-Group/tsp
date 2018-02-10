@@ -17,7 +17,7 @@ import scala.language.higherKinds
   * @tparam State - inner state
   * @tparam T     - output type, used if phase successfully terminated
   */
-trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) {
+trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], State)) with Serializable {
   def initialState: State
 
   def aggregate(event: Event, state: State): State = apply(event, state)._2

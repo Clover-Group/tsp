@@ -20,6 +20,10 @@ object Version {
   val testContainers = "0.13.0"
   val testContainersPgsql = "1.5.1"
   val pgsql = "42.2.0"
+
+  val jackson = "2.9.4"
+
+  val spark = "2.2.1"
 }
 
 object Library {
@@ -40,7 +44,7 @@ object Library {
   )
 
   val akka = Seq(
-//    "com.typesafe.akka" %% "akka-actor" % Version.akka,
+    //    "com.typesafe.akka" %% "akka-actor" % Version.akka,
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     "com.typesafe.akka" %% "akka-stream" % Version.akka
   )
@@ -67,4 +71,14 @@ object Library {
   val testContainers = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
   )
+
+  val jackson = Seq(
+    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson
+  )
+
+  val sparkStreaming = Seq(
+    "org.apache.spark" % "spark-streaming_2.11" % "2.2.1"
+  )
+
 }

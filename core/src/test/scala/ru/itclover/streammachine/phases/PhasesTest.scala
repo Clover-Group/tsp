@@ -4,18 +4,20 @@ import org.joda.time.{DateTime, Instant}
 import org.joda.time.format.DateTimeFormatter
 import org.scalatest.{FunSuite, Matchers, WordSpec}
 import ru.itclover.streammachine.{Event, core}
-import ru.itclover.streammachine.core.AggregatingPhaseParser.derivation
-import AggregatorPhases.{Segment, ToSegments}
+import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.core.PhaseResult
-import ru.itclover.streammachine.core.NumericPhaseParser.{SymbolNumberExtractor, field}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.Phases.TestPhase
 import java.time.Instant
-import AggregatorPhases.Timer
+
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Segment, ToSegments}
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core.Time
+import ru.itclover.streammachine.phases.NumericPhases._
+import ru.itclover.streammachine.phases.TimePhases.Timer
+
 import scala.concurrent.duration._
 
 
@@ -67,7 +69,7 @@ class PhasesTest extends WordSpec with Matchers {
   // TODO: Account time
   "Derivation phase" should {
     "work" in {
-      val speed = field('speed)
+      val speed = 'speed.field
       val initialState = (speed.initialState, None)
       val (result1, state1) = derivation(speed).apply(Event(100, DateTime.now()), initialState)
       val (result2, state2) = derivation(speed).apply(Event(200, DateTime.now()), state1)

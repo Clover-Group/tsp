@@ -27,7 +27,7 @@ trait Time extends Serializable {
   override def toString: String = toMillis.toString
 }
 
-trait Window {
+trait Window extends Serializable{
   def toMillis: Long
 }
 
