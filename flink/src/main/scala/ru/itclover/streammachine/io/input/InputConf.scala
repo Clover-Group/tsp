@@ -9,6 +9,7 @@ case class JDBCInputConf(jdbcUrl: String,
                          query: String,
                          driverName: String,
                          datetimeColname: Symbol,
+                         eventsMaxGapMs: Long,
                          partitionColnames: Seq[Symbol],
                          userName: Option[String] = None,
                          password: Option[String] = None

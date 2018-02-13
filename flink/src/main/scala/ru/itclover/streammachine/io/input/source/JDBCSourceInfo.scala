@@ -13,12 +13,12 @@ import scala.util.Try
 
 
 case class JDBCSourceInfo(config: JDBCInputConf,
-                          fieldsInfo: Seq[(String, TypeInformation[_])],
+                          fieldsInfo: Seq[(Symbol, TypeInformation[_])],
                           inputFormat: JDBCInputFormat)
   extends SourceInfo[Row] with Serializable {
   require(config.partitionColnames.nonEmpty)
 
-  val fieldsNames: Seq[Symbol] = fieldsInfo.map { case (name, _) => Symbol(name) }
+  val fieldsNames: Seq[Symbol] = fieldsInfo.map(_._1)
 
   val datetimeFieldName: Symbol = config.datetimeColname
 
@@ -35,7 +35,8 @@ object JDBCSourceInfo {
     fieldsInfo <- queryFieldsTypeInformation(config)
   } yield {
     log.info(s"Successfully queried fields types info: `${fieldsInfo.mkString(", ")}")
-    JDBCSourceInfo(config, fieldsInfo, getInputFormat(config, fieldsInfo.toArray))
+    val format = getInputFormat(config, fieldsInfo.toArray)
+    JDBCSourceInfo(config, fieldsInfo.map { case (name, ti) => Symbol(name) -> ti }, format)
   }
 
 

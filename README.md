@@ -101,7 +101,8 @@ __Example request body__
             "datetimeColname": "date_time",
             "partitionColnames": ["loco_id"],
             "userName": "test",
-            "password": "test"
+            "password": "test",
+            "eventsMaxGapMs": 60000
         },
         keyColname: "sensor_id",
         valColname: "value_float",

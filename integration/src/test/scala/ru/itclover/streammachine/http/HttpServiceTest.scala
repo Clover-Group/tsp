@@ -41,21 +41,31 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   val inputConf = JDBCInputConf(
     jdbcUrl = container.jdbcUrl,
-    query = "select datetime, mechanism_id, speed from SM_Integration_wide limit 1000",
+    query =
+      """
+        |select * from (
+        |  select mechanism_id, datetime, CAST(speed AS Nullable(Float32)) as speed, 1 as ord from SM_basic_wide
+        |  union all
+        |  select distinct(mechanism_id) as mechanism_id, toDateTime('2027-12-26 15:06:38') as datetime,
+        |    CAST(NULL AS Nullable(Float32)) as speed, 2 as ord
+        |  from SM_basic_wide
+        |) order by ord
+      """.stripMargin,
     driverName = container.driverName,
     datetimeColname = 'datetime,
+    eventsMaxGapMs = 60000L,
     partitionColnames = Seq('mechanism_id)
   )
   // ...
   val narrowInputConf = JDBCNarrowInputConf(
-    inputConf.copy(query = "select datetime, mechanism_id, sensor, value_float from SM_Integration_narrow limit 1000"),
+    inputConf.copy(query = "select datetime, mechanism_id, sensor, value_float from SM_basic_narrow limit 1000"),
     'sensor, 'value_float,
     Map('speed -> 2000)
   )
 
-  val sinkSchema = JDBCSegmentsSink("SM_Integration_wide_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
+  val sinkSchema = JDBCSegmentsSink("SM_basic_wide_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
     inputConf.partitionColnames)
-  val narrowSinkSchema = JDBCSegmentsSink("SM_Integration_narrow_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
+  val narrowSinkSchema = JDBCSegmentsSink("SM_basic_narrow_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
@@ -75,8 +85,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_Integration_wide_patterns WHERE pattern_id = '1'")
-      checkSegments(3 :: Nil, "SELECT from, to FROM SM_Integration_wide_patterns WHERE pattern_id = '2'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1'")
+      checkSegments(3 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2'")
     }
   }
 
@@ -86,8 +96,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_Integration_narrow_patterns WHERE pattern_id = '1'")
-      checkSegments(3 :: Nil, "SELECT from, to FROM SM_Integration_narrow_patterns WHERE pattern_id = '2'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_narrow_patterns WHERE pattern_id = '1'")
+      checkSegments(3 :: Nil, "SELECT from, to FROM SM_basic_narrow_patterns WHERE pattern_id = '2'")
     }
   }
 

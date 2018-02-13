@@ -11,20 +11,31 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 
 trait AbstractStateMachineMapper[Event, State, Out] {
 
+  /** Do apply state machine mapper to old state with that event?
+    * Useful to check that there is not significant gap between this and previous event */
+  def doProcessOldState(event: Event): Boolean
+
+  /** Is it last event in a stream? */
+  def isEventTerminal(event: Event): Boolean
+
   def phaseParser: PhaseParser[Event, State, Out]
 
   def process(event: Event, oldStates: Seq[State]): (Seq[TerminalResult[Out]], Seq[State]) = {
+    if (isEventTerminal(event)) {
+      Seq(Failure("Terminator received")) -> Seq.empty
+    } else {
+      // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
+      val oldStatesWithOneInitialState = if (doProcessOldState(event)) oldStates :+ phaseParser.initialState
+                                         else Seq(phaseParser.initialState)
 
-    // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
-    val oldStatesWithOneInitialState = oldStates :+ phaseParser.initialState
+      val stateToResult = phaseParser.curried(event)
 
-    val stateToResult = phaseParser.curried(event)
+      val resultsAndStates = oldStatesWithOneInitialState.map(stateToResult)
 
-    val resultsAndStates = oldStatesWithOneInitialState.map(stateToResult)
+      val (toEmit, newStates) = resultsAndStates.span(_._1.isTerminal)
 
-    val (toEmit, newStates) = resultsAndStates.span(_._1.isTerminal)
-
-    toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
+      toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
+    }
   }
 
 }
