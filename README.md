@@ -62,6 +62,7 @@ __Example request body__
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "datetimeColname": "date_time",
         "partitionColnames": ["loco_id"],
+        "eventsMaxGapMs": 60000,
         "userName": "test",
         "password": "test"
     },
