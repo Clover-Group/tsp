@@ -73,7 +73,7 @@ __Example request body__
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "batchInterval": 5000
     },
-    "patternsIdsAndCodes": {"1": "Assert[Row](event => event.getField(2).asInstanceOf[Float].toDouble > 10)"}
+    "patternsIdsAndCodes": {"1": "'CurrentBattery > 10"}
 }
 ```
 
@@ -116,6 +116,6 @@ __Example request body__
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "batchInterval": 5000
     },
-    "patternsIdsAndCodes": {"1": "Assert[Row](event => event.getField(2).asInstanceOf[Float].toDouble > 10)"}
+    "patternsIdsAndCodes": {"1": "'CurrentBattery > 10"}
 }
 ```
