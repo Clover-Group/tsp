@@ -25,10 +25,7 @@ case class FlinkStateCodeMachineMapper[MapperOut](compilePhaseParser: ClassLoade
   @transient
   private[this] var stateAndPrevRow: ValueState[(Seq[Any], Row)] = _
 
-  var st = ""
-
   override def open(config: Configuration): Unit = {
-    st = ""
     val classTag = implicitly[ClassTag[Any]]
     stateAndPrevRow = getRuntimeContext.getState(
       new ValueStateDescriptor("state", classTag.runtimeClass.asInstanceOf[Class[(Seq[Any], Row)]], (Seq.empty, emptyRow)))
@@ -36,7 +33,6 @@ case class FlinkStateCodeMachineMapper[MapperOut](compilePhaseParser: ClassLoade
   }
 
   override def flatMap(event: Row, outCollector: Collector[MapperOut]): Unit = {
-    st += event
     val (results, newStates) = process(event, stateAndPrevRow.value()._1)
 
     stateAndPrevRow.update((newStates, event))
@@ -49,7 +45,6 @@ case class FlinkStateCodeMachineMapper[MapperOut](compilePhaseParser: ClassLoade
 
 
   override def close() = {
-    println(s"Stateee $st")
     super.close()
   }
 

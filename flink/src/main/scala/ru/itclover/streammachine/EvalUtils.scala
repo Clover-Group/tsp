@@ -51,7 +51,7 @@ object EvalUtils {
        |import ru.itclover.streammachine.core.AggregatingPhaseParser._
        |import ru.itclover.streammachine.core.NumericPhaseParser._
        |import ru.itclover.streammachine.core.Time._
-       |import ru.itclover.streammachine.core.TimeIntervalK
+       |import ru.itclover.streammachine.core._
        |import ru.itclover.streammachine.core.PhaseParser
        |import Predef.{any2stringadd => _, _}
        |import ru.itclover.streammachine.phases.Phases._

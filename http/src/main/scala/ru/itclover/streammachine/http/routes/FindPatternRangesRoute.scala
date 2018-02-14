@@ -113,23 +113,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
           inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
       }
 
-      stream.keyBy(e => {
-        e.getField(srcInfo.partitionIndex)
-      }).mapWithState[Unit, String] {
-        case (x, Some(s)) => {
-          println(s"X=${s + " " + x.getField(srcInfo.partitionIndex)}")
-          ((), Some(s + " " + x.getField(srcInfo.partitionIndex)))
-        }
-        case (x, None) => {
-          ((), Some(x.getField(srcInfo.partitionIndex).toString))
-        }
-      }
-
-      val resultStream = stream.keyBy(e => {
-        val k = e.getField(srcInfo.partitionIndex)
-        println(s"Keyyy = $k")
-        k
-      }).flatMapAll[Row](flatMappers)
+      val resultStream = stream.keyBy(e => e.getField(srcInfo.partitionIndex)).flatMapAll[Row](flatMappers)
 
       val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
 
