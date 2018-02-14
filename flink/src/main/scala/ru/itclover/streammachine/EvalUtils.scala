@@ -47,6 +47,7 @@ object EvalUtils {
 
   def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampField: Symbol, fieldsIndexesMap: Map[Symbol, Int]) = {
     s"""
+       |import scala.concurrent.duration._
        |import ru.itclover.streammachine.core.Aggregators._
        |import ru.itclover.streammachine.core.AggregatingPhaseParser._
        |import ru.itclover.streammachine.core.NumericPhaseParser._
