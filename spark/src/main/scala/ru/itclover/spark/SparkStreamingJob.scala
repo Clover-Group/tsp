@@ -19,6 +19,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
 import ru.itclover.spark.{Phases, SparkMachineMapper}
+import ru.itclover.streammachine.core
 import ru.itclover.streammachine.core.PhaseParser.Functions.avg
 import ru.itclover.streammachine.core.Window
 import ru.itclover.streammachine.phases.NoState
@@ -111,7 +112,7 @@ object SparkStreamingJob extends App {
   //  appevents.withWatermark().groupByKey(_.userId).flatMapGroupsWithState(OutputMode.Append(),GroupStateTimeout.EventTimeTimeout()){
   val results = appevents.groupByKey(_.userId)
     .flatMapGroupsWithState(OutputMode.Append(), GroupStateTimeout.NoTimeout())(
-      new SparkMachineMapper(Phases.phaseParser).apply
+      new SparkMachineMapper(Phases.phaseParser)
     )
 
 

@@ -8,7 +8,9 @@ import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 import scala.concurrent.duration.Duration
 
 class SparkMachineMapper[Group, Event, State, Out](override val phaseParser: PhaseParser[Event, State, Out])
-  extends AbstractStateMachineMapper[Event, State, Out] with Serializable {
+  extends AbstractStateMachineMapper[Event, State, Out]
+    with ((Group, Iterator[Event], GroupState[Seq[State]]) => Iterator[Out])
+    with Serializable {
 
   def apply(groupKey: Group, events: Iterator[Event], state: GroupState[Seq[State]]): Iterator[Out] = {
 
