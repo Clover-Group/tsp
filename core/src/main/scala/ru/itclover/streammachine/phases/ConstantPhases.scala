@@ -4,21 +4,23 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 
+import scala.language.implicitConversions
+
 object ConstantPhases {
 
-  def apply[Event, T](value: T): PhaseParser[Event, Unit, T] = new OneRowPhaseParser[Event, T] {
+  def apply[Event, T](value: T): PhaseParser[Event, NoState, T] = new OneRowPhaseParser[Event, T] {
     override def extract(event: Event): T = value
   }
 
-  trait OneRowPhaseParser[Event, +T] extends PhaseParser[Event, Unit, T] {
+  trait OneRowPhaseParser[Event, +T] extends PhaseParser[Event, NoState, T] {
 
-    override def apply(v1: Event, v2: Unit): (PhaseResult[T], Unit) = Success(extract(v1)) -> ()
+    override def apply(v1: Event, v2: NoState): (PhaseResult[T], NoState) = Success(extract(v1)) -> NoState.instance
 
-    override def aggregate(event: Event, state: Unit): Unit = initialState
+    override def aggregate(event: Event, state: NoState): NoState = initialState
 
     def extract(event: Event): T
 
-    override def initialState: Unit = ()
+    override def initialState: NoState = NoState.instance
   }
 
   object OneRowPhaseParser {
@@ -28,14 +30,14 @@ object ConstantPhases {
   }
 
   case class FailurePhaseParser[Event](msg: String) extends OneRowPhaseParser[Event, Nothing] {
-    override def apply(v1: Event, v2: Unit): (Failure, Unit) = Failure(msg) -> ()
+    override def apply(v1: Event, v2: NoState): (Failure, NoState) = Failure(msg) -> NoState.instance
 
     override def extract(event: Event): Nothing = ???
   }
 
   trait LessPriorityImplicits {
 
-    implicit def value[E, T](n: T): PhaseParser[E, Unit, T] = ConstantPhases[E, T](n)
+    implicit def value[E, T](n: T): PhaseParser[E, NoState, T] = ConstantPhases[E, T](n)
 
   }
 
@@ -43,16 +45,15 @@ object ConstantPhases {
 
     import scala.Numeric.Implicits._
 
-    implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value))
+    implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value)
 
-    implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value.toDouble)
 
-    implicit def intExtractor[E](value: Int): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def intExtractor[E](value: Int): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value.toDouble)
 
-    implicit def longExtractor[E](value: Long): NumericPhaseParser[E, Unit] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def longExtractor[E](value: Long): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value.toDouble)
 
-    implicit def functionNumberExtractor[Event, N: Numeric](f: Event => N): NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(f.andThen(_.toDouble())))
-
+    implicit def extract[Event, T](f: Event => T): PhaseParser[Event, NoState, T] = OneRowPhaseParser(f)
   }
 
 }

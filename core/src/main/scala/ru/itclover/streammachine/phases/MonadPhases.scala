@@ -11,7 +11,7 @@ object MonadPhases {
 
     def mapWithEvent[B](f: (Event, T) => B): MapWithEventParser[Event, State, T, B] = MapWithEventParser(parser, f.curried)
 
-    def map[B](f: T => B): MapParser[Event, State, T, B] = MapParser(parser, f)
+    def map[B](f: T => B): MapParser[Event, State, T, B] = MapParser(parser)(f)
 
     def flatMap[State2, Out2](f: T => PhaseParser[Event, State2, Out2]) = FlatMapParser(parser, f)
   }
@@ -28,7 +28,8 @@ object MonadPhases {
     override def initialState = phaseParser.initialState
   }
 
-  case class MapParser[Event, State, In, Out](phaseParser: PhaseParser[Event, State, In], f: In => Out) extends PhaseParser[Event, State, Out] {
+
+  abstract class MapParserLike[Event, State, In, Out](phaseParser: PhaseParser[Event, State, In])(f: In => Out) extends PhaseParser[Event, State, Out] {
 
     override def apply(event: Event, oldState: State): (PhaseResult[Out], State) = {
       val (phaseResult, state) = phaseParser.apply(event, oldState)
@@ -40,6 +41,8 @@ object MonadPhases {
     override def initialState = phaseParser.initialState
   }
 
+  case class MapParser[Event, State, In, Out](phaseParser: PhaseParser[Event, State, In])(f: In => Out)
+    extends MapParserLike(phaseParser)(f)
 
   case class FlatMapParser[Event, State1, State2, Out1, Out2](parser: PhaseParser[Event, State1, Out1], f: Out1 => PhaseParser[Event, State2, Out2]) extends PhaseParser[Event, Either[State1, (PhaseParser[Event, State2, Out2], State2)], Out2] {
 
