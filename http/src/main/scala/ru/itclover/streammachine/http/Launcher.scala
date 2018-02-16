@@ -25,6 +25,9 @@ object Launcher extends App with HttpService {
   private val port = 8080
   val bindingFuture = Http().bindAndHandle(route, host, port)
 
+  val l = List(1, 2, 3)
+  val l1 = l.withFilter(p => true)
+
   log.info(s"Service online at http://$host:$port/")
 
   if (isListenStdIn) {

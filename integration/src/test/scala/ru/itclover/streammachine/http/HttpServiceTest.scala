@@ -69,7 +69,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
-  val patterns = Map("1" -> "'speed < 15.0", "2" -> "'speed > 10.0")
+  val patterns = Map("1" -> "'speed.field < 15.0", "2" -> "'speed.field > 10.0")
 
   override def afterStart(): Unit = {
     super.beforeAll()

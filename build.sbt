@@ -19,6 +19,9 @@ mainClass in assembly := Some("Job")
 // exclude Scala library from assembly
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
+// Improved type inference via the fix for SI-2712 (for Cats dep.)
+scalacOptions += "-Ypartial-unification"
+
 lazy val core = project.in(file("core"))
   .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging)
 
@@ -33,6 +36,7 @@ lazy val flinkConnector = project.in(file("flink"))
       ++ Library.scalaTest
       ++ Library.clickhouse
       ++ Library.jackson
+      ++ Library.cats
   )
   .dependsOn(core, config)
 
@@ -59,9 +63,7 @@ lazy val integration = project.in(file("integration"))
   .dependsOn(core, flinkConnector, http, config)
 
 lazy val spark = project.in(file("spark"))
-  .settings(
-    fork in run := true,
-    libraryDependencies ++= Library.sparkStreaming)
+  .settings(libraryDependencies ++= Library.sparkStreaming)
   .dependsOn(core, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))

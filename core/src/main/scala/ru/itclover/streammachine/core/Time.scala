@@ -10,12 +10,10 @@ import scala.math.Ordering.Long
 import org.joda.time.DateTime
 import java.text.SimpleDateFormat
 
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.format.DateTimeFormat
 
-import scala.language.implicitConversions
-
-case class Time(toMillis: Long) extends Serializable {
-  def plus(window: Window): Time = Time(toMillis + window.toMillis)
+trait Time extends Serializable {
+  def plus(window: Window): Time
 
   // TODO:
   // def plusWindow(window: Window): Time
@@ -24,46 +22,86 @@ case class Time(toMillis: Long) extends Serializable {
   // def plus(t: Time): Time e.g. Time(toMillis + t.toMillis)
   // def minus(t: Time): Time
 
-  override def toString: String = Time.DATE_TIME_FORMAT.print(toMillis)
+  def toMillis: Long
 
+  override def toString: String = toMillis.toString
 }
 
-case class Window(toMillis: Long) extends Serializable
+trait Window extends Serializable{
+  def toMillis: Long
+}
 
-case class TimeInterval(min: Window = MinWindow, max: Window = MaxWindow) {
+case class TimeInterval(min: Window = MinWindow, max: Window = MaxWindow){
   assert(min.toMillis >= 0 && max.toMillis >= 0 && max.toMillis >= min.toMillis,
     s"Incorrect Timer configuration (min: ${min.toMillis}, max: ${max.toMillis})")
 }
 
 object Time {
-
   trait TimeExtractor[Event] extends (Event => Time) with Serializable
 
   implicit val timeOrdering: Ordering[Time] = new Ordering[Time] {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
   }
 
-  val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+  implicit class durationWindow(val duration: Duration) extends Window {
+    override def toMillis: Long = duration.toMillis
+  }
 
-  implicit def durationWindow(duration: Duration): Window = Window(toMillis = duration.toMillis)
+  implicit class scalaDurationWindow(val d: scala.concurrent.duration.Duration) extends Window {
+    override def toMillis: Long = d.toMillis
+  }
 
-  implicit def scalaDurationWindow(d: scala.concurrent.duration.Duration): Window = Window(toMillis = d.toMillis)
+  implicit class longWindow(d: Long) extends Window {
+    override def toMillis: Long = d
+  }
 
-  implicit def longWindow(d: Long): Window = Window(toMillis = d)
+  implicit class LongTimeLike(t: Long) extends Time {
+    override def plus(window: Window): Time = t + window.toMillis
 
-  implicit def LongTimeLike(t: Long): Time = Time(toMillis = t)
+    override def toMillis: Long = t
+  }
 
-  implicit def InstantTimeLike(t: Instant): Time = Time(toMillis = t.toEpochMilli)
+  implicit class InstantTimeLike(t: Instant) extends Time {
+    override def plus(window: Window): Time = t.plusMillis(window.toMillis)
 
-  implicit def javaDateTimeLike(t: Date): Time = Time(toMillis = t.getTime)
+    override def toMillis: Long = t.toEpochMilli
+  }
 
-  implicit def jodaDateTimeLike(t: DateTime): Time = Time(toMillis = t.getMillis)
+  implicit class javaDateTimeLike(t: Date) extends Time {
+    override def plus(window: Window): Time = t.getTime + window.toMillis
 
-  implicit def javaSqlTimestampLike(t: Timestamp): Time = Time(toMillis = t.getTime)
+    override def toMillis: Long = t.getTime
+  }
 
-  object MinWindow extends Window(toMillis = 0l)
+  implicit class jodaDateTimeLike(t: DateTime) extends Time {
+    override def plus(window: Window): Time = t.plus(window.toMillis)
 
-  object MaxWindow extends Window(toMillis = java.lang.Long.MAX_VALUE)
+    override def toMillis: Long = t.getMillis
+
+    override def toString: String = {
+      val dtf = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+      dtf.print(t)
+    }
+  }
+
+  implicit class javaSqlTimestampLike(t: Timestamp) extends Time {
+    override def plus(window: Window): Time = new Timestamp(t.getTime + window.toMillis)
+
+    override def toMillis: Long = t.getTime
+
+    override def toString: String = {
+      val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+      dateFormat.format(t)
+    }
+  }
+
+  object MinWindow extends Window {
+    override def toMillis: Long = 0l
+  }
+
+  object MaxWindow extends Window {
+    override def toMillis: Long = java.lang.Long.MAX_VALUE
+  }
 
   def less(w: Window) = TimeInterval(max = w)
 

@@ -56,7 +56,7 @@ object NumericPhases {
 
   implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal with Serializable {
 
-    def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, NoState] = NumericPhases(OneRowPhaseParser(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol)))
+    def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, Unit] = NumericPhases(OneRowPhaseParser(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol)))
   }
 
   implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal with Serializable {

@@ -21,12 +21,11 @@ import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
 import ru.itclover.streammachine.phases.NumericPhases._
-
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.matching.Regex
 
-object KafkaDemo extends App {
+object  KafkaDemo extends App {
 
   val properties = new Properties()
   properties.setProperty("bootstrap.servers", "10.30.5.229:9092,10.30.5.251:9092")

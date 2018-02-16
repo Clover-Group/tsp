@@ -7,7 +7,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
-import ru.itclover.streammachine.core.NumericPhaseParser.SymbolNumberExtractor
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.EvalUtils
 import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.Time.TimeExtractor

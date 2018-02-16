@@ -1,8 +1,7 @@
 package ru.itclover.streammachine
 
-import java.time.DateTimeException
-import ru.itclover.streammachine.core.Aggregators.Segment
-import ru.itclover.streammachine.core.PhaseResult.{Failure, Success, TerminalResult}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
+import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, timeOrdering}
 
 /**
@@ -43,7 +42,6 @@ case class AndThenResultsMapper[Event, PhaseOut, Mapper1Out, Mapper2Out](first: 
 case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeExtractor[Event])
   extends ResultMapper[Event, PhaseOut, Segment]
 {
-  // TODO(0): distribute (open()?), sep instances per partition?
     var currSegmentOpt: Option[Segment] = None
 
   def apply(event: Event, results: Seq[TerminalResult[PhaseOut]]): Seq[TerminalResult[Segment]] = {
@@ -56,7 +54,7 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
       val segment = currSegmentOpt.map(_.copy(to = eventTime)).getOrElse(Segment(eventTime, eventTime))
       // Accumulate results if it already segmented (Stay-segmented)
       currSegmentOpt = Some(successes.foldLeft(segment) { (segment, result) =>
-        result match  {
+        result match {
           case Success(Segment(from, to)) =>
             Segment(timeOrdering.min(from, segment.from), timeOrdering.max(to, segment.to))
           case _ => segment // todo: separate segmentated out and not on type-level

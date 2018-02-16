@@ -4,22 +4,22 @@ import java.sql.Timestamp
 import java.time.DateTimeException
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import cats.data.Reader
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.http.routes.FindPatternRangesRoute
-import ru.itclover.streammachine.io.input
-import ru.itclover.streammachine.io.output
-
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.api.scala._
-import ru.itclover.streammachine.transformers.FlatMappersCombinator
-import ru.itclover.streammachine.{ResultMapper, SegmentResultsMapper}
 import com.typesafe.scalalogging.Logger
+<<<<<<< HEAD
+import ru.itclover.streammachine.http.protocols.JsonProtocols
+import scala.io.StdIn
+=======
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
@@ -98,56 +98,45 @@ trait HttpService extends Directives with JsonProtocols with FindPatternRangesRo
               FlinkStateCodeMachineMapper[Row]((patternId, patternCode), srcInfo.fieldsIndexesMap,
                 packInMapper.asInstanceOf[ResultMapper[Row, Any, Row]], inputConf.datetimeColname)
             }
+>>>>>>> origin/refactoring
 
-            val resultStream = stream.flatMapAll[Row](flatMappers)
 
-            resultStream.foreach { row: Row => println(s"ROWWW = $row") }
+trait HttpService extends JsonProtocols {
+  val isDebug = true
+  implicit val system: ActorSystem
+  implicit val materializer: ActorMaterializer
+  implicit val executionContext: ExecutionContextExecutor
+  implicit val streamEnvironment: StreamExecutionEnvironment
 
-            val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
+  private val log = Logger[HttpService]
 
-            resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
+  def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
+    streams <- FindPatternRangesRoute.fromExecutionContext
+    // ...
+  } yield streams
 
-            onSuccess(Future { streamEnvironment.execute() }) {
-              jobResult => complete(SuccessfulResponse(jobResult.hashCode))
-            }
-          }
-        }
-      }
-    } }
+  def route = handleErrors {
+    composeRoutes.run(executionContext)
+  }
 
-  private def getPackInRowMapper(schema: JDBCSegmentsSink, fieldsIndexesMap: Map[Symbol, Int], patternId: String)
-                                (implicit timeExtractor: TimeExtractor[Row]) = new ResultMapper[Row, Segment, Row] {
-      val segmentsMapper = SegmentResultsMapper[Row, Segment]
 
-      override def apply(eventRow: Row, results: Seq[TerminalResult[Segment]]) = {
-        segmentsMapper(eventRow, results) map {
-          case (Success(segment)) => {
-            val resultRow = new Row(schema.fieldsCount)
-            // Throw exception here instead of Either or Try due to high computational intensity, O(n).
-            val (fromTime, fromMillis) = segment.from.toString.split('.') match {
-              case Array(time, millis, _*) => time -> millis.toInt
-              case _ => throw new DateTimeException(s"Invalid date format: ${segment.from.toString}, valid format is: yyyy-MM-dd HH:mm:ss.SSS")
-            }
-            val (toTime, toMillis) = segment.to.toString.split('.') match {
-              case Array(time, millis, _*) => time -> millis.toInt
-              case _ => throw new DateTimeException(s"Invalid date format: ${segment.to.toString}, valid format is: yyyy-MM-dd HH:mm:ss.SSS")
-            }
+  def handleErrors: Directive[Unit] = handleRejections(rejectionsHandler) & handleExceptions(exceptionsHandler)
 
-            resultRow.setField(schema.fromTimeInd, fromTime)
-            resultRow.setField(schema.fromTimeMillisInd, fromMillis)
-            resultRow.setField(schema.toTimeInd, toTime)
-            resultRow.setField(schema.toTimeMillisInd, toMillis)
-            resultRow.setField(schema.patternIdInd, patternId)
-            schema.forwardedFields.foreach { case (field) =>
-              val fieldValue = eventRow.getField(fieldsIndexesMap(field))
-              resultRow.setField(schema.fieldsIndexesMap(field), fieldValue)
-            }
-            Success(resultRow)
-          }
-          case f@Failure(msg) =>
-            f
-        }
+  def rejectionsHandler: RejectionHandler = RejectionHandler.newBuilder()
+    .handleNotFound {
+      extractUnmatchedPath { p =>
+        val msg = s"Path not found: $p"
+        complete(FailureResponse(0, msg, Seq.empty))
       }
     }
+    .handleAll[Rejection] { x =>
+      complete(FailureResponse(StatusCodes.InternalServerError))
+    }.result()
 
+
+  def exceptionsHandler = ExceptionHandler {
+    case ex: Exception =>
+      ex.printStackTrace()
+      complete(FailureResponse(ex))
+  }
 }

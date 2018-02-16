@@ -11,7 +11,7 @@ import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.{ResultMapper, SegmentResultsMapper, SegmentsToRowResultMapper}
-import ru.itclover.streammachine.core.NumericPhaseParser.SymbolNumberExtractor
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
 import ru.itclover.streammachine.http.domain.output.SuccessfulResponse
@@ -27,7 +27,7 @@ import scala.concurrent.duration.Duration
 import cats.data.Reader
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import ru.itclover.streammachine.core.Aggregators.Segment
+import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.EvalUtils
 
@@ -119,7 +119,15 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
 
-      onSuccess(Future { streamEnv.execute() }) {
+      def time[R](block: => R): R = {
+          val t0 = System.nanoTime()
+          val result = block    // call-by-name
+          val t1 = System.nanoTime()
+          println("Elapsed time: " + (t1 - t0) + "ns")
+          result
+      }
+
+      onSuccess(Future { time { streamEnv.execute() } }) {
         jobResult => complete(SuccessfulResponse(jobResult.hashCode))
       }
     }

@@ -48,19 +48,23 @@ object EvalUtils {
   def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampField: Symbol, fieldsIndexesMap: Map[Symbol, Int]) = {
     s"""
        |import scala.concurrent.duration._
-       |import ru.itclover.streammachine.core.Aggregators._
-       |import ru.itclover.streammachine.core.AggregatingPhaseParser._
-       |import ru.itclover.streammachine.core.NumericPhaseParser._
        |import ru.itclover.streammachine.core.Time._
        |import ru.itclover.streammachine.core._
-       |import ru.itclover.streammachine.core.PhaseParser
-       |import Predef.{any2stringadd => _, _}
+       |import ru.itclover.streammachine.core.PhaseParser.Functions._
+       |import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
+       |import ru.itclover.streammachine.phases.NumericPhases._
+       |import ru.itclover.streammachine.phases.BooleanPhases._
+       |import ru.itclover.streammachine.phases.ConstantPhases._
+       |import ru.itclover.streammachine.phases.MonadPhases._
+       |import ru.itclover.streammachine.phases.CombiningPhases._
        |import ru.itclover.streammachine.phases.Phases._
+       |
+       |import Predef.{any2stringadd => _, _}
        |import org.apache.flink.types.Row
        |
-         |val fieldsIndexesMap: Map[Symbol, Int] = ${fieldsIndexesMap.toString}
+       |val fieldsIndexesMap: Map[Symbol, Int] = ${fieldsIndexesMap.toString}
        |
-         |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
+       |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
        |  override def extract(event: Row, symbol: Symbol) = {
        |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Float].toDouble
        |  }
@@ -71,7 +75,7 @@ object EvalUtils {
        |  }
        |}
        |
-         |val phase = $phaseCode
+       |val phase = $phaseCode
        |phase
       """.stripMargin
   }
