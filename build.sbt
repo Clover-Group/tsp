@@ -59,7 +59,9 @@ lazy val integration = project.in(file("integration"))
   .dependsOn(core, flinkConnector, http, config)
 
 lazy val spark = project.in(file("spark"))
-  .settings(libraryDependencies ++= Library.sparkStreaming)
+  .settings(
+    fork in run := true,
+    libraryDependencies ++= Library.sparkStreaming)
   .dependsOn(core, config)
 
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
