@@ -355,9 +355,9 @@
 //}
 //
 //
-//trait VectorOneRowPhaseParser[Event, +T] extends VectorPhaseParser[Event, Unit, T] {
+//trait VectorOneRowPhaseParser[Event, +T] extends VectorPhaseParser[Event, NoState, T] {
 //
-//  override def apply(v1: Event, v2: Packed[Unit]): (PhaseResult[T], Unit) = Success(extract(v1)) -> ()
+//  override def apply(v1: Event, v2: Packed[NoState]): (PhaseResult[T], NoState) = Success(extract(v1)) -> ()
 //
 //  def extract(event: Event): T
 //

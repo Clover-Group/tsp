@@ -31,13 +31,13 @@ object AggregatorPhases {
 
   type ValueAndTime = Double And Time
 
-  case class AverageState[T: Numeric]
-  (window: Window, sum: Double = 0d, count: Long = 0l, queue: Queue[(Time, T)] = Queue.empty) {
+  case class AverageState
+  (window: Window, sum: Double = 0d, count: Long = 0l, queue: Queue[(Time, Double)] = Queue.empty) extends Serializable {
 
-    def updated(time: Time, value: T): AverageState[T] = {
+    def updated(time: Time, value: Double): AverageState = {
 
       @tailrec
-      def removeOldElementsFromQueue(as: AverageState[T]): AverageState[T] =
+      def removeOldElementsFromQueue(as: AverageState): AverageState =
         as.queue.dequeueOption match {
           case Some(((oldTime, oldValue), newQueue)) if oldTime.plus(window) < time =>
             removeOldElementsFromQueue(
@@ -75,9 +75,9 @@ object AggregatorPhases {
     * @tparam Event - events to process
     */
   case class Average[Event, InnerState](extract: NumericPhaseParser[Event, InnerState], window: Window)(implicit timeExtractor: TimeExtractor[Event])
-    extends AggregatorPhases[Event, (InnerState, AverageState[Double]), Double] {
+    extends AggregatorPhases[Event, (InnerState, AverageState), Double] {
 
-    override def apply(event: Event, oldState: (InnerState, AverageState[Double])): (PhaseResult[Double], (InnerState, AverageState[Double])) = {
+    override def apply(event: Event, oldState: (InnerState, AverageState)): (PhaseResult[Double], (InnerState, AverageState)) = {
       val time = timeExtractor(event)
       val (oldInnerState, oldAverageState) = oldState
       val (innerResult, newInnerState) = extract(event, oldInnerState)
@@ -98,7 +98,7 @@ object AggregatorPhases {
       }
     }
 
-    override def initialState: (InnerState, AverageState[Double]) = extract.initialState -> AverageState(window)
+    override def initialState: (InnerState, AverageState) = extract.initialState -> AverageState(window)
   }
 
 

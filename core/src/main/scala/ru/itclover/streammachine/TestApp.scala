@@ -57,9 +57,7 @@ object TestApp extends App {
 
 
 
-    val window = new Window {
-      override def toMillis: Long = 5000
-    }
+    val window = Window(toMillis = 500)
 
     type Phase[Event] = PhaseParser[Event, _, _]
 

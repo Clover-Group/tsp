@@ -3,11 +3,13 @@ package ru.itclover.streammachine
 import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.core.NumericPhaseParser.field
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Segment, ToSegments}
+import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
-import ru.itclover.streammachine.core.Time.{TimeExtractor, more}
-import ru.itclover.streammachine.phases.Phases.{Assert, Decreasing, Increasing, Wait}
+import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
+import ru.itclover.streammachine.core.PhaseParser.Functions._
+import ru.itclover.streammachine.phases.Phases.{Decreasing, Increasing}
 import ru.itclover.streammachine.http.utils.{Timer => TimerGenerator, _}
 
 import scala.concurrent.duration.Duration
@@ -19,9 +21,6 @@ case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 class RulesTest extends WordSpec with Matchers {
 
   import Rules._
-  import ru.itclover.streammachine.phases.AggregatorPhases._
-  import core.AggregatingPhaseParser._
-  import core.NumericPhaseParser._
   import ru.itclover.streammachine.core.Time._
   import Predef.{any2stringadd => _, assert => _, _}
 
@@ -66,7 +65,7 @@ class RulesTest extends WordSpec with Matchers {
 
   "Timer phase" should {
     "work correctly" in {
-      val speedGte100ForSomeTime = ('speed >= 99).timed(TimeInterval(1.seconds, 2.seconds))
+      val speedGte100ForSomeTime = ('speed.field >= 99).timed(TimeInterval(1.seconds, 2.seconds))
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -94,7 +93,7 @@ class RulesTest extends WordSpec with Matchers {
 
   "Combine And & Assert parsers" should {
     "work correctly" in {
-      val phase: Phase[Row] = 'speed > 10 and 'speed < 20
+      val phase: Phase[Row] = 'speed.field > 10 and 'speed.field < 20
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -158,9 +157,6 @@ class RulesTest extends WordSpec with Matchers {
   "dsl" should {
 
     "works" in {
-      import ru.itclover.streammachine.phases.AggregatorPhases._
-      import core.AggregatingPhaseParser._
-      import core.NumericPhaseParser._
       import ru.itclover.streammachine.core.Time._
 
       import Predef.{any2stringadd => _, assert => _, _}
@@ -210,7 +206,7 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "work on not segmented output" in {
-      val phase: Phase[Row] = 'speed > 35
+      val phase: Phase[Row] = 'speed.field > 35
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
