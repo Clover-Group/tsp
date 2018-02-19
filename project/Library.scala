@@ -44,7 +44,7 @@ object Library {
   )
 
   val akka = Seq(
-    //    "com.typesafe.akka" %% "akka-actor" % Version.akka,
+    //    "com.typesafe.spark" %% "spark-actor" % Version.spark,
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     "com.typesafe.akka" %% "akka-stream" % Version.akka
   )
@@ -78,7 +78,12 @@ object Library {
   )
 
   val sparkStreaming = Seq(
-    "org.apache.spark" % "spark-streaming_2.11" % "2.2.1"
+    "org.apache.spark" %% "spark-core" % Version.spark,
+    "org.apache.spark" %% "spark-streaming" % Version.spark,
+    "org.apache.spark" %% "spark-streaming-kafka-0-10" % Version.spark,
+    // Needed for structured streams
+    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark,
+    "org.apache.spark" %% "spark-sql" % Version.spark
   )
 
 }

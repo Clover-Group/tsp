@@ -38,6 +38,13 @@ class SparkMachineMapper[Group, Event, State, Out](override val phaseParser: Pha
       groupState.remove()
     }
   }
+
+  /** Do apply state machine mapper to old state with that event?
+    * Useful to check that there is not significant gap between this and previous event */
+  override def doProcessOldState(event: Event) = true // TODO
+
+  /** Is it last event in a stream? */
+  override def isEventTerminal(event: Event) = false // TODO
 }
 
 class TimedSparkMachineMapper[Group, Event, State, Out](timeout: Duration)(override val phaseParser: PhaseParser[Event, State, Out])

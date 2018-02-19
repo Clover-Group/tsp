@@ -8,6 +8,7 @@ import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
 import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.phases.Phases.Decreasing
+
 import scala.concurrent.duration._
 
 object TestApp extends App {
@@ -84,21 +85,26 @@ object TestApp extends App {
 
     val phase5: Phase[Event] = ('speed.field > 4 & 'pump.field > 100).timed(more(10.seconds))
 
-     val decr: Phase[Event] = 'speed.field === 100 andThen (derivation('speed.field) < 0) until ('speed.field <= 50)
+    val t: Phase[Event] = 'speed.field >= 100
+
+    val decr: Phase[Event] = ('speed.field === 100) andThen (avg(derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
 
     val phase6 = 'currentCompressorMotor.field > 0 togetherWith
       ('PAirMainRes.field <= 7.5 andThen (derivation(avg('PAirMainRes.field, 5.seconds)) > 0).timed(more(23.seconds))
         .until('PAirMainRes.field >= 8.0))
 
     val phase7: Phase[Appevent] =
-      ('eventType.as[String] === "TableJoin").andThen(
-        not(
-          ('eventType.as[String] === "Bet_ACCEPTED")
-            or
-            ('eventType.as[String] === "Bet2")
-        ).timed(more(30.seconds))
-      )
+      ('eventType.as[String] === "TableJoin")
+        .andThen(
+          not(
+            ('eventType.as[String] === "Bet_ACCEPTED")
+              or
+              ('eventType.as[String] === "Bet2")
+          ).timed(more(30.seconds))
+        )
   }
+
+
 }
 
 case class Event(speed: Int, time: Instant)

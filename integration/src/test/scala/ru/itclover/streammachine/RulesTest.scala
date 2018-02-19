@@ -65,7 +65,7 @@ class RulesTest extends WordSpec with Matchers {
 
   "Timer phase" should {
     "work correctly" in {
-      val speedGte100ForSomeTime = ('speed.field >= 99).timed(TimeInterval(1.seconds, 2.seconds))
+      val speedGte100ForSomeTime = ('speed.field >= 90).timed(TimeInterval(1.seconds, 2.seconds))
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -104,6 +104,8 @@ class RulesTest extends WordSpec with Matchers {
         ).run(seconds = 10)
 
       val results = run(phase, rows)
+
+      println(s"Results = $results")
 
       assert(results.nonEmpty)
 
