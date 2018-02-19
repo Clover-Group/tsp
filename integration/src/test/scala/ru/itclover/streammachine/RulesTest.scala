@@ -11,6 +11,8 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.phases.Phases.{Decreasing, Increasing}
 import ru.itclover.streammachine.http.utils.{Timer => TimerGenerator, _}
+import ru.itclover.streammachine.phases.BooleanPhases.Assert
+import ru.itclover.streammachine.phases.TimePhases.Wait
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
@@ -65,7 +67,7 @@ class RulesTest extends WordSpec with Matchers {
 
   "Timer phase" should {
     "work correctly" in {
-      val speedGte100ForSomeTime = ('speed.field >= 90).timed(TimeInterval(1.seconds, 2.seconds))
+      val speedGte100ForSomeTime = Wait('speed.field >= 90).timed(TimeInterval(1.seconds, 2.seconds))
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -93,7 +95,8 @@ class RulesTest extends WordSpec with Matchers {
 
   "Combine And & Assert parsers" should {
     "work correctly" in {
-      val phase: Phase[Row] = 'speed.field > 10 and 'speed.field < 20
+      import ru.itclover.streammachine.phases.NumericPhases._
+      val phase: Phase[Row] = Assert('speed.as[Double] > 10) and Assert('speed.as[Double] < 20)
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -208,7 +211,7 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "work on not segmented output" in {
-      val phase: Phase[Row] = 'speed.field > 35
+      val phase: Phase[Row] = Assert('speed.field > 35)
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
@@ -232,8 +235,8 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "Segment Decreasing" in {
-      val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
-      // val phase: Phase[Row] = (derivation('speed) <= 0.0) until ('speed <= 35.0)
+      // val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
+      val phase: Phase[Row] = ToSegments(Assert(derivation('speed.field) <= 0.0) and Wait('speed.field <= 35.0))
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
