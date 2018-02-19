@@ -13,10 +13,10 @@ trait AbstractStateMachineMapper[Event, State, Out] {
 
   /** Do apply state machine mapper to old state with that event?
     * Useful to check that there is not significant gap between this and previous event */
-  def doProcessOldState(event: Event): Boolean
+  def doProcessOldState(event: Event): Boolean = true
 
   /** Is it last event in a stream? */
-  def isEventTerminal(event: Event): Boolean
+  def isEventTerminal(event: Event): Boolean = false
 
   def phaseParser: PhaseParser[Event, State, Out]
 
