@@ -5,19 +5,19 @@ To include stay phases in result wrap all expression in `ToSegments()`
 
 
 ### Combining phases
-- All methods in [@CombiningPhasesSyntax](flink/src/main/scala/ru/itclover/streammachine/phases/CombiningPhases.scala) class.
+- All methods in [@CombiningPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/phases/CombiningPhases.scala) class.
 
 ### Numeric phases
-- All methods in [@NumericPhasesSyntax](flink/src/main/scala/ru/itclover/streammachine/phases/NumericPhases.scala) class.
+- All methods in [@NumericPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/phases/NumericPhases.scala) class.
 
 ### TimePhases
-- All methods in [@TimePhasesSyntax](flink/src/main/scala/ru/itclover/streammachine/phases/TimePhases.scala) class.
+- All methods in [@TimePhasesSyntax](core/src/main/scala/ru/itclover/streammachine/phases/TimePhases.scala) class.
 
 ### Aggregation phases
-- All methods in [@AggregatorPhasesSyntax](flink/src/main/scala/ru/itclover/streammachine/aggregators/AggregatorPhases.scala) class.
+- All methods in [@AggregatorPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/aggregators/AggregatorPhases.scala) class.
 
 ### Boolean phases
-- All methods in [@BooleanPhasesSyntax](flink/src/main/scala/ru/itclover/streammachine/phases/BooleanPhases.scala) class.
+- All methods in [@BooleanPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/phases/BooleanPhases.scala) class.
 
 
 ## Examples
