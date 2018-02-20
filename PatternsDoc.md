@@ -25,6 +25,6 @@ To include stay phases in result wrap all expression in `ToSegments()`
 
 - Derivation of 5 sec avg speed > 0 and after that avg pump > 0
 ```scala
-Assert(derivation(avg('speed.field, 5.seconds)) >= 0.0) andThen
-  Assert(avg('pump.field, 3.seconds) > 0)
+Assert(derivation(avg('speed.as[Float], 5.seconds)) >= 0.0) andThen
+  Assert(avg('pump.as[Float], 3.seconds) > 0)
 ```
