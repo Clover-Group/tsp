@@ -57,6 +57,7 @@ object EvalUtils {
        |import ru.itclover.streammachine.phases.ConstantPhases._
        |import ru.itclover.streammachine.phases.MonadPhases._
        |import ru.itclover.streammachine.phases.CombiningPhases._
+       |import ru.itclover.streammachine.aggregators.AggregatorPhases._
        |import ru.itclover.streammachine.phases.Phases._
        |
        |import Predef.{any2stringadd => _, _}

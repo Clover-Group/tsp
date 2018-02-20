@@ -1,7 +1,7 @@
 # Writing patterns
-Pattern is a hierarchical set of phases combined with special phases, like
-`x andThen y` (first then second) or `x togetherWith y` (both in the same time).
-To include stay phases in result wrap all expression in `ToSegments()`
+Pattern is a hierarchical set of phases combined with special ones, like
+`x andThen y` (first then second) or `x togetherWith y` (both in the same time),
+named combining phases.
 
 
 ### Combining phases
@@ -15,6 +15,7 @@ To include stay phases in result wrap all expression in `ToSegments()`
 
 ### Aggregation phases
 - All methods in [@AggregatorPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/aggregators/AggregatorPhases.scala) class.
+- To include stay phases in result wrap all expression in `ToSegments()`
 
 ### Boolean phases
 - All methods in [@BooleanPhasesSyntax](core/src/main/scala/ru/itclover/streammachine/phases/BooleanPhases.scala) class.
@@ -22,6 +23,9 @@ To include stay phases in result wrap all expression in `ToSegments()`
 
 ## Examples
 - Speed and pomp in bounds: `Assert('speed.field > 10) and Assert('pomp.field < 20)`
+
+- Values in bounds for at least 7200 seconds, at max 72500 seconds:
+    `ToSegments(Assert('PosKM.field === 0.0 and 'SpeedEngine.field != 0.0).timed(TimeInterval(1000.seconds, 7300.second)))`
 
 - Derivation of 5 sec avg speed > 0 and after that avg pump > 0
 ```scala

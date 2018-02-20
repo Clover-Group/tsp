@@ -2,7 +2,6 @@ package ru.itclover.streammachine.http.routes
 
 import java.sql.Timestamp
 import java.time.DateTimeException
-
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.stream.ActorMaterializer
@@ -21,7 +20,6 @@ import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowI
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink}
 import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
-
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 import cats.data.Reader
@@ -31,8 +29,8 @@ import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.EvalUtils
 import ru.itclover.streammachine.utils.Time.timeIt
-
 import scala.util.{Failure, Success}
+
 
 object FindPatternRangesRoute {
   def fromExecutionContext(implicit strEnv: StreamExecutionEnvironment): Reader[ExecutionContextExecutor, Route] =
@@ -115,11 +113,13 @@ trait FindPatternRangesRoute extends JsonProtocols {
           inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
       }
 
-      val resultStream = stream.keyBy(e => e.getField(srcInfo.partitionIndex)).flatMapAll[Row](flatMappers)
+      val resultStream = stream.keyBy(e => e.getField(srcInfo.partitionIndex))
+                               .flatMapAll[Row](flatMappers)
+                               .name("Rules searching stage")
 
       val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
 
-      resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
+      resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
 
       val jobId = timeIt { streamEnv.execute() }
 
@@ -159,7 +159,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
         val stream = streamEnv.createInput(srcInfo.inputFormat)
           .keyBy(e => e.getField(srcInfo.partitionIndex))
-          .flatMap(accumulator)
+          .flatMap(accumulator).name("Accumulating stage")
 
         val nullIndex = accumulator.fieldsIndexesMap.find { case (_, ind) => ind != timeIndex && ind != partitionIndex } match {
           case Some((_, nullInd)) => nullInd
@@ -179,11 +179,12 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
         val resultStream = stream.keyBy(e => e.getField(partitionIndex))
                                  .flatMapAll[Row](flatMappers)
+                                 .name("Rules searching stage")
 
         val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
 
 
-        resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
+        resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
 
         val jobId = timeIt { streamEnv.execute() }
 
