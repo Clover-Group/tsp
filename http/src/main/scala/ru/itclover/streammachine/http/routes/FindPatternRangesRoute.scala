@@ -14,7 +14,7 @@ import ru.itclover.streammachine.{ResultMapper, SegmentResultsMapper, SegmentsTo
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
-import ru.itclover.streammachine.http.domain.output.SuccessfulResponse
+import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf}
@@ -30,7 +30,9 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.EvalUtils
+import ru.itclover.streammachine.utils.Time.timeIt
 
+import scala.util.{Failure, Success}
 
 object FindPatternRangesRoute {
   def fromExecutionContext(implicit strEnv: StreamExecutionEnvironment): Reader[ExecutionContextExecutor, Route] =
@@ -119,17 +121,9 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
 
-      def time[R](block: => R): R = {
-          val t0 = System.nanoTime()
-          val result = block    // call-by-name
-          val t1 = System.nanoTime()
-          println("Elapsed time: " + (t1 - t0) + "ns")
-          result
-      }
+      val jobId = timeIt { streamEnv.execute() }
 
-      onSuccess(Future { time { streamEnv.execute() } }) {
-        jobResult => complete(SuccessfulResponse(jobResult.hashCode))
-      }
+      complete(SuccessfulResponse(jobId.hashCode))
     }
   } ~
     path("streaming" / "find-patterns" / "narrow-table" /) {
@@ -155,9 +149,8 @@ trait FindPatternRangesRoute extends JsonProtocols {
           event.getField(srcInfo.fieldsIndexesMap(name))
 
         val accumulator = SparseRowsDataAccumulator(srcInfo, inputConf)
-        val timeIndex = accumulator.fieldsIndexesMap(srcInfo.datetimeFieldName)
         val partitionIndex = accumulator.fieldsIndexesMap(srcInfo.config.partitionColnames.head)
-
+        val timeIndex = accumulator.fieldsIndexesMap(srcInfo.datetimeFieldName)
         val accumulatedTimeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
           override def apply(row: Row) = {
             row.getField(timeIndex).asInstanceOf[Timestamp]
@@ -189,11 +182,12 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
         val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
 
+
         resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat))
 
-        onSuccess(Future { streamEnv.execute() }) {
-          jobResult => complete(SuccessfulResponse(jobResult.hashCode))
-        }
+        val jobId = timeIt { streamEnv.execute() }
+
+        complete(SuccessfulResponse(jobId.hashCode))
       }
     }
 }

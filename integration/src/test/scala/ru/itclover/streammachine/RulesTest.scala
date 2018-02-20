@@ -96,7 +96,7 @@ class RulesTest extends WordSpec with Matchers {
   "Combine And & Assert parsers" should {
     "work correctly" in {
       import ru.itclover.streammachine.phases.NumericPhases._
-      val phase: Phase[Row] = Assert('speed.as[Double] > 10) and Assert('speed.as[Double] < 20)
+      val phase: Phase[Row] = Assert('speed.field > 10) and Assert('speed.field < 20)
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());

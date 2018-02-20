@@ -50,7 +50,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
         |    CAST(NULL AS Nullable(Float32)) as speed, 2 as ord
         |  from SM_basic_wide
         |) order by ord
-      """.stripMargin,
+      """.stripMargin, // TODO Not closing cause empty 65002, incorrect mech_id in result table for last segment
     driverName = container.driverName,
     datetimeColname = 'datetime,
     eventsMaxGapMs = 60000L,
@@ -69,7 +69,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
-  val patterns = Map("1" -> "'speed.field < 15.0", "2" -> "'speed.field > 10.0")
+  val patterns = Map("1" -> "Assert('speed.field < 15.0)", "2" -> "Assert('speed.field > 10.0)")
 
   override def afterStart(): Unit = {
     super.beforeAll()
@@ -85,8 +85,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1'")
-      checkSegments(3 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1' AND mechanism_id = '65001'")
+      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65001'")
+
+      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65002'")
     }
   }
 
@@ -96,8 +98,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_narrow_patterns WHERE pattern_id = '1'")
-      checkSegments(3 :: Nil, "SELECT from, to FROM SM_basic_narrow_patterns WHERE pattern_id = '2'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1' AND mechanism_id = '65001'")
+      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65001'")
+
+      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65002'")
     }
   }
 
