@@ -18,11 +18,17 @@ object ConstantPhases {
 
     def extract(event: Event): T
 
+    def fieldName: Option[String] = None
+
     override def initialState: NoState = NoState.instance
+
+    override def format(event: Event, state: NoState) = s"${fieldName}=${extract(event)}"
   }
 
   object OneRowPhaseParser {
-    def apply[Event, T](f: Event => T): OneRowPhaseParser[Event, T] = new OneRowPhaseParser[Event, T]() {
+    def apply[Event, T](f: Event => T, fieldNameOpt: Option[String]=None): OneRowPhaseParser[Event, T] = new OneRowPhaseParser[Event, T]() {
+      override val fieldName = fieldNameOpt
+
       override def extract(event: Event) = f(event)
     }
   }
@@ -31,6 +37,8 @@ object ConstantPhases {
     override def apply(v1: Event, v2: NoState): (Failure, NoState) = Failure(msg) -> NoState.instance
 
     override def extract(event: Event): Nothing = ???
+
+    override def format(event: Event, state: NoState) = s"Failure($msg)"
   }
 
   trait LessPriorityImplicits {

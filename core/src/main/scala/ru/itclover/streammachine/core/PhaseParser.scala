@@ -10,6 +10,7 @@ import ru.itclover.streammachine.phases.TimePhases.TimePhasesSyntax
 
 import scala.language.higherKinds
 
+
 /**
   * Base trait. Used for statefully processing Event's. In each step returns some PhaseResult and new State
   *
@@ -21,6 +22,8 @@ trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], 
   def initialState: State
 
   def aggregate(event: Event, state: State): State = apply(event, state)._2
+
+  def format(event: Event, state: State): String = s"${this.getClass.getSimpleName}($state)"
 }
 
 object PhaseParser {
