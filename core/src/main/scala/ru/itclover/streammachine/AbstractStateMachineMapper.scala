@@ -2,6 +2,8 @@ package ru.itclover.streammachine
 
 
 import java.time.Instant
+
+import com.typesafe.scalalogging.Logger
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.Time.timeOrdering
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time}
@@ -10,6 +12,8 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 
 
 trait AbstractStateMachineMapper[Event, State, Out] {
+
+  private val log = Logger("AbstractStateMachineMapper")
 
   /** Do apply state machine mapper to old state with that event?
     * Useful to check that there is not significant gap between this and previous event */
@@ -24,9 +28,15 @@ trait AbstractStateMachineMapper[Event, State, Out] {
     if (isEventTerminal(event)) {
       Seq(Failure("Terminator received")) -> Seq.empty
     } else {
+      log.debug(s"Search for patterns in: $event")
       // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
-      val oldStatesWithOneInitialState = if (doProcessOldState(event)) oldStates :+ phaseParser.initialState
-                                         else Seq(phaseParser.initialState)
+      val oldStatesWithOneInitialState = if (doProcessOldState(event)) {
+        oldStates.foreach(s => log.debug(phaseParser.format(event, s)))
+        oldStates :+ phaseParser.initialState
+      }
+      else {
+        Seq(phaseParser.initialState)
+      }
 
       val stateToResult = phaseParser.curried(event)
 

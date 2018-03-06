@@ -25,9 +25,10 @@ import scala.io.StdIn
 
 trait HttpService extends JsonProtocols {
   val isDebug = true
+  val executionContext: ExecutionContextExecutor
+
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
-  implicit val executionContext: ExecutionContextExecutor
   implicit val streamEnvironment: StreamExecutionEnvironment
 
   private val log = Logger[HttpService]
@@ -56,8 +57,11 @@ trait HttpService extends JsonProtocols {
 
   def exceptionsHandler = ExceptionHandler {
     case ex: JobExecutionException =>
+      ex.printStackTrace()
       complete(FailureResponse(2, s"Job execution failure", Seq(Option(ex.getCause).getOrElse(ex).getLocalizedMessage)))
-    case ex: Exception => complete(FailureResponse(ex))
+    case ex: Exception =>
+      ex.printStackTrace()
+      complete(FailureResponse(ex))
   }
 
 }

@@ -14,5 +14,8 @@ final case class FailureResponse(errorCode: Int, message: String, errors: Seq[St
 object FailureResponse {
   def apply(e: ServerError): FailureResponse = FailureResponse(0, e.defaultMessage, Seq(e.reason))
 
-  def apply(ex: Throwable): FailureResponse = FailureResponse(0, "Internal server error", Seq(ex.getCause.getMessage))
+  def apply(ex: Throwable): FailureResponse = {
+    val message = if (ex != null && ex.getCause != null) ex.getCause.getMessage else ex.getMessage
+    FailureResponse(0, "Internal server error", Seq(message))
+  }
 }
