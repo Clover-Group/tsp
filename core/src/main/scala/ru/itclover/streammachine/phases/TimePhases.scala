@@ -93,6 +93,10 @@ object TimePhases {
     * @tparam T     - output type, used if phase successfully terminated
     * @tparam State2
     */
-  case class Until[Event, State, State2, +T](first: PhaseParser[Event, State, T], second: BooleanPhaseParser[Event, State2]) extends TogetherParserLike(first, Wait(second))
+  case class Until[Event, State, State2, +T](first: PhaseParser[Event, State, T], second: BooleanPhaseParser[Event, State2]) extends TogetherParserLike(first, Wait(second)) {
+    override def format(event: Event, state: (State, State2)) = {
+      first.format(event, state._1) + " until " + second.format(event, state._2)
+    }
+  }
 
 }

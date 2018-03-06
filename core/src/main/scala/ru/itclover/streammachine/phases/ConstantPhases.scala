@@ -22,7 +22,11 @@ object ConstantPhases {
 
     override def initialState: NoState = NoState.instance
 
-    override def format(event: Event, state: NoState) = s"${fieldName}=${extract(event)}"
+    override def format(event: Event, state: NoState) = if (fieldName.isDefined) {
+      s"${fieldName.get}=${extract(event)}"
+    } else {
+      s"${extract(event)}"
+    }
   }
 
   object OneRowPhaseParser {

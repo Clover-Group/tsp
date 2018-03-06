@@ -62,7 +62,7 @@ object BooleanPhases {
 
       val (res, out) = predicate(event, s)
       (res match {
-        case Success(false) => Failure("assert not match")
+        case Success(false) => Failure(s"assert not match for ${predicate.format(event, s)}")
         case x => x
       }) -> out
     }
@@ -78,7 +78,7 @@ object BooleanPhases {
   abstract class ComparingParser[Event, State1, State2, T]
   (left: PhaseParser[Event, State1, T],
    right: PhaseParser[Event, State2, T])(
-    compare: (T, T) => Boolean)
+    compare: (T, T) => Boolean, compareFnName: String)
     extends BooleanPhaseParser[Event, State1 And State2] {
 
     private val andParser = left togetherWith right
@@ -101,7 +101,7 @@ object BooleanPhases {
     override def initialState: (State1, State2) = (left.initialState, right.initialState)
 
     override def format(event: Event, state: (State1, State2)): String = {
-      left.format(event, state._1) + " and " + right.format(event, state._2)
+      left.format(event, state._1) + s" ${compareFnName} " + right.format(event, state._2)
     }
   }
 
@@ -109,30 +109,30 @@ object BooleanPhases {
   case class GreaterParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                      right: PhaseParser[Event, State2, T])
                                                     (implicit ord: Ordering[T])
-    extends ComparingParser(left, right)((a, b) => ord.gt(a, b))
+    extends ComparingParser(left, right)((a, b) => ord.gt(a, b), ">")
 
   case class GreaterOrEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                             right: PhaseParser[Event, State2, T])
                                                            (implicit ord: Ordering[T])
-    extends ComparingParser(left, right)((a, b) => ord.gteq(a, b))
+    extends ComparingParser(left, right)((a, b) => ord.gteq(a, b), ">=")
 
   case class LessParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                   right: PhaseParser[Event, State2, T])
                                                  (implicit ord: Ordering[T])
-    extends ComparingParser(left, right)((a, b) => ord.lt(a, b))
+    extends ComparingParser(left, right)((a, b) => ord.lt(a, b), "<")
 
   case class LessOrEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                          right: PhaseParser[Event, State2, T])
                                                         (implicit ord: Ordering[T])
-    extends ComparingParser(left, right)((a, b) => ord.lteq(a, b))
+    extends ComparingParser(left, right)((a, b) => ord.lteq(a, b), "<=")
 
   case class EqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                    right: PhaseParser[Event, State2, T])
-    extends ComparingParser(left, right)((a, b) => a equals b)
+    extends ComparingParser(left, right)((a, b) => a equals b, "==")
 
   case class NonEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                       right: PhaseParser[Event, State2, T])
-    extends ComparingParser(left, right)((a, b) => !(a equals b))
+    extends ComparingParser(left, right)((a, b) => !(a equals b), "!=")
 
   case class NotParser[Event, State](inner: BooleanPhaseParser[Event, State])
     extends BooleanPhaseParser[Event, State] {
@@ -156,11 +156,11 @@ object BooleanPhases {
 
   case class AndParser[Event, State1, State2](left: BooleanPhaseParser[Event, State1],
                                               right: BooleanPhaseParser[Event, State2])
-    extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a & b)
+    extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a & b, "and")
 
   case class OrParser[Event, State1, State2](left: BooleanPhaseParser[Event, State1],
                                              right: BooleanPhaseParser[Event, State2])
-    extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a | b)
+    extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a | b, "or")
 
   case class InParser[Event, State, T](parser: PhaseParser[Event, State, T], set: Set[T])
     extends MapParserLike(parser)(set.apply) with BooleanPhaseParser[Event, State]

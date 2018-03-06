@@ -168,6 +168,15 @@ object CombiningPhases {
     }
 
     override def initialState = (first.initialState, second.initialState, None)
+
+    override def format(event: Event, state: (FirstState, SecondState, Option[FirstOut])) = {
+      val (st1, st2, firstOut) = state
+      if (firstOut.isDefined) {
+        s"${firstOut.get} andThen ${second.format(event, st2)}"
+      } else {
+        s"${first.format(event, st1)} andThen ${second.format(event, st2)}"
+      }
+    }
   }
 
   case class EitherParser[Event, LState, RState, LOut, ROut]

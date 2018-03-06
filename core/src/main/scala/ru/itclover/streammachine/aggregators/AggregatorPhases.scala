@@ -99,6 +99,12 @@ object AggregatorPhases {
     }
 
     override def initialState: (InnerState, AverageState) = extract.initialState -> AverageState(window)
+
+    override def format(event: Event, state: (InnerState, AverageState)) = if (state._2.count == 0) {
+      s"avg(${extract.format(event, state._1)})"
+    } else {
+      s"avg(${extract.format(event, state._1)})=${state._2.result}"
+    }
   }
 
 
@@ -136,6 +142,8 @@ object AggregatorPhases {
     }
 
     override def initialState: (State, Option[Time]) = (innerParser.initialState, None)
+
+    override def format(event: Event, state: (State, Option[Time])) = s"${innerParser.format(event, state._1)} asSegments"
   }
 
 
@@ -168,6 +176,11 @@ object AggregatorPhases {
     }
 
     override def initialState = (numeric.initialState, None)
+
+    override def format(event: Event, state: (InnerState, Option[(Double, Time)])) = {
+      val result = state._2.map("=" + _._1.toString).getOrElse("")
+      s"deriv(${numeric.format(event, state._1)})" + result
+    }
   }
 
 }
