@@ -2,7 +2,7 @@ package ru.itclover.streammachine.phases
 
 import ru.itclover.streammachine.core.PhaseParser.WithParser
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
-import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.core.Time.{MaxWindow, MinWindow, TimeExtractor}
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
 import ru.itclover.streammachine.phases.CombiningPhases.TogetherParserLike
@@ -15,6 +15,8 @@ object TimePhases {
     this: WithParser[Event, State, T] =>
 
     def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.TogetherParser[Event, State, Option[Time], T, (Time, Time)] = this.parser togetherWith Timer(timeInterval)
+
+    def timed(min: Window = MinWindow, max: Window = MaxWindow)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.TogetherParser[Event, State, Option[Time], T, (Time, Time)] = this.parser togetherWith Timer(TimeInterval(min, max))
 
     def until[State2](condition: BooleanPhaseParser[Event, State2]): Until[Event, State, State2, T] = Until(this.parser, condition)
 
@@ -30,7 +32,7 @@ object TimePhases {
     * @param timeExtractor - function returning time from Event
     * @tparam Event - events to process
     */
-  case class Timer[Event](timeInterval: TimeInterval)
+    case class Timer[Event](timeInterval: TimeInterval)
                          (implicit timeExtractor: TimeExtractor[Event])
     extends PhaseParser[Event, Option[Time], (Time, Time)] {
 

@@ -20,7 +20,7 @@ mainClass in assembly := Some("Job")
 assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
 
 // Improved type inference via the fix for SI-2712 (for Cats dep.)
-scalacOptions += "-Ypartial-unification"
+scalacOptions ++= Seq("-Ypartial-unification")
 
 lazy val core = project.in(file("core"))
   .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging)

@@ -10,16 +10,6 @@ object Phases {
 
   type Phase[Event] = PhaseParser[Event, _, _]
 
-  case class TestPhase[Event, T](resultsStream: Stream[PhaseResult[T]])
-    extends PhaseParser[Event, Stream[PhaseResult[T]], T] {
-    override def initialState = resultsStream
-
-    override def apply(event: Event, resultsStream: Stream[PhaseResult[T]]) = resultsStream match {
-      case x #:: xs => x -> xs
-      case Stream.Empty => throw new NoSuchElementException("Test stream is empty.")
-    }
-  }
-
   /**
     * Expect decreasing of value. If value has entered to range between from and to, it must monotonically decrease to `to` for success.
     *

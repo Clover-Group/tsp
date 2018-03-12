@@ -1,13 +1,61 @@
 package ru.itclover.streammachine
 
+import org.joda.time.{DateTime, Instant}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.phases.NumericPhases.{NumericPhaseParser, SymbolNumberExtractor}
 
 package object core {
 
   case class TestEvent(i: Int, s: String)
 
+  case class TimedEvent(i: Int, time: DateTime)
+
+
+  case class TestingEvent[T](result: PhaseResult[T], time: DateTime = DateTime.now())
+
+  implicit val doubleTestEvent = new TimeExtractor[TestingEvent[Double]] {
+    override def apply(event: TestingEvent[Double]) = event.time
+  }
+
+  case class TestPhase[T]() extends PhaseParser[TestingEvent[T], Unit, T] {
+    override def initialState: Unit = ()
+
+    override def apply(event: TestingEvent[T], state: Unit) = event.result -> ()
+
+    override def format(event: TestingEvent[T], state: Unit) = s"TestPhase(${event})"
+  }
+
+
+
+  implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[TimedEvent] {
+    override def extract(event: TimedEvent, symbol: Symbol) = {
+      symbol match {
+        case 'i => event.i
+        case 'speed => event.i
+        case _ => sys.error(s"No field $symbol in $event")
+      }
+    }
+  }
+
+  implicit val timeExtractor: TimeExtractor[TimedEvent] = new TimeExtractor[TimedEvent] {
+    override def apply(v1: TimedEvent) = v1.time
+  }
+
   val probe = TestEvent(1, "")
+
+  val t = DateTime.now()
+  val times = t.minusMillis(11000) :: t.minusMillis(10000) :: t.minusMillis(9000) :: t.minusMillis(8000) ::
+    t.minusMillis(7000) :: t.minusMillis(6000) :: t.minusMillis(5000) :: t.minusMillis(4000) :: t.minusMillis(3000) ::
+    t.minusMillis(2000) :: t.minusMillis(1000) :: t :: Nil
+
+  private val staySuccessRes = Seq(Stay, Success(1.0), Stay, Success(2.0), Success(1.0), Success(3.0), Failure("Test"), Success(4.0))
+  val staySuccesses = for((t, res) <- times.take(staySuccessRes.length).zip(staySuccessRes)) yield TestingEvent(res, t)
+
+  val failsRes = Seq(Stay, Success(1.0), Failure("Test"), Success(2.0), Failure("Test"), Success(1.0), Stay, Failure("Test"), Success(3.0), Failure("Test"), Stay)
+  val fails = for((t, res) <- times.take(failsRes.length).zip(failsRes)) yield TestingEvent(res, t)
+
+
 
   class ConstantResult(result: PhaseResult[Int]) extends PhaseParser[TestEvent, Unit, Int] {
     override def apply(v1: TestEvent, v2: Unit): (PhaseResult[Int], Unit) = result -> ()

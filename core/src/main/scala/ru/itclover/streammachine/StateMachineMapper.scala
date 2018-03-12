@@ -19,8 +19,6 @@ case class StateMachineMapper[Event, State, PhaseOut, MapperOut]
 
 
   def apply(event: Event): this.type = {
-    log.info(s"Map new event: $event")
-
     val (results, newStates) = process(event, states)
 
     mapResults(event, results).foreach(x => collector.append(x))
