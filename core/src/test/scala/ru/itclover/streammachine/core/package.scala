@@ -3,6 +3,7 @@ package ru.itclover.streammachine
 import org.joda.time.{DateTime, Instant}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.phases.NoState
 import ru.itclover.streammachine.phases.NumericPhases.{NumericPhaseParser, SymbolNumberExtractor}
 
 package object core {
@@ -18,12 +19,12 @@ package object core {
     override def apply(event: TestingEvent[Double]) = event.time
   }
 
-  case class TestPhase[T]() extends PhaseParser[TestingEvent[T], Unit, T] {
-    override def initialState: Unit = ()
+  case class TestPhase[T]() extends PhaseParser[TestingEvent[T], NoState, T] {
+    override def initialState: NoState = NoState.instance
 
-    override def apply(event: TestingEvent[T], state: Unit) = event.result -> ()
+    override def apply(event: TestingEvent[T], state: NoState) = event.result -> NoState.instance
 
-    override def format(event: TestingEvent[T], state: Unit) = s"TestPhase(${event})"
+    override def format(event: TestingEvent[T], state: NoState) = s"TestPhase(${event})"
   }
 
 

@@ -4,28 +4,54 @@ import ru.itclover.streammachine
 import ru.itclover.streammachine.core.PhaseParser.WithParser
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases
+import ru.itclover.streammachine.phases.CombiningPhases.TogetherParserLike
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
-
 import scala.Numeric.Implicits._
+import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
+
 
 object NumericPhases {
 
   trait NumericPhasesSyntax[Event, S, T] {
     this: WithParser[Event, S, T] =>
 
-    def +[S2](right: NumericPhaseParser[Event, S2])(implicit ev: Numeric[T]): NumericPhaseParser[Event, (S, S2)] =
-      (this.parser togetherWith right).map { case (a, b) => a.toDouble() + b }
+    def +[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.plus(a, b), "+")
 
-    def -[S2](right: NumericPhaseParser[Event, S2])(implicit ev: Numeric[T]): NumericPhaseParser[Event, (S, S2)] =
-      (this.parser togetherWith right).map { case (a, b) => a.toDouble() - b }
+    def -[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.minus(a, b), "-")
 
     //todo Failure if b is zero?
-    def /[S2](right: NumericPhaseParser[Event, S2])(implicit ev: Numeric[T]): NumericPhaseParser[Event, (S, S2)] =
-      (this.parser togetherWith right).map { case (a, b) => a.toDouble() / b }
+    def /[S2](right: PhaseParser[Event, S2, T])(implicit ev: Fractional[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.div(a, b), "/")
 
-    def *[S2](right: NumericPhaseParser[Event, S2])(implicit ev: Numeric[T]): NumericPhaseParser[Event, (S, S2)] =
-      (this.parser togetherWith right).map { case (a, b) => a.toDouble() * b }
+    def *[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.times(a, b), "*")
+  }
+
+  /*FormatParser(
+        this.parser togetherWith Timer(timeInterval),
+        (e: Event, state: (State, Option[Time])) =>
+          s"(${this.parser.format(e, state._1)}).timed(${timeInterval.min}, ${timeInterval.max})" +
+            state._2.map(t => s"=$t").getOrElse("")
+      )*/
+
+  case class BinaryNumericParser[E, S1, S2, Out](left: PhaseParser[E, S1, Out], right: PhaseParser[E, S2, Out],
+                                                 operation: (Out, Out) => Out, operationSign: String)
+                                                (implicit innerEv: Numeric[Out])
+       extends PhaseParser[E, (S1, S2), Out] {
+
+    val andParser = left togetherWith right
+
+    override def initialState = (left.initialState, right.initialState)
+
+    override def apply(event: E, state: (S1, S2)): (PhaseResult[Out], (S1, S2)) = {
+      val (results, newState) = andParser(event, state)
+      results.map { case (a, b) => operation(a, b) } -> newState
+    }
+
+    override def format(e: E, st: (S1, S2)) = left.format(e, st._1) + s" $operationSign " + right.format(e, st._2)
   }
 
   type ConstantPhaseParser[Event, +T] = OneRowPhaseParser[Event, T]

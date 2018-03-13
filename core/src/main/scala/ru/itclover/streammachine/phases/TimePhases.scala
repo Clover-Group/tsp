@@ -5,7 +5,7 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.{MaxWindow, MinWindow, TimeExtractor}
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
-import ru.itclover.streammachine.phases.CombiningPhases.TogetherParserLike
+import ru.itclover.streammachine.phases.CombiningPhases.{TogetherParserLike}
 
 import scala.Ordered._
 
@@ -14,9 +14,11 @@ object TimePhases {
   trait TimePhasesSyntax[Event, State, T] {
     this: WithParser[Event, State, T] =>
 
-    def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.TogetherParser[Event, State, Option[Time], T, (Time, Time)] = this.parser togetherWith Timer(timeInterval)
+    def timed(timeInterval: TimeInterval)(implicit timeExtractor: TimeExtractor[Event]): Timed[Event, State, T] =
+      Timed(this.parser, timeInterval)
 
-    def timed(min: Window = MinWindow, max: Window = MaxWindow)(implicit timeExtractor: TimeExtractor[Event]): CombiningPhases.TogetherParser[Event, State, Option[Time], T, (Time, Time)] = this.parser togetherWith Timer(TimeInterval(min, max))
+    def timed(min: Window = MinWindow, max: Window = MaxWindow)(implicit timeExtractor: TimeExtractor[Event]): Timed[Event, State, T] =
+      timed(TimeInterval(min, max))
 
     def until[State2](condition: BooleanPhaseParser[Event, State2]): Until[Event, State, State2, T] = Until(this.parser, condition)
 
@@ -84,6 +86,14 @@ object TimePhases {
     override def initialState = conditionParser.initialState
   }
 
+  case class Timed[Event, State, Out](inner: PhaseParser[Event, State, Out], timeInterval: TimeInterval)
+                                     (implicit timeExtractor: TimeExtractor[Event])
+       extends TogetherParserLike(inner, Timer(timeInterval)) {
+
+    override def format(e: Event, state: (State, Option[Time])) =
+      s"(${inner.format(e, state._1)}).timed(${timeInterval.min}, ${timeInterval.max})" +
+        state._2.map(t => s"=$t").getOrElse("")
+  }
 
   /**
     * Parser waiting for the next condition. Allows to create fail-fast patterns.

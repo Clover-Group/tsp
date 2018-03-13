@@ -96,9 +96,9 @@ object AggregatorPhases {
     * @param window  - window to collect points within
     * @tparam Event - events to process
     */
-  class AccumulationPhase[Event, InnerState](extract: NumericPhaseParser[Event, InnerState], window: Window)
-                                            (extractResult: AccumulatedState => Double)
-                                            (implicit timeExtractor: TimeExtractor[Event])
+  abstract class AccumulationPhase[Event, InnerState](extract: NumericPhaseParser[Event, InnerState], window: Window)
+                                                     (extractResult: AccumulatedState => Double)
+                                                     (implicit timeExtractor: TimeExtractor[Event])
     extends AggregatorPhases[Event, (InnerState, AccumulatedState), Double] {
 
     override def apply(event: Event, oldState: (InnerState, AccumulatedState)): (PhaseResult[Double], (InnerState, AccumulatedState)) = {
@@ -180,6 +180,10 @@ object AggregatorPhases {
     }
 
     override def initialState = innerPhase.initialState -> None
+
+    override def format(event: Event, state: (State, Option[Double])) =
+      s"prev(${innerPhase.format(event, state._1)})" + state._2.map(v => s"=$v").getOrElse("")
+
   }
 
   case class CurrentTimeMs[Event, State, T](innerPhase: PhaseParser[Event, State, T])
@@ -198,6 +202,9 @@ object AggregatorPhases {
     }
 
     override def initialState = innerPhase.initialState
+
+    override def format(event: Event, state: State) =
+      s"prev(${innerPhase.format(event, state)})"
   }
 
   case class PreviousTimeMs[Event, State, T](innerPhase: PhaseParser[Event, State, T])

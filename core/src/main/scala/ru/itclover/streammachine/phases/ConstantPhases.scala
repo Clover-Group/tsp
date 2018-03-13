@@ -30,7 +30,7 @@ object ConstantPhases {
   }
 
   object OneRowPhaseParser {
-    def apply[Event, T](f: Event => T, fieldNameOpt: Option[String]=None): OneRowPhaseParser[Event, T] = new OneRowPhaseParser[Event, T]() {
+    def apply[Event, T](f: Event => T, fieldNameOpt: Option[String] = None): OneRowPhaseParser[Event, T] = new OneRowPhaseParser[Event, T]() {
       override val fieldName = fieldNameOpt
 
       override def extract(event: Event) = f(event)

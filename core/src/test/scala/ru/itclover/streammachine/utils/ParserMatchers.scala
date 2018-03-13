@@ -1,9 +1,8 @@
 package ru.itclover.streammachine.utils
 
 import org.scalatest.Matchers
-import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success, TerminalResult}
-import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TestPhase, TestingEvent, TimedEvent, runRule}
-import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
+import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TestPhase, TestingEvent, runRule}
 
 
 trait ParserMatchers extends Matchers {
