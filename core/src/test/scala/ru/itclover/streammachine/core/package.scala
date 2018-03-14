@@ -28,17 +28,6 @@ package object core {
   }
 
 
-
-  implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[TimedEvent] {
-    override def extract(event: TimedEvent, symbol: Symbol) = {
-      symbol match {
-        case 'i => event.i
-        case 'speed => event.i
-        case _ => sys.error(s"No field $symbol in $event")
-      }
-    }
-  }
-
   implicit val timeExtractor: TimeExtractor[TimedEvent] = new TimeExtractor[TimedEvent] {
     override def apply(v1: TimedEvent) = v1.time
   }

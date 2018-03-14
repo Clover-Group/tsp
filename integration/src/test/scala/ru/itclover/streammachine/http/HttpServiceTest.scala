@@ -34,7 +34,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8125
+  val port = 8124
 
   override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9000 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
@@ -57,11 +57,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     partitionColnames = Seq('mechanism_id)
   )
   // ...
-  val narrowInputConf = JDBCNarrowInputConf(
-    inputConf.copy(query = "select datetime, mechanism_id, sensor, value_float from SM_basic_narrow limit 1000"),
-    'sensor, 'value_float,
-    Map('speed -> 2000)
-  )
+  val typeCastingInputConf = inputConf.copy(query = "select * from SM_typeCasting_wide limit 1000")
 
   val sinkSchema = JDBCSegmentsSink("SM_basic_wide_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
     inputConf.partitionColnames)
@@ -69,7 +65,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
-  val patterns = Map("1" -> "Assert('speed.field < 15.0)", "2" -> "Assert('speed.field > 10.0)")
+
+  val basicAssertions = Map("1" -> "Assert('speed.field < 15.0)", "2" -> "Assert('speed.field > 10.0)")
+  val typesCasting = Map("3" -> "Assert('speed.as[String] === \"15\")", "4" -> "Assert('speed.as[Int] < 15)")
+
 
   override def afterStart(): Unit = {
     super.beforeAll()
@@ -79,10 +78,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
-  "Streaming patterns search" should "work for wide dense table" in {
+  "Basic assertions" should "work for wide dense table" in {
 
-    Post("/streaming/find-patterns/wide-dense-table/", FindPatternsRequest(inputConf, outputConf, patterns)) ~>
-      route ~> check {
+    Post("/streaming/find-patterns/wide-dense-table/", FindPatternsRequest(inputConf, outputConf, basicAssertions)) ~>
+        route ~> check {
       status shouldEqual StatusCodes.OK
 
       checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1' AND mechanism_id = '65001'")
@@ -92,16 +91,13 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     }
   }
 
-  "Streaming patterns search" should "work for narrow table" in {
-    Post("/streaming/find-patterns/narrow-table/",
-         FindPatternsRequest(narrowInputConf, outputConf.copy(sinkSchema=narrowSinkSchema), patterns)) ~>
-      route ~> check {
+  "Types casting" should "work for wide dense table" in {
+    Post("/streaming/find-patterns/wide-dense-table/", FindPatternsRequest(typeCastingInputConf, outputConf, typesCasting)) ~>
+        route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '1' AND mechanism_id = '65001'")
-      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65001'")
-
-      checkSegments(1 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65002'")
+      checkSegments(0 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '3' AND mechanism_id = '65001'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
     }
   }
 

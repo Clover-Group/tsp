@@ -70,6 +70,12 @@ object EvalUtils {
        |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Float].toDouble
        |  }
        |}
+       |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {
+       |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Int]
+       |}
+       |implicit val strSymbolExtractor = new SymbolExtractor[Row, String] {
+       |  override def extract(event: Row, symbol: Symbol): String = event.getField(fieldsIndexesMap(symbol)).toString
+       |}
        |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
        |  override def apply(v1: Row) = {
        |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[java.sql.Timestamp]

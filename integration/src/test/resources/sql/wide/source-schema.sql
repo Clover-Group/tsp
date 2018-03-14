@@ -5,9 +5,8 @@ CREATE TABLE IF NOT EXISTS SM_basic_wide (
 ) ENGINE = Log();
 
 
-CREATE TABLE IF NOT EXISTS SM_basic_narrow (
+CREATE TABLE IF NOT EXISTS SM_typeCasting_wide (
     datetime DateTime,
     mechanism_id String,
-    sensor String,
-    value_float Float32
+    speed Int32
 ) ENGINE = Log();

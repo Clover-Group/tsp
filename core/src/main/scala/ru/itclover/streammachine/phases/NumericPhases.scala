@@ -30,12 +30,6 @@ object NumericPhases {
       BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.times(a, b), "*")
   }
 
-  /*FormatParser(
-        this.parser togetherWith Timer(timeInterval),
-        (e: Event, state: (State, Option[Time])) =>
-          s"(${this.parser.format(e, state._1)}).timed(${timeInterval.min}, ${timeInterval.max})" +
-            state._2.map(t => s"=$t").getOrElse("")
-      )*/
 
   case class BinaryNumericParser[E, S1, S2, Out](left: PhaseParser[E, S1, Out], right: PhaseParser[E, S2, Out],
                                                  operation: (Out, Out) => Out, operationSign: String)
