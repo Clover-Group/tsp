@@ -52,6 +52,7 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
       val intVal = 18
       val floatVal = 18.0f
       val strVal = "18"
+      val longVal = 18L
 
       implicit val fixedIntSymbolExtractor = new SymbolExtractor[TestingEvent[Double], Int] {
         override def extract(event: TestingEvent[Double], symbol: Symbol) = intVal
@@ -62,10 +63,14 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
       implicit val fixedStringSymbolExtractor = new SymbolExtractor[TestingEvent[Double], String] {
         override def extract(event: TestingEvent[Double], symbol: Symbol) = strVal
       }
+      implicit val fixedLongSymbolExtractor = new SymbolExtractor[TestingEvent[Double], Long] {
+        override def extract(event: TestingEvent[Double], symbol: Symbol) = longVal
+      }
 
       val intParser: PhaseParser[TestingEvent[Double], NoState, Int] = 'i.as[Int]
       val floatParser: PhaseParser[TestingEvent[Double], NoState, Float] = 'i.as[Float]
       val strParser: PhaseParser[TestingEvent[Double], NoState, String] = 'i.as[String]
+      val longParser: PhaseParser[TestingEvent[Double], NoState, Long] = 'i.as[Long]
 
 
       checkOnTestEvents(
@@ -77,18 +82,24 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
 
       checkOnTestEvents(
         (p: TestPhase[Double]) => p.flatMap(_ => floatParser),
-        staySuccesses,
-        Seq(Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Failure("Test"), Success(floatVal)),
-        epsilon = 0.001f
+          staySuccesses,
+          Seq(Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Failure("Test"), Success(floatVal)),
+          epsilon = 0.001f
       )
 
 
       checkOnTestEvents_strict(
         (p: TestPhase[Double]) => p.flatMap(_ => strParser),
-        staySuccesses,
-        Seq(Success(strVal), Success(strVal), Success(strVal), Success(strVal), Success(strVal), Success(strVal), Failure("Test"), Success(strVal))
+          staySuccesses,
+          Seq(Success(strVal), Success(strVal), Success(strVal), Success(strVal), Success(strVal), Success(strVal), Failure("Test"), Success(strVal))
       )
 
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => p.flatMap(_ => longParser),
+        staySuccesses,
+        Seq(Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Failure("Test"), Success(longVal)),
+        epsilon = 1L
+      )
     }
   }
 

@@ -17,15 +17,13 @@ trait ParserMatchers extends Matchers {
   ): Unit = {
     val rule = parser(TestPhase())
     val results = runRule(rule, events)
+    log.debug(s"\nresults = `$results`\nexpected = `$expectedResults`")
     results.length should equal(expectedResults.length)
     results.zip(expectedResults) map {
       case (Success(real), Success(exp)) => real shouldEqual (exp +- epsilon)
       case (Failure(_), Failure("")) => ()
       case (real, exp) if real == exp => ()
-      case (real, exp) => {
-        log.debug(s"results = `$results`\nexpected = `$expectedResults`")
-        fail(s"Expected ($exp) and real ($real) result is different.")
-      }
+      case (real, exp) => fail(s"Expected ($exp) and real ($real) result is different.")
     }
   }
 

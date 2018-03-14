@@ -30,13 +30,6 @@ object AggregatorPhases {
                      (implicit timeExtractor: TimeExtractor[Event]): Count[Event, S] =
       Count(numeric, window)
 
-    def derivation[Event, S](numeric: NumericPhaseParser[Event, S])
-                            (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] = {
-      delta(numeric) / deltaMilliseconds(numeric).map(dt => {
-        assert(dt != 0.0, "Zero division - delta time in derivation is 0.")
-        dt
-      })
-    }
 
     def delta[Event, S](numeric: NumericPhaseParser[Event, S])
                        (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
@@ -86,6 +79,14 @@ object AggregatorPhases {
     }
 
     def startTime: Option[Time] = queue.headOption.map(_._1)
+
+    def overallTimeMs: Long = {
+      val timeOpt = for {
+        startTime <- startTime
+        (lastTime, _) <- queue.lastOption
+      } yield lastTime.toMillis - startTime.toMillis
+      timeOpt getOrElse 0L
+    }
   }
 
 
@@ -159,6 +160,17 @@ object AggregatorPhases {
     }
   }
 
+  // ...
+  case class CountTimeMs[Event, InnerState](innerPhase: NumericPhaseParser[Event, InnerState], window: Window)
+                                           (implicit timeExtractor: TimeExtractor[Event])
+    extends AccumulationPhase[Event, InnerState](innerPhase, window)(_.overallTimeMs) {
+
+    override def format(event: Event, state: (InnerState, AccumulatedState)) = if (state._2.count == 0) {
+      s"countTimeMs(${innerPhase.format(event, state._1)})"
+    } else {
+      s"countTimeMs(${innerPhase.format(event, state._1)})=${state._2.overallTimeMs}"
+    }
+  }
 
   //todo MinParser, MaxParser, CountParser, MedianParser, ConcatParser, Timer
 

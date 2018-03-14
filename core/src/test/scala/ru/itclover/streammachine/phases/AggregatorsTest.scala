@@ -10,7 +10,7 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import java.time.Instant
 
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{Derivation, Segment, ToSegments}
+import ru.itclover.streammachine.aggregators.AggregatorPhases._
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParser}
 import ru.itclover.streammachine.phases.NumericPhases._
@@ -24,28 +24,94 @@ class AggregatorsTest extends WordSpec with ParserMatchers {
 
 
   "Timer phase" should {
-    "work" in {
+    "work on staySuccesses" in {
       checkOnTestEvents(
         (p: TestPhase[Double]) => p.timed(2.seconds, 2.seconds).map(_._1),
         staySuccesses,
+        // Note: timer seeks here for 3 seconds range actually due to peculiarities of time comparison
+        // Hence first failure due to expired timer.
         Seq(Failure(""), Success(2.0), Success(1.0), Success(3.0), Failure("Test"), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Count(p, 2.seconds),
+        fails,
+        (0 until 10).map(_ => Failure("Test"))
+      )
+    }
+  }
+
+  "Count phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Count(p, 2.seconds),
+        staySuccesses,
+        // Note: phase skipping Stay results, hence fewer successes
+        Seq(Success(2.0), Success(2.0), Success(3.0), Success(3.0), Failure("Test"), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Count(p, 2.seconds),
+        fails,
+        (0 until 10).map(_ => Failure("Test"))
+      )
+    }
+  }
+
+  "CountTimeMs phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => CountTimeMs(p, 2.seconds),
+        staySuccesses,
+        // Note: phase skipping Stay results, hence fewer successes
+        Seq(Success(2000.0), Success(2000.0), Success(2000.0), Success(2000.0), Failure("Test"), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => CountTimeMs(p, 2.seconds),
+        fails,
+        (0 until 10).map(_ => Failure("Test"))
       )
     }
   }
 
 
-  /*"Derivation phase" should {
-    "Work!" in {
-      val results = Stay #:: Success(1.0) #:: Success(2.0) #:: Success(1.0) #:: Success(3.0) #:: Stream.empty[PhaseResult[Double]]
-      testOnFixedResults(
-        p => Derivation(p),
-        times.take(results.length).map(TestingEvent),
-        results,
-        Seq(Success(0.001), Success(-0.001), Success(0.002))
+  "Derivation phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Derivation(p),
+        staySuccesses,
+        Seq(Success(0.0005), Success(0.0005), Success(-0.001), Success(-0.001), Success(0.002), Failure("Test"), Failure("Test"))
       )
     }
-  }*/
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Derivation(p),
+        fails,
+        (0 until 10).map(_ => Failure(""))
+      )
+    }
+  }
 
+  "Delta phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => delta(p),
+        staySuccesses,
+        Seq(Success(1.0), Success(1.0), Success(-1.0), Success(-1.0), Success(2.0), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => delta(p),
+        fails,
+        (0 until 10).map(_ => Failure(""))
+      )
+    }
+  }
 
   /*"IncludeStays phase" should {
     "work on stay-success" in {

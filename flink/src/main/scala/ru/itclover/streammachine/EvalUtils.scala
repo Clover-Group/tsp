@@ -73,6 +73,9 @@ object EvalUtils {
        |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {
        |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Int]
        |}
+       |implicit val longSymbolExtractor = new SymbolExtractor[Row, Long] {
+       |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Long]
+       |}
        |implicit val strSymbolExtractor = new SymbolExtractor[Row, String] {
        |  override def extract(event: Row, symbol: Symbol): String = event.getField(fieldsIndexesMap(symbol)).toString
        |}

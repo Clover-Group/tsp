@@ -3,7 +3,7 @@ package ru.itclover.streammachine
 import java.time.Instant
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{Segment, ToSegments}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Derivation, Segment, ToSegments}
 import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
@@ -236,7 +236,7 @@ class RulesTest extends WordSpec with Matchers {
 
     "Segment Decreasing" in {
       // val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
-      val phase: Phase[Row] = ToSegments(Assert(derivation('speed.field) <= 0.0) and Wait('speed.field <= 35.0))
+      val phase: Phase[Row] = ToSegments(Assert(Derivation('speed.field) <= 0.0) and Wait('speed.field <= 35.0))
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
