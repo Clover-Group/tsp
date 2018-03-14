@@ -67,7 +67,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     "ru.yandex.clickhouse.ClickHouseDriver")
 
   val basicAssertions = Map("1" -> "Assert('speed.field < 15.0)", "2" -> "Assert('speed.field > 10.0)")
-  val typesCasting = Map("3" -> "Assert('speed.as[String] === \"15\")", "4" -> "Assert('speed.as[Int] < 15)")
+  val typesCasting = Map("3" -> "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)",
+    "4" -> "Assert('speed.as[Int] < 15)")
 
 
   override def afterStart(): Unit = {
@@ -97,7 +98,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
       status shouldEqual StatusCodes.OK
 
       checkSegments(0 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '3' AND mechanism_id = '65001'")
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
+//      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
     }
   }
 
