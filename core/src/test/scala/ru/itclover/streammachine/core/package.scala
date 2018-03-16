@@ -19,6 +19,11 @@ package object core {
     override def apply(event: TestingEvent[Double]) = event.time
   }
 
+  // TODO collapse
+  implicit val boolTestEvent = new TimeExtractor[TestingEvent[Boolean]] {
+    override def apply(event: TestingEvent[Boolean]) = event.time
+  }
+
   case class TestPhase[T]() extends PhaseParser[TestingEvent[T], NoState, T] {
     override def initialState: NoState = NoState.instance
 
@@ -41,6 +46,10 @@ package object core {
 
   private val staySuccessRes = Seq(Stay, Success(1.0), Stay, Success(2.0), Success(1.0), Success(3.0), Failure("Test"), Success(4.0))
   val staySuccesses = for((t, res) <- times.take(staySuccessRes.length).zip(staySuccessRes)) yield TestingEvent(res, t)
+
+  def getTestingEvents[T](innerResults: Seq[PhaseResult[T]]) = for(
+    (t, res) <- times.take(innerResults.length).zip(innerResults)
+  ) yield TestingEvent(res, t)
 
   val failsRes = Seq(Stay, Success(1.0), Failure("Test"), Success(2.0), Failure("Test"), Success(1.0), Stay, Failure("Test"), Success(3.0), Failure("Test"), Stay)
   val fails = for((t, res) <- times.take(failsRes.length).zip(failsRes)) yield TestingEvent(res, t)

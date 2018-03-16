@@ -35,43 +35,7 @@ class AggregatorsTest extends WordSpec with ParserMatchers {
     }
     "not work on fails" in {
       checkOnTestEvents(
-        (p: TestPhase[Double]) => Count(p, 2.seconds),
-        fails,
-        (0 until 10).map(_ => Failure("Test"))
-      )
-    }
-  }
-
-  "Count phase" should {
-    "work on staySuccesses" in {
-      checkOnTestEvents(
-        (p: TestPhase[Double]) => Count(p, 2.seconds),
-        staySuccesses,
-        // Note: phase skipping Stay results, hence fewer successes
-        Seq(Success(2.0), Success(2.0), Success(3.0), Success(3.0), Failure("Test"), Failure("Test"), Failure("Test"))
-      )
-    }
-    "not work on fails" in {
-      checkOnTestEvents(
-        (p: TestPhase[Double]) => Count(p, 2.seconds),
-        fails,
-        (0 until 10).map(_ => Failure("Test"))
-      )
-    }
-  }
-
-  "CountTimeMs phase" should {
-    "work on staySuccesses" in {
-      checkOnTestEvents(
-        (p: TestPhase[Double]) => CountTimeMs(p, 2.seconds),
-        staySuccesses,
-        // Note: phase skipping Stay results, hence fewer successes
-        Seq(Success(2000.0), Success(2000.0), Success(2000.0), Success(2000.0), Failure("Test"), Failure("Test"), Failure("Test"))
-      )
-    }
-    "not work on fails" in {
-      checkOnTestEvents(
-        (p: TestPhase[Double]) => CountTimeMs(p, 2.seconds),
+        (p: TestPhase[Double]) => p.timed(2.seconds, 2.seconds).map(_._1),
         fails,
         (0 until 10).map(_ => Failure("Test"))
       )

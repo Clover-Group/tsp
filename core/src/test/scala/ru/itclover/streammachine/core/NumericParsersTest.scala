@@ -76,15 +76,14 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
       checkOnTestEvents(
         (p: TestPhase[Double]) => p.flatMap(_ => intParser),
         staySuccesses,
-        Seq(Success(intVal), Success(intVal), Success(intVal), Success(intVal), Success(intVal), Success(intVal), Failure("Test"), Success(intVal)),
-        epsilon = 1
+        Seq(Success(intVal), Success(intVal), Success(intVal), Success(intVal), Success(intVal), Success(intVal), Failure("Test"), Success(intVal))
       )
 
       checkOnTestEvents(
         (p: TestPhase[Double]) => p.flatMap(_ => floatParser),
           staySuccesses,
           Seq(Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Success(floatVal), Failure("Test"), Success(floatVal)),
-          epsilon = 0.001f
+          epsilon = Some(0.001f)
       )
 
 
@@ -97,8 +96,7 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
       checkOnTestEvents(
         (p: TestPhase[Double]) => p.flatMap(_ => longParser),
         staySuccesses,
-        Seq(Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Failure("Test"), Success(longVal)),
-        epsilon = 1L
+        Seq(Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Failure("Test"), Success(longVal))
       )
     }
   }

@@ -4,6 +4,8 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 
+import scala.language.implicitConversions
+
 object ConstantPhases {
 
   def apply[Event, T](value: T): PhaseParser[Event, NoState, T] = new OneRowPhaseParser[Event, T] {
@@ -55,16 +57,15 @@ object ConstantPhases {
 
     import scala.Numeric.Implicits._
 
-    implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, NoState] = NumericPhases(ConstantPhases[E, Double](value))
+    implicit def doubleExtractor[E](value: Double): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value)
 
-    implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, NoState] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def floatExtractor[E](value: Float): NumericPhaseParser[E, NoState] = ConstantPhases[E, Double](value.toDouble)
 
-    implicit def intExtractor[E](value: Int): NumericPhaseParser[E, NoState] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def longExtractor[E](value: Long): PhaseParser[E, NoState, Long] = ConstantPhases[E, Long](value)
 
-    implicit def longExtractor[E](value: Long): NumericPhaseParser[E, NoState] = NumericPhases(ConstantPhases[E, Double](value.toDouble))
+    implicit def intExtractor[E](value: Int): PhaseParser[E, NoState, Int] = ConstantPhases[E, Int](value)
 
-    implicit def functionNumberExtractor[Event, N: Numeric](f: Event => N): NumericPhaseParser[Event, NoState] = NumericPhases(OneRowPhaseParser(f.andThen(_.toDouble())))
-
+    implicit def extract[Event, T](f: Event => T): PhaseParser[Event, NoState, T] = OneRowPhaseParser(f)
   }
 
 }

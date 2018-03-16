@@ -67,7 +67,7 @@ class RulesTest extends WordSpec with Matchers {
 
   "Timer phase" should {
     "work correctly" in {
-      val speedGte100ForSomeTime = Wait('speed.field >= 90).timed(TimeInterval(1.seconds, 2.seconds))
+      val speedGte100ForSomeTime = Wait('speed.field >= 90.0).timed(TimeInterval(1.seconds, 2.seconds))
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -96,7 +96,7 @@ class RulesTest extends WordSpec with Matchers {
   "Combine And & Assert parsers" should {
     "work correctly" in {
       import ru.itclover.streammachine.phases.NumericPhases._
-      val phase: Phase[Row] = Assert('speed.field > 10) and Assert('speed.field < 20)
+      val phase: Phase[Row] = Assert('speed.field > 10.0) and Assert('speed.field < 20.0)
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -172,7 +172,7 @@ class RulesTest extends WordSpec with Matchers {
 
       type Phase[Row] = PhaseParser[Row, _, _]
 
-      val phase: Phase[Row] = avg((e: Row) => e.speed, 2.seconds) > 100
+      val phase: Phase[Row] = avg((e: Row) => e.speed, 2.seconds) > 100.0
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -211,7 +211,7 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "work on not segmented output" in {
-      val phase: Phase[Row] = Assert('speed.field > 35)
+      val phase: Phase[Row] = Assert('speed.field > 35.0)
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
