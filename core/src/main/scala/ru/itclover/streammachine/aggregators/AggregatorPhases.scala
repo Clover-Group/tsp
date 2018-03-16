@@ -53,7 +53,7 @@ object AggregatorPhases {
                        (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
       numeric - PreviousValue(numeric)
 
-    def millisDelta[Event, S, T](phase: PhaseParser[Event, S, T])
+    def deltaMillis[Event, S, T](phase: PhaseParser[Event, S, T])
                                 (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
       PreviousTimeMs(phase) - CurrentTimeMs(phase)
 
