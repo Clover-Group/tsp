@@ -34,7 +34,7 @@ lazy val flinkConnector = project.in(file("flink"))
       ++= Library.twitterUtil
       ++ Library.flink
       ++ Library.scalaTest
-      ++ Library.clickhouse
+      ++ Library.jdbcDrivers
       ++ Library.jackson
       ++ Library.cats
   )
@@ -59,7 +59,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).s
 )
 
 lazy val integration = project.in(file("integration"))
-  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.clickhouse ++ Library.testContainers)
+  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.jdbcDrivers ++ Library.testContainers)
   .dependsOn(core, flinkConnector, http, config)
 
 lazy val spark = project.in(file("spark"))

@@ -19,7 +19,7 @@ object Version {
   val scalaTest = "3.0.4"
   val testContainers = "0.13.0"
   val testContainersPgsql = "1.5.1"
-  val pgsql = "42.2.0"
+  val postgre = "42.2.2"
 
   val jackson = "2.9.4"
 
@@ -34,6 +34,8 @@ object Library {
   )
 
   val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
+  val postgre = Seq("org.postgresql" % "postgresql" % Version.postgre)
+  val jdbcDrivers = clickhouse ++ postgre
 
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
