@@ -49,6 +49,9 @@ object AggregatorPhases {
     }
 
 
+    def lag[Event, S, Out](phase: PhaseParser[Event, S, Out]) = PreviousValue(phase)
+
+
     def delta[Event, S](numeric: NumericPhaseParser[Event, S])
                        (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
       numeric - PreviousValue(numeric)
@@ -216,26 +219,24 @@ object AggregatorPhases {
 
   //todo MinParser, MaxParser, CountParser, MedianParser, ConcatParser, Timer
 
-  case class PreviousValue[Event, State](innerPhase: NumericPhaseParser[Event, State])
-                                        (implicit timeExtractor: TimeExtractor[Event])
-    extends AggregatorPhases[Event, State And Option[Double], Double] {
+  case class PreviousValue[Event, State, Out](innerPhase: PhaseParser[Event, State, Out])
+    extends AggregatorPhases[Event, State And Option[Out], Out] {
 
-    override def apply(event: Event, state: (State, Option[Double])) = {
-      val t = timeExtractor(event)
+    override def apply(event: Event, state: (State, Option[Out])) = {
       val (innerState, prevValueOpt) = state
       val (innerResult, newInnerState) = innerPhase(event, innerState)
 
       (innerResult, prevValueOpt) match {
         case (Success(v), Some(prev)) => Success(prev) -> (newInnerState -> Some(v))
         case (Success(v), None) => Stay -> (newInnerState -> Some(v))
-        case (Stay, prevOpt: Option[Double]) => Stay -> (newInnerState -> prevOpt)
+        case (Stay, prevOpt: Option[Out]) => Stay -> (newInnerState -> prevOpt)
         case (f: Failure, _) => f -> initialState
       }
     }
 
     override def initialState = innerPhase.initialState -> None
 
-    override def format(event: Event, state: (State, Option[Double])) =
+    override def format(event: Event, state: (State, Option[Out])) =
       s"prev(${innerPhase.format(event, state._1)})" + state._2.map(v => s"=$v").getOrElse("")
 
   }
