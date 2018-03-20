@@ -15,7 +15,7 @@ object Launcher extends App with HttpService {
   private val isListenStdIn = args.headOption.map(_.toBoolean).getOrElse(false)
   private val log = Logger("Launcher")
 
-  override val isDebug: Boolean = true
+  override val isDebug: Boolean = args.headOption.map(_.toBoolean).getOrElse(false)
   implicit val system: ActorSystem = ActorSystem("my-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -24,9 +24,6 @@ object Launcher extends App with HttpService {
   private val host = "0.0.0.0"
   private val port = 8080
   val bindingFuture = Http().bindAndHandle(route, host, port)
-
-  val l = List(1, 2, 3)
-  val l1 = l.withFilter(p => true)
 
   log.info(s"Service online at http://$host:$port/")
 

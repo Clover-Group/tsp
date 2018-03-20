@@ -12,11 +12,10 @@
             <fileNamePattern>logs/logFile.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy
                     class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
-                <!-- or whenever the file size reaches 50MB -->
-                <maxFileSize>50MB</maxFileSize>
+                <maxFileSize>200MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
-            <!-- keep 30 days' worth of history -->
-            <maxHistory>30</maxHistory>
+            <!-- days' of history -->
+            <maxHistory>10</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <charset>UTF-8</charset>
@@ -26,7 +25,7 @@
         </encoder>
     </appender>
 
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="STDOUT" />
         <appender-ref ref="FILE" />
     </root>
