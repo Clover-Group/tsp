@@ -59,7 +59,7 @@ object JDBCSourceInfo {
     (for {
       _ <- classTry
       connection <- connectionTry
-      resultSet <- Try(connection.createStatement().executeQuery(s"SELECT * FROM (${config.query}) LIMIT 1"))
+      resultSet <- Try(connection.createStatement().executeQuery(s"SELECT * FROM (${config.query}) as mainQ LIMIT 1"))
       metaData <- Try(resultSet.getMetaData)
     } yield {
       (1 to metaData.getColumnCount) map { i: Int =>

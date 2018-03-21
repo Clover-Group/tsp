@@ -5,6 +5,8 @@ object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.7.2"
 
+  val config = "1.3.2"
+
   val clickhouse = "0.1.34"
   val flink = "1.4.0"
 
@@ -31,6 +33,10 @@ object Library {
   val logging = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
     "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+  )
+
+  val config = Seq(
+    "com.typesafe" % "config" % Version.config
   )
 
   val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)

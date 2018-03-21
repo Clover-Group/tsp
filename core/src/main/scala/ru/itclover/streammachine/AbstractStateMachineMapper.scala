@@ -8,10 +8,11 @@ import ru.itclover.streammachine.core.Time.timeOrdering
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time}
 import ru.itclover.streammachine.core.PhaseResult.{TerminalResult, _}
 import ru.itclover.streammachine.core.Time.TimeExtractor
-
+import com.typesafe.config._
 
 trait AbstractStateMachineMapper[Event, State, Out] {
 
+  val isDebug = ConfigFactory.load().getBoolean("general.is-debug")
   private val log = Logger("AbstractStateMachineMapper")
 
   /** Do apply state machine mapper to old state with that event?
@@ -34,7 +35,7 @@ trait AbstractStateMachineMapper[Event, State, Out] {
       val oldStatesWithOneInitialState = if (doOldStates) {
         oldStates :+ phaseParser.initialState
       } else {
-        log.info("Drop old states, doProcessOldState = false")
+        log.debug("Drop old states, doProcessOldState = false")
         Seq(phaseParser.initialState)
       }
 
@@ -44,9 +45,11 @@ trait AbstractStateMachineMapper[Event, State, Out] {
 
       val (toEmit, newStates) = resultsAndStates.span(_._1.isTerminal)
 
-      val emitsLog = toEmit.map(resAndSt => phaseParser.format(event, resAndSt._2) + " emits " + resAndSt._1)
-      if (emitsLog.nonEmpty) log.debug(s"Results to emit: ${emitsLog.mkString("\n", "\n", "")}")
-      log.debug(s"States on hold: ${newStates.size}")
+      if (isDebug) {
+        val emitsLog = toEmit.map(resAndSt => phaseParser.format(event, resAndSt._2) + " emits " + resAndSt._1)
+        if (emitsLog.nonEmpty) log.debug(s"Results to emit: ${emitsLog.mkString("\n", "\n", "")}")
+        log.debug(s"States on hold: ${newStates.size}")
+      }
 
       toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
     }

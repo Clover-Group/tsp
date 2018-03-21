@@ -9,7 +9,7 @@ object Time {
     val t0 = System.nanoTime()
     val result = block
     val t1 = System.nanoTime()
-    log.info("Elapsed time: " + (t1 - t0) + "ns")
+    log.info("Elapsed time: " + (t1 - t0) / 10e9 + "sec")
     result
   }
 

@@ -23,7 +23,7 @@ assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeSca
 scalacOptions ++= Seq("-Ypartial-unification")
 
 lazy val core = project.in(file("core"))
-  .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging)
+  .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging ++ Library.config)
 
 lazy val config = project.in(file("config"))
   .dependsOn(core)
