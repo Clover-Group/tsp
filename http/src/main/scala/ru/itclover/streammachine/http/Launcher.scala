@@ -13,8 +13,8 @@ import scala.io.StdIn
 
 object Launcher extends App with HttpService {
   override val isDebug: Boolean = ConfigFactory.load().getBoolean("general.is-debug")
+  private val isListenStdIn = ConfigFactory.load().getBoolean("general.is-follow-input")
   private val log = Logger("Launcher")
-  private val isListenStdIn = isDebug
 
   implicit val system: ActorSystem = ActorSystem("my-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
