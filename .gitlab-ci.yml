@@ -41,3 +41,15 @@ deploy_to_dev:
   only:
     - master
   when: manual
+
+deploy_to_platform_demo:
+  stage: deploy
+  tags:
+    - ssh-runner-to-demo
+  script:
+    - cd /opt/clover/projects/streammachine
+    - docker-compose pull streammachine
+    - docker-compose up -d
+  only:
+    - master
+  when: manual
