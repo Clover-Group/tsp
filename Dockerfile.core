@@ -1,10 +1,6 @@
 FROM centos:centos7
 MAINTAINER Clover DevOps <devops@itclover.ru>
 
-ENV TZ=Europe/Moscow
-
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 RUN yum install -y java-1.8.0-openjdk-devel 
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
 RUN yum install -y sbt
