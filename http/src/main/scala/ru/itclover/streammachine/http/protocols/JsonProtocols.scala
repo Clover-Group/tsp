@@ -12,10 +12,10 @@ trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def sResponseFmt[R: JsonFormat] = jsonFormat1(SuccessfulResponse.apply[R])
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
 
-  implicit val jdbcInpConfFmt = jsonFormat8(JDBCInputConf.apply)
+  implicit val jdbcInpConfFmt = jsonFormat9(JDBCInputConf.apply)
   implicit val jdbcNarrowInpConfFmt = jsonFormat4(JDBCNarrowInputConf.apply)
-  implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "fromTimeField", "fromTimeMillisField",
-    "toTimeField", "toTimeMillisField", "patternIdField", "forwardedFields")
+  implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "sourceIdFieldVal", "beginField",
+    "endField", "appIdField", "patternIdField", "processingTimeField", "contextField", "forwardedFields")
   implicit val jdbcOutConfFmt = jsonFormat6(JDBCOutputConf.apply)
 
   implicit def patternsRequestFmt[IN <: InputConf : JsonFormat, OUT <: OutputConf : JsonFormat] =

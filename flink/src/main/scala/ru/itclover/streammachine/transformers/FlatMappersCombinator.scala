@@ -12,7 +12,8 @@ case class FlatMappersCombinator[IN, OUT](flatMappers: Iterable[RichFlatMapFunct
     flatMappers.foreach(_.open(config))
   }
 
-  override def flatMap(value: IN, out: Collector[OUT]): Unit = flatMappers.foreach(_.flatMap(value, out))
+  override def flatMap(value: IN, out: Collector[OUT]): Unit =
+    flatMappers.foreach(_.flatMap(value, out))
 
   override def setRuntimeContext(ctx: RuntimeContext): Unit = {
     super.setRuntimeContext(ctx)

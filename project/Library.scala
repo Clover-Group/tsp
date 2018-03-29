@@ -8,7 +8,7 @@ object Version {
   val config = "1.3.2"
 
   val clickhouse = "0.1.34"
-  val flink = "1.4.0"
+  val flink = "1.4.2"
 
   val akka = "2.4.20"
   val akkaHttp = "10.0.11"

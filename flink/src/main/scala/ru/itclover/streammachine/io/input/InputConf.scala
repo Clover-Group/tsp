@@ -5,7 +5,8 @@ import java.util.UUID
 trait InputConf extends Serializable
 
 
-case class JDBCInputConf(jdbcUrl: String,
+case class JDBCInputConf(id: String,
+                         jdbcUrl: String,
                          query: String,
                          driverName: String,
                          datetimeColname: Symbol,
