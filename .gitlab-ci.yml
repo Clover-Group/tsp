@@ -33,7 +33,7 @@ dev-image:
 deploy_to_dev:
   stage: deploy
   tags:
-    - ssh-runner-to-56
+    - ssh-runner-to-112
   script:
     - cd /opt/clover/projects/streamMachine
     - docker-compose pull streammachine
