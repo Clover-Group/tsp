@@ -18,7 +18,7 @@ import ru.itclover.streammachine.http.domain.output.{FailureResponse, Successful
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink, PGSegmentsSink}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, PGSegmentsSink}
 import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 
