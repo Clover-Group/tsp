@@ -21,7 +21,6 @@ import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowI
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, PGSegmentsSink}
 import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
-
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 import cats.data.Reader
@@ -109,7 +108,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       val flatMappers = patterns.map { pattern =>
         val packInMapper = SegmentResultsMapper[Row, Segment] andThen
-          SegmentsToRowResultMapper[Row](outputConf.sinkSchema, pattern)
+          SegmentsToRowResultMapper[Row](inputConf.id, outputConf.sinkSchema, pattern)
         val compilePhase = FindPatternRangesRoute.getPhaseCompiler(pattern.sourceCode, srcInfo.datetimeFieldName,
           srcInfo.fieldsIndexesMap)(_)
         FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper.asInstanceOf[ResultMapper[Row, Any, Row]],

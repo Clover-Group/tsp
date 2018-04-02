@@ -2,6 +2,7 @@ package ru.itclover.streammachine
 
 import java.time._
 import java.sql.Timestamp
+import java.text.SimpleDateFormat
 import java.time.DateTimeException
 
 import org.apache.flink.types.Row
@@ -15,7 +16,7 @@ import ru.itclover.streammachine.io.output.PGSegmentsSink
   * Pack PhaseOut into [[org.apache.flink.types.Row]]
   * @tparam Event - inner Event
   */
-case class SegmentsToRowResultMapper[Event](schema: PGSegmentsSink, pattern: RawPattern)
+case class SegmentsToRowResultMapper[Event](sourceId: String, schema: PGSegmentsSink, pattern: RawPattern)
                                            (implicit timeExtractor: TimeExtractor[Row], extractAny: (Event, Symbol) => Any)
   extends ResultMapper[Event, Segment, Row] {
   override def apply(event: Event, results: Seq[TerminalResult[Segment]]) = results map {
@@ -31,7 +32,7 @@ case class SegmentsToRowResultMapper[Event](schema: PGSegmentsSink, pattern: Raw
         case _ => throw new DateTimeException(s"Invalid date format: ${segment.to.toString}, valid format is: yyyy-MM-dd HH:mm:ss.SSS")
       }
 
-      resultRow.setField(schema.sourceIdInd, schema.sourceId)
+      resultRow.setField(schema.sourceIdInd, sourceId)
       resultRow.setField(schema.patternIdInd, pattern.id)
       resultRow.setField(schema.appIdInd, schema.appId)
       resultRow.setField(schema.beginInd, segment.from.toMillis / 1000.0)

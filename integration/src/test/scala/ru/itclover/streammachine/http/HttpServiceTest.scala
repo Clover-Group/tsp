@@ -62,7 +62,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   val sinkSchema = PGSegmentsSink(
     "Test.SM_basic_wide_patterns",
-    ('series_storage, 123),
+    'series_storage,
     'begin,  'end, 'app, 'id, 'timestamp, 'context,
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:postgresql://localhost:$port/postgres?user=postgres&password=postgres", sinkSchema,

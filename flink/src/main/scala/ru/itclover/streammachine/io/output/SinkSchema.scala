@@ -13,23 +13,22 @@ trait SinkSchema
 /**
   * Specific schema for rules segments for PG at Clover Platform.
   */
-case class PGSegmentsSink(tableName: String, sourceIdFieldVal: (Symbol, Int), beginField: Symbol, endField: Symbol,
+case class PGSegmentsSink(tableName: String, sourceIdField: Symbol, beginField: Symbol, endField: Symbol,
                           appIdField: Symbol, patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
                           forwardedFields: Seq[Symbol] = List.empty)
     extends SinkSchema {
   val fieldsCount: Int = 7
 
-  val fieldsNames: List[Symbol] = List(sourceIdFieldVal._1, beginField, endField, appIdField, patternIdField,
+  val fieldsNames: List[Symbol] = List(sourceIdField, beginField, endField, appIdField, patternIdField,
     processingTimeField, contextField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex:_*)
 
   // TODO(r): to SinkInfo with select limit 1
-  val fieldTypes: List[Int] = List(Types.INTEGER, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR,
+  val fieldTypes: List[Int] = List(Types.VARCHAR, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR,
     Types.DOUBLE, Types.VARCHAR)
 
-  val sourceIdInd = fieldsIndexesMap(sourceIdFieldVal._1)
-  val sourceId = sourceIdFieldVal._2
+  val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
   val beginInd = fieldsIndexesMap(beginField)
   val endInd = fieldsIndexesMap(endField)

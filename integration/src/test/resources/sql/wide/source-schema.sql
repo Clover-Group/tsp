@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS Test.SM_basic_wide (
 
 CREATE TABLE Test."EventsSink"
 (
-    series_storage Int32,
+    series_storage String,
     app Int32,
     id Int32,
     "timestamp" Float64,
