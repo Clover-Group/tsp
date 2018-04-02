@@ -13,10 +13,10 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{FlatSpec, FunSuite, Matchers, WordSpec}
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
 import ru.itclover.streammachine.http.domain.output.SuccessfulResponse
-import ru.itclover.streammachine.io.input.{JDBCInputConf, JDBCNarrowInputConf}
+import ru.itclover.streammachine.io.input.{JDBCInputConf, JDBCNarrowInputConf, RawPattern}
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.output.JDBCOutputConf
-import ru.itclover.streammachine.io.output.JDBCSegmentsSink
+import ru.itclover.streammachine.io.output.PGSegmentsSink
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
@@ -34,12 +34,13 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8124
+  val port = 8125
 
   override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9000 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
   val inputConf = JDBCInputConf(
+    id = "123",
     jdbcUrl = container.jdbcUrl,
     query =
       """
@@ -56,19 +57,21 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     eventsMaxGapMs = 60000L,
     partitionColnames = Seq('mechanism_id)
   )
-  // ...
+
   val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
 
-  val sinkSchema = JDBCSegmentsSink("Test.SM_basic_wide_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
+  val sinkSchema = PGSegmentsSink(
+    "Test.SM_basic_wide_patterns",
+    ('series_storage, 123),
+    'begin,  'end, 'app, 'id, 'timestamp, 'context,
     inputConf.partitionColnames)
-  val narrowSinkSchema = JDBCSegmentsSink("Test.SM_basic_narrow_patterns", 'from, 'from_millis, 'to, 'to_millis, 'pattern_id,
-    inputConf.partitionColnames)
-  val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
-    "ru.yandex.clickhouse.ClickHouseDriver")
+  val outputConf = JDBCOutputConf(s"jdbc:postgresql://localhost:$port/postgres?user=postgres&password=postgres", sinkSchema,
+    "org.postgresql.Driver")
 
-  val basicAssertions = Map("1" -> "Assert('speed.field < 15.0)", "2" -> "Assert('speed.field > 10.0)")
-  val typesCasting = Map("3" -> "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)",
-    "4" -> "Assert('speed.as[Int] < 15)")
+  val basicAssertions = Seq(RawPattern("1", "Assert('speed.field < 15.0)", Map("test" -> "test")),
+    RawPattern("2", "Assert('speed.field > 10.0)"))
+  val typesCasting = Seq(RawPattern("3", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
+    RawPattern("4", "Assert('speed.as[Int] < 15)"))
 
 
   override def afterStart(): Unit = {

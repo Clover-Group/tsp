@@ -3,18 +3,19 @@ package ru.itclover.streammachine
 import java.time._
 import java.sql.Timestamp
 import java.time.DateTimeException
+
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.io.output.JDBCSegmentsSink
-
+import ru.itclover.streammachine.io.input.RawPattern
+import ru.itclover.streammachine.io.output.PGSegmentsSink
 
 /**
   * Pack PhaseOut into [[org.apache.flink.types.Row]]
   * @tparam Event - inner Event
   */
-case class SegmentsToRowResultMapper[Event](schema: JDBCSegmentsSink, patternId: String, ctxWriter: ContextWriter = JsonbWriter())
+case class SegmentsToRowResultMapper[Event](schema: PGSegmentsSink, pattern: RawPattern)
                                            (implicit timeExtractor: TimeExtractor[Row], extractAny: (Event, Symbol) => Any)
   extends ResultMapper[Event, Segment, Row] {
   override def apply(event: Event, results: Seq[TerminalResult[Segment]]) = results map {
@@ -31,14 +32,14 @@ case class SegmentsToRowResultMapper[Event](schema: JDBCSegmentsSink, patternId:
       }
 
       resultRow.setField(schema.sourceIdInd, schema.sourceId)
-      resultRow.setField(schema.patternIdInd, patternId)
+      resultRow.setField(schema.patternIdInd, pattern.id)
       resultRow.setField(schema.appIdInd, schema.appId)
       resultRow.setField(schema.beginInd, segment.from.toMillis / 1000.0)
       resultRow.setField(schema.endInd, segment.to.toMillis / 1000.0)
       resultRow.setField(schema.processingTimeInd, nowInUtcMillis)
 
-      val context = ctxWriter.write(schema.forwardedFields.map(f => f -> extractAny(event, f)))
-      resultRow.setField(schema.contextInd, context)
+      val payload = schema.forwardedFields.map(f => f.toString.tail -> extractAny(event, f)) ++ pattern.payload.toSeq
+      resultRow.setField(schema.contextInd, payloadToJson(payload))
 
       Success(resultRow)
     }
@@ -51,16 +52,9 @@ case class SegmentsToRowResultMapper[Event](schema: JDBCSegmentsSink, patternId:
     val utc = zonedDt.withZoneSameInstant(ZoneId.of("UTC"))
     Timestamp.valueOf(utc.toLocalDateTime).getTime / 1000.0  // TODO check correctness
   }
-}
 
-
-trait ContextWriter {
-  def write(fieldsValues: Seq[(Symbol, Any)]): String
-}
-
-case class JsonbWriter() extends ContextWriter {
-  override def write(fieldsValues: Seq[(Symbol, Any)]): String = {
-    fieldsValues.map {
+  def payloadToJson(payload: Seq[(String, Any)]): String = {
+    payload.map {
       case (fld, value) if value.isInstanceOf[String] => s""""${fld}": "${value}""""
       case (fld, value) => s""""${fld}": $value"""
     } mkString("{", ", ", "}")

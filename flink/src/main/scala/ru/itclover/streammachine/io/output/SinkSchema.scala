@@ -9,12 +9,13 @@ import scala.collection.mutable
   */
 trait SinkSchema
 
+
 /**
-  * Specific schema for rules segments for Clover Platform.
+  * Specific schema for rules segments for PG at Clover Platform.
   */
-case class JDBCSegmentsSink(tableName: String, sourceIdFieldVal: (Symbol, Int), beginField: Symbol, endField: Symbol,
-                            appIdField: Symbol, patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
-                            forwardedFields: Seq[Symbol] = List.empty)
+case class PGSegmentsSink(tableName: String, sourceIdFieldVal: (Symbol, Int), beginField: Symbol, endField: Symbol,
+                          appIdField: Symbol, patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
+                          forwardedFields: Seq[Symbol] = List.empty)
     extends SinkSchema {
   val fieldsCount: Int = 7
 
@@ -34,6 +35,7 @@ case class JDBCSegmentsSink(tableName: String, sourceIdFieldVal: (Symbol, Int), 
   val endInd = fieldsIndexesMap(endField)
 
   val patternIdInd = fieldsIndexesMap(patternIdField)
+  val patternPayloadInd = fieldsIndexesMap(patternIdField)
 
   val processingTimeInd = fieldsIndexesMap(processingTimeField)
 

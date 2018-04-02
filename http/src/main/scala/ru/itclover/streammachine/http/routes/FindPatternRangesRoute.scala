@@ -2,6 +2,7 @@ package ru.itclover.streammachine.http.routes
 
 import java.sql.Timestamp
 import java.time.DateTimeException
+
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.stream.ActorMaterializer
@@ -17,9 +18,10 @@ import ru.itclover.streammachine.http.domain.output.{FailureResponse, Successful
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink}
+import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink, PGSegmentsSink}
 import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 import cats.data.Reader
@@ -29,6 +31,7 @@ import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.EvalUtils
 import ru.itclover.streammachine.utils.Time.timeIt
+
 import scala.util.{Failure, Success}
 
 
@@ -71,9 +74,9 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
   val route: Route = path("streaming" / "find-patterns" / "wide-dense-table" /) {
     entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { patternsRequest =>
-      val (inputConf, outputConf, patternsIdsAndCodes) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patternsIdsAndCodes)
+      val (inputConf, outputConf, patterns) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patterns)
       log.info(s"Starting patterns finding with input JDBC conf: `$inputConf`,\nOutput JDBC conf: `$outputConf`\n" +
-        s"patterns codes: `$patternsIdsAndCodes`")
+        s"patterns codes: `$patterns`")
 
       val srcInfo = JDBCSourceInfo(inputConf) match {
         case Right(typesInfo) => typesInfo
@@ -104,10 +107,10 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       val stream = streamEnv.createInput(srcInfo.inputFormat)
 
-      val flatMappers = patternsIdsAndCodes.map { case (patternId, patternCode) =>
+      val flatMappers = patterns.map { pattern =>
         val packInMapper = SegmentResultsMapper[Row, Segment] andThen
-          SegmentsToRowResultMapper[Row](outputConf.sinkSchema, patternId)
-        val compilePhase = FindPatternRangesRoute.getPhaseCompiler(patternCode, srcInfo.datetimeFieldName,
+          SegmentsToRowResultMapper[Row](outputConf.sinkSchema, pattern)
+        val compilePhase = FindPatternRangesRoute.getPhaseCompiler(pattern.sourceCode, srcInfo.datetimeFieldName,
           srcInfo.fieldsIndexesMap)(_)
         FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper.asInstanceOf[ResultMapper[Row, Any, Row]],
           inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
@@ -125,70 +128,5 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       complete(SuccessfulResponse(jobId.hashCode))
     }
-  } ~
-    path("streaming" / "find-patterns" / "narrow-table" /) {
-      entity(as[FindPatternsRequest[JDBCNarrowInputConf, JDBCOutputConf]]) { patternsRequest =>
-        val (inputConf, outputConf, patternsIdsAndCodes) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patternsIdsAndCodes)
-        log.info(s"Starting patterns finding with input JDBC conf: `$inputConf`,\nOutput JDBC conf: `$outputConf`\n" +
-          s"patterns codes: `$patternsIdsAndCodes`")
-
-        val srcInfo = JDBCSourceInfo(inputConf.jdbcConf) match {
-          case Right(typesInfo) => typesInfo
-          case Left(err) => throw err
-        }
-
-        implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
-          override def apply(row: Row) = {
-            row.getField(srcInfo.fieldsIndexesMap(srcInfo.datetimeFieldName)).asInstanceOf[Timestamp]
-          }
-        }
-        implicit val keyValExtractor: Row => (Symbol, Float) = (event: Row) =>
-          (Symbol(event.getField(srcInfo.fieldsIndexesMap(inputConf.keyColname)).asInstanceOf[String]),
-            event.getField(srcInfo.fieldsIndexesMap(inputConf.valColname)).asInstanceOf[Float])
-        implicit val anyExtractor: (Row, Symbol) => Any = (event: Row, name: Symbol) =>
-          event.getField(srcInfo.fieldsIndexesMap(name))
-
-        val accumulator = SparseRowsDataAccumulator(srcInfo, inputConf)
-        val partitionIndex = accumulator.fieldsIndexesMap(srcInfo.config.partitionColnames.head)
-        val timeIndex = accumulator.fieldsIndexesMap(srcInfo.datetimeFieldName)
-        val accumulatedTimeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
-          override def apply(row: Row) = {
-            row.getField(timeIndex).asInstanceOf[Timestamp]
-          }
-        }
-
-        val stream = streamEnv.createInput(srcInfo.inputFormat)
-          .keyBy(e => e.getField(srcInfo.partitionIndex))
-          .flatMap(accumulator).name("Accumulating stage")
-
-        val nullIndex = accumulator.fieldsIndexesMap.find { case (_, ind) => ind != timeIndex && ind != partitionIndex } match {
-          case Some((_, nullInd)) => nullInd
-          case None =>
-            throw new IllegalArgumentException(s"Query contains only date and partition columns: `${inputConf.jdbcConf.query}`")
-        }
-
-        val flatMappers = patternsIdsAndCodes.map { case (patternId, patternCode) =>
-          def accumulatedAnyExtractor(event: Row, name: Symbol) = event.getField(accumulator.fieldsIndexesMap(name))
-          val packInMapper = SegmentResultsMapper[Row, Segment]()(accumulatedTimeExtractor) andThen
-            SegmentsToRowResultMapper[Row](outputConf.sinkSchema, patternId)(accumulatedTimeExtractor, accumulatedAnyExtractor)
-          val compilePhase = FindPatternRangesRoute.getPhaseCompiler(patternCode, srcInfo.datetimeFieldName,
-            accumulator.fieldsIndexesMap)(_)
-          FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper.asInstanceOf[ResultMapper[Row, Any, Row]],
-            inputConf.jdbcConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex))(accumulatedTimeExtractor)
-        }
-
-        val resultStream = stream.keyBy(e => e.getField(partitionIndex))
-                                 .flatMapAll[Row](flatMappers)
-                                 .name("Rules searching stage")
-
-        val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
-
-
-        resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
-
-        val jobId = timeIt { streamEnv.execute() }
-
-        complete(SuccessfulResponse(jobId.hashCode))
-      }
-    }
+  }
 }
