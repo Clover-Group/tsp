@@ -11,35 +11,34 @@ trait SinkSchema
 
 
 /**
-  * Specific schema for rules segments for PG at Clover Platform.
+  * Specific schema for rules segments for Postgres at Clover Platform.
   */
-case class PGSegmentsSink(tableName: String, sourceIdField: Symbol, beginField: Symbol, endField: Symbol,
-                          appIdField: Symbol, patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
-                          forwardedFields: Seq[Symbol] = List.empty)
+case class JDBCSegmentsSink(tableName: String, sourceIdField: Symbol, fromTsField: Symbol, toTsField: Symbol,
+                            appIdFieldVal: (Symbol, Int), patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
+                            forwardedFields: Seq[Symbol] = List.empty)
     extends SinkSchema {
   val fieldsCount: Int = 7
 
-  val fieldsNames: List[Symbol] = List(sourceIdField, beginField, endField, appIdField, patternIdField,
+  val fieldsNames: List[Symbol] = List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField,
     processingTimeField, contextField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex:_*)
 
   // TODO(r): to SinkInfo with select limit 1
-  val fieldTypes: List[Int] = List(Types.VARCHAR, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR,
+  val fieldTypes: List[Int] = List(Types.INTEGER, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR,
     Types.DOUBLE, Types.VARCHAR)
 
   val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
-  val beginInd = fieldsIndexesMap(beginField)
-  val endInd = fieldsIndexesMap(endField)
+  val beginInd = fieldsIndexesMap(fromTsField)
+  val endInd = fieldsIndexesMap(toTsField)
 
   val patternIdInd = fieldsIndexesMap(patternIdField)
   val patternPayloadInd = fieldsIndexesMap(patternIdField)
 
   val processingTimeInd = fieldsIndexesMap(processingTimeField)
 
-  val appIdInd = fieldsIndexesMap(appIdField)
-  val appId = 1
+  val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
 
   val contextInd = fieldsIndexesMap(contextField)
 

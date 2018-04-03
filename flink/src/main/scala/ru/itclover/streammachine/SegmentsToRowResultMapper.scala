@@ -4,19 +4,19 @@ import java.time._
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 import java.time.DateTimeException
-
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.RawPattern
-import ru.itclover.streammachine.io.output.PGSegmentsSink
+import ru.itclover.streammachine.io.output.JDBCSegmentsSink
+
 
 /**
   * Pack PhaseOut into [[org.apache.flink.types.Row]]
   * @tparam Event - inner Event
   */
-case class SegmentsToRowResultMapper[Event](sourceId: String, schema: PGSegmentsSink, pattern: RawPattern)
+case class SegmentsToRowResultMapper[Event](sourceId: Int, schema: JDBCSegmentsSink, pattern: RawPattern)
                                            (implicit timeExtractor: TimeExtractor[Row], extractAny: (Event, Symbol) => Any)
   extends ResultMapper[Event, Segment, Row] {
   override def apply(event: Event, results: Seq[TerminalResult[Segment]]) = results map {
@@ -34,7 +34,7 @@ case class SegmentsToRowResultMapper[Event](sourceId: String, schema: PGSegments
 
       resultRow.setField(schema.sourceIdInd, sourceId)
       resultRow.setField(schema.patternIdInd, pattern.id)
-      resultRow.setField(schema.appIdInd, schema.appId)
+      resultRow.setField(schema.appIdInd, schema.appIdFieldVal._2)
       resultRow.setField(schema.beginInd, segment.from.toMillis / 1000.0)
       resultRow.setField(schema.endInd, segment.to.toMillis / 1000.0)
       resultRow.setField(schema.processingTimeInd, nowInUtcMillis)

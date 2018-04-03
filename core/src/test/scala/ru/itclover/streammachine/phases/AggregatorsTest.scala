@@ -77,6 +77,23 @@ class AggregatorsTest extends WordSpec with ParserMatchers {
     }
   }
 
+  "PreviousValue phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => lag(p),
+        staySuccesses,
+        Seq(Success(1.0), Success(1.0), Success(2.0), Success(2.0), Success(1.0), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => lag(p),
+        fails,
+        (0 until 10).map(_ => Failure(""))
+      )
+    }
+  }
+
   /*"IncludeStays phase" should {
     "work on stay-success" in {
       val wwsStream = Stay #:: Stay #:: Success(()) #:: Stream.empty[PhaseResult[Unit]]

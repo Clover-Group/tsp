@@ -16,7 +16,7 @@ import ru.itclover.streammachine.http.domain.output.SuccessfulResponse
 import ru.itclover.streammachine.io.input.{JDBCInputConf, JDBCNarrowInputConf, RawPattern}
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.output.JDBCOutputConf
-import ru.itclover.streammachine.io.output.PGSegmentsSink
+import ru.itclover.streammachine.io.output.JDBCSegmentsSink
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
@@ -40,7 +40,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
   val inputConf = JDBCInputConf(
-    id = "123",
+    id = 123,
     jdbcUrl = container.jdbcUrl,
     query =
       """
@@ -60,10 +60,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
 
-  val sinkSchema = PGSegmentsSink(
+  val sinkSchema = JDBCSegmentsSink(
     "Test.SM_basic_wide_patterns",
     'series_storage,
-    'begin,  'end, 'app, 'id, 'timestamp, 'context,
+    'begin,  'end, ('app, 1), 'id, 'timestamp, 'context,
     inputConf.partitionColnames)
   val outputConf = JDBCOutputConf(s"jdbc:postgresql://localhost:$port/postgres?user=postgres&password=postgres", sinkSchema,
     "org.postgresql.Driver")

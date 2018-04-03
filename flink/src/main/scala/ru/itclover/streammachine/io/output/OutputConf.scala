@@ -5,7 +5,7 @@ trait OutputConf
 
 
 case class JDBCOutputConf(jdbcUrl: String,
-                          sinkSchema: PGSegmentsSink,
+                          sinkSchema: JDBCSegmentsSink,
                           driverName: String,
                           userName: Option[String] = None,
                           password: Option[String] = None,
