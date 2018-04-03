@@ -14,13 +14,13 @@ trait SinkSchema
   * Specific schema for rules segments for Postgres at Clover Platform.
   */
 case class JDBCSegmentsSink(tableName: String, sourceIdField: Symbol, fromTsField: Symbol, toTsField: Symbol,
-                            appIdFieldVal: (Symbol, Int), patternIdField: Symbol, processingTimeField: Symbol, contextField: Symbol,
+                            appIdFieldVal: (Symbol, Int), patternIdField: Symbol, processingTsField: Symbol, contextField: Symbol,
                             forwardedFields: Seq[Symbol] = List.empty)
     extends SinkSchema {
   val fieldsCount: Int = 7
 
   val fieldsNames: List[Symbol] = List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField,
-    processingTimeField, contextField)
+    processingTsField, contextField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex:_*)
 
@@ -36,7 +36,7 @@ case class JDBCSegmentsSink(tableName: String, sourceIdField: Symbol, fromTsFiel
   val patternIdInd = fieldsIndexesMap(patternIdField)
   val patternPayloadInd = fieldsIndexesMap(patternIdField)
 
-  val processingTimeInd = fieldsIndexesMap(processingTimeField)
+  val processingTimeInd = fieldsIndexesMap(processingTsField)
 
   val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
 
