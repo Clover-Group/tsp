@@ -2,10 +2,13 @@ package ru.itclover.streammachine.phases
 
 import ru.itclover.streammachine
 import ru.itclover.streammachine.core.PhaseParser.WithParser
+import ru.itclover.streammachine.core.PhaseResult.Success
+import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases
 import ru.itclover.streammachine.phases.CombiningPhases.TogetherParserLike
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
+
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
@@ -28,6 +31,12 @@ object NumericPhases {
 
     def *[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
       BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.times(a, b), "*")
+  }
+
+
+  trait NumericFunctions {
+    def abs[Event, State](numeric: NumericPhaseParser[Event, State])(implicit timeExtractor: TimeExtractor[Event]) =
+      AbsPhase(numeric) // TODO map(_.abs) with format
   }
 
 
@@ -71,4 +80,24 @@ object NumericPhases {
       OneRowPhaseParser[Event, T](e => ev.extract(e, symbol), Some(symbol.toString))
   }
 
+
+  case class AbsPhase[Event, State](numeric: NumericPhaseParser[Event, State])
+                                   (implicit timeExtractor: TimeExtractor[Event])
+    extends NumericPhaseParser[Event, State] {
+
+
+    override def apply(event: Event, state: State) = {
+      val t = timeExtractor(event)
+      val (innerResult, newState) = numeric(event, state)
+      (innerResult match {
+        case Success(x) => Success(Math.abs(x))
+        case x => x
+      }) -> newState
+    }
+
+    override def initialState = numeric.initialState
+
+    override def format(event: Event, state: State) =
+      s"abs(${numeric.format(event, state)})"
+  }
 }

@@ -5,7 +5,7 @@ import ru.itclover.streammachine.phases.BooleanPhases.{BooleanFunctions, Boolean
 import ru.itclover.streammachine.phases.CombiningPhases.CombiningPhasesSyntax
 import ru.itclover.streammachine.phases.ConstantPhases.ConstantFunctions
 import ru.itclover.streammachine.phases.MonadPhases.MonadPhasesSyntax
-import ru.itclover.streammachine.phases.NumericPhases.NumericPhasesSyntax
+import ru.itclover.streammachine.phases.NumericPhases.{NumericFunctions, NumericPhasesSyntax}
 import ru.itclover.streammachine.phases.TimePhases.TimePhasesSyntax
 
 import scala.language.higherKinds
@@ -44,5 +44,6 @@ object PhaseParser {
     extends AggregatorFunctions
       with BooleanFunctions
       with ConstantFunctions
+      with NumericFunctions
 
 }

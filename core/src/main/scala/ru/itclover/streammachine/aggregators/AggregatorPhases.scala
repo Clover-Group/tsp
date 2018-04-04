@@ -251,8 +251,8 @@ object AggregatorPhases {
       val (innerResult, newState) = innerPhase(event, state)
       (innerResult match {
         case Success(_) => Success(t.toMillis.toDouble)
-        case Stay => Stay
-        case x: Failure => x
+        case x@Stay => x
+        case Failure(x) => Failure(x)
       }) -> newState
     }
 

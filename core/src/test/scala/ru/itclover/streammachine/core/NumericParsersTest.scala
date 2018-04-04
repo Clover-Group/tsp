@@ -1,6 +1,7 @@
 package ru.itclover.streammachine.core
 
 import org.scalatest.WordSpec
+import ru.itclover.streammachine.core.PhaseResult.Stay
 import ru.itclover.streammachine.phases.MonadPhases
 //import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
@@ -97,6 +98,18 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
         (p: TestPhase[Double]) => p.flatMap(_ => longParser),
         staySuccesses,
         Seq(Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Success(longVal), Failure("Test"), Success(longVal))
+      )
+    }
+  }
+
+  "abs parser" should {
+    "work" in {
+      import ru.itclover.streammachine.core.PhaseParser.Functions._
+      val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => abs(p),
+        for((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t),
+        Seq(Success(1.0), Success(1.0), Success(1.0), Failure("Test"))
       )
     }
   }
