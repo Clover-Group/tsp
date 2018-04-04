@@ -19,8 +19,8 @@ object Version {
   val twitterUtilVersion = "6.43.0"
 
   val scalaTest = "3.0.4"
-  val testContainers = "0.13.0"
-  val testContainersPgsql = "1.5.1"
+  val testContainers = "0.15.0"
+  // val testContainersPgsql = "1.5.1"
   val postgre = "42.2.2"
 
   val jackson = "2.9.4"

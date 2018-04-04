@@ -56,8 +56,8 @@ case class SegmentsToRowResultMapper[Event](sourceId: Int, schema: JDBCSegmentsS
 
   def payloadToJson(payload: Seq[(String, Any)]): String = {
     payload.map {
-      case (fld, value) if value.isInstanceOf[String] => s""""${fld}": "${value}""""
+      case (fld, value) if value.isInstanceOf[String] => s""""${fld}":"${value}""""
       case (fld, value) => s""""${fld}": $value"""
-    } mkString("{", ", ", "}")
+    } mkString("{", ",", "}")
   }
 }

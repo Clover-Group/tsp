@@ -34,4 +34,6 @@ object PhaseResult {
     override def flatMap[B](f: Nothing => PhaseResult[B]): PhaseResult[B] = this
   }
 
+  val heartbeat = Failure("__heartbeat__")
+
 }

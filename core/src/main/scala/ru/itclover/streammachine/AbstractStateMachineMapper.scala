@@ -28,7 +28,7 @@ trait AbstractStateMachineMapper[Event, State, Out] {
     log.debug(s"Search for patterns in: $event")
     if (isEventTerminal(event)) {
       log.info("Shut down old states, terminator received")
-      Seq(Failure("Terminator received")) -> Seq.empty
+      Seq(heartbeat) -> Seq.empty
     } else {
       val doOldStates = doProcessOldState(event)
       // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
@@ -51,7 +51,12 @@ trait AbstractStateMachineMapper[Event, State, Out] {
         log.debug(s"States on hold: ${newStates.size}")
       }
 
-      toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
+      val (emits, states) = toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
+      if (doOldStates) {
+        (emits, states)
+      } else {
+        (heartbeat +: emits, phaseParser.initialState +: states)
+      }
     }
   }
 

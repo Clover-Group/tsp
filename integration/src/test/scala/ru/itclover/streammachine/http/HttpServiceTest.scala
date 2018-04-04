@@ -34,9 +34,9 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8125
+  val port = 8126
 
-  override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9000 -> 9000 :: Nil,
+  override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9002 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
   val inputConf = JDBCInputConf(
@@ -63,10 +63,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   val sinkSchema = JDBCSegmentsSink(
     "Test.SM_basic_wide_patterns",
     'series_storage,
-    'begin,  'end, ('app, 1), 'id, 'timestamp, 'context,
+    'from,  'to, ('app, 1), 'id, 'timestamp, 'context,
     inputConf.partitionColnames)
-  val outputConf = JDBCOutputConf(s"jdbc:postgresql://localhost:$port/postgres?user=postgres&password=postgres", sinkSchema,
-    "org.postgresql.Driver")
+  val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
+    "ru.yandex.clickhouse.ClickHouseDriver")
 
   val basicAssertions = Seq(RawPattern("1", "Assert('speed.field < 15.0)", Map("test" -> "test")),
     RawPattern("2", "Assert('speed.field > 10.0)"))
@@ -88,10 +88,10 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
         route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE pattern_id = '1' AND mechanism_id = '65001'")
-      checkSegments(1 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65001'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 1 and visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkSegments(1 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 2 and visitParamExtractString(context, 'mechanism_id') = '65001'")
 
-      checkSegments(1 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE pattern_id = '2' AND mechanism_id = '65002'")
+      checkSegments(1 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 2 and visitParamExtractString(context, 'mechanism_id') = '65002'")
     }
   }
 
@@ -100,20 +100,20 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
         route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(0 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE pattern_id = '3' AND mechanism_id = '65001'")
-//      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
+      checkSegments(0 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = '3'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
     }
   }
 
   /** Util for checking segments count and size in seconds */
-  def checkSegments(expectedSegmentsCounts: Seq[Int], query: String): Unit = {
+  def checkSegments(expectedSegmentsCounts: Seq[Double], query: String, epsilon: Double = 0.0001): Unit = {
     val resultSet = container.executeQuery(query)
-    for (expectedSeconds <- expectedSegmentsCounts) {
+    for (expectedSecMs <- expectedSegmentsCounts) {
       resultSet.next() shouldEqual true
-      val from = resultSet.getTime(1)
-      val to: Time = resultSet.getTime(2)
-      val segmentSeconds = to.toLocalTime.getSecond - from.toLocalTime.getSecond
-      segmentSeconds should === (expectedSeconds)
+      val from = resultSet.getDouble(1)
+      val to = resultSet.getDouble(2)
+      val segmentSeconds = to - from
+      segmentSeconds should === (expectedSecMs +- epsilon)
     }
   }
 }
