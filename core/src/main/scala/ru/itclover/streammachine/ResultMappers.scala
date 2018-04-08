@@ -50,14 +50,17 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
     val failuresResults = failures.map(_.asInstanceOf[TerminalResult[Segment]])
     // If results successful and they are present - accumulate it
     if (successes.nonEmpty && !failures.contains(PhaseResult.heartbeat)) {
-      val segment = currSegmentOpt.map(_.copy(to = eventTime)).getOrElse(Segment(eventTime, eventTime))
+      val segment = successes.head match {
+        case Success(s: Segment) => currSegmentOpt.getOrElse(s)
+        case Success(x) => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))
+      }
       // Accumulate results if it already segmented (Stay-segmented)
       currSegmentOpt = Some(successes.foldLeft(segment) { (segment, result) =>
         result match {
           case Success(Segment(from, to)) =>
             Segment(timeOrdering.min(from, segment.from), timeOrdering.max(to, segment.to))
           case x =>
-            segment
+            segment.copy(to = timeOrdering.max(segment.to, eventTime))
         }
       })
       failuresResults
