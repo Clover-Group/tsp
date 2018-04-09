@@ -31,6 +31,7 @@ import scala.util.{Failure, Success, Try}
 class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
   override implicit val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
   override implicit val streamEnvironment: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setMaxParallelism(30000) // For propper keyBy partitioning
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
@@ -100,8 +101,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
         route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkSegments(0 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = '3'")
-      checkSegments(2 :: Nil, "SELECT from, to FROM SM_basic_wide_patterns WHERE pattern_id = '4' AND mechanism_id = '65001'")
+      checkSegments(0 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 3 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 4 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
     }
   }
 

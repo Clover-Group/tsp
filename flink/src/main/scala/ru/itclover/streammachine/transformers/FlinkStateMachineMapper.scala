@@ -1,6 +1,6 @@
 package ru.itclover.streammachine.transformers
 
-import org.apache.flink.api.common.functions.RichFlatMapFunction
+import org.apache.flink.api.common.functions.{RichFlatMapFunction, RuntimeContext}
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.types.Row
@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 
 
 case class FlinkStateCodeMachineMapper[MapperOut](compilePhaseParser: ClassLoader => PhaseParser[Row, Any, Any],
-                                                  mapResults: ResultMapper[Row, Any, MapperOut],
+                                                  resultsMapper: ResultMapper[Row, Any, MapperOut],
                                                   eventsMaxGapMs: Long, isRowTerminal: Row => Boolean)
                                                  (implicit timeExtractor: TimeExtractor[Row])
   extends
@@ -37,7 +37,7 @@ case class FlinkStateCodeMachineMapper[MapperOut](compilePhaseParser: ClassLoade
 
     stateAndPrevRow.update((newStates, event))
 
-    mapResults(event, results) foreach {
+    resultsMapper(event, results) foreach {
       case Success(x) => outCollector.collect(x)
       case Failure(_) =>
     }

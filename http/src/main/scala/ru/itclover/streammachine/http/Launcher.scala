@@ -12,17 +12,20 @@ import scala.io.StdIn
 
 
 object Launcher extends App with HttpService {
-  override val isDebug: Boolean = ConfigFactory.load().getBoolean("general.is-debug")
-  private val isListenStdIn = ConfigFactory.load().getBoolean("general.is-follow-input")
+  private val configs = ConfigFactory.load()
+  override val isDebug: Boolean = configs.getBoolean("general.is-debug")
+  private val isListenStdIn = configs.getBoolean("general.is-follow-input")
   private val log = Logger("Launcher")
 
   implicit val system: ActorSystem = ActorSystem("my-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-  val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
 
-  private val host = "0.0.0.0"
-  private val port = 8080
+  val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
+
+  private val host = configs.getString("general.host")
+  private val port = configs.getInt("general.port")
   val bindingFuture = Http().bindAndHandle(route, host, port)
 
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))

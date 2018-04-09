@@ -52,7 +52,7 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
     if (successes.nonEmpty && !failures.contains(PhaseResult.heartbeat)) {
       val segment = successes.head match {
         case Success(s: Segment) => currSegmentOpt.getOrElse(s)
-        case Success(x) => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))
+        case Success(_) => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))
       }
       // Accumulate results if it already segmented (Stay-segmented)
       currSegmentOpt = Some(successes.foldLeft(segment) { (segment, result) =>

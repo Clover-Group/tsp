@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.functions.sink.OutputFormatSinkFunction
 import org.apache.flink.types.Row
-import ru.itclover.streammachine.{ResultMapper, SegmentResultsMapper, SegmentsToRowResultMapper}
+import ru.itclover.streammachine._
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
@@ -21,6 +21,7 @@ import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowI
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink}
 import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.Duration
 import cats.data.Reader
@@ -28,7 +29,6 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
-import ru.itclover.streammachine.EvalUtils
 import ru.itclover.streammachine.utils.Time.timeIt
 
 import scala.util.{Failure, Success}
@@ -107,11 +107,11 @@ trait FindPatternRangesRoute extends JsonProtocols {
       val stream = streamEnv.createInput(srcInfo.inputFormat)
 
       val flatMappers = patterns.map { pattern =>
-        val packInMapper = SegmentResultsMapper[Row, Segment] andThen
+        def packInMapper = SegmentResultsMapper[Row, Any]() andThen
           SegmentsToRowResultMapper[Row](inputConf.id, outputConf.sinkSchema, pattern)
         val compilePhase = FindPatternRangesRoute.getPhaseCompiler(pattern.sourceCode, srcInfo.datetimeFieldName,
           srcInfo.fieldsIndexesMap)(_)
-        FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper.asInstanceOf[ResultMapper[Row, Any, Row]],
+        FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper,
           inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
       }
 

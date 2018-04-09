@@ -15,14 +15,14 @@ class ResultMappersTest extends WordSpec with ParserMatchers {
 
 
   "SegmentResultsMapper" should {
-    "Split segments by failures" in {
+    implicit def timeExtractor[T] = new TimeExtractor[TestingEvent[T]] {
+      override def apply(event: TestingEvent[T]) = event.time
+    }
+
+    "Work on segments and failures" in {
       val results = Seq(Success(Segment(times(0), times(1))), Success(Segment(times(1), times(2))), Failure("Test"),
         Success(Segment(times(3), times(4))), Success(Segment(times(4), times(5))), Failure("Test"))
       val events = results.map { res => TestingEvent(res) }
-
-      implicit val timeExtractor = new TimeExtractor[TestingEvent[Segment]] {
-        override def apply(event: TestingEvent[Segment]) = event.time
-      }
 
       val resMapper = SegmentResultsMapper[TestingEvent[Segment], Segment]()
 
@@ -34,8 +34,23 @@ class ResultMappersTest extends WordSpec with ParserMatchers {
 
       accumulatedSegments(1) shouldEqual Failure("Test")
       accumulatedSegments(3) shouldEqual Failure("Test")
-
     }
+
+    "Work on points and failures" in {
+      val results = Seq(Success(1), Success(1), Failure("Test"), Success(1), Success(1), Failure("Test"))
+      val events = results.zip(times) map { case (res, time) => TestingEvent(res, time) }
+
+      val resMapper = SegmentResultsMapper[TestingEvent[Int], Int]()
+      val accumulatedPoints = events.flatMap(e => resMapper(e, Seq(e.result.asInstanceOf[TerminalResult[Int]])))
+
+      accumulatedPoints.length shouldEqual 4
+      accumulatedPoints.head shouldEqual Success(Segment(times(0), times(1)))
+      accumulatedPoints(2) shouldEqual Success(Segment(times(3), times(4)))
+
+      accumulatedPoints(1) shouldEqual Failure("Test")
+      accumulatedPoints(3) shouldEqual Failure("Test")
+    }
+
   }
 
 }
