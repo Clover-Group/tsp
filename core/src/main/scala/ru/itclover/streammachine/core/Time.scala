@@ -1,5 +1,6 @@
 package ru.itclover.streammachine.core
 
+import java.math.BigInteger
 import java.sql.Timestamp
 import java.time.{Duration, Instant}
 import java.util.Date
@@ -48,6 +49,12 @@ object Time {
   implicit def durationWindow(duration: Duration): Window = Window(toMillis = duration.toMillis)
 
   implicit def scalaDurationWindow(d: scala.concurrent.duration.Duration): Window = Window(toMillis = d.toMillis)
+
+  implicit def floatWindow(d: Float): Window = Window(toMillis = Math.round(d * 1000))
+
+  implicit def doubleWindow(d: Double): Window = Window(toMillis = Math.round(d * 1000))
+
+  implicit def bigIntWindow(d: BigInteger): Window = Window(toMillis = d.longValue())
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
 
