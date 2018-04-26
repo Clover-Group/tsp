@@ -58,6 +58,12 @@ object Time {
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
 
+  implicit def BigIntTimeLike(t: BigInt): Time = Time(toMillis = t.longValue())
+
+  implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t))
+
+  implicit def FloatTimeLike(t: Float): Time = Time(toMillis = Math.round(t))
+
   implicit def LongTimeLike(t: Long): Time = Time(toMillis = t)
 
   implicit def InstantTimeLike(t: Instant): Time = Time(toMillis = t.toEpochMilli)
