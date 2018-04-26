@@ -35,7 +35,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8126
+  val port = 8131
 
   override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9002 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
@@ -43,20 +43,20 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   val inputConf = JDBCInputConf(
     id = 123,
     jdbcUrl = container.jdbcUrl,
-    query =
-      """
+    query = "select * from Test.SM_basic_wide",
+      /*"""
         |select * from (
-        |  select mechanism_id, datetime, CAST(speed AS Nullable(Float32)) as speed, 1 as ord from Test.SM_basic_wide
+        |  select datetime, mechanism_id, series_id, CAST(speed AS Nullable(Float32)) as speed, 1 as ord from Test.SM_basic_wide
         |  union all
-        |  select distinct(mechanism_id) as mechanism_id, toDateTime('2027-12-26 15:06:38') as datetime,
+        |  select toDateTime('2027-12-26 15:06:38') as datetime, distinct (mechanism_id) as mechanism_id, distinct(series_id) as series_id,
         |    CAST(NULL AS Nullable(Float32)) as speed, 2 as ord
         |  from Test.SM_basic_wide
         |) order by ord
-      """.stripMargin, // TODO Not closing cause empty 65002, incorrect mech_id in result table for last segment
+      """.stripMargin,*/ // TODO Not closing cause empty 65002, incorrect mech_id in result table for last segment
     driverName = container.driverName,
     datetimeColname = 'datetime,
     eventsMaxGapMs = 60000L,
-    partitionColnames = Seq('mechanism_id)
+    partitionColnames = Seq('series_id, 'mechanism_id)
   )
 
   val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")

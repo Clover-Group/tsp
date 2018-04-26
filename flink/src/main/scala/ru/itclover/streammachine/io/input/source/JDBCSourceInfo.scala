@@ -24,7 +24,7 @@ case class JDBCSourceInfo(config: JDBCInputConf,
 
   val fieldsIndexesMap: Map[Symbol, Int] = fieldsNames.zipWithIndex.toMap
 
-  val partitionIndex: Int = fieldsIndexesMap(config.partitionColnames.head)
+  val partitionIndexes: Seq[Int] = config.partitionColnames.map(fieldsIndexesMap)
 }
 
 

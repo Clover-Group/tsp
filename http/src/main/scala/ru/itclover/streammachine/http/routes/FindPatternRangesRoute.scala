@@ -97,7 +97,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
         event.getField(srcInfo.fieldsIndexesMap(name))
 
       val nullIndex = srcInfo.fieldsIndexesMap.find {
-        case (_, ind) => ind != timeInd && ind != srcInfo.partitionIndex
+        case (_, ind) => ind != timeInd && !srcInfo.partitionIndexes.contains(ind)
       } match {
         case Some((_, nullInd)) => nullInd
         case None =>
@@ -115,7 +115,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
           inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
       }
 
-      val resultStream = stream.keyBy(e => e.getField(srcInfo.partitionIndex))
+      val resultStream = stream.keyBy(e => srcInfo.partitionIndexes.map(e.getField).mkString)
                                .flatMapAll[Row](flatMappers)
                                .name("Rules searching stage")
 
