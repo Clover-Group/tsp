@@ -47,6 +47,7 @@ object EvalUtils {
 
   def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampField: Symbol, fieldsIndexesMap: Map[Symbol, Int]) = {
     s"""
+       |import java.math.BigInteger
        |import scala.concurrent.duration._
        |import ru.itclover.streammachine.core.Time._
        |import ru.itclover.streammachine.core._
@@ -59,6 +60,7 @@ object EvalUtils {
        |import ru.itclover.streammachine.phases.CombiningPhases._
        |import ru.itclover.streammachine.aggregators.AggregatorPhases._
        |import ru.itclover.streammachine.phases.Phases._
+       |import ru.itclover.streammachine.core.Time.{DoubleTimeLike, BigIntTimeLike}
        |
        |import Predef.{any2stringadd => _, _}
        |import org.apache.flink.types.Row
@@ -81,7 +83,7 @@ object EvalUtils {
        |}
        |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
        |  override def apply(v1: Row) = {
-       |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[java.sql.Timestamp]
+       |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[BigInteger]
        |  }
        |}
        |

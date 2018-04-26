@@ -1,5 +1,6 @@
 package ru.itclover.streammachine.http.routes
 
+import java.math.BigInteger
 import java.sql.Timestamp
 import java.time.DateTimeException
 
@@ -30,8 +31,8 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.utils.Time.timeIt
-
 import scala.util.{Failure, Success}
+import ru.itclover.streammachine.core.Time.{DoubleTimeLike, BigIntTimeLike}
 
 
 object FindPatternRangesRoute {
@@ -85,7 +86,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
         override def apply(row: Row) = {
-          row.getField(timeInd).asInstanceOf[Timestamp]
+          row.getField(timeInd).asInstanceOf[BigInteger]
         }
       }
       implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {

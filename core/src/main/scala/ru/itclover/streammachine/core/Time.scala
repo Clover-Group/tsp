@@ -58,7 +58,7 @@ object Time {
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
 
-  implicit def BigIntTimeLike(t: BigInt): Time = Time(toMillis = t.longValue())
+  implicit def BigIntTimeLike(t: BigInteger): Time = Time(toMillis = t.longValue())
 
   implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t))
 
