@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS Test.SM_basic_wide (
-    datetime DateTime,
+    datetime UInt64,
     series_id String,
     mechanism_id String,
     speed Float32
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS Test.SM_basic_wide (
 
 
 CREATE TABLE IF NOT EXISTS Test.SM_typeCasting_wide (
-    datetime DateTime,
+    datetime UInt64,
     series_id String,
     mechanism_id String,
     speed Int32
