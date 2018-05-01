@@ -86,7 +86,7 @@ trait FindPatternRangesRoute extends JsonProtocols {
 
       implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
         override def apply(row: Row) = {
-          row.getField(timeInd).asInstanceOf[BigInteger]
+          row.getField(timeInd).asInstanceOf[Double]
         }
       }
       implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {

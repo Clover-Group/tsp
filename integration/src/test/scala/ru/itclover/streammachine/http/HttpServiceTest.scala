@@ -35,24 +35,15 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8131
+  val port = 8135
 
-  override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9002 -> 9000 :: Nil,
+  override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
   val inputConf = JDBCInputConf(
     id = 123,
     jdbcUrl = container.jdbcUrl,
     query = "select * from Test.SM_basic_wide",
-      /*"""
-        |select * from (
-        |  select datetime, mechanism_id, series_id, CAST(speed AS Nullable(Float32)) as speed, 1 as ord from Test.SM_basic_wide
-        |  union all
-        |  select toDateTime('2027-12-26 15:06:38') as datetime, distinct (mechanism_id) as mechanism_id, distinct(series_id) as series_id,
-        |    CAST(NULL AS Nullable(Float32)) as speed, 2 as ord
-        |  from Test.SM_basic_wide
-        |) order by ord
-      """.stripMargin,*/ // TODO Not closing cause empty 65002, incorrect mech_id in result table for last segment
     driverName = container.driverName,
     datetimeColname = 'datetime,
     eventsMaxGapMs = 60000L,

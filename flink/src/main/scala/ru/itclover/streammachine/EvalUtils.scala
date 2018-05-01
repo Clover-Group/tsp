@@ -83,7 +83,7 @@ object EvalUtils {
        |}
        |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
        |  override def apply(v1: Row) = {
-       |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[BigInteger]
+       |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[Double]
        |  }
        |}
        |

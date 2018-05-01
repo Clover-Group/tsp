@@ -60,9 +60,9 @@ object Time {
 
   implicit def BigIntTimeLike(t: BigInteger): Time = Time(toMillis = t.longValue())
 
-  implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t))
+  implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t * 1000.0))
 
-  implicit def FloatTimeLike(t: Float): Time = Time(toMillis = Math.round(t))
+  implicit def FloatTimeLike(t: Float): Time = Time(toMillis = Math.round(t * 1000.0))
 
   implicit def LongTimeLike(t: Long): Time = Time(toMillis = t)
 
