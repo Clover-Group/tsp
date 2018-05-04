@@ -46,6 +46,7 @@ object BooleanPhases {
 
   trait BooleanFunctions {
     def not[Event, S](inner: BooleanPhaseParser[Event, S]): NotParser[Event, S] = NotParser(inner)
+    def ![Event, S](inner: BooleanPhaseParser[Event, S]): NotParser[Event, S] = NotParser(inner)
   }
 
   type BooleanPhaseParser[Event, State] = PhaseParser[Event, State, Boolean]
