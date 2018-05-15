@@ -62,6 +62,14 @@ class AccumulatedParsersTest extends WordSpec with ParserMatchers {
       )
     }
 
+    "work on bool staySuccesses" in {
+      checkOnTestEvents_strict(
+        (p: TestPhase[Boolean]) => count(p, 2.seconds),
+        staySuccesses map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        Seq(Success(2L), Success(2L), Success(3L), Success(3L), Failure("Test"), Failure("Test"), Failure("Test"))
+      )
+    }
+
     "not work on fail-interleaved events" in {
       checkOnTestEvents(
         (p: TestPhase[Double]) => count(p, 2.seconds),
