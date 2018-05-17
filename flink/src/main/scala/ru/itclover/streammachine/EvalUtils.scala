@@ -69,7 +69,11 @@ object EvalUtils {
        |
        |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
        |  override def extract(event: Row, symbol: Symbol) = {
-       |    event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Float].toDouble
+       |    event.getField(fieldsIndexesMap(symbol)) match {
+       |      case d: java.lang.Double => d.doubleValue()
+       |      case f: java.lang.Float => f.floatValue().toDouble
+       |      case err => throw new ClassCastException(s"Cannot cast value $$err to float or double.")
+       |    }
        |  }
        |}
        |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {

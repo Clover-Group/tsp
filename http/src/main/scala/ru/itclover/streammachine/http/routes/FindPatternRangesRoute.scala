@@ -91,7 +91,11 @@ trait FindPatternRangesRoute extends JsonProtocols {
       }
       implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
         override def extract(event: Row, symbol: Symbol): Double = {
-          event.getField(srcInfo.fieldsIndexesMap(symbol)).asInstanceOf[Double]
+          event.getField(srcInfo.fieldsIndexesMap(symbol)) match {
+            case d: java.lang.Double => d.doubleValue()
+            case f: java.lang.Float => f.floatValue().toDouble
+            case err => throw new ClassCastException(s"Cannot cast value $err to float or double.")
+          }
         }
       }
       implicit val anyExtractor: (Row, Symbol) => Any = (event: Row, name: Symbol) =>

@@ -35,7 +35,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8135
+  val port = 8136
 
   override val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
@@ -63,7 +63,9 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   val basicAssertions = Seq(RawPattern("1", "Assert('speed.field < 15.0)", Map("test" -> "test")),
     RawPattern("2", "Assert('speed.field > 10.0)"))
   val typesCasting = Seq(RawPattern("3", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
-    RawPattern("4", "Assert('speed.as[Int] < 15)"))
+    RawPattern("4", "Assert('speed.as[Int] < 15)"),
+    RawPattern("5", "Assert('speed64.as[Double] < 15.0)"),
+    RawPattern("6", "Assert('speed64.field < 15.0)"))
 
 
   override def afterStart(): Unit = {
@@ -94,6 +96,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
 
       checkSegments(0 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 3 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
       checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 4 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 5 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkSegments(2 :: Nil, "SELECT from, to FROM Test.SM_basic_wide_patterns WHERE id = 6 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
     }
   }
 
