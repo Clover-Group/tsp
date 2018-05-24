@@ -19,7 +19,7 @@ trait AbstractStateMachineMapper[Event, State, Out] {
 
   def phaseParser: PhaseParser[Event, State, Out]
 
-  def process(event: Event, oldStates: Seq[State], doIt: Boolean = true): (Seq[TerminalResult[Out]], Seq[State]) = {
+  def process(event: Event, oldStates: Seq[State]): (Seq[TerminalResult[Out]], Seq[State]) = {
     log.debug(s"Search for patterns in: $event")
     if (isEventTerminal(event)) {
       log.info("Shut down old states, terminator received")

@@ -20,7 +20,7 @@ class FlinkCompilingPattern[Event, PhaseState, PhaseOut, MapperOut](
   resultsMapper: ResultMapper[Event, PhaseOut, MapperOut],
   eventsMaxGapMs: Long,
   emptyEvent: Event,
-  isEventTerminal: Event => Boolean
+  isTerminal: Event => Boolean
 )(
   implicit timeExtractor: TimeExtractor[Event]
 ) extends RichStatefulFlatMapper[Event, (Seq[PhaseState], Event), MapperOut] with
@@ -56,6 +56,9 @@ class FlinkCompilingPattern[Event, PhaseState, PhaseOut, MapperOut](
     if (prevEvent == emptyEvent) true
     else timeExtractor(currEvent).toMillis - timeExtractor(prevEvent).toMillis < eventsMaxGapMs
   }
+
+  /** Is it last event in a stream? */
+  override def isEventTerminal(event: Event) = isTerminal(event)
 }
 
 
