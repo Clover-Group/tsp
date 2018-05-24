@@ -20,7 +20,7 @@ import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf}
 import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, JDBCSegmentsSink}
-import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, SparseRowsDataAccumulator}
+import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkCompilingPattern, SparseRowsDataAccumulator, RichStatefulFlatMapper}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -31,8 +31,9 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.utils.Time.timeIt
+
 import scala.util.{Failure, Success}
-import ru.itclover.streammachine.core.Time.{DoubleTimeLike, BigIntTimeLike}
+import ru.itclover.streammachine.core.Time.{BigIntTimeLike, DoubleTimeLike}
 
 
 object FindPatternRangesRoute {
@@ -112,12 +113,13 @@ trait FindPatternRangesRoute extends JsonProtocols {
       val stream = streamEnv.createInput(srcInfo.inputFormat)
 
       val flatMappers = patterns.map { pattern =>
-        def packInMapper = SegmentResultsMapper[Row, Any]() andThen
+        def packInMapper() = SegmentResultsMapper[Row, Any]() andThen
           SegmentsToRowResultMapper[Row](inputConf.id, outputConf.sinkSchema, pattern)
         val compilePhase = FindPatternRangesRoute.getPhaseCompiler(pattern.sourceCode, srcInfo.datetimeFieldName,
           srcInfo.fieldsIndexesMap)(_)
-        FlinkStateCodeMachineMapper[Row](compilePhase, packInMapper,
-          inputConf.eventsMaxGapMs, FindPatternRangesRoute.isTerminal(nullIndex)(_))
+        new FlinkCompilingPattern[Row, Any, Any, Row](compilePhase, packInMapper(),
+          inputConf.eventsMaxGapMs, new Row(0), FindPatternRangesRoute.isTerminal(nullIndex)(_))
+          .asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
       }
 
       val resultStream = stream.keyBy(e => srcInfo.partitionIndexes.map(e.getField).mkString)

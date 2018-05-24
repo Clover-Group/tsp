@@ -15,7 +15,7 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseParser.Functions.not
 import ru.itclover.streammachine.core.Time.more
 import ru.itclover.streammachine.phases.Phases.Phase
-import ru.itclover.streammachine.transformers.{FlinkStateCodeMachineMapper, FlinkStateMachineMapper}
+import ru.itclover.streammachine.transformers.{FlinkCompilingPattern, FlinkPattern}
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.PhaseParser.Functions._
@@ -75,7 +75,7 @@ object KafkaDemo extends App {
     .filter(e => eventTypes(e.eventType))
     .filter(_.userId != null)
     .keyBy(_.userId)
-    .flatMap(FlinkStateMachineMapper(phaseParser.mapWithEvent{case (a,b) => a.userId -> b})(FakeMapper()))
+    .flatMap(FlinkPattern(phaseParser.mapWithEvent{case (a,b) => a.userId -> b})(FakeMapper()))
     .print()
 
 

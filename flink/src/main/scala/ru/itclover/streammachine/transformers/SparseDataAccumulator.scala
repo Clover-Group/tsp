@@ -26,7 +26,7 @@ trait SparseDataAccumulator
 case class SparseRowsDataAccumulator[Event, Value](fieldsKeysTimeoutsMs: Map[Symbol, Long],
                                                    extraFieldNames: Seq[Symbol])
                                                   (implicit extractTime: TimeExtractor[Event],
-                                                   extractKeyAndVal: (Event) => (Symbol, Value),
+                                                   extractKeyAndVal: Event => (Symbol, Value),
                                                    extractAny: (Event, Symbol) => Any)
   extends RichFlatMapFunction[Event, Row] with Serializable {
   // potential event values with receive time

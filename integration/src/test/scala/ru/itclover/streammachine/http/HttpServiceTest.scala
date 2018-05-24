@@ -60,8 +60,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   val outputConf = JDBCOutputConf(s"jdbc:clickhouse://localhost:$port/default", sinkSchema,
     "ru.yandex.clickhouse.ClickHouseDriver")
 
-  val basicAssertions = Seq(RawPattern("1", "Assert('speed.field < 15.0)", Map("test" -> "test")),
-    RawPattern("2", "Assert('speed.field > 10.0)"))
+  val basicAssertions = Seq(RawPattern("1", "ToSegments(Assert('speed.field < 15.0))", Map("test" -> "test")),
+    RawPattern("2", "ToSegments(Assert('speed.field > 10.0))")) // ...  Try multiple rows with same key
   val typesCasting = Seq(RawPattern("3", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
     RawPattern("4", "Assert('speed.as[Int] < 15)"),
     RawPattern("5", "Assert('speed64.as[Double] < 15.0)"),

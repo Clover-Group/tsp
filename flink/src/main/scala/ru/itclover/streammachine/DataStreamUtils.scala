@@ -8,8 +8,7 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.JDBCNarrowInputConf
 import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
-import ru.itclover.streammachine.io.output._
-import ru.itclover.streammachine.transformers.{FlatMappersCombinator, SparseRowsDataAccumulator}
+import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkCompilingPattern, SparseRowsDataAccumulator, RichStatefulFlatMapper}
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 
@@ -30,8 +29,9 @@ object DataStreamUtils {
       dataStream.flatMap(dataAccumulator)
     }
 
-    def flatMapAll[Out: TypeInformation](flatMappers: Iterable[RichFlatMapFunction[Event, Out]]): DataStream[Out] =
-      dataStream.flatMap(FlatMappersCombinator(flatMappers))
+    def flatMapAll[Out: TypeInformation](flatMappers: Seq[RichStatefulFlatMapper[Event, Any, Out]]): DataStream[Out] = {
+      dataStream.flatMap(new FlatMappersCombinator[Event, Any, Out](flatMappers))
+    }
 
     def foreach(fn: Event => Unit): DataStream[Unit] = dataStream.map[Unit](fn)(new UnitTypeInfo)
 

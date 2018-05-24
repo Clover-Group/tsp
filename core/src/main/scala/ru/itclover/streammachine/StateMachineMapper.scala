@@ -30,8 +30,5 @@ case class StateMachineMapper[Event, State, PhaseOut, MapperOut]
 
   def result: Vector[TerminalResult[MapperOut]] = collector.toVector
 
-  /** @inheritdoc */
-  override def doProcessOldState(event: Event) = true // TODO
-
   override def isEventTerminal(event: Event) = false // TODO
 }
