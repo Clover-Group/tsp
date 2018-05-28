@@ -6,9 +6,7 @@ import org.apache.flink.api.scala.typeutils.UnitTypeInfo
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.io.input.JDBCNarrowInputConf
-import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
-import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkCompilingPattern, SparseRowsDataAccumulator, RichStatefulFlatMapper}
+import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkPatternMapper, SparseRowsDataAccumulator, RichStatefulFlatMapper}
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 
@@ -16,7 +14,7 @@ object DataStreamUtils {
 
   implicit class DataStreamOps[Event](val dataStream: DataStream[Event]) {
 
-    def accumulateKeyValues(sourceInfo: JDBCSourceInfo, inputConf: JDBCNarrowInputConf)
+    /*def accumulateKeyValues(sourceInfo: JDBCSourceInfo, inputConf: JDBCNarrowInputConf)
                            (implicit timeExtractor: TimeExtractor[Event],
                                 extractKeyVal: Event => (Symbol, Double),
                                 extractAny: (Event, Symbol) => Any,
@@ -27,7 +25,7 @@ object DataStreamUtils {
       val dataAccumulator = SparseRowsDataAccumulator(inputConf.fieldsTimeoutsMs, extraFields)
                                                      (timeExtractor, extractKeyVal, extractAny)
       dataStream.flatMap(dataAccumulator)
-    }
+    }*/
 
     def flatMapAll[Out: TypeInformation](flatMappers: Seq[RichStatefulFlatMapper[Event, Any, Out]]): DataStream[Out] = {
       dataStream.flatMap(new FlatMappersCombinator[Event, Any, Out](flatMappers))

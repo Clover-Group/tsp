@@ -1,7 +1,7 @@
 package ru.itclover.streammachine.http.domain.input
 
-import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, JDBCNarrowInputConf, RawPattern}
-import ru.itclover.streammachine.io.output.{JDBCOutputConf, OutputConf}
+import ru.itclover.streammachine.io.input.{InputConf, RawPattern}
+import ru.itclover.streammachine.io.output.OutputConf
 
 trait Request
 

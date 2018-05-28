@@ -1,11 +1,15 @@
 package ru.itclover.streammachine.io.input
 
-import java.util.Properties
-
+import java.util.{Properties, UUID}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer010, FlinkKafkaConsumerBase}
 import org.apache.flink.streaming.util.serialization.{DeserializationSchema, TypeInformationSerializationSchema}
 
-object KafkaInput {
+
+case class KafkaConf(brokers: String, topic: String, group: String = UUID.randomUUID().toString,
+                     offsetReset: String = "largest")
+
+
+object KafkaInputConf {
 
   def getSource[Event: TypeInformationSerializationSchema](kafkaConfig: KafkaConf): FlinkKafkaConsumerBase[Event] = {
 

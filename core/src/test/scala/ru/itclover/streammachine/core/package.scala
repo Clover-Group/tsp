@@ -71,7 +71,7 @@ package object core {
   def runRule[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event]): Vector[PhaseResult.TerminalResult[Out]] = {
     val mapResults = fakeMapper(rule)
     events
-      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .foldLeft(PatternMapper(rule, mapResults)) { case (machine, event) => machine(event) }
       .result
   }
 

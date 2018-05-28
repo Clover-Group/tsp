@@ -21,7 +21,7 @@ object TestApp extends App {
   def run[T, Out](rule: PhaseParser[T, _, Out], events: Seq[T]) = {
     val mapResults = FakeMapper[T, Out]()
     events
-      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .foldLeft(PatternMapper(rule, mapResults)) { case (machine, event) => machine(event) }
       .result
   }
 

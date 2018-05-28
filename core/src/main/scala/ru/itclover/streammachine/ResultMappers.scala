@@ -6,9 +6,10 @@ import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, timeOrdering}
 
 /**
-  * Used for statefully process result inside of each [[StateMachineMapper.apply]] with Event.
-  * @tparam Event - inner Event
-  * @tparam PhaseOut - result of [[StateMachineMapper.apply]]
+  * Used for statefully process result inside of each [[PatternMapper.apply]] with Event.
+ *
+  * @tparam Event     - inner Event
+  * @tparam PhaseOut  - result of [[PatternMapper.apply]]
   * @tparam MapperOut - resulting results sequence
   */
 trait ResultMapper[Event, PhaseOut, MapperOut] extends
@@ -52,7 +53,7 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
     if (successes.nonEmpty && !failures.contains(PhaseResult.heartbeat)) {
       val segment = successes.head match {
         case Success(s: Segment) => currSegmentOpt.getOrElse(s)
-        case Success(_) => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))
+        case _ => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))
       }
       // Accumulate results if it already segmented (Stay-segmented)
       currSegmentOpt = Some(successes.foldLeft(segment) { (segment, result) =>

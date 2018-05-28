@@ -9,6 +9,8 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
+import cats._
+import cats.implicits._
 
 
 object Launcher extends App with HttpService {
@@ -33,9 +35,13 @@ object Launcher extends App with HttpService {
   if (isListenStdIn) {
     log.info("Press RETURN to stop...")
     StdIn.readLine()
+    log.info("Terminating...")
     bindingFuture
       .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
+      .onComplete(_ => Await.result(
+        system.whenTerminated.map(_ => log.info("Terminated... Bye!")),
+        60.seconds)
+      )
   } else {
     scala.sys.addShutdownHook {
       log.info("Terminating...")

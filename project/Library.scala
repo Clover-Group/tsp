@@ -26,6 +26,8 @@ object Version {
   val jackson = "2.9.4"
 
   val spark = "2.2.1"
+
+  val avro = "1.8.2"
 }
 
 
@@ -95,4 +97,7 @@ object Library {
     "org.apache.spark" %% "spark-sql" % Version.spark
   )
 
+  val kafka = Seq(
+    "org.apache.avro" % "avro" % Version.avro
+  )
 }

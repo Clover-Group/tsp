@@ -35,6 +35,7 @@ lazy val flinkConnector = project.in(file("flink"))
       ++ Library.flink
       ++ Library.scalaTest
       ++ Library.jdbcDrivers
+      ++ Library.kafka
       ++ Library.jackson
       ++ Library.cats
   )

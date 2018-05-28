@@ -1,14 +1,14 @@
 package ru.itclover.spark
 
 import org.apache.spark.sql.streaming.GroupState
-import ru.itclover.streammachine.AbstractStateMachineMapper
+import ru.itclover.streammachine.AbstractPatternMapper
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 
 import scala.concurrent.duration.Duration
 
 class SparkMachineMapper[Group, Event, State, Out](override val phaseParser: PhaseParser[Event, State, Out])
-  extends AbstractStateMachineMapper[Event, State, Out]
+  extends AbstractPatternMapper[Event, State, Out]
     with ((Group, Iterator[Event], GroupState[Seq[State]]) => Iterator[Out])
     with Serializable {
 

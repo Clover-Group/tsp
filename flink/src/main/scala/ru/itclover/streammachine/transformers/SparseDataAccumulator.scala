@@ -11,8 +11,6 @@ import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.EvalUtils
 import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.io.input.JDBCNarrowInputConf
-import ru.itclover.streammachine.io.input.source.JDBCSourceInfo
 import scala.collection.mutable
 
 
@@ -56,7 +54,7 @@ case class SparseRowsDataAccumulator[Event, Value](fieldsKeysTimeoutsMs: Map[Sym
   }
 }
 
-object SparseRowsDataAccumulator {
+/*object SparseRowsDataAccumulator {
   def apply[Event, Value](sourceInfo: JDBCSourceInfo, inputConf: JDBCNarrowInputConf)
                   (implicit timeExtractor: TimeExtractor[Event],
                    extractKeyVal: Event => (Symbol, Value),
@@ -67,4 +65,4 @@ object SparseRowsDataAccumulator {
     ).keys.toSeq
     SparseRowsDataAccumulator(inputConf.fieldsTimeoutsMs, extraFields)(timeExtractor, extractKeyVal, extractAny)
   }
-}
+}*/

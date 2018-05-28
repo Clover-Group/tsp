@@ -15,7 +15,7 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseParser.Functions.not
 import ru.itclover.streammachine.core.Time.more
 import ru.itclover.streammachine.phases.Phases.Phase
-import ru.itclover.streammachine.transformers.{FlinkCompilingPattern, FlinkPattern}
+import ru.itclover.streammachine.transformers.{FlinkPatternMapper}
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.PhaseParser.Functions._
@@ -58,7 +58,7 @@ object KafkaDemo extends App {
   }
 
 
-  val phaseParser: Phase[Appevent] =
+  /*val phaseParser: Phase[Appevent] =
     ('eventType.as[String] === "GAME_BETS_OPEN")
       .andThen(
         not(
@@ -79,5 +79,5 @@ object KafkaDemo extends App {
     .print()
 
 
-  env.execute()
+  env.execute()*/
 }

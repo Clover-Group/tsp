@@ -1,13 +1,12 @@
 package ru.itclover.streammachine.io.output
 
-
 trait OutputConf
 
 
-case class JDBCOutputConf(jdbcUrl: String,
-                          sinkSchema: JDBCSegmentsSink,
+case class JDBCOutputConf(tableName: String,
+                          rowSchema: RowSchema,
+                          jdbcUrl: String,
                           driverName: String,
-                          userName: Option[String] = None,
                           password: Option[String] = None,
-                          batchInterval: Option[Int] = None
-                           ) extends OutputConf
+                          batchInterval: Option[Int] = None,
+                          userName: Option[String] = None) extends OutputConf

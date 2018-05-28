@@ -22,7 +22,6 @@ case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 
 class RulesTest extends WordSpec with Matchers {
 
-  import Rules._
   import ru.itclover.streammachine.core.Time._
   import Predef.{any2stringadd => _, assert => _, _}
 
@@ -51,7 +50,7 @@ class RulesTest extends WordSpec with Matchers {
   def run[Event, Out](rule: PhaseParser[Event, _, Out], events: Seq[Event]): Vector[PhaseResult.TerminalResult[Out]] = {
     val mapResults = fakeMapper(rule)
     events
-      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .foldLeft(PatternMapper(rule, mapResults)) { case (machine, event) => machine(event) }
       .result
   }
 
@@ -59,7 +58,7 @@ class RulesTest extends WordSpec with Matchers {
                                      (implicit te: TimeExtractor[Event]) = {
     val mapResults = segmentMapper(rule)(te)
     events
-      .foldLeft(StateMachineMapper(rule, mapResults)) { case (machine, event) => machine(event) }
+      .foldLeft(PatternMapper(rule, mapResults)) { case (machine, event) => machine(event) }
       .result
   }
 
