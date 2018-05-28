@@ -19,7 +19,7 @@ trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
   implicit val jdbcOutConfFmt = jsonFormat7(JDBCOutputConf.apply)
 
-  implicit val rawPatternFmt = jsonFormat3(RawPattern.apply)
+  implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
   implicit def patternsRequestFmt[IN <: InputConf : JsonFormat, OUT <: OutputConf : JsonFormat] =
     jsonFormat3(FindPatternsRequest.apply[IN, OUT])
 }

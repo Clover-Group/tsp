@@ -43,12 +43,15 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   val outputConf = JDBCOutputConf("Test.SM_basic_wide_patterns", rowSchema, s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver")
 
-  val basicAssertions = Seq(RawPattern("1", "ToSegments(Assert('speed.field < 15.0))", Map("test" -> "test")),
-    RawPattern("2", "ToSegments(Assert('speed.field > 10.0))"))
-  val typesCasting = Seq(RawPattern("3", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
-    RawPattern("4", "Assert('speed.as[Int] < 15)"),
-    RawPattern("5", "Assert('speed64.as[Double] < 15.0)"),
-    RawPattern("6", "Assert('speed64.field < 15.0)"))
+  val basicAssertions = Seq(
+    RawPattern("1", "Assert('speed.field < 15.0)"),
+    RawPattern("2", "Assert('speed.field > 10.0)"),
+    RawPattern("3", "Assert('speed.field > 10.0)", Map("test" -> "test"), Seq('speed)))
+  val typesCasting = Seq(
+    RawPattern("10", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
+    RawPattern("11", "Assert('speed.as[Int] < 15)"),
+    RawPattern("12", "Assert('speed64.as[Double] < 15.0)"),
+    RawPattern("13", "Assert('speed64.field < 15.0)"))
 
 
   override def afterStart(): Unit = {
@@ -59,16 +62,22 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
-  "Basic assertions" should "work for wide dense table" in {
+  "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
     Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest(inputConf, outputConf, basicAssertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
 
-      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and visitParamExtractString(context, 'mechanism_id') = '65002'")
+      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
+        "visitParamExtractString(context, 'mechanism_id') = '65002'")
+
+      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 and " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0")
     }
   }
 
@@ -77,10 +86,14 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
         route ~> check {
       status shouldEqual StatusCodes.OK
 
-      checkByQuery(0 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 4 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 5 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 6 AND visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(0 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 10 AND " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 12 AND " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
+      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 13 AND " +
+        "visitParamExtractString(context, 'mechanism_id') = '65001'")
     }
   }
 }

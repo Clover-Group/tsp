@@ -51,7 +51,6 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
   override def afterStart(): Unit = {
     super.beforeAll()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/ins.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }

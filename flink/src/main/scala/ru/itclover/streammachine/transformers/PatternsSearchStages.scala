@@ -5,7 +5,7 @@ import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironm
 import org.apache.flink.types.Row
 import org.apache.flink.streaming.api.scala._
 import ru.itclover.streammachine.core.PhaseParser
-import ru.itclover.streammachine.{EvalUtils, SegmentResultsMapper, SegmentsToRowResultMapper}
+import ru.itclover.streammachine.{EvalUtils, SegmentResultsMapper, ToRowResultMapper}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.RowSchema
@@ -40,7 +40,7 @@ object PatternsSearchStages {
     } yield {
       val patternsMappers = patterns.map { pattern =>
         def packInMapper = SegmentResultsMapper[Row, Any]() andThen
-          SegmentsToRowResultMapper[Row](inputConf.sourceId, rowSchema, pattern)
+          new ToRowResultMapper[Row](inputConf.sourceId, rowSchema, pattern)
         val compilePhase = getPhaseCompiler(pattern.sourceCode, inputConf.datetimeFieldName, fieldsIdxMap)
         new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0), isTerminal(nullIndex))
             .asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
