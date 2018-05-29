@@ -16,15 +16,6 @@ trait SinkSchema extends Serializable {
 }
 
 
-/**
-  * Specific schema for rules segments for JDBC at Clover Platform.
-  */
-/*case class JDBCSegmentsSink(rowSchema: RowSchema) extends SinkSchema {
-  override def toString: String = {
-    "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"
-  }
-}*/
-
 case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
   override def toString: String = {
     "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"

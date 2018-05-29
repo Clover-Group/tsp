@@ -10,12 +10,14 @@ import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.routes.{JdbcStreamRoute, JdbcToKafkaStreamRoute}
+
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.utils.Exceptions
+import ru.yandex.clickhouse.except.ClickHouseException
 
 
 trait HttpService extends JsonProtocols {
@@ -59,19 +61,26 @@ trait HttpService extends JsonProtocols {
     }.result()
 
   def exceptionsHandler = ExceptionHandler {
+    case ex: ClickHouseException => // TODO Extract from jobs (ADT?)
+      val stackTrace = Exceptions.getStackTrace(ex)
+      val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
+      val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
+      log.error(error)
+      complete(InternalServerError, FailureResponse(5001, s"Job execution failure",
+        if (!isHideExceptions) Seq(error) else Seq.empty))
     case ex: JobExecutionException =>
       val stackTrace = Exceptions.getStackTrace(ex)
       val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
       val error = s"Uncaught error during job execution, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
-      complete(InternalServerError, FailureResponse(5001, s"Job execution failure",
+      complete(InternalServerError, FailureResponse(5002, s"Job execution failure",
         if (!isHideExceptions) Seq(error) else Seq.empty))
-    case ex: Exception =>
+    case ex @ (_: RuntimeException | _: java.io.IOException)=>
       val stackTrace = Exceptions.getStackTrace(ex)
       val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
       val error = s"Uncaught error during request handling, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
-      complete(InternalServerError, FailureResponse(5002, s"Request handling failure",
+      complete(InternalServerError, FailureResponse(5005, s"Request handling failure",
         if (!isHideExceptions) Seq(error) else Seq.empty))
   }
 

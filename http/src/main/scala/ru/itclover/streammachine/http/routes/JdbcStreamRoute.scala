@@ -55,7 +55,7 @@ trait JdbcStreamRoute extends JsonProtocols {
 
       jobIdOrError match {
         case Right(jobId) => complete(SuccessfulResponse(jobId.hashCode))
-        case Left(err) => complete(InternalServerError, FailureResponse(5004, err))
+        case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
       }
     }
   }
