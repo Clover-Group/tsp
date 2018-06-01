@@ -12,7 +12,7 @@ import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf}
+import ru.itclover.streammachine.io.output.{JDBCOutput, JDBCOutputConf}
 import ru.itclover.streammachine.transformers.{PatternsSearchStages, SparseRowsDataAccumulator, StreamSources}
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
 import cats.data.Reader
@@ -45,7 +45,7 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
   implicit val streamEnv = StreamExecutionEnvironment.createLocalEnvironment()
 
-  private val log = Logger[JdbcStreamRoute]
+  private val log = Logger[JdbcStreamRoutes]
 
   val route: Route = path("streamJob" / "from-jdbc" / "to-kafka" /) {
     entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { patternsRequest =>

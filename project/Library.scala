@@ -7,6 +7,10 @@ object Version {
 
   val config = "1.3.2"
 
+  val influx = "2.10"
+  val influxCli = "0.6.0"
+  val influxFlink = "1.0"
+
   val clickhouse = "0.1.34"
   val flink = "1.4.2"
 
@@ -20,7 +24,6 @@ object Version {
 
   val scalaTest = "3.0.4"
   val testContainers = "0.17.0"
-  // val testContainersPgsql = "1.5.1"
   val postgre = "42.2.2"
 
   val jackson = "2.9.4"
@@ -42,9 +45,14 @@ object Library {
     "com.typesafe" % "config" % Version.config
   )
 
+  val influx = Seq(
+    "org.influxdb" % "influxdb-java" % Version.influx,
+    "com.paulgoldbaum" %% "scala-influxdb-client" % Version.influxCli,
+    "com.github.miwurster" % "flink-influxdb" % Version.influxFlink
+  )
   val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
   val postgre = Seq("org.postgresql" % "postgresql" % Version.postgre)
-  val jdbcDrivers = clickhouse ++ postgre
+  val dbDrivers = influx ++ clickhouse ++ postgre
 
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 

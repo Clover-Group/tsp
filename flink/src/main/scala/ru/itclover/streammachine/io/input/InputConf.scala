@@ -1,54 +1,39 @@
 package ru.itclover.streammachine.io.input
 
+import java.util
+
+import cats.syntax.monad.catsSyntaxMonadIdOps
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import scala.util.{Success, Try}
+import org.apache.flink.api.java.io.InfluxDBInputFormat
+import org.apache.flink.types.Row
+import org.influxdb.{BatchOptions, InfluxDB, InfluxDBFactory}
+import org.influxdb.{InfluxDBException, InfluxDBIOException}
+import org.influxdb.dto.{Query, QueryResult}
+import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
+import InputConf.ThrowableOr
 
 
-trait InputConf extends Serializable {
+trait InputConf[Event] extends Serializable {
   def sourceId: Int
 
-  def datetimeFieldName: Symbol
+  def datetimeField: Symbol
 
-  def partitionFieldNames: Seq[Symbol]
+  def partitionFields: Seq[Symbol]
 
   def eventsMaxGapMs: Long
 
-  def fieldsTypesInfo: InputConf.ThrowableOrTypesInfo
+  def fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]]
+
+  // TODO as type-class
+  implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
+  implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]
+  implicit def anyExtractor: ThrowableOr[(Event, Symbol) => Any]
 }
 
 object InputConf {
-  type ThrowableOrTypesInfo = Either[Throwable, IndexedSeq[(Symbol, TypeInformation[_])]]
-}
-
-
-// import com.paulgoldbaum.influxdbclient._
-
-/*case class InfluxDBInputConf(sourceId: Int,
-                             dbName: String, host: String, port: Int,
-                             query: String,
-                             datetimeFieldName: Symbol,
-                             eventsMaxGapMs: Long,
-                             partitionFieldNames: Seq[Symbol],
-                             userName: Option[String] = None,
-                             password: Option[String] = None) extends InputConf {
-  override def fieldsTypesInfo = connectDb match {
-    case Success((connection, db)) =>
-      val r = db.query(s"SELECT * FROM ($query)")
-      r.value.get.get.series.foreach { s =>
-        s.records.head.allValues.head match {
-          case s: String =>
-        }
-      }
-  }
-
-  private def connectDb = for {
-    connection <- Try(InfluxDB.connect(host, port, userName.orNull, password.orNull))
-    db <- Try(connection.selectDatabase(dbName))
-  } yield (connection, db)
-}*/
-
-
-case class FileConf(sourceId: Int, filePath: String, eventsMaxGapMs: Long,
-                    datetimeFieldName: Symbol, partitionFieldNames: Seq[Symbol]) extends InputConf {
-  def fieldsTypesInfo: InputConf.ThrowableOrTypesInfo = ???
+  type AnyExtractor[Event] = (Event, Symbol) => Any
+  type ThrowableOr[T] = Either[Throwable, T]
+  type ThrowableOrTypesInfo = Either[Throwable, Seq[(Symbol, TypeInformation[_])]]
 }

@@ -10,46 +10,40 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.RowSchema
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
-import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
-import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
+import ru.itclover.streammachine.phases.NumericPhases.{SymbolNumberExtractor, SymbolExtractor}
+import ru.itclover.streammachine.http.utils.ImplicitUtils._
 
 
 object PatternsSearchStages {
-  def findInRows(stream: DataStream[Row], inputConf: InputConf, patterns: Seq[RawPattern], rowSchema: RowSchema)
+
+  // TODO Event type param (after external DSL)
+  def findInRows(stream: DataStream[Row], inputConf: InputConf[Row], patterns: Seq[RawPattern], rowSchema: RowSchema)
                 (implicit rowTypeInfo: TypeInformation[Row], streamEnv: StreamExecutionEnvironment) =
-  inputConf.fieldsTypesInfo flatMap { fieldsTypesInfo =>
-    val fieldsIdxMap = fieldsTypesInfo.map(_._1).zipWithIndex.toMap // For mapping to Row indexes
-    val timeInd = fieldsIdxMap(inputConf.datetimeFieldName)
-
-    implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
-      override def apply(event: Row) = event.getField(timeInd).asInstanceOf[Double]
-    }
-    implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
-      override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
-        case d: java.lang.Double => d.doubleValue()
-        case f: java.lang.Float => f.floatValue().toDouble
-        case err => throw new ClassCastException(s"Cannot cast value $err to float or double.")
-      }
-    }
-    implicit val anyExtractor: (Row, Symbol) => Any = (event: Row, name: Symbol) => event.getField(fieldsIdxMap(name))
-
     for {
-      // Try to find free fields for nullIndex excluding time and partitions indexes.
-      nullIndex <- findNullIndex(fieldsIdxMap, timeInd +: inputConf.partitionFieldNames.map(fieldsIdxMap))
-      partitionIndexes = inputConf.partitionFieldNames.map(fieldsIdxMap)
+      fieldsTypesInfo <- inputConf.fieldsTypesInfo
+      fieldsIdxMap = fieldsTypesInfo.map(_._1).zipWithIndex.toMap // For mapping to Row indexes
+      timeExtractor <- inputConf.timeExtractor // TODO: to context bounds of Event (as type-class from routes InputConf)
+      numberExtractor <- inputConf.symbolNumberExtractor
+      anyExtractor <- inputConf.anyExtractor
+      nullField <- findNullField(fieldsIdxMap.keys.toSeq, inputConf.datetimeField +: inputConf.partitionFields)
     } yield {
+      implicit val (timeExt, numberExt, anyExt) = (timeExtractor, numberExtractor, anyExtractor)
+
       val patternsMappers = patterns.map { pattern =>
         def packInMapper = SegmentResultsMapper[Row, Any]() andThen
           new ToRowResultMapper[Row](inputConf.sourceId, rowSchema, pattern)
-        val compilePhase = getPhaseCompiler(pattern.sourceCode, inputConf.datetimeFieldName, fieldsIdxMap)
-        new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0), isTerminal(nullIndex))
-            .asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
+        val compilePhase = getPhaseCompiler(pattern.sourceCode, inputConf.datetimeField, fieldsIdxMap)
+        new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0),
+          isTerminal(fieldsIdxMap(nullField))).asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
       }
-      stream.keyBy(e => partitionIndexes.map(e.getField).mkString)
-            .flatMapAll(patternsMappers)(rowSchema.getTypeInfo)
-            .name("Patterns searching stage")
+      stream
+        .keyBy(e => {
+          val extractor = anyExtractor
+          inputConf.partitionFields.map(extractor(e, _)).mkString
+        })
+        .flatMapAll(patternsMappers)(rowSchema.getTypeInfo)
+        .name("Patterns searching stage")
     }
-  }
 
   private def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int]) =
   { classLoader: ClassLoader =>
@@ -63,11 +57,11 @@ object PatternsSearchStages {
     row.getArity > nullInd && row.getField(nullInd) == null
   }
 
-  private def findNullIndex(fieldsIdxMap: Map[Symbol, Int], excludedIdx: Seq[Int]) = {
-    fieldsIdxMap.find {
-      case (_, ind) => !excludedIdx.contains(ind)
+  private def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
+    allFields.find {
+      field => !excludedFields.contains(field)
     } match {
-      case Some((_, nullInd)) => Right(nullInd)
+      case Some(nullField) => Right(nullField)
       case None =>
         Left(new IllegalArgumentException(s"Fail to compute nullIndex, query contains only date and partition cols."))
     }

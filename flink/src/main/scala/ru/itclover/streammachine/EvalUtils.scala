@@ -45,9 +45,10 @@ object EvalUtils {
     }
   }
 
-  def composePhaseCodeUsingRowExtractors(phaseCode: String, timestampField: Symbol, fieldsIndexesMap: Map[Symbol, Int]) = {
+  def composePhaseCodeUsingRowExtractors(phaseCode: String, tsField: Symbol, fieldsIdxMap: Map[Symbol, Int]) = {
     s"""
        |import java.math.BigInteger
+       |import java.time.Instant
        |import scala.concurrent.duration._
        |import ru.itclover.streammachine.core.Time._
        |import ru.itclover.streammachine.core._
@@ -65,11 +66,11 @@ object EvalUtils {
        |import Predef.{any2stringadd => _, _}
        |import org.apache.flink.types.Row
        |
-       |val fieldsIndexesMap: Map[Symbol, Int] = ${fieldsIndexesMap.toString}
+       |val fieldsIdxMap: Map[Symbol, Int] = ${fieldsIdxMap.toString}
        |
        |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
        |  override def extract(event: Row, symbol: Symbol) = {
-       |    event.getField(fieldsIndexesMap(symbol)) match {
+       |    event.getField(fieldsIdxMap(symbol)) match {
        |      case d: java.lang.Double => d.doubleValue()
        |      case f: java.lang.Float => f.floatValue().toDouble
        |      case err => throw new ClassCastException(s"Cannot cast value $$err to float or double.")
@@ -77,17 +78,18 @@ object EvalUtils {
        |  }
        |}
        |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {
-       |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Int]
+       |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIdxMap(symbol)).asInstanceOf[Int]
        |}
        |implicit val longSymbolExtractor = new SymbolExtractor[Row, Long] {
-       |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIndexesMap(symbol)).asInstanceOf[Long]
+       |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIdxMap(symbol)).asInstanceOf[Long]
        |}
        |implicit val strSymbolExtractor = new SymbolExtractor[Row, String] {
-       |  override def extract(event: Row, symbol: Symbol): String = event.getField(fieldsIndexesMap(symbol)).toString
+       |  override def extract(event: Row, symbol: Symbol): String = event.getField(fieldsIdxMap(symbol)).toString
        |}
        |implicit val timeExtractor: TimeExtractor[Row] = new TimeExtractor[Row] {
-       |  override def apply(v1: Row) = {
-       |    v1.getField(fieldsIndexesMap($timestampField)).asInstanceOf[Double]
+       |  override def apply(event: Row) = event.getField(fieldsIdxMap($tsField)) match {
+       |    case isoTime: String => Instant.parse(isoTime).toEpochMilli / 1000.0
+       |    case epochMillis => epochMillis.asInstanceOf[Double]
        |  }
        |}
        |

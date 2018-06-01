@@ -9,8 +9,8 @@ import akka.http.scaladsl.model.StatusCodes._
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.JsonProtocols
-import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
-import ru.itclover.streammachine.io.output.{ClickhouseOutput, JDBCOutputConf, RowSchema}
+import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
+import ru.itclover.streammachine.io.output.{JDBCOutput, JDBCOutputConf, RowSchema}
 import ru.itclover.streammachine.transformers.{PatternsSearchStages, StreamSources}
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -20,10 +20,10 @@ import ru.itclover.streammachine.utils.Time.timeIt
 import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
 
 
-object JdbcStreamRoute {
+object JdbcStreamRoutes {
   def fromExecutionContext(implicit strEnv: StreamExecutionEnvironment): Reader[ExecutionContextExecutor, Route] =
     Reader { execContext =>
-      new JdbcStreamRoute {
+      new JdbcStreamRoutes {
         implicit val executionContext: ExecutionContextExecutor = execContext
         implicit val streamEnv: StreamExecutionEnvironment = strEnv
       }.route
@@ -31,11 +31,11 @@ object JdbcStreamRoute {
 }
 
 
-trait JdbcStreamRoute extends JsonProtocols {
+trait JdbcStreamRoutes extends JsonProtocols {
   implicit val executionContext: ExecutionContextExecutor
   implicit def streamEnv: StreamExecutionEnvironment
 
-  private val log = Logger[JdbcStreamRoute]
+  private val log = Logger[JdbcStreamRoutes]
 
   val route: Route = path("streamJob" / "from-jdbc" / "to-jdbc" /) {
     entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { patternsRequest =>
@@ -48,7 +48,28 @@ trait JdbcStreamRoute extends JsonProtocols {
         patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns,
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
-        val chOutputFormat = ClickhouseOutput.getOutputFormat(outputConf)
+        val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
+        patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
+        timeIt { streamEnv.execute() }
+      }
+
+      jobIdOrError match {
+        case Right(jobId) => complete(SuccessfulResponse(jobId.hashCode))
+        case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
+      }
+    }
+  } ~ path("streamJob" / "from-influxdb" / "to-jdbc" /) {
+    entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { patternsRequest =>
+      val (inputConf, outputConf, patterns) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patterns)
+      log.info(s"Starting patterns finding with input JDBC conf: `$inputConf`,\nOutput JDBC conf: `$outputConf`\n" +
+        s"patterns codes: `$patterns`")
+
+      val stream = StreamSources.fromInfluxDB(inputConf)
+      val jobIdOrError = for {
+        patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns,
+          outputConf.rowSchema)(stream.dataType, streamEnv)
+      } yield {
+        val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
         patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
         timeIt { streamEnv.execute() }
       }
@@ -59,4 +80,5 @@ trait JdbcStreamRoute extends JsonProtocols {
       }
     }
   }
+
 }

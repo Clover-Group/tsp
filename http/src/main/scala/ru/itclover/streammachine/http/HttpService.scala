@@ -9,7 +9,7 @@ import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.streammachine.http.routes.{JdbcStreamRoute, JdbcToKafkaStreamRoute}
+import ru.itclover.streammachine.http.routes.{JdbcStreamRoutes, JdbcToKafkaStreamRoute}
 
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -32,7 +32,7 @@ trait HttpService extends JsonProtocols {
   private val log = Logger[HttpService]
 
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
-    jdbcBatch <- JdbcStreamRoute.fromExecutionContext
+    jdbcBatch <- JdbcStreamRoutes.fromExecutionContext
     kafkaStream <- JdbcToKafkaStreamRoute.fromExecutionContext
   } yield jdbcBatch ~ kafkaStream
 

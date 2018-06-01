@@ -1,5 +1,7 @@
 package ru.itclover.streammachine.http.utils
 
+import java.util.regex.Pattern
+
 import scala.util.{Failure, Success, Try}
 
 object ImplicitUtils {
@@ -28,6 +30,23 @@ object ImplicitUtils {
       case Success(some) => Right(some)
       case Failure(err) => Left(err.getMessage)
     }
+  }
 
+  implicit class OptionOps[T](val o: Option[T]) extends AnyVal {
+    def toEither[L](whenLeft: => L): Either[L, T] = o match {
+      case Some(s) => Right(s)
+      case None => Left(whenLeft)
+    }
+
+    def toTry(whenFail: => Throwable): Try[T] = o match {
+      case Some(s) => Success(s)
+      case None => Failure(whenFail)
+    }
+  }
+
+  implicit class StringOps(val s: String) extends AnyVal {
+    def replaceLast(regex: String, replacement: String, patternFlags: Int = 0) = {
+        Pattern.compile("(?s)(.*)" + regex, patternFlags).matcher(s).replaceFirst("$1" + replacement)
+    }
   }
 }

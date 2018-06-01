@@ -22,7 +22,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8136
+  val port = 8147
   override implicit val container = new JDBCContainer("yandex/clickhouse-server:latest", port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver", s"jdbc:clickhouse://localhost:$port/default")
 
@@ -31,15 +31,15 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     jdbcUrl = container.jdbcUrl,
     query = "select * from Test.SM_basic_wide",
     driverName = container.driverName,
-    datetimeFieldName = 'datetime,
+    datetimeField = 'datetime,
     eventsMaxGapMs = 60000L,
-    partitionFieldNames = Seq('series_id, 'mechanism_id)
+    partitionFields = Seq('series_id, 'mechanism_id)
   )
 
   val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
 
   val rowSchema = RowSchema('series_storage, 'from,  'to, ('app, 1), 'id, 'timestamp, 'context,
-    inputConf.partitionFieldNames)
+    inputConf.partitionFields)
   val outputConf = JDBCOutputConf("Test.SM_basic_wide_patterns", rowSchema, s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver")
 
@@ -61,6 +61,8 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
+
+
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
@@ -95,6 +97,12 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
       checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 13 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'")
     }
+  }
+
+  override def beforeStop(): Unit = {
+    super.beforeStop()
+    if (!container.connection.isClosed) container.connection.close() else ()
+    container.dockerClient.close()
   }
 }
 

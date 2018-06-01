@@ -6,6 +6,6 @@ import ru.itclover.streammachine.io.output.OutputConf
 trait Request
 
 
-final case class FindPatternsRequest[IN <: InputConf, OUT <: OutputConf]
+final case class FindPatternsRequest[IN <: InputConf[_], OUT <: OutputConf]
 (source: IN, sink: OUT, patterns: Seq[RawPattern])
   extends Request

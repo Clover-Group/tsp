@@ -32,14 +32,14 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
     jdbcUrl = container.jdbcUrl,
     query = "select * from Test.Bigdata_HI",
     driverName = container.driverName,
-    datetimeFieldName = 'dt,
+    datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
-    partitionFieldNames = Seq('stock_num)
+    partitionFields = Seq('stock_num)
   )
 
   val sinkSchema = RowSchema('series_storage,
     'from,  'to, ('app, 1), 'id, 'timestamp, 'context,
-    inputConf.partitionFieldNames)
+    inputConf.partitionFields)
   val outputConf = JDBCOutputConf("Test.SM_basic_wide_patterns", sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default", "ru.yandex.clickhouse.ClickHouseDriver")
 

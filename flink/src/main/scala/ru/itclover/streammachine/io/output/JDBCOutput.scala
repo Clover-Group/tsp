@@ -4,7 +4,7 @@ package ru.itclover.streammachine.io.output
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.java.io.jdbc.JDBCOutputFormat
 
-object ClickhouseOutput {
+object JDBCOutput {
   val log = Logger("ClickhouseOutput")
   val DEFAULT_BATCH_INTERVAL = 1000000
 
