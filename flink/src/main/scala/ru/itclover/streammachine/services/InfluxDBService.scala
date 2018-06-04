@@ -19,6 +19,6 @@ object InfluxDBService {
   }
 
   def makeLimit1Query(query: String) = {
-    query.replaceLast("""LIMIT \d+""", "", Pattern.CASE_INSENSITIVE) + "LIMIT 1"
+    query.replaceLast("""LIMIT \d+""", "", Pattern.CASE_INSENSITIVE) + " LIMIT 1"
   }
 }

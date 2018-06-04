@@ -36,10 +36,11 @@ object PatternsSearchStages {
         new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0),
           isTerminal(fieldsIdxMap(nullField))).asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
       }
+      val partitionFields = inputConf.partitionFields // make job code serializable
       stream
         .keyBy(e => {
-          val extractor = anyExtractor
-          inputConf.partitionFields.map(extractor(e, _)).mkString
+          val extractor = anyExt
+          partitionFields.map(extractor(e, _)).mkString
         })
         .flatMapAll(patternsMappers)(rowSchema.getTypeInfo)
         .name("Patterns searching stage")

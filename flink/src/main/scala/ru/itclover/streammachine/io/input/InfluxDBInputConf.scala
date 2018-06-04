@@ -84,10 +84,12 @@ case class InfluxDBInputConf(sourceId: Int,
     for {
       (_, db) <- connectionAndDb
       result <- Try(db.query(influxQuery))
-      _      <- if (result.hasError) Failure(new InfluxDBException(result.getError)) else Success(())
-
-      firstSeries <- result.getResults.headOption.flatMap(_.getSeries.headOption)
-        .toTry(new InfluxDBException(s"Empty results in query - $query."))
+      _      <- if (result.hasError) Failure(new InfluxDBException(result.getError)) else
+                if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))
+                else Success(())
+      // Safely get first series
+      firstSeries <- result.getResults.headOption.flatMap(r => Option(r.getSeries).flatMap(_.headOption))
+        .toTry(new InfluxDBException(s"Empty results in query - `$query`."))
     } yield firstSeries
   }
 }

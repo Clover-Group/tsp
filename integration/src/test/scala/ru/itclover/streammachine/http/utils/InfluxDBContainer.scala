@@ -18,8 +18,11 @@ class InfluxDBContainer(imageName: String,
                         val portsBindings: List[(Int, Int)] = List.empty,
                         val url: String,
                         val dbName: String,
+                        val userName: String,
+                        val password: String = "",
                         env: Map[String, String] = Map(),
                         command: Seq[String] = Seq(),
+
                         classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
                         waitStrategy: Option[WaitStrategy] = None
                       ) extends SingleContainer[OTCGenericContainer[_]] {
@@ -42,7 +45,7 @@ class InfluxDBContainer(imageName: String,
 
   override def starting()(implicit description: Description): Unit = {
     super.starting()
-    db = InfluxDBService.connectDb(url, dbName, Some("clover"), Some("g29s7qkn")) match {
+    db = InfluxDBService.connectDb(url, dbName, Some(userName), Some(password)) match {
       case Success((_, database)) => database
       case Failure(exception) => throw exception
     }
@@ -55,5 +58,5 @@ class InfluxDBContainer(imageName: String,
 
   def executeQuery(sql: String): QueryResult = db.query(new Query(sql, dbName))
 
-  def executeUpdate(sql: String): QueryResult = db.query(new Query(sql, dbName))
+  def executeUpdate(sql: String): Unit = db.write(sql)
 }
