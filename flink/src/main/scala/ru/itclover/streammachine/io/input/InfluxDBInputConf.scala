@@ -1,7 +1,6 @@
 package ru.itclover.streammachine.io.input
 
 import java.time.Instant
-
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -9,11 +8,11 @@ import org.apache.flink.api.java.io.InfluxDBInputFormat
 import org.apache.flink.types.Row
 import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
-import org.influxdb.impl.TimeUtil
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.services.InfluxDBService
 import ru.itclover.streammachine.http.utils.ImplicitUtils.{OptionOps, RightBiasedEither, TryOps}
+import ru.itclover.streammachine.utils.UtilityTypes.ThrowableOr
 
 
 case class InfluxDBInputConf(sourceId: Int,
@@ -32,10 +31,9 @@ case class InfluxDBInputConf(sourceId: Int,
   val resultTypeInfo: TypeInformation[QueryResult.Result] = TypeInformation.of(dummyResult)
 
 
-  override lazy val fieldsTypesInfo: InputConf.ThrowableOrTypesInfo = (for {
-    (_, db) <- connectionAndDb
+  override lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = (for {
     series <- firstSeries
-    values <- series.getValues.headOption.toTry(new InfluxDBException(s"Empty values in query - $query."))
+    values <- series.getValues.headOption.toTry(whenFail=new InfluxDBException(s"Empty values in query - `$query`."))
   } yield {
     val tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
     val classes = tags.map(_.getClass) ++ values.map(_.getClass)
@@ -90,7 +88,7 @@ case class InfluxDBInputConf(sourceId: Int,
                 else Success(())
       // Safely get first series
       firstSeries <- result.getResults.headOption.flatMap(r => Option(r.getSeries).flatMap(_.headOption))
-        .toTry(new InfluxDBException(s"Empty results in query - `$query`."))
+        .toTry(whenFail=new InfluxDBException(s"Empty results in query - `$query`."))
     } yield firstSeries
   }
 }

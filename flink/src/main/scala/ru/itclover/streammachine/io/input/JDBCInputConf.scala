@@ -2,7 +2,6 @@ package ru.itclover.streammachine.io.input
 
 import java.sql.DriverManager
 
-import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
@@ -10,9 +9,8 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
 import ru.itclover.streammachine.http.utils.ImplicitUtils.TryOps
-import ru.itclover.streammachine.io.input.InputConf.ThrowableOrTypesInfo
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
-
+import ru.itclover.streammachine.utils.UtilityTypes.ThrowableOr
 import scala.util.Try
 
 
@@ -27,7 +25,7 @@ case class JDBCInputConf(sourceId: Int,
                          password: Option[String] = None
                         ) extends InputConf[Row] {
 
-  lazy val fieldsTypesInfo: ThrowableOrTypesInfo = {
+  lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry = Try(Class.forName(driverName))
     val connectionTry = Try(DriverManager.getConnection(jdbcUrl, userName.getOrElse(""), password.getOrElse("")))
     (for {
