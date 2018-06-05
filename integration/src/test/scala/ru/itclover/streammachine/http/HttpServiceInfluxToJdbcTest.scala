@@ -11,7 +11,6 @@ import ru.itclover.streammachine.http.utils.{InfluxDBContainer, JDBCContainer, S
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.streammachine.utils.Files
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 
@@ -25,9 +24,9 @@ class HttpServiceInfluxToJdbcTest extends FlatSpec with SqlMatchers with Scalate
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8138
-  val influxContainer = new InfluxDBContainer("influxdb:1.5", port -> 8086 :: Nil,
-    s"http://localhost:$port", "Test", "default")
+  val influxPort = 8138
+  val influxContainer = new InfluxDBContainer("influxdb:1.5", influxPort -> 8086 :: Nil,
+    s"http://localhost:$influxPort", "Test", "default")
 
   val jdbcPort = 8156
   implicit val jdbcContainer = new JDBCContainer("yandex/clickhouse-server:latest", jdbcPort -> 8123 :: 9072 -> 9000 :: Nil,
@@ -40,7 +39,6 @@ class HttpServiceInfluxToJdbcTest extends FlatSpec with SqlMatchers with Scalate
     url = influxContainer.url,
     query = "select * from SM_basic_wide",
     dbName = influxContainer.dbName,
-    datetimeField = 'time,
     eventsMaxGapMs = 60000L,
     partitionFields = Seq('series_id, 'mechanism_id),
     userName = Some("default")

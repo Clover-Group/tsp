@@ -17,11 +17,12 @@ import ru.itclover.streammachine.http.utils.ImplicitUtils.{OptionOps, RightBiase
 
 
 case class InfluxDBInputConf(sourceId: Int,
-                             dbName: String, url: String,
+                             dbName: String,
+                             url: String,
                              query: String,
-                             datetimeField: Symbol,
                              eventsMaxGapMs: Long,
                              partitionFields: Seq[Symbol],
+                             datetimeField: Symbol = 'time,
                              userName: Option[String] = None,
                              password: Option[String] = None) extends InputConf[Row] {
 
