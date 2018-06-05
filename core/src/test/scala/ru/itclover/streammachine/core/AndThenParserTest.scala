@@ -6,8 +6,8 @@ import ru.itclover.streammachine.phases.CombiningPhases.AndThenParser
 
 class AndThenParserTest extends WordSpec with Matchers {
 
-
-  "AndThenParser" should {
+  // TODO(1)
+  /*"AndThenParser" should {
     "Success followed by Success == Success" in {
       val andThenParser = AndThenParser(alwaysSuccess, alwaysSuccess)
 
@@ -30,6 +30,6 @@ class AndThenParserTest extends WordSpec with Matchers {
 
     "Failure followed by Any == Failure" in {}
 
-  }
+  }*/
 
 }

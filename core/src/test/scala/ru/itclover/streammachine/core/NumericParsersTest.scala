@@ -45,7 +45,7 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
     }
   }
 
-  "Numeric parsers" should {
+  "Numeric phases" should {
     "work for type casting" in {
       import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
       import ru.itclover.streammachine.phases.NumericPhases._
@@ -102,7 +102,7 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
     }
   }
 
-  "abs parser" should {
+  "Abs phase" should {
     "work" in {
       import ru.itclover.streammachine.core.PhaseParser.Functions._
       val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
@@ -114,5 +114,44 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
     }
   }
 
+  "Reduce phase" should {
+    val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
+    val events = for ((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
+
+    "work on min/max, sum reducers for successes" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Reduce(Math.max)(p, p.map(_ * 2.0)),
+        events,
+        Seq(Success(-1.0), Success(-1.0), Success(2.0), Failure("Test"))
+      )
+
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Reduce(_ + _)(p, p.map(_ * 2.0)),
+        events,
+        Seq(Success(-3.0), Success(-3.0), Success(3.0), Failure("Test"))
+      )
+    }
+
+    "not work on mixed arguments e.g. (Stay, Success) and etc" in {
+      val constStay = new ConstResult(Stay: PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]]
+      val constFail = new ConstResult(Failure("Const Failure"): PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]]
+
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => {
+          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]], constStay)
+        },
+        events,
+        Seq(Failure("Test"), Failure("Test"), Failure("Test"), Failure("Test"))
+      )
+
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => {
+          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]], constFail)
+        },
+        events,
+        Seq(Failure("Const Failure"), Failure("Const Failure"), Failure("Const Failure"), Failure("Test"))
+      )
+    }
+  }
 
 }

@@ -37,7 +37,7 @@ package object core {
     override def apply(v1: TimedEvent) = v1.time
   }
 
-  val probe = TestEvent(1, "")
+  val probe = TestingEvent(Success(1))
 
   val t = DateTime.now()
   val times = t.minusMillis(11000) :: t.minusMillis(10000) :: t.minusMillis(9000) :: t.minusMillis(8000) ::
@@ -55,16 +55,15 @@ package object core {
   val fails = for((t, res) <- times.take(failsRes.length).zip(failsRes)) yield TestingEvent(res, t)
 
 
-
-  class ConstantResult(result: PhaseResult[Int]) extends PhaseParser[TestEvent, Unit, Int] {
-    override def apply(v1: TestEvent, v2: Unit): (PhaseResult[Int], Unit) = result -> ()
+  class ConstResult[T](result: PhaseResult[T]) extends PhaseParser[TestingEvent[T], Unit, T] {
+    override def apply(v1: TestingEvent[T], v2: Unit): (PhaseResult[T], Unit) = result -> ()
 
     override def initialState = ()
   }
 
-  val alwaysSuccess = new ConstantResult(Success(0))
-  val alwaysFailure = new ConstantResult(Failure("failed"))
-  val alwaysStay = new ConstantResult(Stay)
+  val alwaysSuccess = new ConstResult(Success(0))
+  val alwaysFailure = new ConstResult(Failure("failed"))
+  val alwaysStay = new ConstResult(Stay)
 
   def fakeMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut]) = FakeMapper[Event, PhaseOut]()
 
