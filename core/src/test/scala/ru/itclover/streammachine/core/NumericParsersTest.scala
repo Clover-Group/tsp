@@ -120,15 +120,15 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
 
     "work on min/max, sum reducers for successes" in {
       checkOnTestEvents(
-        (p: TestPhase[Double]) => Reduce(Math.max)(p, p.map(_ * 2.0)),
+        (p: TestPhase[Double]) => Reduce(Math.max)(p, p.map(_ * 2.0), p.map(_ / 2.0)),
         events,
-        Seq(Success(-1.0), Success(-1.0), Success(2.0), Failure("Test"))
+        Seq(Success(-0.5), Success(-0.5), Success(2.0), Failure("Test"))
       )
 
       checkOnTestEvents(
-        (p: TestPhase[Double]) => Reduce(_ + _)(p, p.map(_ * 2.0)),
+        (p: TestPhase[Double]) => Reduce(_ + _)(p, p.map(_ * 2.0), p.map(_ / 2.0)),
         events,
-        Seq(Success(-3.0), Success(-3.0), Success(3.0), Failure("Test"))
+        Seq(Success(-3.5), Success(-3.5), Success(3.5), Failure("Test"))
       )
     }
 
