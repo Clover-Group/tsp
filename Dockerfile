@@ -4,6 +4,7 @@ MAINTAINER Clover DevOps <devops@itclover.ru>
 ADD ./ /code
 ADD ./docker-app/docker-entrypoint.sh /docker-entrypoint.sh
 
+RUN chmod +x /code/start.sh
 RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /code
