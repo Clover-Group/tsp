@@ -1,6 +1,7 @@
 package ru.itclover.streammachine.http.routes
 
 
+import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
@@ -20,11 +21,9 @@ import ru.itclover.streammachine.http.services.kafka.HttpSchemaRegistryClient
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010
 import ru.itclover.streammachine.utils.Time.timeIt
-
 import scala.concurrent.duration._
 import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
 import ru.itclover.streammachine.serializers.RowAvroSerializer
-
 import scala.util.{Failure, Success}
 
 
@@ -61,7 +60,9 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
 
         HttpSchemaRegistryClient().getSchema(schemaUri) map { schema =>
           val producer = new FlinkKafkaProducer010("localhost:9092", "test", RowAvroSerializer(Map('f1 -> 0), schema))
-          patterns.addSink(producer)
+          patterns.map { case (patternId, pattern) =>
+            pattern.addSink(producer).name(s"Pattern $patternId Kafka writing")
+          }
           timeIt { streamEnv.execute() }
         }
       }
@@ -69,7 +70,10 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
       // ... Pick data,
       jobIdOrError match {
         case Right(job) => onComplete(job) {
-          case Success(jobId) => complete(SuccessfulResponse(jobId.hashCode))
+          case Success(jobResult) => {
+            val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
+            complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+          }
           case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
         }
         case Left(err) => complete(InternalServerError, FailureResponse(5004, err))

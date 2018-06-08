@@ -18,7 +18,8 @@ object PatternsSearchStages {
 
   // TODO Event type param (after external DSL)
   def findInRows(stream: DataStream[Row], inputConf: InputConf[Row], patterns: Seq[RawPattern], rowSchema: RowSchema)
-                (implicit rowTypeInfo: TypeInformation[Row], streamEnv: StreamExecutionEnvironment) =
+                (implicit rowTypeInfo: TypeInformation[Row],
+                 streamEnv: StreamExecutionEnvironment): Either[Throwable, Seq[(String, DataStream[Row])]] =
     for {
       fieldsTypesInfo <- inputConf.fieldsTypesInfo
       fieldsIdxMap = fieldsTypesInfo.map(_._1).zipWithIndex.toMap // For mapping to Row indexes
@@ -33,17 +34,18 @@ object PatternsSearchStages {
         def packInMapper = SegmentResultsMapper[Row, Any]() andThen
           new ToRowResultMapper[Row](inputConf.sourceId, rowSchema, pattern)
         val compilePhase = getPhaseCompiler(pattern.sourceCode, inputConf.datetimeField, fieldsIdxMap)
-        new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0),
-          isTerminal(fieldsIdxMap(nullField))).asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]]
+        (pattern.id, new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0),
+          isTerminal(fieldsIdxMap(nullField))).asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]])
       }
       val partitionFields = inputConf.partitionFields // make job code serializable
-      stream
-        .keyBy(e => {
-          val extractor = anyExt
-          partitionFields.map(extractor(e, _)).mkString
-        })
-        .flatMapAll(patternsMappers)(rowSchema.getTypeInfo)
-        .name("Patterns searching stage")
+      val keyedStream = stream.keyBy(e => {
+        val extractor = anyExt
+        partitionFields.map(extractor(e, _)).mkString
+      })
+      patternsMappers.map { case (patternId, phase) =>
+        // TODO(1): Make in simple flatMapAll
+        (patternId, keyedStream.flatMapAll(Seq(phase))(rowSchema.getTypeInfo).name(s"Pattern `$patternId` search stage"))
+      }
     }
 
   private def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int]) =

@@ -27,10 +27,10 @@ class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
     phaseParser = compilePhaseParser(getRuntimeContext.getUserCodeClassLoader)
   }
 
-  override def apply(event: Event, state: (Seq[PhaseState], Event)) = {
-    val prevRow = state._2
-    val (results, newStates) = if (doProcessOldState(event, prevRow)) {
-      process(event, state._1)
+  override def apply(event: Event, stateAndPrevEvent: (Seq[PhaseState], Event)) = {
+    val prevEvent = stateAndPrevEvent._2
+    val (results, newStates) = if (doProcessOldState(event, prevEvent)) {
+      process(event, stateAndPrevEvent._1)
     } else {
       process(event, Seq.empty) match { case (res, states) =>
         // Heartbeat here for SegmentResultsMapper to split segment if successes stream splitted

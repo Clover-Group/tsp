@@ -1,5 +1,6 @@
 package ru.itclover.streammachine.http.routes
 
+import java.util.concurrent.TimeUnit
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import com.typesafe.scalalogging.Logger
@@ -49,12 +50,17 @@ trait JdbcStreamRoutes extends JsonProtocols {
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
-        patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
+        patterns.map { case (patternId, pattern) =>
+          pattern.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Pattern `$patternId` JDBC writing")
+        }
         timeIt { streamEnv.execute() }
       }
 
       jobIdOrError match {
-        case Right(jobId) => complete(SuccessfulResponse(jobId.hashCode))
+        case Right(jobResult) => {
+          val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
+          complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+        }
         case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
       }
     }
@@ -70,12 +76,17 @@ trait JdbcStreamRoutes extends JsonProtocols {
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
-        patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name("JDBC writing stage")
-        timeIt { streamEnv.execute() }
+        patterns.map { case (patternId, pattern) =>
+          pattern.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Pattern `$patternId` JDBC writing")
+        }
+        streamEnv.execute()
       }
 
       jobIdOrError match {
-        case Right(jobId) => complete(SuccessfulResponse(jobId.hashCode))
+        case Right(jobResult) => {
+          val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
+          complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+        }
         case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
       }
     }

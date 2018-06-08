@@ -9,7 +9,7 @@ import spray.json.{DefaultJsonProtocol, JsonFormat}
 
 
 trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit def sResponseFmt[R: JsonFormat] = jsonFormat1(SuccessfulResponse.apply[R])
+  implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
 
   implicit val jdbcInpConfFmt = jsonFormat(JDBCInputConf.apply, "sourceId", "jdbcUrl", "query", "driverName",
