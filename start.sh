@@ -1,3 +1,3 @@
 #!/bin/bash
 
-env JAVA_OPTS="-Xms2G -Xmx14G" JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8' sbt "http/runMain ru.itclover.streammachine.http.Launcher"
+env JAVA_OPTS="-Xms2G -Xmx4G -XX:+UseParallelOldGC -Xloggc:gc.log -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintTenuringDistribution -XX:+PrintFlagsFinal -XX:+UnlockDiagnosticVMOptions"  sbt "http/runMain ru.itclover.streammachine.http.SMLauncher"
