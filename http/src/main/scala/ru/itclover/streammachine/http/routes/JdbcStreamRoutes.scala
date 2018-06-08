@@ -41,7 +41,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
   val route: Route = path("streamJob" / "from-jdbc" / "to-jdbc" /) {
     entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { patternsRequest =>
       val (inputConf, outputConf, patterns) = (patternsRequest.source, patternsRequest.sink, patternsRequest.patterns)
-      log.info(s"Starting patterns finding with input JDBC conf: `$inputConf`,\nOutput JDBC conf: `$outputConf`\n" +
+      log.info(s"Starting patterns finding job with input JDBC conf: `$inputConf`,\nOutput JDBC conf: `$outputConf`\n" +
         s"patterns codes: `$patterns`")
 
       val jobIdOrError = for {
@@ -53,13 +53,14 @@ trait JdbcStreamRoutes extends JsonProtocols {
         patterns.map { case (patternId, pattern) =>
           pattern.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Pattern `$patternId` JDBC writing")
         }
-        timeIt { streamEnv.execute() }
+        streamEnv.execute()
       }
 
       jobIdOrError match {
         case Right(jobResult) => {
-          val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
-          complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+          val execTimeLog = s"Job execution time - ${jobResult.getNetRuntime(TimeUnit.SECONDS)}sec"
+          log.info(execTimeLog)
+          complete(SuccessfulResponse(jobResult.hashCode, Seq(execTimeLog)))
         }
         case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
       }
@@ -84,8 +85,9 @@ trait JdbcStreamRoutes extends JsonProtocols {
 
       jobIdOrError match {
         case Right(jobResult) => {
-          val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
-          complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+          val execTimeLog = s"Job execution time - ${jobResult.getNetRuntime(TimeUnit.SECONDS)}sec"
+          log.info(execTimeLog)
+          complete(SuccessfulResponse(jobResult.hashCode, Seq(execTimeLog)))
         }
         case Left(err) => failWith(err) // TODO Mb complete(InternalServerError, FailureResponse(5004, err))
       }

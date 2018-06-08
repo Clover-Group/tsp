@@ -63,7 +63,6 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
 
       checkByQuery(610 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 6")
       checkByQuery(996 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4")
-      checkByQuery(610 + 996 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4 or id = 6")
     }
   }
 }

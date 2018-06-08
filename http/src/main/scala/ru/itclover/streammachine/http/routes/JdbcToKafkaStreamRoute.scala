@@ -63,16 +63,16 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
           patterns.map { case (patternId, pattern) =>
             pattern.addSink(producer).name(s"Pattern $patternId Kafka writing")
           }
-          timeIt { streamEnv.execute() }
+          streamEnv.execute()
         }
       }
 
-      // ... Pick data,
       jobIdOrError match {
         case Right(job) => onComplete(job) {
           case Success(jobResult) => {
-            val execTime = jobResult.getNetRuntime(TimeUnit.SECONDS)
-            complete(SuccessfulResponse(jobResult.hashCode, Seq(s"Job execution time - ${execTime}sec")))
+            val execTimeLog = s"Job execution time - ${jobResult.getNetRuntime(TimeUnit.SECONDS)}sec"
+            log.info(execTimeLog)
+            complete(SuccessfulResponse(jobResult.hashCode, Seq(execTimeLog)))
           }
           case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
         }
