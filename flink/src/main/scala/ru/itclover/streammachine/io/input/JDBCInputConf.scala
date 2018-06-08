@@ -22,7 +22,8 @@ case class JDBCInputConf(sourceId: Int,
                          eventsMaxGapMs: Long,
                          partitionFields: Seq[Symbol],
                          userName: Option[String] = None,
-                         password: Option[String] = None
+                         password: Option[String] = None,
+                         parallelism: Option[Int] = None
                         ) extends InputConf[Row] {
 
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {

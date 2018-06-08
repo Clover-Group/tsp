@@ -46,7 +46,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
 
       val jobIdOrError = for {
         stream <- StreamSources.fromJdbc(inputConf)
-        patterns <- PatternsSearchStages.findInRows(stream.setParallelism(20), inputConf, patterns,
+        patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns,
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)

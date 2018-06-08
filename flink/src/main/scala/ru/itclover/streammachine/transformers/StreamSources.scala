@@ -13,7 +13,13 @@ object StreamSources {
 
   def fromJdbc(inputConf: JDBCInputConf)
               (implicit streamEnv: StreamExecutionEnvironment) = inputConf.fieldsTypesInfo map { fTypesInfo =>
-    streamEnv.createInput(inputConf.getInputFormat(fTypesInfo.toArray)).name("JDBC input processing stage")
+    val stream = streamEnv
+      .createInput(inputConf.getInputFormat(fTypesInfo.toArray))
+      .name("JDBC input processing stage")
+    inputConf.parallelism match {
+      case Some(p) => stream.setParallelism(p)
+      case None => stream
+    }
   }
 
   def fromInfluxDB(inputConf: InfluxDBInputConf)

@@ -18,7 +18,7 @@ object FailureResponse {
   def apply(code: Int, ex: Throwable): FailureResponse = {
     val stackTrace = Exceptions.getStackTrace(ex)
     val message = if (ex != null && ex.getCause != null) ex.getCause.getMessage else ex.getMessage
-    FailureResponse(500, "Internal server error", Seq(stackTrace))
+    FailureResponse(500, "Internal server error", Seq(message, stackTrace))
   }
 
   def apply(ex: Throwable): FailureResponse = apply(500, ex)
