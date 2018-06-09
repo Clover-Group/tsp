@@ -12,16 +12,16 @@ ENV JAVA_VERSION_MAJOR=8 \
 ENV JAVA_VERSION = 1.$JAVA_VERSION_MAJOR.0_$JAVA_VERSION_MINOR
 
 RUN yum update -y && \
-yum install -y wget && \
-wget --no-cookies --no-check-certificate \
+RUN yum install -y wget && \
+RUN wget --no-cookies --no-check-certificate \
      --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
      "http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_HASH}/jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm"
 #wget --no-cookies --no-check-certificate \
 #  --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2Ftechnetwork%2Fjava%2Fjavase%2Fdownloads%2Fjre8-downloads-2133155.html; oraclelicense=accept-securebackup-cookie" \
 #  "http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_HASH}/jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm" && \
-yum localinstall -y jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
-rm -f jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
-rm -rf /var/cache/yum
+RUN yum localinstall -y jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
+RUN rm -f jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
+RUN rm -rf /var/cache/yum
 
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
 ENV	JAVA_HOME=/usr/java/jdk$1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR}/
@@ -32,6 +32,6 @@ RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /code
 
-RUN env JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8' sbt "http/compile"
+RUN /code/start.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
