@@ -14,8 +14,8 @@ ENV JAVA_VERSION = 1.$JAVA_VERSION_MAJOR.0_$JAVA_VERSION_MINOR
 RUN yum update -y && \
     yum install -y wget && \
     wget --no-cookies --no-check-certificate \
-     --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
-     "http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_HASH}/jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm"  && \
+      --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" \
+      "http://download.oracle.com/otn-pub/java/jdk/${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-b${JAVA_VERSION_BUILD}/${JAVA_URL_HASH}/jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm"  && \
     yum localinstall -y jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
     rm -f jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
     rm -rf /var/cache/yum
@@ -29,6 +29,6 @@ RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /code
 
-RUN /code/start.sh
+# RUN /code/start.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
