@@ -9,7 +9,7 @@ ENV JAVA_VERSION_MAJOR=8 \
     JAVA_VERSION_BUILD=11 \
     JAVA_URL_HASH=d54c1d3a095b4ff2b6607d096fa80163
 
-ENV JAVA_VERSION = 1.$JAVA_VERSION_MAJOR.0_$JAVA_VERSION_MINOR
+ENV JAVA_VERSION=1.$JAVA_VERSION_MAJOR.0_$JAVA_VERSION_MINOR
 
 RUN yum update -y && \
     yum install -y wget && \
@@ -20,7 +20,7 @@ RUN yum update -y && \
     rm -f jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
     rm -rf /var/cache/yum
 
-ENV	JAVA_HOME=/usr/java/jdk$JAVA_VERSION
+ENV	JAVA_HOME="/usr/java/jdk${JAVA_VERSION}"
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
