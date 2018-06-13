@@ -21,7 +21,7 @@ RUN yum update -y && \
     rm -rf /var/cache/yum
 
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-ENV	JAVA_HOME=/usr/java/jdk$1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR}/
+ENV	JAVA_HOME=/usr/java/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR}/
 
 
 RUN chmod +x /code/start.sh
