@@ -1,17 +1,18 @@
 package ru.itclover.streammachine.aggregators
 
+import scala.Ordering.Implicits._
+import scala.annotation.tailrec
+import scala.collection.{mutable => m}
+import scala.math.Numeric.Implicits._
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
+import ru.itclover.streammachine.http.utils.ImplicitUtils.MutableQueueOps
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
 import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParserLike}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 import ru.itclover.streammachine.phases.TimePhases.Wait
 
-import scala.Ordering.Implicits._
-import scala.annotation.tailrec
-import scala.collection.immutable.Queue
-import scala.math.Numeric.Implicits._
 
 trait AggregatorPhases[Event, S, T] extends PhaseParser[Event, S, T]
 
@@ -21,31 +22,31 @@ object AggregatorPhases {
 
     def avg[Event, S](numeric: PhaseParser[Event, S, Double], window: Window)
                      (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] = {
-      AccumulationPhase(numeric, window, NumericAccumulatedState(window))({
+      AccumulationPhase(numeric, NumericAccumulatedState(window), window)({
         case a: NumericAccumulatedState => a.avg }, "avg")
     }
 
     def sum[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)
                      (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] =
-      AccumulationPhase(numeric, window, NumericAccumulatedState(window))({ case a: NumericAccumulatedState => a.sum }, "sum")
+      AccumulationPhase(numeric, NumericAccumulatedState(window), window)({ case a: NumericAccumulatedState => a.sum }, "sum")
 
     def count[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
                           (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
-      AccumulationPhase(numeric, window, CountAccumulatedState[T](window))({ case a: CountAccumulatedState[T] => a.count }, "count")
+      AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.count }, "count")
 
     def millisCount[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
                              (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
-      AccumulationPhase(numeric, window, CountAccumulatedState[T](window))({ case a: CountAccumulatedState[T] => a.overallTimeMs }, "millisCount")
+      AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.overallTimeMs }, "millisCount")
 
 
     def truthCount[Event, S](boolean: BooleanPhaseParser[Event, S], window: Window)
                             (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Boolean, Long] = {
-      AccumulationPhase(boolean, window, TruthAccumulatedState(window))({ case a: TruthAccumulatedState => a.truthCount }, "truthCount")
+      AccumulationPhase(boolean, TruthAccumulatedState(window), window)({ case a: TruthAccumulatedState => a.truthCount }, "truthCount")
     }
 
     def truthMillisCount[Event, S](boolean: BooleanPhaseParser[Event, S], window: Window)
                                   (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Boolean, Long] = {
-      AccumulationPhase(boolean, window, TruthAccumulatedState(window))({ case a: TruthAccumulatedState => a.truthMillisCount }, "truthMillisCount")
+      AccumulationPhase(boolean, TruthAccumulatedState(window), window)({ case a: TruthAccumulatedState => a.truthMillisCount }, "truthMillisCount")
     }
 
 
@@ -71,7 +72,7 @@ object AggregatorPhases {
   trait AccumulatedState[T] extends Serializable {
     def window: Window
 
-    def queue: Queue[(Time, T)]
+    def queue: m.Queue[(Time, T)]
 
     def startTime: Option[Time] = queue.headOption.map(_._1)
 
@@ -88,58 +89,36 @@ object AggregatorPhases {
     }
   }
 
-  case class CountAccumulatedState[T](window: Window, count: Long = 0L, queue: Queue[(Time, T)] = Queue.empty)
+  case class CountAccumulatedState[T](window: Window, count: Long = 0L, queue: m.Queue[(Time, T)] = m.Queue.empty[(Time, T)])
     extends AccumulatedState[T] {
     override def updated(time: Time, value: T) = {
-      @tailrec
-      def removeOldElementsFromQueue(abs: CountAccumulatedState[T]): CountAccumulatedState[T] =
-        abs.queue.dequeueOption match {
-          case Some(((oldTime, _), newQueue)) if oldTime.plus(window) < time =>
-            removeOldElementsFromQueue(
-              CountAccumulatedState(
-                window = window,
-                count = count - 1,
-                queue = newQueue
-              )
-            )
-          case _ => abs
-        }
-
-      val cleaned = removeOldElementsFromQueue(this)
-
-      CountAccumulatedState(window, cleaned.count + 1, cleaned.queue.enqueue((time, value)))
+      val dropList = queue.dequeueWhile { case (oldTime, _) => oldTime.plus(window) < time }
+      queue.enqueue((time, value))
+      CountAccumulatedState(
+        window = window,
+        count = count - dropList.length + 1,
+        queue = queue
+      )
     }
   }
 
-  case class TruthAccumulatedState(window: Window, truthCount: Long = 0L, queue: Queue[(Time, Boolean)] = Queue.empty)
+  case class TruthAccumulatedState(window: Window, truthCount: Long = 0L, queue: m.Queue[(Time, Boolean)] = m.Queue())
        extends AccumulatedState[Boolean] {
 
     def updated(time: Time, value: Boolean): TruthAccumulatedState = {
-      @tailrec
-      def removeOldElementsFromQueue(abs: TruthAccumulatedState): TruthAccumulatedState =
-        abs.queue.dequeueOption match {
-          case Some(((oldTime, oldVal), newQueue)) if oldTime.plus(window) < time =>
-            removeOldElementsFromQueue(
-              TruthAccumulatedState(
-                window = window,
-                truthCount = if (oldVal) truthCount - 1 else truthCount,
-                queue = newQueue
-              )
-            )
-          case _ => abs
-        }
-
-      val cleaned = removeOldElementsFromQueue(this)
-
-      TruthAccumulatedState(window,
-        truthCount = if (value) cleaned.truthCount + 1 else cleaned.truthCount,
-        queue = cleaned.queue.enqueue((time, value))
+      val dropList = queue.dequeueWhile { case (oldTime, _) => oldTime.plus(window) < time }
+      val droppedTruth = dropList.count { case (_, isTruth) => isTruth }
+      queue.enqueue((time, value))
+      TruthAccumulatedState(
+        window = window,
+        truthCount = truthCount - droppedTruth + (if (value) 1 else 0),
+        queue = queue
       )
     }
 
     def truthMillisCount = queue match {
       // if queue contains 2 and more elements
-      case Queue((aTime, aVal), (bTime, _), _*) => {
+      case m.Queue((aTime, aVal), (bTime, _), _*) => {
         // If first value is true - add time between it and next value to time accumulator or it won't be accounted
         val firstGapMs = if (aVal) bTime.toMillis - aTime.toMillis else 0L
         val (overallMs, _) = queue.foldLeft((firstGapMs, aTime)) {
@@ -157,50 +136,34 @@ object AggregatorPhases {
 
 
 
-  case class NumericAccumulatedState(window: Window, sum: Double = 0d, count: Long = 0l, queue: Queue[(Time, Double)] = Queue.empty)
+  case class NumericAccumulatedState(window: Window, sum: Double = 0d, count: Long = 0l,
+                                     queue: m.Queue[(Time, Double)] = m.Queue.empty)
        extends AccumulatedState[Double] {
 
     def updated(time: Time, value: Double): NumericAccumulatedState = {
-
-      @tailrec
-      def removeOldElementsFromQueue(as: NumericAccumulatedState): NumericAccumulatedState =
-        as.queue.dequeueOption match {
-          case Some(((oldTime, oldValue), newQueue)) if oldTime.plus(window) < time =>
-            removeOldElementsFromQueue(
-              NumericAccumulatedState(
-                window = window,
-                sum = sum - oldValue.toDouble(),
-                count = count - 1,
-                queue = newQueue
-              )
-            )
-          case _ => as
-        }
-
-      val cleaned = removeOldElementsFromQueue(this)
-
-      NumericAccumulatedState(window,
-        sum = cleaned.sum + value.toDouble(),
-        count = cleaned.count + 1,
-        queue = cleaned.queue.enqueue((time, value)))
+      var droppedSum = 0d  // bottleneck-optimization
+      val dropList = queue.dequeueWhile { case (oldTime, dropVal) =>
+        val doDrop = oldTime.plus(window) < time
+        if (doDrop) droppedSum += dropVal else ()
+        doDrop
+      }
+      queue.enqueue((time, value))
+      NumericAccumulatedState(
+        window = window,
+        sum = sum - droppedSum + value,
+        count = count - dropList.length + 1,
+        queue = queue
+      )
     }
 
     def avg: Double = {
-      assert(count != 0, "Illegal state!") // it should n't be called on empty state
+      assert(count != 0, "Illegal state: avg shouldn't be called on empty state.")
       sum / count
     }
   }
 
-
-  /**
-    * PhaseParser collecting average value within window
-    *
-    * @param innerPhase - function to extract value of collecting field from event
-    * @param accumulator - state to gather
-    * @tparam AccumOut type of accumulating elements
-    */
   case class AccumulationPhase[Event, InnerState, AccumOut, Out]
-      (innerPhase: PhaseParser[Event, InnerState, AccumOut], window: Window, accumulator: AccumulatedState[AccumOut])
+      (innerPhase: PhaseParser[Event, InnerState, AccumOut], window: Window, accumulator: () => AccumulatedState[AccumOut])
       (extractResult: AccumulatedState[AccumOut] => Out, extractorName: String)
       (implicit timeExtractor: TimeExtractor[Event])
     extends AggregatorPhases[Event, (InnerState, AccumulatedState[AccumOut]), Out] {
@@ -209,27 +172,28 @@ object AggregatorPhases {
       (PhaseResult[Out], (InnerState, AccumulatedState[AccumOut])) =
     {
       val time = timeExtractor(event)
-      val (oldInnerState, oldAverageState) = oldState
+      val (oldInnerState, oldAccumState) = oldState
       val (innerResult, newInnerState) = innerPhase(event, oldInnerState)
 
       innerResult match {
         case Success(t) => {
-          val newAverageState = oldAverageState.updated(time, t)
+          val newAccumState = oldAccumState.updated(time, t)
 
-          val newAverageResult = newAverageState.startTime match {
-            case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAverageState))
+          val newAccumResult = newAccumState.startTime match {
+            case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
             case _ => Stay
           }
 
-          newAverageResult -> (newInnerState -> newAverageState)
+          newAccumResult -> (newInnerState -> newAccumState)
         }
         case f@Failure(msg) =>
-          Failure(msg) -> (newInnerState -> oldAverageState)
-        case Stay => Stay -> (newInnerState -> oldAverageState)
+          Failure(msg) -> (newInnerState -> oldAccumState)
+        case Stay => Stay ->
+          (newInnerState -> oldAccumState)
       }
     }
 
-    override def initialState: (InnerState, AccumulatedState[AccumOut]) = innerPhase.initialState -> accumulator
+    override def initialState: (InnerState, AccumulatedState[AccumOut]) = innerPhase.initialState -> accumulator()
 
     override def format(event: Event, state: (InnerState, AccumulatedState[AccumOut])) = if (state._2.hasState) {
       s"$extractorName(${innerPhase.format(event, state._1)})=${extractResult(state._2)}"
@@ -238,9 +202,17 @@ object AggregatorPhases {
     }
   }
 
+  object AccumulationPhase {
+    def apply[Event, InnerState, AccumOut, Out]
+             (inner: PhaseParser[Event, InnerState, AccumOut], accumulator: => AccumulatedState[AccumOut], window: Window)
+             (extractResult: AccumulatedState[AccumOut] => Out, extractorName: String)
+             (implicit timeExtractor: TimeExtractor[Event]) =
+      new AccumulationPhase(inner, window, () => accumulator)(extractResult, extractorName)(timeExtractor)
+  }
 
 
-  //todo MinParser, MaxParser, CountParser, MedianParser, ConcatParser, Timer
+
+  //todo MinParser, MaxParser, MedianParser, ConcatParser, Timer
 
   case class PreviousValue[Event, State, Out](innerPhase: PhaseParser[Event, State, Out])
     extends AggregatorPhases[Event, State And Option[Out], Out] {

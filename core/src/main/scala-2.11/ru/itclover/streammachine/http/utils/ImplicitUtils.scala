@@ -2,6 +2,7 @@ package ru.itclover.streammachine.http.utils
 
 import java.util.regex.Pattern
 
+import scala.collection.mutable
 import scala.util.{Failure, Success, Try}
 
 object ImplicitUtils {
@@ -46,7 +47,29 @@ object ImplicitUtils {
 
   implicit class StringOps(val s: String) extends AnyVal {
     def replaceLast(regex: String, replacement: String, patternFlags: Int = 0) = {
-        Pattern.compile("(?s)(.*)" + regex, patternFlags).matcher(s).replaceFirst("$1" + replacement)
+      Pattern.compile("(?s)(.*)" + regex, patternFlags).matcher(s).replaceFirst("$1" + replacement)
+    }
+  }
+
+  // todo extract to sep. file
+  implicit class MutableQueueOps[A](val queue: mutable.Queue[A]) extends AnyVal {
+
+    /**
+      * Dequeue first elements while predicate succeeding and don'd bother with rest of queue
+      * once predicate become `false` (in opposite to [[mutable.Queue.dequeueAll]])
+      * @return seq of dropped elements
+      */
+    def dequeueWhile(predicate: A => Boolean): Seq[A] = {
+      val deqList = mutable.ArrayBuffer.empty[A]
+      if (queue.nonEmpty) {
+        for (item <- queue) {
+          if (predicate(item))
+            deqList.append(queue.dequeue())
+          else
+            return deqList
+        }
+      }
+      deqList
     }
   }
 }
