@@ -20,15 +20,13 @@ RUN yum update -y && \
     rm -f jdk-${JAVA_VERSION_MAJOR}u${JAVA_VERSION_MINOR}-linux-x64.rpm && \
     rm -rf /var/cache/yum
 
+ENV	JAVA_HOME=/usr/java/jdk$JAVA_VERSION/
+
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-ENV	JAVA_HOME=/usr/java/jdk1.${JAVA_VERSION_MAJOR}.0_${JAVA_VERSION_MINOR}/
-
-
-RUN chmod +x /code/start.sh
-RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /code
 
-# RUN /code/start.sh
+RUN chmod +x /code/compile.sh
+RUN chmod +x /docker-entrypoint.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
