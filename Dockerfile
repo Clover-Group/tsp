@@ -4,6 +4,9 @@ MAINTAINER Clover DevOps <devops@itclover.ru>
 ADD ./ /code
 ADD ./docker-app/docker-entrypoint.sh /docker-entrypoint.sh
 
+
+### JVM setup
+
 ENV JAVA_VERSION_MAJOR=8 \
     JAVA_VERSION_MINOR=131 \
     JAVA_VERSION_BUILD=11 \
@@ -23,11 +26,15 @@ RUN yum update -y && \
 ENV	JAVA_HOME="/usr/java/jdk${JAVA_VERSION}"
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
+
 RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.repo
 
 WORKDIR /code
 
 RUN chmod +x /code/compile.sh
+RUN chmod +x /code/start.sh
 RUN chmod +x /docker-entrypoint.sh
+
+RUN /code/compile.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
