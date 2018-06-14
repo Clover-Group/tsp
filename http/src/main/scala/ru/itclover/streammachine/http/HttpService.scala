@@ -22,11 +22,11 @@ import ru.yandex.clickhouse.except.ClickHouseException
 trait HttpService extends JsonProtocols {
   val isDebug = true
   val isHideExceptions = ConfigFactory.load().getBoolean("general.is-hide-exceptions")
-  val executionContext: ExecutionContextExecutor
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   implicit val streamEnvironment: StreamExecutionEnvironment
+  implicit val executionContext: ExecutionContextExecutor
 
   private val log = Logger[HttpService]
 
