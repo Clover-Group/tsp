@@ -15,7 +15,7 @@ trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jdbcInpConfFmt = jsonFormat(JDBCInputConf.apply, "sourceId", "jdbcUrl", "query", "driverName",
     "datetimeField", "eventsMaxGapMs", "partitionFields", "userName", "password", "parallelism")
   implicit val influxInpConfFmt = jsonFormat(InfluxDBInputConf.apply, "sourceId", "dbName", "url",
-    "query", "eventsMaxGapMs", "partitionFields", "datetimeFields", "userName", "password")
+    "query", "eventsMaxGapMs", "partitionFields", "datetimeField", "userName", "password")
 
   implicit val rowSchemaFmt = jsonFormat(RowSchema.apply, "sourceIdField", "fromTsField", "toTsField",
     "appIdFieldVal", "patternIdField", "processingTsField", "contextField", "forwardedFields")
