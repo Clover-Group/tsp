@@ -10,7 +10,6 @@ import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.routes.{JdbcStreamRoutes, JdbcToKafkaStreamRoute}
-
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import com.typesafe.scalalogging.Logger
@@ -37,7 +36,10 @@ trait HttpService extends JsonProtocols {
   } yield jdbcBatch ~ kafkaStream
 
   def route: Route = handleErrors {
-    composeRoutes.run(executionContext)
+    composeRoutes.run(executionContext).andThen { futureRoute =>
+      futureRoute.onComplete { _ => System.gc() } // perform full GC after each route
+      futureRoute
+    }
   }
 
 
