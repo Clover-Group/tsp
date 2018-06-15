@@ -19,7 +19,7 @@ object PatternsSearchStages {
   // TODO Event type param (after external DSL)
   def findInRows(stream: DataStream[Row], inputConf: InputConf[Row], patterns: Seq[RawPattern], rowSchema: RowSchema)
                 (implicit rowTypeInfo: TypeInformation[Row],
-                 streamEnv: StreamExecutionEnvironment): Either[Throwable, Seq[(String, DataStream[Row])]] =
+                 streamEnv: StreamExecutionEnvironment): Either[Throwable, DataStream[Row]] =
     for {
       fieldsTypesInfo <- inputConf.fieldsTypesInfo
       fieldsIdxMap = fieldsTypesInfo.map(_._1).zipWithIndex.toMap // For mapping to Row indexes
@@ -42,10 +42,12 @@ object PatternsSearchStages {
         val extractor = anyExt
         partitionFields.map(extractor(e, _)).mkString
       })
-      patternsMappers.map { case (patternId, phase) =>
+
+      keyedStream.flatMapAll(patternsMappers.map(_._2))(rowSchema.getTypeInfo).name(s"Patterns search stage")
+      /*patternsMappers.map { case (patternId, phase) =>
         // TODO(1): Make in simple flatMapAll
         (patternId, keyedStream.flatMapAll(Seq(phase))(rowSchema.getTypeInfo).name(s"Pattern `$patternId` search stage"))
-      }
+      }*/
     }
 
   private def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int]) =

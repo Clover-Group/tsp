@@ -60,9 +60,10 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
         val schemaUri = "http://localhost:8081/schemas/ids/1"
         HttpSchemaRegistryClient().getSchema(schemaUri) map { schema =>
           val producer = new FlinkKafkaProducer010("localhost:9092", "test", RowAvroSerializer(Map('f1 -> 0), schema))
-          patterns.map { case (patternId, pattern) =>
+          patterns.addSink(producer).name(s"Patterns Kafka writing")
+          /*patterns.map { case (patternId, pattern) =>
             pattern.addSink(producer).name(s"Pattern $patternId Kafka writing")
-          }
+          }*/
           streamEnv.execute()
         }
       }

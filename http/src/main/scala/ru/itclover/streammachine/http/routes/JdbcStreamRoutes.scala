@@ -49,7 +49,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
         patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns,
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
-        val resultStream = patterns.head._2.union(patterns.tail.map(_._2) :_*)
+        val resultStream = patterns/*.head._2.union(patterns.tail.map(_._2) :_*)*/
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
         resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Writing patterns via JDBC")
         streamEnv.execute()
@@ -75,7 +75,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
         patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns,
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
-        val resultStream = patterns.head._2.union(patterns.tail.map(_._2) :_*)
+        val resultStream = patterns/*.head._2.union(patterns.tail.map(_._2) :_*)*/
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
         resultStream.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Writing patterns via JDBC")
         streamEnv.execute()
