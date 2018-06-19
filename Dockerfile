@@ -12,12 +12,6 @@ RUN chmod +x /code/compile.sh
 RUN chmod +x /code/start.sh
 RUN chmod +x /docker-entrypoint.sh
 
-RUN wget https://www.yourkit.com/download/docker/YourKit-JavaProfiler-2018.04-docker.zip -P /tmp/ && \
-  unzip /tmp/YourKit-JavaProfiler-2018.04-docker.zip -d /usr/local && \
-  rm /tmp/YourKit-JavaProfiler-2018.04-docker.zip
-
-EXPOSE 10001
-
 RUN /code/compile.sh
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
