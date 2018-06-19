@@ -44,10 +44,6 @@ object PatternsSearchStages {
       })
 
       keyedStream.flatMapAll(patternsMappers.map(_._2))(rowSchema.getTypeInfo).name(s"Patterns search stage")
-      /*patternsMappers.map { case (patternId, phase) =>
-        // TODO(1): Make in simple flatMapAll
-        (patternId, keyedStream.flatMapAll(Seq(phase))(rowSchema.getTypeInfo).name(s"Pattern `$patternId` search stage"))
-      }*/
     }
 
   private def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int]) =

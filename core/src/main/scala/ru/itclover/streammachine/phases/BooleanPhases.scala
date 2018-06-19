@@ -37,7 +37,7 @@ object BooleanPhases {
 
     def ===[S2](right: PhaseParser[Event, S2, T]) = EqualParser(this.parser, right)
 
-    def !=[S2](right: PhaseParser[Event, S2, T]) = NonEqualParser(this.parser, right)
+    def =!=[S2](right: PhaseParser[Event, S2, T]) = NonEqualParser(this.parser, right)
 
     //todo should it be re-written to accept PhaseParser[?, ?, Set[?]] ?
     def in(set: Set[T]) = InParser(this.parser, set)
