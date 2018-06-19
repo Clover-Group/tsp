@@ -78,10 +78,18 @@ object EvalUtils {
        |  }
        |}
        |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {
-       |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIdxMap(symbol)).asInstanceOf[Int]
+       |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIdxMap(symbol)) match {
+       |    case value: java.lang.Integer => value.intValue()
+       |    case value =>
+       |      throw new ClassCastException(s"Cannot cast value `$$value` from `$${value.getClass.getSimpleName}` to Int")
+       |  }
        |}
        |implicit val longSymbolExtractor = new SymbolExtractor[Row, Long] {
-       |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIdxMap(symbol)).asInstanceOf[Long]
+       |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIdxMap(symbol)) match {
+       |    case value: java.lang.Long => value.longValue()
+       |    case value =>
+       |      throw new ClassCastException(s"Cannot cast value `$$value` from `$${value.getClass.getSimpleName}` to Long")
+       |  }
        |}
        |implicit val strSymbolExtractor = new SymbolExtractor[Row, String] {
        |  override def extract(event: Row, symbol: Symbol): String = event.getField(fieldsIdxMap(symbol)).toString
