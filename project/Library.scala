@@ -47,7 +47,6 @@ object Library {
 
   val influx = Seq(
     "org.influxdb" % "influxdb-java" % Version.influx,
-    "com.paulgoldbaum" %% "scala-influxdb-client" % Version.influxCli,
     "com.github.miwurster" % "flink-influxdb" % Version.influxFlink
   )
   val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)

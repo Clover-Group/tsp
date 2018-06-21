@@ -3,7 +3,7 @@
 set -e
 
 if [ "$1" = 'start' ]; then
-	./start.sh
+	./start-jar.sh
 
 else
   exec "$@"

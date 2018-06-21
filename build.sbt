@@ -1,72 +1,88 @@
-resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 
-name := "StreamMachine"
+/*** Settings ***/
 
-version := "0.1-SNAPSHOT"
+name  := "StreamMachine"
+organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 
-organization := "ru.itclover"
-
-scalaVersion in ThisBuild := "2.11.8"
-
-lazy val root = (project in file("."))
-  .aggregate(core, config, http, flinkConnector, spark)
-
-mainClass in assembly := Some("Job")
+version in ThisBuild := IO.read(file("./VERSION"))
+scalaVersion in ThisBuild := "2.11.12"
+resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
+    "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 
 // make run command include the provided dependencies
-//run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
+run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
-// exclude Scala library from assembly
-assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
+val launcher = Some("ru.itclover.streammachine.http.Launcher")
 
-// Improved type inference via the fix for SI-2712 (for Cats dep.)
-scalacOptions ++= Seq("-Ypartial-unification")
+lazy val commonSettings = Seq(
+  // Improved type inference via the fix for SI-2712 (for Cats dep.)
+  scalacOptions ++= Seq("-Ypartial-unification")
+)
+
+lazy val assemblySettings = Seq(
+  assemblyJarName := s"StreamMachine_v${version.value}.jar",
+  test := {}
+)
+
+
+/*** Projects configuration ***/
+
+lazy val root = (project in file("."))
+  .settings(commonSettings)
+  .aggregate(core, config, http, flinkConnector, spark)
 
 lazy val core = project.in(file("core"))
-  .settings(libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging ++ Library.config)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging ++ Library.config
+  )
 
 lazy val config = project.in(file("config"))
+  .settings(commonSettings)
   .dependsOn(core)
 
 lazy val flinkConnector = project.in(file("flink"))
+  .settings(commonSettings)
   .settings(
-    libraryDependencies
-      ++= Library.twitterUtil
-      ++ Library.flink
-      ++ Library.scalaTest
-      ++ Library.dbDrivers
-      ++ Library.kafka
-      ++ Library.jackson
-      ++ Library.cats
+    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
+      ++ Library.kafka ++ Library.jackson ++ Library.cats
   )
   .dependsOn(core, config)
 
 lazy val http = project.in(file("http"))
-  .settings(libraryDependencies ++=
-    Library.scalaTest ++ Library.flink ++ Library.akka ++ Library.akkaHttp ++ Library.twitterUtil)
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
+      Library.akkaHttp ++ Library.twitterUtil
+  )
   .dependsOn(core, config, flinkConnector)
 
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(flinkConnector).settings(
-  // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
-  libraryDependencies := (libraryDependencies in flinkConnector).value.map {
-    module =>
+lazy val integration = project.in(file("integration"))
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
+  )
+  .dependsOn(core, flinkConnector, http, config)
+
+lazy val spark = project.in(file("spark"))
+  .settings(commonSettings)
+  .settings(
+    fork in run := true,
+    libraryDependencies ++= Library.sparkStreaming
+  )
+  .dependsOn(core, config)
+
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
+  .settings(commonSettings)
+  .settings(
+    // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
+    libraryDependencies := (libraryDependencies in flinkConnector).value.map { module =>
       if (module.configurations.contains("provided")) {
         module.withConfigurations(configurations = None)
       } else {
         module
       }
-  },
-  mainClass in(Compile, run) := Some("ru.itclover.streammachine.RulesDemo")
-)
-
-lazy val integration = project.in(file("integration"))
-  .settings(libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers)
-  .dependsOn(core, flinkConnector, http, config)
-
-lazy val spark = project.in(file("spark"))
-  .settings(
-    fork in run := true,
-    libraryDependencies ++= Library.sparkStreaming)
-  .dependsOn(core, config)
-
-run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
+    },
+    mainClass := launcher,
+    inTask(assembly)(assemblySettings)
+  )

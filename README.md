@@ -11,7 +11,8 @@ Installation
 ------------
 
 1. Install sbt 1.0+
-2. run `./start.sh` (Linux)
+2. Run `./compile-jar.sh`
+2. Run `./start-jar.sh`
 
 Writing patterns
 ----------------
