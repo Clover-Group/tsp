@@ -7,6 +7,7 @@ import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInp
 import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.types.Row
+import scala.collection.mutable
 
 
 object StreamSources {
@@ -25,15 +26,21 @@ object StreamSources {
   def fromInfluxDB(inputConf: InfluxDBInputConf)
                 (implicit streamEnv: StreamExecutionEnvironment): DataStream[Row] = {
     streamEnv.createInput(inputConf.getInputFormat)(inputConf.resultTypeInfo)
-      .flatMap(queryResult => for {  // extract Flink.rows form series of points
-        series <- queryResult.getSeries
-        valueSet <- series.getValues
-      } yield {
-        val tags = if (series.getTags != null) series.getTags else new util.HashMap[String, String]()
-        val row = new Row(tags.size() + valueSet.size())
-        tags.toSeq.sortBy(_._1).zipWithIndex.foreach { case ((_, tag), ind) => row.setField(ind, tag) }
-        valueSet.zipWithIndex.foreach { case (value, ind) => row.setField(ind, value) }
-        row
+      .flatMap(queryResult => {
+        // extract Flink.rows form series of points
+        if (queryResult == null || queryResult.getSeries == null) {
+          mutable.Buffer[Row]()
+        }
+        else for {
+          series <- queryResult.getSeries
+          valueSet <- series.getValues
+        } yield {
+          val tags = if (series.getTags != null) series.getTags else new util.HashMap[String, String]()
+          val row = new Row(tags.size() + valueSet.size())
+          tags.toSeq.sortBy(_._1).zipWithIndex.foreach { case ((_, tag), ind) => row.setField(ind, tag) }
+          valueSet.zipWithIndex.foreach { case (value, ind) => row.setField(ind, value) }
+          row
+        }
       })
       .name("InfluxDB input processing stage")
   }

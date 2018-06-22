@@ -84,8 +84,8 @@ case class InfluxDBInputConf(sourceId: Int,
       (_, db) <- connectionAndDb
       result <- Try(db.query(influxQuery))
       _      <- if (result.hasError) Failure(new InfluxDBException(result.getError)) else
-                if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))
-                else Success(())
+                  if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))
+                  else Success(())
       // Safely get first series
       firstSeries <- result.getResults.headOption.flatMap(r => Option(r.getSeries).flatMap(_.headOption))
         .toTry(whenFail=new InfluxDBException(s"Empty results in query - `$query`."))
