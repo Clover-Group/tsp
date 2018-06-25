@@ -26,16 +26,17 @@ object AggregatorPhases {
         case a: NumericAccumulatedState => a.avg }, "avg")
     }
 
-    def sum[Event, S](numeric: NumericPhaseParser[Event, S], window: Window)
-                     (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] =
+    def sum[Event, S, T](numeric: NumericPhaseParser[Event, S], window: Window)
+                        (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] =
       AccumulationPhase(numeric, NumericAccumulatedState(window), window)({ case a: NumericAccumulatedState => a.sum }, "sum")
 
     def count[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
-                          (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
+                          (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] = {
       AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.count }, "count")
+    }
 
     def millisCount[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
-                             (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
+                                (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
       AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.overallTimeMs }, "millisCount")
 
 
@@ -55,21 +56,21 @@ object AggregatorPhases {
 
     def delta[Event, S](numeric: NumericPhaseParser[Event, S])
                        (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
-      numeric - PreviousValue(numeric)
+      numeric minus PreviousValue(numeric)
 
     def deltaMillis[Event, S, T](phase: PhaseParser[Event, S, T])
                                 (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
-      CurrentTimeMs(phase) - PreviousTimeMs(phase)
+      CurrentTimeMs(phase) minus PreviousTimeMs(phase)
 
 
   }
 
-  case class Segment(from: Time, to: Time) extends Serializable
+  case class Segment(from: Time, to: Time) extends Serializable // TODO to packege object
 
   type ValueAndTime = Double And Time
 
 
-  trait AccumulatedState[T] extends Serializable {
+  trait AccumulatedState[T] extends Serializable { // To sep file
     def window: Window
 
     def queue: m.Queue[(Time, T)]
@@ -89,6 +90,7 @@ object AggregatorPhases {
     }
   }
 
+  // TODO T -> Unit
   case class CountAccumulatedState[T](window: Window, count: Long = 0L, queue: m.Queue[(Time, T)] = m.Queue.empty[(Time, T)])
     extends AccumulatedState[T] {
     override def updated(time: Time, value: T) = {
@@ -119,7 +121,8 @@ object AggregatorPhases {
     def truthMillisCount = queue match {
       // if queue contains 2 and more elements
       case m.Queue((aTime, aVal), (bTime, _), _*) => {
-        // If first value is true - add time between it and next value to time accumulator or it won't be accounted
+        // If first value is true - add time between it and next value to time accumulator
+        // (or it won't be accounted in consequent foldLeft)
         val firstGapMs = if (aVal) bTime.toMillis - aTime.toMillis else 0L
         val (overallMs, _) = queue.foldLeft((firstGapMs, aTime)) {
           case ((sumMs, prevTime), (nextTime, nextVal)) =>
