@@ -56,11 +56,10 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
         stream <- StreamSources.fromJdbc(inputConf)
         patterns <- PatternsSearchStages.findInRows(stream, inputConf, patterns, outputConf.rowSchema)
       } yield {
-        // TODO dehardcode and make by-patterns parallelism
         val schemaUri = "http://localhost:8081/schemas/ids/1"
         HttpSchemaRegistryClient().getSchema(schemaUri) map { schema =>
           val producer = new FlinkKafkaProducer010("localhost:9092", "test", RowAvroSerializer(Map('f1 -> 0), schema))
-          patterns.addSink(producer).name(s"Patterns Kafka writing")
+          patterns.addSink(producer).name(s"Writing patterns to Kafka")
           streamEnv.execute()
         }
       }

@@ -50,7 +50,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
-        patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Writing patterns via JDBC")
+        patterns.writeUsingOutputFormat(chOutputFormat).name(s"Writing patterns via JDBC")
         streamEnv.execute()
       }
 
@@ -75,7 +75,7 @@ trait JdbcStreamRoutes extends JsonProtocols {
           outputConf.rowSchema)(stream.dataType, streamEnv)
       } yield {
         val chOutputFormat = JDBCOutput.getOutputFormat(outputConf)
-        patterns.addSink(new OutputFormatSinkFunction(chOutputFormat)).name(s"Writing patterns via JDBC")
+        patterns.writeUsingOutputFormat(chOutputFormat).name(s"Writing patterns via JDBC")
         streamEnv.execute()
       }
 
