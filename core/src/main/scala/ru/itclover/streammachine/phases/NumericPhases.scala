@@ -15,18 +15,18 @@ object NumericPhases {
   trait NumericPhasesSyntax[Event, S, T] {
     this: WithParser[Event, S, T] =>
 
-    def +[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
-      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.plus(a, b), "+")
+    def plus[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.plus(a, b), "plus")
 
-    def -[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
-      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.minus(a, b), "-")
+    def minus[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.minus(a, b), "minus")
+
+    def times[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.times(a, b), "times")
 
     //todo Failure if b is zero?
-    def /[S2](right: PhaseParser[Event, S2, T])(implicit ev: Fractional[T]) =
-      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.div(a, b), "/")
-
-    def *[S2](right: PhaseParser[Event, S2, T])(implicit ev: Numeric[T]) =
-      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.times(a, b), "*")
+    def div[S2](right: PhaseParser[Event, S2, T])(implicit ev: Fractional[T]) =
+      BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.div(a, b), "div")
   }
 
 

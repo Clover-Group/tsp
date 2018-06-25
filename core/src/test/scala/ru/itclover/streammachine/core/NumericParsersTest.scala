@@ -20,25 +20,25 @@ class NumericParsersTest extends WordSpec with ParserMatchers {
     "work on stay and success events and +, -, *, /" in {
       val b: NumericPhaseParser[TestingEvent[Double], NoState] = ConstantPhases[TestingEvent[Double], Double](10.0)
       checkOnTestEvents(
-        (p: TestPhase[Double]) => p + b,
+        (p: TestPhase[Double]) => p plus b,
         staySuccesses,
         Seq(Success(11.0), Success(11.0), Success(12.0), Success(12.0), Success(11.0), Success(13.0), Failure("Test"), Success(14.0))
       )
 
       checkOnTestEvents(
-        (p: TestPhase[Double]) => p - b,
+        (p: TestPhase[Double]) => p minus b,
         staySuccesses,
         Seq(Success(-9.0), Success(-9.0), Success(-8.0), Success(-8.0), Success(-9.0), Success(-7.0), Failure("Test"), Success(-6.0))
       )
 
       checkOnTestEvents(
-        (p: TestPhase[Double]) => p * b,
+        (p: TestPhase[Double]) => p times b,
         staySuccesses,
         Seq(Success(10.0), Success(10.0), Success(20.0), Success(20.0), Success(10.0), Success(30.0), Failure("Test"), Success(40.0))
       )
 
       checkOnTestEvents(
-        (p: TestPhase[Double]) => p / b,
+        (p: TestPhase[Double]) => p div b,
         staySuccesses,
         Seq(Success(0.1), Success(0.1), Success(0.2), Success(0.2), Success(0.1), Success(0.3), Failure("Test"), Success(0.4))
       )
