@@ -1,10 +1,12 @@
 package ru.itclover.streammachine.http
 
 import akka.actor.ActorSystem
+import akka.event.Logging
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
@@ -16,6 +18,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
 import ru.itclover.streammachine.http.protocols.JsonProtocols
 import ru.itclover.streammachine.utils.Exceptions
+import ru.itclover.streammachine.http.UtilsDirectives.{logRequest, logResponse}
 import ru.yandex.clickhouse.except.ClickHouseException
 
 
@@ -35,7 +38,7 @@ trait HttpService extends JsonProtocols {
     kafkaStream <- JdbcToKafkaStreamRoute.fromExecutionContext
   } yield jdbcBatch ~ kafkaStream
 
-  def route: Route = handleErrors {
+  def route = (logRequestAndResponse & handleErrors) {
     composeRoutes.run(executionContext).andThen { futureRoute =>
       futureRoute.onComplete { _ => System.gc() } // perform full GC after each route
       futureRoute
@@ -43,9 +46,12 @@ trait HttpService extends JsonProtocols {
   }
 
 
+  def logRequestAndResponse: Directive[Unit] = logRequest(log.info(_)) & logResponse(log.info(_))
+
+
   def handleErrors: Directive[Unit] = handleRejections(rejectionsHandler) & handleExceptions(exceptionsHandler)
 
-  def rejectionsHandler: RejectionHandler = RejectionHandler.newBuilder()
+  implicit def rejectionsHandler: RejectionHandler = RejectionHandler.newBuilder()
     .handleNotFound { extractUnmatchedPath { p =>
       complete(NotFound, FailureResponse(404, s"Path not found: `$p`", Seq.empty))
     }}
@@ -62,12 +68,12 @@ trait HttpService extends JsonProtocols {
       complete(InternalServerError, FailureResponse(5003, s"Unknown rejection.", Seq.empty))
     }.result()
 
-  def exceptionsHandler = ExceptionHandler {
+  implicit def exceptionsHandler = ExceptionHandler {
     case ex: ClickHouseException => // TODO Extract from jobs (ADT?)
       val stackTrace = Exceptions.getStackTrace(ex)
       val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
-      val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
-      log.error(error)
+        val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
+        log.error(error)
       complete(InternalServerError, FailureResponse(5001, s"Job execution failure",
         if (!isHideExceptions) Seq(error) else Seq.empty))
     case ex: JobExecutionException =>

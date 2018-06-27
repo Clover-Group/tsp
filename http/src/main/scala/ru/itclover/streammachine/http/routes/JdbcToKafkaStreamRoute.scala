@@ -68,7 +68,6 @@ trait JdbcToKafkaStreamRoute extends JsonProtocols {
         case Right(job) => onComplete(job) {
           case Success(jobResult) => {
             val execTimeLog = s"Job execution time - ${jobResult.getNetRuntime(TimeUnit.SECONDS)}sec"
-            log.info(execTimeLog)
             complete(SuccessfulResponse(jobResult.hashCode, Seq(execTimeLog)))
           }
           case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
