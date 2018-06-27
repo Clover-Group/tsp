@@ -9,23 +9,38 @@ scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 
-// make run command include the provided dependencies
-run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
-
-val launcher = Some("ru.itclover.streammachine.http.Launcher")
+lazy val launcher = "ru.itclover.streammachine.http.Launcher"
 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  scalacOptions ++= Seq("-Ypartial-unification")
+  scalacOptions ++= Seq("-Ypartial-unification") // "-Xmax-classfile-name", "200"
 )
 
 lazy val assemblySettings = Seq(
-  assemblyJarName := s"StreamMachine_v${version.value}.jar",
-  test := {}
+  assemblyJarName := s"StreamMachine_v${version.value}.jar"
 )
+
+// make run command include the provided dependencies (for sbt run)
+run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
 
 /*** Projects configuration ***/
+
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
+  .settings(commonSettings)
+  .settings(
+    // we set all provided dependencies to none, so that they are included in the classpath of mainRunnerZZ
+    libraryDependencies := (libraryDependencies in http).value.map { module =>
+      if (module.configurations.contains("provided")) {
+        module.withConfigurations(configurations = None)
+      } else {
+        module
+      }
+    },
+    mainClass := Some(launcher),
+    inTask(assembly)(assemblySettings)
+  )
+
 
 lazy val root = (project in file("."))
   .settings(commonSettings)
@@ -71,18 +86,3 @@ lazy val spark = project.in(file("spark"))
     libraryDependencies ++= Library.sparkStreaming
   )
   .dependsOn(core, config)
-
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
-  .settings(commonSettings)
-  .settings(
-    // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
-    libraryDependencies := (libraryDependencies in flinkConnector).value.map { module =>
-      if (module.configurations.contains("provided")) {
-        module.withConfigurations(configurations = None)
-      } else {
-        module
-      }
-    },
-    mainClass := launcher,
-    inTask(assembly)(assemblySettings)
-  )
