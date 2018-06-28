@@ -4,10 +4,9 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.phases.CombiningPhases.{And, EitherParser, Or}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 
-class OrParserTest extends WordSpec with Matchers {
+class OrPhaseTest extends WordSpec with Matchers {
 
-  // TODO(1)
-  /*"OrParser" should {
+  "OrParser" should {
     "Failure if both side is failure" in {
       val orPhase = EitherParser(alwaysFailure, alwaysFailure)
 
@@ -17,14 +16,14 @@ class OrParserTest extends WordSpec with Matchers {
     }
 
     "Success if any side is success" in {
-      def orPhaseLeft(right: PhaseParser[TestEvent, Unit, Int]) = EitherParser(alwaysSuccess, right)
+      def orPhaseLeft(right: PhaseParser[TestingEvent[Int], Unit, Int]) = EitherParser(alwaysSuccess, right)
 
-      def orPhaseRight(left: PhaseParser[TestEvent, Unit, Int]) = EitherParser(left, alwaysSuccess)
+      def orPhaseRight(left: PhaseParser[TestingEvent[Int], Unit, Int]) = EitherParser(left, alwaysSuccess)
 
       val results = for (secondResult <- Set(alwaysFailure, alwaysSuccess, alwaysStay);
                          parserFunc <- Set(orPhaseLeft _, orPhaseRight _)
       ) yield {
-        val phase: PhaseParser[TestEvent, Unit And Unit, Int Or Int] = parserFunc(secondResult)
+        val phase = parserFunc(secondResult)
         val (result, _) = phase(probe, phase.initialState)
         result
       }
@@ -43,6 +42,6 @@ class OrParserTest extends WordSpec with Matchers {
           result
       }.foreach(_ shouldBe Stay)
     }
-  }*/
+  }
 
 }

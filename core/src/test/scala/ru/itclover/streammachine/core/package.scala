@@ -8,18 +8,12 @@ import ru.itclover.streammachine.phases.NumericPhases.{NumericPhaseParser, Symbo
 
 package object core {
 
-  case class TestEvent(i: Int, s: String)
-
-  case class TimedEvent(i: Int, time: DateTime)
-
-
   case class TestingEvent[T](result: PhaseResult[T], time: DateTime = DateTime.now())
 
   implicit val doubleTestEvent = new TimeExtractor[TestingEvent[Double]] {
     override def apply(event: TestingEvent[Double]) = event.time
   }
 
-  // TODO collapse
   implicit val boolTestEvent = new TimeExtractor[TestingEvent[Boolean]] {
     override def apply(event: TestingEvent[Boolean]) = event.time
   }
@@ -33,11 +27,17 @@ package object core {
   }
 
 
-  implicit val timeExtractor: TimeExtractor[TimedEvent] = new TimeExtractor[TimedEvent] {
-    override def apply(v1: TimedEvent) = v1.time
+  class ConstResult[T](result: PhaseResult[T]) extends PhaseParser[TestingEvent[T], Unit, T] {
+    override def apply(v1: TestingEvent[T], v2: Unit): (PhaseResult[T], Unit) = result -> ()
+
+    override def initialState: Unit = ()
   }
 
   val probe = TestingEvent(Success(1))
+
+  val alwaysSuccess: PhaseParser[TestingEvent[Int], Unit, Int] = new ConstResult(Success(0))
+  val alwaysFailure: PhaseParser[TestingEvent[Int], Unit, Int] = new ConstResult(Failure("failed"))
+  val alwaysStay: PhaseParser[TestingEvent[Int], Unit, Int] = new ConstResult(Stay)
 
   val t = DateTime.now()
   val times = t.minusMillis(11000) :: t.minusMillis(10000) :: t.minusMillis(9000) :: t.minusMillis(8000) ::
@@ -54,16 +54,6 @@ package object core {
   val failsRes = Seq(Stay, Success(1.0), Failure("Test"), Success(2.0), Failure("Test"), Success(1.0), Stay, Failure("Test"), Success(3.0), Failure("Test"), Stay)
   val fails = for((t, res) <- times.take(failsRes.length).zip(failsRes)) yield TestingEvent(res, t)
 
-
-  class ConstResult[T](result: PhaseResult[T]) extends PhaseParser[TestingEvent[T], Unit, T] {
-    override def apply(v1: TestingEvent[T], v2: Unit): (PhaseResult[T], Unit) = result -> ()
-
-    override def initialState = ()
-  }
-
-  val alwaysSuccess = new ConstResult(Success(0))
-  val alwaysFailure = new ConstResult(Failure("failed"))
-  val alwaysStay = new ConstResult(Stay)
 
   def fakeMapper[Event, PhaseOut](p: PhaseParser[Event, _, PhaseOut]) = FakeMapper[Event, PhaseOut]()
 

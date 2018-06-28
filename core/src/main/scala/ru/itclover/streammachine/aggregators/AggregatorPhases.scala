@@ -118,12 +118,13 @@ object AggregatorPhases {
       )
     }
 
-    def truthMillisCount = queue match {
+    def truthMillisCount: Long = queue match {
       // if queue contains 2 and more elements
       case m.Queue((aTime, aVal), (bTime, _), _*) => {
         // If first value is true - add time between it and next value to time accumulator
         // (or it won't be accounted in consequent foldLeft)
         val firstGapMs = if (aVal) bTime.toMillis - aTime.toMillis else 0L
+        // sum-up millis between neighbour elements
         val (overallMs, _) = queue.foldLeft((firstGapMs, aTime)) {
           case ((sumMs, prevTime), (nextTime, nextVal)) =>
             if (nextVal) (sumMs + nextTime.toMillis - prevTime.toMillis, nextTime)
@@ -183,6 +184,7 @@ object AggregatorPhases {
           val newAccumState = oldAccumState.updated(time, t)
 
           val newAccumResult = newAccumState.startTime match {
+            // Success, if window is fully accumulated (all window time has passed)
             case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
             case _ => Stay
           }

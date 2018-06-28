@@ -14,7 +14,7 @@ import ru.itclover.streammachine.phases.NumericPhases._
 import scala.Predef.{any2stringadd => _, _}
 
 
-class NumericParsersTest extends WordSpec with ParserMatchers {
+class NumericPhaseTest extends WordSpec with ParserMatchers {
 
   "BinaryNumericParser" should {
     "work on stay and success events and +, -, *, /" in {

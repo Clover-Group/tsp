@@ -4,19 +4,15 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
 import ru.itclover.streammachine.phases.CombiningPhases.AndThenParser
 
-class AndThenParserTest extends WordSpec with Matchers {
+class AndThenPhaseTest extends WordSpec with Matchers {
 
-  // TODO(1)
-  /*"AndThenParser" should {
+  "AndThenParser" should {
     "Success followed by Success == Success" in {
       val andThenParser = AndThenParser(alwaysSuccess, alwaysSuccess)
 
       val terminalResults = runRule(andThenParser, Seq(probe, probe))
 
-//      println(terminalResults)
-
       terminalResults shouldNot be(empty)
-//      terminalResults.length shouldEqual 1
       terminalResults.foreach(_ shouldBe a[Success[_]])
     }
 
@@ -27,9 +23,6 @@ class AndThenParserTest extends WordSpec with Matchers {
       terminalResults.foreach(_ shouldBe a[Failure])
 
     }
-
-    "Failure followed by Any == Failure" in {}
-
-  }*/
+  }
 
 }

@@ -14,7 +14,7 @@ import ru.itclover.streammachine.utils.ParserMatchers
 import scala.language.implicitConversions
 
 
-class AccumulatedParsersTest extends WordSpec with ParserMatchers {
+class AccumulatedPhasesTest extends WordSpec with ParserMatchers {
 
   "SumParser" should {
     "work on stay and success events" in {
