@@ -13,7 +13,7 @@ lazy val launcher = "ru.itclover.streammachine.http.Launcher"
 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  scalacOptions ++= Seq("-Ypartial-unification") // "-Xmax-classfile-name", "200"
+  scalacOptions ++= Seq("-Ypartial-unification")
 )
 
 lazy val assemblySettings = Seq(

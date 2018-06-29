@@ -14,8 +14,8 @@ object Version {
   val clickhouse = "0.1.34"
   val flink = "1.5.0"
 
-  val akka = "2.4.20"
-  val akkaHttp = "10.0.11"
+  val akka = "2.5.13"
+  val akkaHttp = "10.1.3"
 
   val cats = "1.0.1"
 

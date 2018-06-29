@@ -36,7 +36,7 @@ object CombiningPhases {
 
     /**
       * Allows easily create AndParser like:
-      * `parser1 and parser2`
+      * `parser1 togetherWith parser2`
       *
       * @param rightParser - phase parser to add.
       * @return new AndParser

@@ -52,9 +52,9 @@ trait AvroJsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
             dataStr.parseJson.asJsObject(mustBeObjErr(dataStr)).getFields("schema").headOption match {
               case Some(JsString(schemaStr)) => schemaStr
               case Some(s) =>
-                throw new ParsingException(ErrorInfo(mustBeObjErr(s.compactPrint)))
+                throw ParsingException(mustBeObjErr(s.compactPrint))
               case None =>
-                throw new ParsingException(ErrorInfo(s"Invalid schema format - not contain `schema` key: `$dataStr`"))
+                throw ParsingException(s"Invalid schema format - not contain `schema` key: `$dataStr`")
             }
           }
         }

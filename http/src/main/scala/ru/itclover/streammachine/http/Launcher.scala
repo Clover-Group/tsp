@@ -19,7 +19,7 @@ object Launcher extends App with HttpService {
   private val isListenStdIn = configs.getBoolean("general.is-follow-input")
   private val log = Logger("Launcher")
 
-  implicit val system: ActorSystem = ActorSystem("my-system")
+  implicit val system: ActorSystem = ActorSystem("StreamMachine-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
