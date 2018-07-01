@@ -62,7 +62,7 @@ object BooleanPhases {
 
       val (res, out) = predicate(event, s)
       (res match {
-        case Success(false) => Failure(s"assert not match for ${predicate.format(event, s)}")
+        case Success(false) => Failure(s"Assert not match")  // TODO make us of Writer of predicate here
         case x => x
       }) -> out
     }
