@@ -53,6 +53,14 @@ object AggregatorPhases {
 
     def lag[Event, S, Out](phase: PhaseParser[Event, S, Out]) = PreviousValue(phase)
 
+    def lag[Event, S, Out](phase: PhaseParser[Event, S, Out], window: Window)
+                          (implicit timeExtractor: TimeExtractor[Event]) =
+      first(phase, window)
+
+    def first[Event, S, T](phase: PhaseParser[Event, S, T], window: Window)
+                          (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, T] = {
+      AccumulationPhase(phase, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.queue.head._2 }, "first")
+    }
 
     def delta[Event, S](numeric: NumericPhaseParser[Event, S])
                        (implicit timeExtractor: TimeExtractor[Event]): NumericPhaseParser[Event, _] =
