@@ -5,7 +5,6 @@ import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.phases.CombiningPhases.And
 import ru.itclover.streammachine.phases.MonadPhases.MapParserLike
-import ru.itclover.streammachine.utils.SpecialisedPhases
 
 object BooleanPhases {
 
