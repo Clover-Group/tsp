@@ -86,11 +86,7 @@ object BooleanPhases {
     override def apply(e: Event, state: (State1, State2)): (PhaseResult[Boolean], (State1, State2)) = {
       val (res, newState) = andParser(e, state)
 
-      (res match {
-        case Success((a, b)) => Success(compare(a, b))
-        case x: Failure => x
-        case Stay => Stay
-      }) -> newState
+      res.map { case (a, b) => compare(a, b) } -> newState
     }
 
     override def aggregate(event: Event, state: (State1, State2)): (State1, State2) = {

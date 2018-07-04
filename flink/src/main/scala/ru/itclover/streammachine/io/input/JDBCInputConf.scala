@@ -66,8 +66,8 @@ case class JDBCInputConf(sourceId: Int,
   implicit lazy val symbolNumberExtractor = errOrFieldsIdxMap.map(fieldsIdxMap =>
     new SymbolNumberExtractor[Row] {
       override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
-        case d: java.lang.Double => d.doubleValue()
-        case f: java.lang.Float => f.floatValue().toDouble
+        case d: java.lang.Double => d
+        case f: java.lang.Float => f.doubleValue()
         case err => throw new ClassCastException(s"Cannot cast value $err to float or double.")
       }
     }
