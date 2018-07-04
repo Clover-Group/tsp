@@ -4,7 +4,7 @@ import java.util
 import collection.JavaConversions._
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
-import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
+import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.types.Row
 import scala.collection.mutable

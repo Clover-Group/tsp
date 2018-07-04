@@ -16,6 +16,23 @@ import scala.language.implicitConversions
 
 class AccumulatedPhasesTest extends WordSpec with ParserMatchers {
 
+  /*"First phase" should {
+    "work on staySuccesses" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => lag(p, 1.seconds),
+        staySuccesses,
+        Seq(Success(1.0), Success(2.0), Success(1.0), Failure("Test"), Failure("Test"))
+      )
+    }
+    "not work on fails" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => lag(p, 1.seconds),
+        fails,
+        (0 until 10).map(_ => Failure(""))
+      )
+    }
+  }*/
+
   "SumParser" should {
     "work on stay and success events" in {
       checkOnTestEvents(

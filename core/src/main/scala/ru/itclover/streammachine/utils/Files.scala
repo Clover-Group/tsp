@@ -1,9 +1,10 @@
 package ru.itclover.streammachine.utils
 
-import ru.itclover.streammachine.http.utils.ImplicitUtils._
+import CollectionsOps._
 import java.io.{File, FileNotFoundException}
 import scala.io.Source
 import scala.util.Try
+
 
 object Files {
   def writeToFile(path: String, content: String): Try[Unit] = {

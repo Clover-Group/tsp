@@ -1,7 +1,6 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
-
 import ru.itclover.streammachine.aggregators.AggregatorPhases.Derivation
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core._
@@ -9,8 +8,8 @@ import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.phases.NumericPhases.SymbolParser
 import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.phases.Phases.Decreasing
-
 import scala.concurrent.duration._
+
 
 object TestApp extends App {
 

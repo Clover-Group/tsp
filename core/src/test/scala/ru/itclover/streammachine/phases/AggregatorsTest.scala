@@ -9,7 +9,6 @@ import ru.itclover.streammachine.core.{PhaseResult, TestPhase, Time, _}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import java.time.Instant
-
 import ru.itclover.streammachine.aggregators.AggregatorPhases._
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParser}

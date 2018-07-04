@@ -7,8 +7,7 @@ import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
-import ru.itclover.streammachine.http.utils.ImplicitUtils.TryOps
+import ru.itclover.streammachine.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.utils.UtilityTypes.ThrowableOr
 import scala.util.Try

@@ -11,7 +11,7 @@ import org.influxdb.dto.{Query, QueryResult}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.streammachine.services.InfluxDBService
-import ru.itclover.streammachine.http.utils.ImplicitUtils.{OptionOps, RightBiasedEither, TryOps}
+import ru.itclover.streammachine.utils.CollectionsOps.{OptionOps, RightBiasedEither, TryOps}
 import ru.itclover.streammachine.utils.UtilityTypes.ThrowableOr
 
 

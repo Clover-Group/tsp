@@ -11,7 +11,7 @@ import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.RowSchema
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 import ru.itclover.streammachine.phases.NumericPhases.{SymbolNumberExtractor, SymbolExtractor}
-import ru.itclover.streammachine.http.utils.ImplicitUtils._
+import ru.itclover.streammachine.utils.CollectionsOps._
 
 
 object PatternsSearchStages {

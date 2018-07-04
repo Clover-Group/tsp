@@ -6,7 +6,7 @@ import scala.collection.{mutable => m}
 import scala.math.Numeric.Implicits._
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
-import ru.itclover.streammachine.http.utils.ImplicitUtils.MutableQueueOps
+import ru.itclover.streammachine.utils.CollectionsOps.MutableQueueOps
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
 import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParserLike}
@@ -30,14 +30,14 @@ object AggregatorPhases {
                         (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] =
       AccumulationPhase(numeric, NumericAccumulatedState(window), window)({ case a: NumericAccumulatedState => a.sum }, "sum")
 
-    def count[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
+    def count[Event, S, T](phase: PhaseParser[Event, S, T], window: Window)
                           (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] = {
-      AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.count }, "count")
+      AccumulationPhase(phase, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.count }, "count")
     }
 
-    def millisCount[Event, S, T](numeric: PhaseParser[Event, S, T], window: Window)
+    def millisCount[Event, S, T](phase: PhaseParser[Event, S, T], window: Window)
                                 (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
-      AccumulationPhase(numeric, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.overallTimeMs }, "millisCount")
+      AccumulationPhase(phase, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.overallTimeMs }, "millisCount")
 
 
     def truthCount[Event, S](boolean: BooleanPhaseParser[Event, S], window: Window)

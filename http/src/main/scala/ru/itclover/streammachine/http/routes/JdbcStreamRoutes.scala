@@ -15,7 +15,7 @@ import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
+import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 
 
 object JdbcStreamRoutes {

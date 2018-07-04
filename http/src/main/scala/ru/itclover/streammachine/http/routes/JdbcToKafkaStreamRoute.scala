@@ -22,7 +22,7 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010
 import ru.itclover.streammachine.utils.Time.timeIt
 import scala.concurrent.duration._
-import ru.itclover.streammachine.http.utils.ImplicitUtils.RightBiasedEither
+import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 import ru.itclover.streammachine.serializers.RowAvroSerializer
 import scala.util.{Failure, Success}
 

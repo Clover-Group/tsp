@@ -5,7 +5,7 @@ import java.util.regex.Pattern
 import okhttp3.OkHttpClient
 import org.influxdb.InfluxDBFactory
 import scala.util.Try
-import ru.itclover.streammachine.http.utils.ImplicitUtils.StringOps
+import ru.itclover.streammachine.utils.CollectionsOps.StringOps
 
 
 object InfluxDBService {
