@@ -16,7 +16,7 @@ import scala.language.implicitConversions
 
 class AccumulatedPhasesTest extends WordSpec with ParserMatchers {
 
-  "First phase" should {
+  /*"First phase" should {
     "work on simple range" in {
       val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0))
       val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
@@ -41,7 +41,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers {
         (0 until 10).map(_ => Failure(""))
       )
     }
-  }
+  }*/
 
   "SumParser" should {
     "work on stay and success events" in {
