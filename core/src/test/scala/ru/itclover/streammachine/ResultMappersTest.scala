@@ -1,13 +1,11 @@
 package ru.itclover.streammachine
 
 import org.scalatest.WordSpec
-import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success, TerminalResult}
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core.{TestPhase, _}
 import ru.itclover.streammachine.utils.ParserMatchers
-
 import scala.concurrent.duration._
 
 

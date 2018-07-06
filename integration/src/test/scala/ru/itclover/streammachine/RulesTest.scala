@@ -1,9 +1,8 @@
 package ru.itclover.streammachine
 
 import java.time.Instant
-
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{Derivation, Segment, ToSegments}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Derivation, ToSegments}
 import ru.itclover.streammachine.phases.NumericPhases._
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TimeInterval, Window}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
@@ -13,10 +12,10 @@ import ru.itclover.streammachine.phases.Phases.{Decreasing, Increasing}
 import ru.itclover.streammachine.http.utils.{Timer => TimerGenerator, _}
 import ru.itclover.streammachine.phases.BooleanPhases.Assert
 import ru.itclover.streammachine.phases.TimePhases.Wait
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration._
 import scala.util.Random
+
 
 case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 

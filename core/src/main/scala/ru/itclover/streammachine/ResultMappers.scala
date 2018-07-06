@@ -1,6 +1,5 @@
 package ru.itclover.streammachine
 
-import ru.itclover.streammachine.aggregators.AggregatorPhases.Segment
 import ru.itclover.streammachine.core.PhaseResult
 import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, timeOrdering}
