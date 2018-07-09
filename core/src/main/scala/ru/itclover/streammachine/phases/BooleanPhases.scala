@@ -8,7 +8,7 @@ import ru.itclover.streammachine.phases.MonadPhases.MapParserLike
 
 object BooleanPhases {
 
-  trait BooleanPhasesSyntax[Event, S, @specialized(Double, Boolean) T] {
+  trait BooleanPhasesSyntax[Event, S, T] {
     this: WithParser[Event, S, T] =>
 
     def >[S2](right: PhaseParser[Event, S2, T])(implicit ord: Ordering[T]) = GreaterParser(this.parser, right)
@@ -75,7 +75,7 @@ object BooleanPhases {
   }
 
 
-  abstract class ComparingParser[Event, State1, State2, @specialized(Double, Boolean) T]
+  abstract class ComparingParser[Event, State1, State2, T]
   (left: PhaseParser[Event, State1, T],
    right: PhaseParser[Event, State2, T])(
     compare: (T, T) => Boolean, compareFnName: String)
@@ -101,22 +101,22 @@ object BooleanPhases {
     }
   }
 
-  case class GreaterParser[Event, State1, State2, @specialized(Double, Boolean) T](left: PhaseParser[Event, State1, T],
+  case class GreaterParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                      right: PhaseParser[Event, State2, T])
                                                     (implicit ord: Ordering[T])
     extends ComparingParser(left, right)((a, b) => ord.gt(a, b), ">")
 
-  case class GreaterOrEqualParser[Event, State1, State2, @specialized(Double, Boolean) T](left: PhaseParser[Event, State1, T],
+  case class GreaterOrEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                             right: PhaseParser[Event, State2, T])
                                                            (implicit ord: Ordering[T])
     extends ComparingParser(left, right)((a, b) => ord.gteq(a, b), ">=")
 
-  case class LessParser[Event, State1, State2, @specialized(Double, Boolean) T](left: PhaseParser[Event, State1, T],
+  case class LessParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                   right: PhaseParser[Event, State2, T])
                                                  (implicit ord: Ordering[T])
     extends ComparingParser(left, right)((a, b) => ord.lt(a, b), "<")
 
-  case class LessOrEqualParser[Event, State1, State2, @specialized(Double, Boolean) T](left: PhaseParser[Event, State1, T],
+  case class LessOrEqualParser[Event, State1, State2, T](left: PhaseParser[Event, State1, T],
                                                          right: PhaseParser[Event, State2, T])
                                                         (implicit ord: Ordering[T])
     extends ComparingParser(left, right)((a, b) => ord.lteq(a, b), "<=")
