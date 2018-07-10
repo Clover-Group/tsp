@@ -41,5 +41,8 @@ class FlatMappersCombinator[In, State: ClassTag, Out](mappers: Seq[RichStatefulF
     }
   }
 
-  override def close(): Unit = mappers.foreach(_.close())
+  override def close(): Unit = {
+    mappers.foreach(_.close())
+    mappersStates = null
+  }
 }

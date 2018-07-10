@@ -44,6 +44,11 @@ class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
     }, (newStates, event))
   }
 
+  override def close(): Unit = {
+    super.close()
+    phaseParser = null
+  }
+
   /** Check is new event from same events time seq */
   def doProcessOldState(currEvent: Event, prevEvent: Event) = {
     if (prevEvent == emptyEvent) true
