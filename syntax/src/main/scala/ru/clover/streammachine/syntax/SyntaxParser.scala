@@ -1,7 +1,7 @@
 package ru.clover.streammachine.syntax
 
 import parseback._
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{AccumulationPhase, NumericAccumulatedState}
+import ru.itclover.streammachine.aggregators.{AccumulationPhase, NumericAccumulatedState}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.{AndParser, GreaterParser, NotParser}
