@@ -31,6 +31,8 @@ object Version {
   val spark = "2.2.1"
 
   val avro = "1.8.2"
+
+  val parseback = "0.3"
 }
 
 
@@ -106,5 +108,10 @@ object Library {
 
   val kafka = Seq(
     "org.apache.avro" % "avro" % Version.avro
+  )
+
+  val parseback = Seq(
+    "com.codecommit" %% "parseback-core" % Version.parseback,
+    "com.codecommit" %% "parseback-cats" % Version.parseback
   )
 }

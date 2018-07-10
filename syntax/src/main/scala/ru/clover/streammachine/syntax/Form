@@ -1,0 +1,29 @@
+
+number := [-+]?\d+(?:\.\d+)
+
+field := 'word
+
+space := " "
+
+periodName := s|ms|sec|second|min|minute|hour|h|day|d|ms|millisecond
+window := $number $periodName
+functionName := avg|min|max|... - can be set externally
+windowFunction := $functionName($numericParser in $window)
+
+numericParser := $number | $field | $windowFunction
+
+сomparator := > | >= | < | <= | == | !=
+numericComparatorParser := $numericParser $comparator $numericParser
+binaryBoolean := and | or | & | \|
+binaryComparatorParser := $booleanPhase $binaryBoolean $booleanPhase
+unaryComparator := ! | not | assert | wait
+unaryComparatorParser := $unaryComparator $booleanPhase
+booleanParser := ( $booleanParser ) | $binaryComparatorParser | $unaryComparatorParser
+
+
+time := timed( < $window) | timed( > $window) | timed($window, $window)
+timedParser := $parser $time
+
+bracketedParser := ( $parser )
+
+parser := $bracketedParser | $booleanParser | $numericParser | $timedParser
