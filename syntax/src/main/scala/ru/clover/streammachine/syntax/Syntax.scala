@@ -9,13 +9,17 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 import shims.syntax.either
 
 object Syntax extends App {
+//
+//  def createParser[Event: TimeExtractor](phaseString: String): Eval[either.\/[List[ParseError], Catenable[PhaseParser[Event, _, _]]]] = {
+//
+//    val input = LineStream[Eval](phaseString)
+//
+//    val parser = new SyntaxParser[Event]()
+//    parser.parseback(input)
+//
+//  }
 
-  def createParser[Event: TimeExtractor](phaseString: String): Eval[either.\/[List[ParseError], Catenable[PhaseParser[Event, _, _]]]] = {
-
-    val input = LineStream[Eval](phaseString)
-
-    val parser = new SyntaxParser[Event]()
-    parser.parseback(input)
-
+  def testParserCreation(): Unit = {
+    val input = LineStream[Eval]("1 + 2 * 3")
   }
 }
