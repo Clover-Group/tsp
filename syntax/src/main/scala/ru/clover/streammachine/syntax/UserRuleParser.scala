@@ -60,9 +60,15 @@ final case class BooleanOperatorExpr(loc: List[Line], op: BooleanOperators.Value
 
 final case class OperatorExpr(loc: List[Line], op: Operators.Value, lhs: Expr, rhs: Expr) extends Expr
 
+final case class TimeRangeExpr(loc: List[Line], lower: TimeLiteral, upper: TimeLiteral, strict: Boolean) extends Expr
+
+final case class RepetitionRangeExpr(loc: List[Line], lower: IntegerLiteral, upper: IntegerLiteral, strict: Boolean) extends Expr
+
 final case class Identifier(loc: List[Line], identifier: String) extends Expr
 
 final case class IntegerLiteral(loc: List[Line], value: Long) extends Expr
+
+final case class TimeLiteral(loc: List[Line], millis: Long) extends Expr
 
 final case class DoubleLiteral(loc: List[Line], value: Double) extends Expr
 
@@ -74,13 +80,25 @@ class UserRuleParser {
   val parser: Parser[Expr] = {
     implicit val W: Whitespace = Whitespace("""\s+""".r)
 
+    lazy val trileanExpr: Parser[Expr] = (
+      booleanExpr
+        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time
+        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time ~ cond
+        | trileanExpr ~ "until" ~ booleanExpr
+        | trileanExpr ~ "until" ~ booleanExpr ~ cond
+        | trileanExpr ~ "andthen" ~ trileanExpr
+        | trileanExpr ~ "and" ~ trileanExpr
+        | trileanExpr ~ "or" ~ trileanExpr
+        | "(" ~ trileanExpr ~ ")"
+      )
+
     lazy val booleanExpr: Parser[Expr] = (
       comparison ^^ { (_, e) => e }
         | booleanLiteral ^^ { (_, e) => e }
         | "(" ~ booleanExpr ~ ")" ^^ { (_, _, e, _) => e }
-        | booleanExpr ~ "and" ~ booleanExpr ^^ {(loc, e1, _, e2) => BooleanOperatorExpr(loc, BooleanOperators.And, e1, e2) }
-        | booleanExpr ~ "or" ~ booleanExpr ^^ {(loc, e1, _, e2) => BooleanOperatorExpr(loc, BooleanOperators.Or, e1, e2) }
-        | "not" ~ booleanExpr ^^ {(loc, _, e1) => BooleanOperatorExpr(loc, BooleanOperators.Not, e1, null) }
+        | booleanExpr ~ "and" ~ booleanExpr ^^ { (loc, e1, _, e2) => BooleanOperatorExpr(loc, BooleanOperators.And, e1, e2) }
+        | booleanExpr ~ "or" ~ booleanExpr ^^ { (loc, e1, _, e2) => BooleanOperatorExpr(loc, BooleanOperators.Or, e1, e2) }
+        | "not" ~ booleanExpr ^^ { (loc, _, e1) => BooleanOperatorExpr(loc, BooleanOperators.Not, e1, null) }
       )
 
     lazy val comparison: Parser[Expr] = (
@@ -117,13 +135,75 @@ class UserRuleParser {
         | expr ~ "," ~ exprList ^^ { (_, e, _, el) => e :: el }
       )
 
-    lazy val double: Parser[Expr] = """[+-]?\d+(\.\d+)?""".r ^^ { (loc, str) => DoubleLiteral(loc, str.toDouble) }
-    lazy val int: Parser[Expr] = """[+-]?\d+""".r ^^ { (loc, str) => IntegerLiteral(loc, str.toInt) }
+    lazy val cond: Parser[Expr] = timeRange | repetitionRange
+
+    lazy val timeRange: Parser[Expr] = (
+      "<" ~ time ^^ {
+        (loc, _, t) =>
+          TimeRangeExpr(loc, null, t, strict = true)
+      }
+        | "<=" ~ time ^^ {
+        (loc, _, t) =>
+          TimeRangeExpr(loc, null, t, strict = false)
+      } | ">" ~ time ^^ {
+        (loc, _, t) =>
+          TimeRangeExpr(loc, t, null, strict = true)
+      } | ">=" ~ time ^^ {
+        (loc, _, t) =>
+          TimeRangeExpr(loc, t, null, strict = false)
+      }
+        | time ~ "to" ~ time ^^ {
+        (loc, t1, _, t2) =>
+          TimeRangeExpr(loc, t1, t2, strict = false)
+      }
+        | double ~ "to" ~ time ^^ {
+        ???
+      }
+      )
+
+    lazy val repetitionRange: Parser[Expr] = (
+      int ~ "times" ^^ {
+        (loc, n, _) => RepetitionRangeExpr(loc, n, n, strict = false)
+      }
+        | int ~ "to" ~ int ~ "times" ^^ {
+        (loc, n1, _, n2, _) => RepetitionRangeExpr(loc, n1, n2, strict = false)
+      }
+        | "<" ~ int ~ "times" ^^ {
+        (loc, _, n, _) => RepetitionRangeExpr(loc, null, n, strict = true)
+      }
+        | "<=" ~ int ~ "times" ^^ {
+        (loc, _, n, _) => RepetitionRangeExpr(loc, null, n, strict = false)
+      }
+        | ">" ~ int ~ "times" ^^ {
+        (loc, _, n, _) => RepetitionRangeExpr(loc, n, null, strict = true)
+      }
+        | ">=" ~ int ~ "times" ^^ {
+        (loc, _, n, _) => RepetitionRangeExpr(loc, n, null, strict = false)
+      }
+      )
+
+    lazy val time: Parser[TimeLiteral] = double ~ "milliseconds|ms|seconds|sec|minutes|min|hours|hr" ^^ {
+      (loc, v, u) =>
+        val coeff: Double = u match {
+          case "milliseconds" => 1
+          case "ms" => 1
+          case "seconds" => 1000
+          case "sec" => 1000
+          case "minutes" => 60000
+          case "min" => 60000
+          case "hours" => 3600000
+          case "hr" => 3600000
+        }
+        val t: Long = (v.value * coeff).toLong
+        TimeLiteral(loc, t)
+    }
+
+    lazy val double: Parser[DoubleLiteral] = """[+-]?\d+(\.\d+)?""".r ^^ { (loc, str) => DoubleLiteral(loc, str.toDouble) }
+    lazy val int: Parser[IntegerLiteral] = """[+-]?\d+""".r ^^ { (loc, str) => IntegerLiteral(loc, str.toInt) }
     lazy val id: Parser[Identifier] = """\w+""".r ^^ { (loc, str) => Identifier(loc, str) }
     lazy val booleanLiteral: Parser[Expr] = (
       "true" ^^ { (loc, _) => BooleanLiteral(loc, value = true) }
         | "false" ^^ { (loc, _) => BooleanLiteral(loc, value = false) }
-
       )
 
     expr
