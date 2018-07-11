@@ -14,7 +14,7 @@ case class AccumulationPhase[Event, InnerState, AccumOut, Out]
   extends AggregatorPhases[Event, (InnerState, AccumulatedState[AccumOut]), Out] {
 
   override def apply(event: Event, oldState: (InnerState, AccumulatedState[AccumOut])):
-  (PhaseResult[Out], (InnerState, AccumulatedState[AccumOut])) =
+    (PhaseResult[Out], (InnerState, AccumulatedState[AccumOut])) =
   {
     val time = timeExtractor(event)
     val (oldInnerState, oldAccumState) = oldState
@@ -52,10 +52,38 @@ case class AccumulationPhase[Event, InnerState, AccumOut, Out]
 
 object AccumulationPhase {
   def apply[Event, InnerState, AccumOut, Out]
-  (inner: PhaseParser[Event, InnerState, AccumOut], accumulator: => AccumulatedState[AccumOut], window: Window)
-  (extractResult: AccumulatedState[AccumOut] => Out, extractorName: String)
-  (implicit timeExtractor: TimeExtractor[Event]) =
+      (inner: PhaseParser[Event, InnerState, AccumOut], accumulator: => AccumulatedState[AccumOut], window: Window)
+      (extractResult: AccumulatedState[AccumOut] => Out, extractorName: String)
+      (implicit timeExtractor: TimeExtractor[Event]) =
     new AccumulationPhase(inner, window, () => accumulator)(extractResult, extractorName)(timeExtractor)
+}
+
+case class Aligned[Event, InnerState, T](by: Window, phase: PhaseParser[Event, InnerState, T])
+                                        (implicit timeExtractor: TimeExtractor[Event])
+     extends PhaseParser[Event, (InnerState, Option[Time]), T] {
+  require(by.toMillis > 0, "For performance reasons you cannot have empty alignment.")
+
+  override def initialState = (phase.initialState, None)
+
+  override def apply(event: Event, state: (InnerState, Option[Time])): (PhaseResult[T], (InnerState, Option[Time])) = {
+    val currTime = timeExtractor(event)
+    val (phaseState, startTimeOpt) = state
+    startTimeOpt match {
+      case Some(startTime) =>
+        if (currTime >= startTime.plus(by)) {
+          val (result, newState) = phase(event, phaseState)
+          result -> (newState, startTimeOpt)
+        }
+        else Stay -> state
+      case None =>
+        Stay -> (phaseState, Some(currTime))
+    }
+  }
+
+  override def format(event: Event, state: (InnerState, Option[Time])) = {
+    val sec = by.toMillis / 1000.0
+    s"Aligned(by $sec sec)(${phase.format(event, state._1)})"
+  }
 }
 
 
@@ -127,6 +155,7 @@ case class NumericAccumulatedState(window: Window, sum: Double = 0d, count: Long
   extends AccumulatedState[Double] {
 
   def updated(time: Time, value: Double): NumericAccumulatedState = {
+    val a = 123
     NumericAccumulatedState(
       window = window,
       sum = sum + value,
