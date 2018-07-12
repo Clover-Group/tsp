@@ -33,6 +33,8 @@ object Version {
   val avro = "1.8.2"
 
   val parseback = "0.3"
+
+  val parboiled = "2.1.4"
 }
 
 
@@ -113,5 +115,9 @@ object Library {
   val parseback = Seq(
     "com.codecommit" %% "parseback-core" % Version.parseback,
     "com.codecommit" %% "parseback-cats" % Version.parseback
+  )
+
+  val parboiled = Seq (
+    "org.parboiled" %% "parboiled" % Version.parboiled
   )
 }

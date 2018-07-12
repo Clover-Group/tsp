@@ -1,6 +1,9 @@
 package ru.clover.streammachine.syntax
 
+import cats.Eval
 import parseback._
+import parseback.util.Catenable
+import shims.syntax.either
 
 sealed trait Expr {
   def loc: List[Line]
@@ -93,8 +96,9 @@ final case class StringLiteral(loc: List[Line], value: String) extends Expr
 final case class BooleanLiteral(loc: List[Line], value: Boolean) extends Expr
 
 class UserRuleParser {
+  implicit val W: Whitespace = Whitespace("""\s+""".r)
+
   val parser: Parser[Expr] = {
-    implicit val W: Whitespace = Whitespace("""\s+""".r)
 
     lazy val trileanExpr: Parser[Expr] = (
       booleanExpr
@@ -229,5 +233,10 @@ class UserRuleParser {
       )
 
     expr
+  }
+
+  def parse(input: String): either.\/[List[ParseError], Catenable[Expr]] = {
+    val stream: LineStream[Eval] = LineStream[Eval](input)
+    parser(stream).value
   }
 }
