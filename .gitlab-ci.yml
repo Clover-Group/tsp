@@ -53,3 +53,16 @@ deploy_to_platform_demo:
   only:
     - master
   when: manual
+  
+deploy_to_renamed_prod:
+  stage: deploy
+  tags:
+    - ssh-runner-to-mvm-renamed
+  script:
+    - cd /opt/clover/projects/streamMachine
+    - docker-compose pull streammachine
+    - docker-compose up -d
+  only:
+    - master
+  when: manual
+  
