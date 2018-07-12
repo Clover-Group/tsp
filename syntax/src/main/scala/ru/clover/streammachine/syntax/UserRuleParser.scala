@@ -50,13 +50,29 @@ object BooleanOperators {
 
 }
 
-//final case class TrileanExpr() extends expr
+object TrileanOperators {
+
+  sealed trait Value
+
+  case object And extends Value
+
+  case object AndThen extends Value
+
+  case object Or extends Value
+
+}
+
+// TODO: storing time-related attributes
+final case class TrileanExpr(loc: List[Line], cond: Expr, exactly: Boolean = false,
+                             window: TimeLiteral = null, range: Expr = null, until: Expr = null) extends Expr
 
 final case class FunctionCallExpr(loc: List[Line], fun: String, args: List[Expr]) extends Expr
 
 final case class ComparisonOperatorExpr(loc: List[Line], op: ComparisonOperators.Value, lhs: Expr, rhs: Expr) extends Expr
 
 final case class BooleanOperatorExpr(loc: List[Line], op: BooleanOperators.Value, lhs: Expr, rhs: Expr) extends Expr
+
+final case class TrileanOperatorExpr(loc: List[Line], op: TrileanOperators.Value, lhs: Expr, rhs: Expr) extends Expr
 
 final case class OperatorExpr(loc: List[Line], op: Operators.Value, lhs: Expr, rhs: Expr) extends Expr
 
@@ -82,14 +98,20 @@ class UserRuleParser {
 
     lazy val trileanExpr: Parser[Expr] = (
       booleanExpr
-        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time
-        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time ~ cond
-        | trileanExpr ~ "until" ~ booleanExpr
-        | trileanExpr ~ "until" ~ booleanExpr ~ cond
-        | trileanExpr ~ "andthen" ~ trileanExpr
-        | trileanExpr ~ "and" ~ trileanExpr
-        | trileanExpr ~ "or" ~ trileanExpr
-        | "(" ~ trileanExpr ~ ")"
+        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time ^^ {
+        (loc, e, _, ex, t) =>
+          TrileanExpr(loc, e, exactly = ex == "exactly", window = t)
+      }
+        | trileanExpr ~ "for" ~ "(exactly)?".r ~ time ~ range ^^ {
+        (loc, e, _, ex, t, r) =>
+          TrileanExpr(loc, e, exactly = ex == "exactly", window = t, range = r)
+      }
+        | trileanExpr ~ "until" ~ booleanExpr ^^ { (loc, e, _, u) => TrileanExpr(loc, e, until = u) }
+        | trileanExpr ~ "until" ~ booleanExpr ~ range ^^ { (loc, e, _, u, r) => TrileanExpr(loc, e, until = u, range = r) }
+        | trileanExpr ~ "andthen" ~ trileanExpr ^^ { (loc, e1, _, e2) => TrileanOperatorExpr(loc, TrileanOperators.AndThen, e1, e2) }
+        | trileanExpr ~ "and" ~ trileanExpr ^^ { (loc, e1, _, e2) => TrileanOperatorExpr(loc, TrileanOperators.And, e1, e2) }
+        | trileanExpr ~ "or" ~ trileanExpr ^^ { (loc, e1, _, e2) => TrileanOperatorExpr(loc, TrileanOperators.Or, e1, e2) }
+        | "(" ~ trileanExpr ~ ")" ^^ { (loc, _, e, _) => e }
       )
 
     lazy val booleanExpr: Parser[Expr] = (
@@ -135,7 +157,7 @@ class UserRuleParser {
         | expr ~ "," ~ exprList ^^ { (_, e, _, el) => e :: el }
       )
 
-    lazy val cond: Parser[Expr] = timeRange | repetitionRange
+    lazy val range: Parser[Expr] = timeRange | repetitionRange
 
     lazy val timeRange: Parser[Expr] = (
       "<" ~ time ^^ {
