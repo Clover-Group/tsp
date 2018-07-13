@@ -87,12 +87,6 @@ lazy val spark = project.in(file("spark"))
   )
   .dependsOn(core, config)
 
-lazy val oldsyntax = project.in(file("oldsyntax"))
-  .settings(
-    resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.parseback ++ Library.cats
-  ).dependsOn(core)
-
 lazy val newsyntax = project.in(file("newsyntax"))
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",

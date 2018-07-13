@@ -175,13 +175,13 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       | ">" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
       | ">=" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = false))
       | time ~ "to" ~ time ~> ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
-      //| real ~ "to" ~ real ~ timeUnit ~> ((d1: Double, d2: Double, u: Int) =>
-      //TimeRangeExpr(TimeLiteral((d1 * u).toLong), TimeLiteral((d2 * u).toLong), strict = false))
+      | real ~ "to" ~ real ~ timeUnit ~> ((d1: Double, d2: Double, u: Int) =>
+      TimeRangeExpr(TimeLiteral((d1 * u).toLong), TimeLiteral((d2 * u).toLong), strict = false))
       )
   }
 
   def time: Rule1[TimeLiteral] = rule {
-    real ~ timeUnit ~>
+    real ~ timeUnit ~ ws ~>
       ((i: DoubleLiteral, u: Int) => TimeLiteral((i.value * u).toLong))
   }
 
