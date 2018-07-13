@@ -100,31 +100,32 @@ class SyntaxParser(val input: ParserInput) extends Parser {
 
   def trileanExpr: Rule1[Expr] = rule {
     trileanTerm ~ zeroOrMore(
-      "andthen" ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
-        | "and" ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
-        | "or" ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
+      ignoreCase("andthen") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
+        | ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
+        | ignoreCase("or") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
     )
   }
 
   def trileanTerm: Rule1[Expr] = rule {
-     (trileanFactor ~ "for" ~ ws ~ optional(atomic("exactly") ~> (() => 1)) ~ time ~ optional(range) ~>
-        ((c: Expr, ex: Option[Int], w: TimeLiteral, r: Option[Expr])
-    => TrileanExpr(c, exactly = ex.isDefined, window = w, range = r.orNull))
-    | trileanFactor ~ "until" ~ ws ~ booleanExpr ~ optional(range) ~>
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~> (() => 1)) ~ time ~ optional(range) ~>
+      ((c: Expr, ex: Option[Int], w: TimeLiteral, r: Option[Expr])
+      => TrileanExpr(c, exactly = ex.isDefined, window = w, range = r.orNull))
+      | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~>
       ((c: Expr, b: Expr, r: Option[Expr]) => TrileanExpr(c, until = b, range = r.orNull))
-    )
+      | trileanFactor
+      )
   }
 
   def trileanFactor: Rule1[Expr] = rule {
-    booleanExpr | '(' ~ trileanExpr ~ ')'
+    booleanExpr | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def booleanExpr: Rule1[Expr] = rule {
-    booleanTerm ~ zeroOrMore("or" ~ ws ~ booleanTerm ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
+    booleanTerm ~ zeroOrMore(ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
   }
 
   def booleanTerm: Rule1[Expr] = rule {
-    booleanFactor ~ zeroOrMore("and" ~ ws ~ booleanFactor ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
+    booleanFactor ~ zeroOrMore(ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
   }
 
   def booleanFactor: Rule1[Expr] = rule {
@@ -162,38 +163,55 @@ class SyntaxParser(val input: ParserInput) extends Parser {
   }
 
   def factor: Rule1[Expr] = rule {
-    real | integer | boolean | string | identifier | '(' ~ expr ~ ')' ~ ws
+    real | integer | boolean | string | functionCall | identifier | '(' ~ expr ~ ')' ~ ws
   }
 
   def range: Rule1[Expr] = rule {
-    timeRange
+    timeRange | repetitionRange
   }
 
   def timeRange: Rule1[Expr] = rule {
-    ("<" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = true))
-      | "<=" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = false))
-      | ">" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
-      | ">=" ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = false))
-      | time ~ "to" ~ time ~> ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
-      | real ~ "to" ~ real ~ timeUnit ~> ((d1: Double, d2: Double, u: Int) =>
-      TimeRangeExpr(TimeLiteral((d1 * u).toLong), TimeLiteral((d2 * u).toLong), strict = false))
+    ("<" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = true))
+      | "<=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = false))
+      | ">" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
+      | ">=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = false))
+      | time ~ ignoreCase("to") ~ ws ~ time ~> ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
+      | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~> ((d1: DoubleLiteral, d2: DoubleLiteral, u: Int) =>
+      TimeRangeExpr(TimeLiteral((d1.value * u).toLong), TimeLiteral((d2.value * u).toLong), strict = false))
       )
   }
 
+  def repetitionRange: Rule1[Expr] = rule {
+    ("<" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = true))
+      | "<=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = false))
+      | ">" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = true))
+      | ">=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = false))
+      | integer ~ ignoreCase("to") ~ ws ~ repetition ~> ((t1: IntegerLiteral, t2: IntegerLiteral) => RepetitionRangeExpr(t1, t2, strict = false))
+      )
+  }
+
+  def repetition: Rule1[IntegerLiteral] = rule {
+    integer ~ ignoreCase("times")
+  }
+
   def time: Rule1[TimeLiteral] = rule {
+    singleTime.+(ws) ~> ((ts: Seq[TimeLiteral]) => TimeLiteral(ts.foldLeft(0L) { (acc, t) => acc + t.millis }))
+  }
+
+  def singleTime: Rule1[TimeLiteral] = rule {
     real ~ timeUnit ~ ws ~>
       ((i: DoubleLiteral, u: Int) => TimeLiteral((i.value * u).toLong))
   }
 
   def timeUnit: Rule1[Int] = rule {
-    (str("seconds") ~> (() => 1000)
-      | str("sec") ~> (() => 1000)
-      | str("minutes") ~> (() => 60000)
-      | str("min") ~> (() => 60000)
-      | str("milliseconds") ~> (() => 1)
-      | str("ms") ~> (() => 1)
-      | str("hours") ~> (() => 3600000)
-      | str("hr") ~> (() => 3600000))
+    (ignoreCase("seconds") ~> (() => 1000)
+      | ignoreCase("sec") ~> (() => 1000)
+      | ignoreCase("minutes") ~> (() => 60000)
+      | ignoreCase("min") ~> (() => 60000)
+      | ignoreCase("milliseconds") ~> (() => 1)
+      | ignoreCase("ms") ~> (() => 1)
+      | ignoreCase("hours") ~> (() => 3600000)
+      | ignoreCase("hr") ~> (() => 3600000))
   }
 
   def real: Rule1[DoubleLiteral] = rule {
@@ -210,6 +228,10 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       )
   }
 
+  def functionCall: Rule1[FunctionCallExpr] = rule {
+    identifier ~ ws ~ "(" ~ ws ~ (time | expr).*(ws ~ "," ~ ws) ~ ")" ~ ws ~> ((i: Identifier, el: Seq[Expr]) => FunctionCallExpr(i.identifier, el.toList))
+  }
+
   def identifier: Rule1[Identifier] = rule {
     (capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws ~> ((id: String) => Identifier(id))
       | '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws ~> ((id: String) => Identifier(id.replace("\"\"", "\"")))
@@ -217,12 +239,12 @@ class SyntaxParser(val input: ParserInput) extends Parser {
   }
 
   def string: Rule1[StringLiteral] = rule {
-    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~> ((id: String) => StringLiteral(id.replace("'", "''")))
+    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~> ((id: String) => StringLiteral(id.replace("'", "''")))
   }
 
   def boolean: Rule1[BooleanLiteral] = rule {
-    (atomic("true") ~> (() => BooleanLiteral(true))
-      | atomic("false") ~> (() => BooleanLiteral(false)) ~ ws)
+    (ignoreCase("true") ~ ws ~> (() => BooleanLiteral(true))
+      | ignoreCase("false") ~ ws ~> (() => BooleanLiteral(false)) ~ ws)
   }
 
   def ws = rule {

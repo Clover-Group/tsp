@@ -23,6 +23,7 @@ object Version {
   val twitterUtilVersion = "6.43.0"
 
   val scalaTest = "3.0.4"
+  val scalaCheck = "1.14.0"
   val testContainers = "0.17.0"
   val postgre = "42.2.2"
 
@@ -87,7 +88,8 @@ object Library {
 
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
-    "org.scalatest" %% "scalatest" % Version.scalaTest % "test"
+    "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
+    "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
 
   val testContainers = Seq(
