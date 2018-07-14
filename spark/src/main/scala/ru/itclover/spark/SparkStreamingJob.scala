@@ -110,7 +110,7 @@ object SparkStreamingJob extends App {
   import Implicits._
 
   //  appevents.withWatermark().groupByKey(_.userId).flatMapGroupsWithState(OutputMode.Append(),GroupStateTimeout.EventTimeTimeout()){
-  val results = appevents.groupByKey(_.userId)
+  /*val results = appevents.groupByKey(_.userId)
     .flatMapGroupsWithState(OutputMode.Append(), GroupStateTimeout.NoTimeout())(
       new SparkMachineMapper(Phases.phaseParser)
     )
@@ -121,7 +121,7 @@ object SparkStreamingJob extends App {
     .format("console")
     .start()
 
-  query.awaitTermination()
+  query.awaitTermination()*/
 
 
 }

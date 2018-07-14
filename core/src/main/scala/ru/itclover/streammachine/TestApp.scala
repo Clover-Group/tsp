@@ -87,11 +87,11 @@ object TestApp extends App {
 
     val t: Phase[Event] = 'speed.field >= 100
 
-    val decr: Phase[Event] = ('speed.field === 100) andThen (avg(Derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
+    // val decr: Phase[Event] = ('speed.field === 100) andThen (avg(Derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
 
-    val phase6 = 'currentCompressorMotor.field > 0 togetherWith
+    /*val phase6 = 'currentCompressorMotor.field > 0 togetherWith
       ('PAirMainRes.field <= 7.5 andThen (Derivation(avg('PAirMainRes.field, 5.seconds)) > 0).timed(more(23.seconds))
-        .until('PAirMainRes.field >= 8.0))
+        .until('PAirMainRes.field >= 8.0))*/
 
     val phase7: Phase[Appevent] =
       ('eventType.as[String] === "TableJoin")

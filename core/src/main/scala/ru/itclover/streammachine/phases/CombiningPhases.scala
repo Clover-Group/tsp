@@ -148,7 +148,7 @@ object CombiningPhases {
                 case Stay => Stay
               }) -> newState
             }
-            case f@Failure(msg) => f -> (newFirstState, second.aggregate(event, secondState), None)
+            case f@Failure(msg) => f -> (newFirstState, secondState, None)
             case Stay => Stay -> (newFirstState, second.aggregate(event, secondState), None)
           }
         case Some(firstOut) =>
@@ -164,7 +164,7 @@ object CombiningPhases {
 
     override def aggregate(event: Event, state: (FirstState, SecondState, Option[FirstOut])): (FirstState, SecondState, Option[FirstOut]) = {
       val (firstState, secondState, optFirstOut) = state
-      (first.aggregate(event, firstState), second.aggregate(event, secondState), optFirstOut)
+      (firstState, secondState, optFirstOut)
     }
 
     override def initialState = (first.initialState, second.initialState, None)

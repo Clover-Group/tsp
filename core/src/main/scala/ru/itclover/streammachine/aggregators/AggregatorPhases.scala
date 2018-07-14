@@ -7,7 +7,6 @@ import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
 import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParserLike}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
-import ru.itclover.streammachine.phases.TimePhases.Wait
 import ru.itclover.streammachine._
 
 
