@@ -60,34 +60,6 @@ class RulesTest extends WordSpec with Matchers {
 
   type Phase[Row] = PhaseParser[Row, _, _]
 
-  /*"Timer phase" should {
-    "work correctly" in {
-      val speedGte100ForSomeTime = Wait('speed.field >= 90.0).timed(TimeInterval(1.seconds, 2.seconds))
-
-      val rows = (
-        for (time <- TimerGenerator(from = Instant.now());
-             speed <- Constant(100.0).timed(4.seconds)
-               .after(Change(from = 100.0, to = 0.0, howLong = 10.seconds))
-               .after(Constant(0.0))
-        ) yield Row(time, speed.toInt, 0)
-        ).run(seconds = 11)
-
-      println(rows)
-
-      val results = run(speedGte100ForSomeTime, rows)
-
-      assert(results.nonEmpty)
-
-      val (success, failures) = results partition {
-        case Success(_) => true
-        case Failure(_) => false
-      }
-
-      success.length should be > 0
-      failures.length should be > 1
-    }
-  }*/
-
   "Combine And & Assert parsers" should {
     "work correctly" in {
       import ru.itclover.streammachine.phases.NumericPhases._

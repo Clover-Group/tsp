@@ -75,8 +75,6 @@ object TestApp extends App {
 
     type Phase[Event] = PhaseParser[Event, _, _]
 
-    //    val phase: Phase[Event] = ((e: Event) => e.speed) > 4
-
     val phase2: Phase[Event] = avg('speed.field[Event], window) > avg('pump.field, window)
 
     val phase3 = avg('speed.field, 5.seconds) >= 5.0 andThen avg('pump.field, 3.seconds) > 0
@@ -86,12 +84,6 @@ object TestApp extends App {
     val phase5: Phase[Event] = ('speed.field > 4 & 'pump.field > 100).timed(more(10.seconds))
 
     val t: Phase[Event] = 'speed.field >= 100
-
-    // val decr: Phase[Event] = ('speed.field === 100) andThen (avg(Derivation('speed.field), 3.seconds) < 0) until ('speed.field <= 50)
-
-    /*val phase6 = 'currentCompressorMotor.field > 0 togetherWith
-      ('PAirMainRes.field <= 7.5 andThen (Derivation(avg('PAirMainRes.field, 5.seconds)) > 0).timed(more(23.seconds))
-        .until('PAirMainRes.field >= 8.0))*/
 
     val phase7: Phase[Appevent] =
       ('eventType.as[String] === "TableJoin")
