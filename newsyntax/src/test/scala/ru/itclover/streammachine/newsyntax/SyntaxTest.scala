@@ -10,15 +10,57 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   val validRule = "(x > 1) for 5 seconds andthen (y < 2)"
   val invalidRule = "1 = invalid rule"
 
-  val rules = Seq("(SpeedEngine > 300 AND PosKM = 1 AND PFuelTNVD < 1) OR" +
-    "(SpeedEngine > 300 AND PosKM = 15 AND PFuelTNVD < 1.5)" +
-    "for 30 sec",
-    "CurrentCompressorMotor > 0 and CompressorRelayContact <> 0 and" +
-      "((derivation(PAirMainRes) > 0 and PAriMainRes >= 7.5) andThen (PAirMainRes < 8) for 23 sec)",
-    "SpeedEngine > 0 and (PosKM > 0 for 120 min < 60 sec)",
-    "(Derivation(inKA12_off) <> 0 and inKA12_off = 0) for 12 min >= 3 times",
-    "(PosKM > 4 and SpeedEngine > 300) andThen (true for 30 sec) andThen" +
-      "((TExGasCylinder1Left >= 100 and TExGasCylinder1Left <= 300) for 1 min)"
+  val rules = Seq(
+    "Speed > 2 and SpeedEngine > 260 and PosKM > 0 and PAirBrakeCylinder > 0.1  for 2 sec",
+    "TWaterInChargeAirCooler > 72 for 60 sec",
+    "BreakCylinderPressure = 1 and SpeedEngine > 300 and PosKM > 0 and SpeedEngine > 340 for 3 sec",
+    "SensorBrakeRelease = 1 and SpeedEngine > 260 and PosKM > 3 and PosKM < 16 and Speed > 2 for 3 sec",
+    "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for 100 sec > 50 sec) andThen SpeedEngine > 0",
+    "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorOilPump = 1 for 7 min < 80 sec)) andThen SpeedEngine > 0",
+    "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and abs(avg(TExGasCylinder) - TExGasCylinder) > 100 for 60 sec",
+    "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
+    "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
+    "inQT1_A12_T = 1 and B_OtklSB = 0 and B_PROIZ = 0 and  B_SINHR_1 = 0 and B_SINHR_2 = 0 and B_SKOL = 0 and  B_USK = 0 and each(TED_number, inBS_led_TD) = 0 and abs(avrBy(TED_number, I) - I) > 100 and outStup2 = 1",
+    "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and U_Br = 1 and pr_OFF_P7 = 1 and SA7 = 0 and Iheat < 300 and lag(Iheat) < 300",
+    "SpeedEngine > 300 and (ContactorOilPump = 1 or ContactorFuelPump = 1) for 5 sec",
+    "SpeedEngine>300 for 60 sec andThen PAirMainRes > 7.8 and lag(CurrentCompressorMotor) < 10 and CurrentCompressorMotor >= 10 andThen CurrentCompressorMotor > 100 for 2 sec",
+    "SpeedEngine > 260 and PowerPolling >= 50 and (PowerPolling > 136.5 and PosKM = 1 or PowerPolling > 273 and PosKM = 2 or PowerPolling > 462 and PosKM = 3 or PowerPolling > 724.5 and PosKM = 4 or PowerPolling > 997.5 and PosKM = 5 or PowerPolling > 1207.5 and PosKM = 6 or PowerPolling > 1344 and PosKM = 7 or PowerPolling > 1470 and PosKM = 8 or PowerPolling > 1522.5 and PosKM = 9 or PowerPolling > 1680 and PosKM = 10 or PowerPolling > 1827 and PosKM = 11 or PowerPolling > 2058 and PosKM = 12 or PowerPolling > 2152.5 and PosKM = 13 or PowerPolling > 2257.5 and PosKM = 14 or PowerPolling > 2373 and PosKM = 15) for 60 sec",
+    "(Uks > 0 and Uks < 150 and (Uks <76 or Uks > 120)) or (Uks > 150 and (Uks<19000 or Uks < 30000)) for 30 sec",
+    "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and pr_OFF_P1 = 0 and pr_OFF_P2 = 0 and pr_OFF_P3 = 0 and pr_OFF_P4 = 0 and pr_OFF_P5 = 0 and pr_OFF_P7 = 0 and pr_OFF_P10 = 0 and pr_OFF_P11 = 0",
+    "(K7_1 = 1 and WORK1_VPP = 1) or (K7_2 = 1 and WORK2_VPP = 1) andThen A4 = 1 for 60 min",
+    "SpeedEngine > 300 and PowerPolling > 50 and PFuelFineFuelFilter < 1.3 and PFuelFineFuelFilter > 0.1 for 10 sec",
+    "workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1, 1 sec) > 150",
+    "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen POilPumpOut > 0.1 for 100 sec < 50 sec",
+    "(K7_1 = 1 and WORK1_VPP = 1) and each(Number_Fan, S18) = 0 and Uline > 2200 and Uline < 4000 for 10 min",
+    "SpeedEngine > 300 and TOilOutDiesel > 80 and (PosKM > 3 and PosKM < 15 and POilDieselOut < 1.3 or PosKM = 15 and POilDieselOut < 5.5) for 10 sec",
+    "CurrentExcitationGenerator > 5400 for 5 min",
+    "SpeedEngine > 260 and (PowerPolling > 70 and PosKM = 1 or " +
+      "PowerPolling > 85 and PosKM = 2 or PowerPolling > 170 and PosKM = 3 or " +
+      "PowerPolling > 300 and PosKM = 4 or PowerPolling > 445 and PosKM = 5 or " +
+      "PowerPolling > 575 and PosKM = 6 or PowerPolling > 720 and PosKM = 7 or " +
+      "PowerPolling > 860 and PosKM = 8 or PowerPolling > 1140 and PosKM = 9 or " +
+      "PowerPolling > 1000 and PosKM = 10 or PowerPolling > 1180 and PosKM = 11 or " +
+      "PowerPolling > 1520 and PosKM = 12 or PowerPolling > 1680 and PosKM = 13 or " +
+      "PowerPolling > 1785 and PosKM = 14) for 60 sec",
+    "K31 = 0 and KM126 =1 and KM131=0 for 3 sec",
+    "lag(SpeedEngine) >0  and SpeedEngine = 0 and Speed < 5 for 60 min",
+    "SpeedEngine > 260 and PowerPolling > 50 and " +
+      "(PowerPolling < 33 and PosKM = 1 or " +
+      "PowerPolling < 47 and PosKM = 2 or " +
+      "PowerPolling < 114 and PosKM = 3 or " +
+      "PowerPolling < 213 and PosKM = 4 or " +
+      "PowerPolling < 351 and PosKM = 5 or " +
+      "PowerPolling < 456 and PosKM = 6 or " +
+      "PowerPolling < 570 and PosKM = 7 or " +
+      "PowerPolling < 684 and PosKM = 8 or " +
+      "PowerPolling < 712 and PosKM = 9 or " +
+      "PowerPolling < 807 and PosKM = 10 or " +
+      "PowerPolling < 940 and PosKM = 11 or " +
+      "PowerPolling < 1225 and PosKM = 12 or " +
+      "PowerPolling < 1368 and PosKM = 13 or " +
+      "PowerPolling < 1548 and PosKM = 14 or " +
+      "PowerPolling < 1757 and PosKM = 15) for 60 sec",
+    "\"Section\" = 0"
   )
 
   "Parser" should "parse rule" in {
@@ -31,9 +73,9 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     p.start.run() shouldBe a[Failure[_]]
   }
 
-  forAll (Table("rules", rules: _*)) {
+  forAll(Table("rules", rules: _*)) {
     r =>
-    val p = new SyntaxParser(r)
-    p.start.run() shouldBe a[Success[_]]
+      val p = new SyntaxParser(r)
+      p.start.run() shouldBe a[Success[_]]
   }
 }
