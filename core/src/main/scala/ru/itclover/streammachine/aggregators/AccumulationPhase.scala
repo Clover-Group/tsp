@@ -58,6 +58,28 @@ object AccumulationPhase {
     new AccumulationPhase(inner, window, () => accumulator)(extractResult, extractorName)(timeExtractor)
 }
 
+case class Skip[Event, InnerState, T](numEvents: Int, phase: PhaseParser[Event, InnerState, T])
+     extends PhaseParser[Event, (InnerState, Option[Int]), T] {
+  require(numEvents > 0)
+
+  override def initialState: (InnerState, Option[Int]) = (phase.initialState, None)
+
+  override def apply(event: Event, state: (InnerState, Option[Int])) = {
+    val (innerState, skippedOpt) = state
+    skippedOpt match {
+      case Some(skipped) =>
+        if (skipped >= numEvents) {
+          val (innerResult, newInnerState) = phase(event, innerState)
+          innerResult -> (newInnerState, Some(skipped + 1))
+        } else {
+          Stay -> (innerState, Some(skipped + 1))
+        }
+
+      case None => Stay -> (innerState, Some(1))
+    }
+  }
+}
+
 case class Aligned[Event, InnerState, T](by: Window, phase: PhaseParser[Event, InnerState, T])
                                         (implicit timeExtractor: TimeExtractor[Event])
      extends PhaseParser[Event, (InnerState, Option[Time]), T] {

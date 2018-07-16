@@ -1,7 +1,7 @@
 package ru.itclover.streammachine.core
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.aggregators.Aligned
+import ru.itclover.streammachine.aggregators.{Aligned, Skip}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success, TerminalResult}
 import ru.itclover.streammachine.aggregators.AggregatorPhases._
 import scala.concurrent.duration._
@@ -14,6 +14,33 @@ import scala.language.implicitConversions
 
 
 class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
+
+  "Skip phase" should {
+    "skip on avg phases" in {
+      val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val expectedResults = Seq(Success(7.0))
+      checkOnTestEvents(
+                                  // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
+        (p: TestPhase[Double]) => Skip(2, avg(p, 2.seconds)) plus avg(p, 4.seconds),
+        simpleRange,
+        expectedResults,
+        Some(0.0001)
+      )
+    }
+
+    "not skip for empty padding" in {
+      val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val expectedResults = Seq(Success(6.0))
+      val a = intercept[Exception] { checkOnTestEvents(
+        (p: TestPhase[Double]) => Skip(0, avg(p, 4.seconds)) plus avg(p, 4.seconds),
+        simpleRange,
+        expectedResults
+      ) }
+      a.isInstanceOf[IllegalArgumentException] shouldBe true
+    }
+  }
 
   "Aligned phase" should {
     "align avg phases" in {

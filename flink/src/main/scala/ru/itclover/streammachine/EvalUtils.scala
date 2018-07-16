@@ -60,6 +60,7 @@ object EvalUtils {
        |import ru.itclover.streammachine.phases.MonadPhases._
        |import ru.itclover.streammachine.phases.CombiningPhases._
        |import ru.itclover.streammachine.aggregators.AggregatorPhases._
+       |import ru.itclover.streammachine.aggregators._
        |import ru.itclover.streammachine.phases.Phases._
        |import ru.itclover.streammachine.core.Time.{DoubleTimeLike, BigIntTimeLike}
        |
