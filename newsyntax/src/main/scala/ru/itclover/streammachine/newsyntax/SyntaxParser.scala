@@ -7,33 +7,33 @@ sealed trait Expr
 
 object Operators {
 
-  sealed trait Value
+  sealed abstract class Value(operatorSymbol: String)
 
-  case object Add extends Value
+  case object Add extends Value("+")
 
-  case object Sub extends Value
+  case object Sub extends Value("-")
 
-  case object Mul extends Value
+  case object Mul extends Value("*")
 
-  case object Div extends Value
+  case object Div extends Value("/")
 
 }
 
 object ComparisonOperators {
 
-  sealed trait Value
+  sealed abstract class Value(operatorSymbol: String)
 
-  case object Equal extends Value
+  case object Equal extends Value("==")
 
-  case object NotEqual extends Value
+  case object NotEqual extends Value("!=")
 
-  case object Less extends Value
+  case object Less extends Value("<")
 
-  case object Greater extends Value
+  case object Greater extends Value(">")
 
-  case object LessOrEqual extends Value
+  case object LessOrEqual extends Value("<=")
 
-  case object GreaterOrEqual extends Value
+  case object GreaterOrEqual extends Value(">=")
 
 }
 
