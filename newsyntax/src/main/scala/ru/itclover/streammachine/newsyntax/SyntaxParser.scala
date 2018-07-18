@@ -7,45 +7,80 @@ sealed trait Expr
 
 object Operators {
 
-  sealed abstract class Value(operatorSymbol: String)
+  sealed abstract class Value(op: String) {
+    val operatorSymbol: String = op
+    def comp[T](implicit num: Fractional[T]): (T, T) => T
+  }
 
-  case object Add extends Value("+")
+  case object Add extends Value("+") {
+    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.plus
+  }
 
-  case object Sub extends Value("-")
+  case object Sub extends Value("-") {
+    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.minus
+  }
 
-  case object Mul extends Value("*")
+  case object Mul extends Value("*") {
+    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.times
+  }
 
-  case object Div extends Value("/")
+  case object Div extends Value("/") {
+    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.div
+  }
 
 }
 
 object ComparisonOperators {
 
-  sealed abstract class Value(operatorSymbol: String)
+  sealed abstract class Value(op: String) {
+    def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean
+    val operatorSymbol: String = op
+  }
 
-  case object Equal extends Value("==")
+  case object Equal extends Value("==") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.equiv
+  }
 
-  case object NotEqual extends Value("!=")
+  case object NotEqual extends Value("!=") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = (x1, x2) => !ord.equiv(x1, x2)
+  }
 
-  case object Less extends Value("<")
+  case object Less extends Value("<") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.lt
+  }
 
-  case object Greater extends Value(">")
+  case object Greater extends Value(">") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.gt
+  }
 
-  case object LessOrEqual extends Value("<=")
+  case object LessOrEqual extends Value("<=") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.lteq
+  }
 
-  case object GreaterOrEqual extends Value(">=")
+  case object GreaterOrEqual extends Value(">=") {
+    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.gteq
+  }
 
 }
 
 object BooleanOperators {
 
-  sealed trait Value
+  sealed abstract class Value(op: String) {
+    val operatorSymbol: String = op
+    def comparingFunction: (Boolean, Boolean) => Boolean
+  }
 
-  case object And extends Value
+  case object And extends Value("and") {
+    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, x2) => x1 & x2
+  }
 
-  case object Or extends Value
+  case object Or extends Value("or") {
+    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, x2) => x1 | x2
+  }
 
-  case object Not extends Value
+  case object Not extends Value("not") {
+    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, _) => !x1
+  }
 
 }
 

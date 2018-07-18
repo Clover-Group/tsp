@@ -3,12 +3,18 @@ package ru.itclover.streammachine.newsyntax
 import org.parboiled2.ParseError
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
+import ru.itclover.streammachine.Event
+import ru.itclover.streammachine.core.Time.TimeExtractor
 
 import scala.util.{Failure, Success}
 
 class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   val validRule = "(x > 1) for 5 seconds andthen (y < 2)"
   val invalidRule = "1 = invalid rule"
+
+  implicit val extractTime: TimeExtractor[Event] = new TimeExtractor[Event] {
+    override def apply(v1: Event) = v1.time
+  }
 
   val rules = Seq(
     "Speed > 2 and SpeedEngine > 260 and PosKM > 0 and PAirBrakeCylinder > 0.1  for 2 sec",
@@ -17,7 +23,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     "SensorBrakeRelease = 1 and SpeedEngine > 260 and PosKM > 3 and PosKM < 16 and Speed > 2 for 3 sec",
     "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for 100 sec > 50 sec) andThen SpeedEngine > 0",
     "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorOilPump = 1 for 7 min < 80 sec)) andThen SpeedEngine > 0",
-    "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and abs(avg(TExGasCylinder) - TExGasCylinder) > 100 for 60 sec",
+    "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and abs(avg(TExGasCylinder, 10 sec) - TExGasCylinder) > 100 for 60 sec",
     "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
     "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
     "inQT1_A12_T = 1 and B_OtklSB = 0 and B_PROIZ = 0 and  B_SINHR_1 = 0 and B_SINHR_2 = 0 and B_SKOL = 0 and  B_USK = 0 and each(TED_number, inBS_led_TD) = 0 and abs(avrBy(TED_number, I) - I) > 100 and outStup2 = 1",
@@ -76,6 +82,9 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   forAll(Table("rules", rules: _*)) {
     r =>
       val p = new SyntaxParser(r)
-      p.start.run() shouldBe a[Success[_]]
+      val x = p.start.run()
+      x shouldBe a[Success[_]]
+      val pb = new PhaseBuilder[Event]
+      pb.build(x.get)
   }
 }
