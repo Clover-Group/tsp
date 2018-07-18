@@ -118,6 +118,14 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
     val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
     val events = for ((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
 
+    "work for one argument (return as it is)" in {
+      checkOnTestEvents(
+        (p: TestPhase[Double]) => Reduce(Math.max)(p.map(_ * 2.0)),
+        events,
+        Seq(Success(-2.0), Success(-2.0), Success(2.0), Failure("Test"))
+      )
+    }
+
     "work on min/max, sum reducers for successes" in {
       checkOnTestEvents(
         (p: TestPhase[Double]) => Reduce(Math.max)(p, p.map(_ * 2.0), p.map(_ / 2.0)),

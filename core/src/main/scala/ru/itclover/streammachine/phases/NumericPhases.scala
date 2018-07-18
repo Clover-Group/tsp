@@ -36,17 +36,18 @@ object NumericPhases {
   }
 
 
-  case class Reduce[Event, State](reducer: (Double, Double) => Double)(numerics: NumericPhaseParser[Event, State]*)
+  case class Reduce[Event, State](reducer: (Double, Double) => Double)(
+    firstPhase: NumericPhaseParser[Event, State],
+    otherPhases: NumericPhaseParser[Event, State]*
+  )
     extends NumericPhaseParser[Event, Seq[State]]
   {
-    require(numerics.length > 1, "Reduce is binary operation, at least two operands are necessary.")
-
-    override def initialState: Seq[State] = numerics.map(_.initialState)
+    override def initialState: Seq[State] = firstPhase.initialState +: otherPhases.map(_.initialState)
 
     override def apply(event: Event, states: Seq[State]): (PhaseResult[Double], Seq[State]) = {
-      // Reduce results and accumulate states.
-      val (firstResult, firstState) = numerics.head.apply(event, states.head)
-      numerics.tail.zip(states.tail).foldLeft((firstResult, Seq(firstState))) {
+      val (firstResult, firstState) = firstPhase.apply(event, states.head)
+      // Reduce results and accumulate states, or return first available result
+      otherPhases.zip(states.tail).foldLeft((firstResult, Seq(firstState))) {
         case ((maxResult, accumState), (phase, state)) => {
           val (newResult, newState) = phase(event, state)
           val newMax = reduceResults(maxResult, newResult)
@@ -56,7 +57,8 @@ object NumericPhases {
     }
 
     override def format(event: Event, states: Seq[State]) = {
-      val numericsResults = (numerics.zip(states).map {
+      val phasesWithState = (firstPhase, states.head) +: otherPhases.zip(states)
+      val numericsResults = (phasesWithState.map {
         case (phase, state) => phase.format(event, state)
       }).mkString(", ")
       apply(event, states)._1 match {
