@@ -1,6 +1,7 @@
 package ru.itclover.streammachine.newsyntax
 
 import ru.itclover.streammachine.aggregators.AggregatorPhases.AggregatorFunctions
+import ru.itclover.streammachine.aggregators.Skip
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
@@ -65,7 +66,7 @@ class PhaseBuilder[Event] {
       case TrileanOperatorExpr(operator, lhs, rhs) =>
         operator match {
           case And => nextBuild(lhs) togetherWith nextBuild(rhs)
-          case AndThen => nextBuild(lhs) andThen nextBuild(rhs)
+          case AndThen => nextBuild(lhs) andThen Skip(1, nextBuild(rhs))
           case Or => nextBuild(lhs) either nextBuild(rhs)
         }
       case _ => throw new RuntimeException(s"something went wrong parsing $x")
