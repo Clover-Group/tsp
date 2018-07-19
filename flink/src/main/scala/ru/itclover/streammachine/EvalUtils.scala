@@ -46,6 +46,8 @@ object EvalUtils {
   }
 
   def composePhaseCodeUsingRowExtractors(phaseCode: String, tsField: Symbol, fieldsIdxMap: Map[Symbol, Int]) = {
+    // Partial fix for fancy column names form DB, eg `some(123)`
+    val fieldsIdxMapStr = fieldsIdxMap.map { case (f, i) => (s"""Symbol("${f.toString.tail}")""", i) }.toString
     s"""
        |import scala.util.Try
        |import java.math.BigInteger
@@ -68,7 +70,7 @@ object EvalUtils {
        |import Predef.{any2stringadd => _, _}
        |import org.apache.flink.types.Row
        |
-       |val fieldsIdxMap: Map[Symbol, Int] = ${fieldsIdxMap.toString}
+       |val fieldsIdxMap: Map[Symbol, Int] = $fieldsIdxMapStr
        |
        |implicit val symbolNumberExtractorRow: SymbolNumberExtractor[Row] = new SymbolNumberExtractor[Row] {
        |  override def extract(event: Row, symbol: Symbol) = {

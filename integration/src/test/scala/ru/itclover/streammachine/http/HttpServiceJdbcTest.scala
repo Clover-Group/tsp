@@ -29,7 +29,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   val inputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
-    query = "select * from Test.SM_basic_wide",
+    query = """select *, speed as "speed(1)(2)" from Test.SM_basic_wide""", // speed(1)(2) fancy colnames test
     driverName = container.driverName,
     datetimeField = 'datetime,
     eventsMaxGapMs = 60000L,
@@ -45,7 +45,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
 
   val basicAssertions = Seq(
     RawPattern("1", "Assert('speed.field < 15.0)"),
-    RawPattern("2", "Assert('speed.field > 10.0)"),
+    RawPattern("2", """Assert(Symbol("speed(1)(2)").field > 10.0)"""),
     RawPattern("3", "Assert('speed.field > 10.0)", Map("test" -> "test"), Seq('speed)))
   val typesCasting = Seq(
     RawPattern("10", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
