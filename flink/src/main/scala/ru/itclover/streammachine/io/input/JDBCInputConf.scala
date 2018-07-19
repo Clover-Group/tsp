@@ -68,7 +68,8 @@ case class JDBCInputConf(sourceId: Int,
       override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
         case d: java.lang.Double => d
         case f: java.lang.Float => f.doubleValue()
-        case err => throw new ClassCastException(s"Cannot cast value $err to float or double.")
+        case some => Try(some.toString.toDouble).getOrElse(
+          throw new ClassCastException(s"Cannot cast value $some to double."))
       }
     }
   )

@@ -47,6 +47,7 @@ object EvalUtils {
 
   def composePhaseCodeUsingRowExtractors(phaseCode: String, tsField: Symbol, fieldsIdxMap: Map[Symbol, Int]) = {
     s"""
+       |import scala.util.Try
        |import java.math.BigInteger
        |import java.time.Instant
        |import scala.concurrent.duration._
@@ -74,22 +75,23 @@ object EvalUtils {
        |    event.getField(fieldsIdxMap(symbol)) match {
        |      case d: java.lang.Double => d.doubleValue()
        |      case f: java.lang.Float => f.floatValue().toDouble
-       |      case err => throw new ClassCastException(s"Cannot cast value $$err to float or double.")
+       |      case some => Try(some.toString.toDouble).getOrElse(
+       |          throw new ClassCastException(s"Cannot cast value $$some to double."))
        |    }
        |  }
        |}
        |implicit val intSymbolExtractor = new SymbolExtractor[Row, Int] {
        |  override def extract(event: Row, symbol: Symbol): Int = event.getField(fieldsIdxMap(symbol)) match {
        |    case value: java.lang.Integer => value.intValue()
-       |    case value =>
-       |      throw new ClassCastException(s"Cannot cast value `$$value` from `$${value.getClass.getSimpleName}` to Int")
+       |    case some => Try(some.toString.toInt).getOrElse(
+       |          throw new ClassCastException(s"Cannot cast value $$some to int."))
        |  }
        |}
        |implicit val longSymbolExtractor = new SymbolExtractor[Row, Long] {
        |  override def extract(event: Row, symbol: Symbol): Long = event.getField(fieldsIdxMap(symbol)) match {
        |    case value: java.lang.Long => value.longValue()
-       |    case value =>
-       |      throw new ClassCastException(s"Cannot cast value `$$value` from `$${value.getClass.getSimpleName}` to Long")
+       |    case some => Try(some.toString.toLong).getOrElse(
+       |          throw new ClassCastException(s"Cannot cast value $$some to long."))
        |  }
        |}
        |implicit val strSymbolExtractor = new SymbolExtractor[Row, String] {

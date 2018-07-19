@@ -61,7 +61,8 @@ case class InfluxDBInputConf(sourceId: Int,
       override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
         case d: java.lang.Double => d.doubleValue()
         case f: java.lang.Float => f.floatValue().toDouble
-        case err => throw new ClassCastException(s"Cannot cast value $err to float or double.")
+        case some => Try(some.toString.toDouble).getOrElse(
+          throw new ClassCastException(s"Cannot cast value $some to double."))
       }
     }
   )
