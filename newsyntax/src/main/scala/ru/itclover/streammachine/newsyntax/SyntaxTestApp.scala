@@ -1,7 +1,10 @@
 package ru.itclover.streammachine.newsyntax
 
+import java.time.Instant
+
 import org.parboiled2.{ErrorFormatter, ParseError}
 import ru.itclover.streammachine.Event
+import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
 
 import scala.util.{Failure, Success}
@@ -21,7 +24,7 @@ object SyntaxTestApp extends App {
       println(x)
       val pb = new PhaseBuilder[Event]
       val pp = pb.build(x)
-      print(pp)
+      println(pp.formatWithInitialState(Event(1, Instant.now)))
     case Failure(x: ParseError) =>
       println(parser.formatError(x, new ErrorFormatter(showTraces = true)))
     case Failure(z) =>

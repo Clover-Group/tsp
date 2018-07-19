@@ -50,12 +50,16 @@ class PhaseBuilder[Event] {
         }
         else {
           val w = Window(window.millis)
-          var c = nextBuild(cond)
-          if (range.isInstanceOf[RepetitionRangeExpr]) {
-            // TODO: truthCount
-          }
-          if (range.isInstanceOf[TimeRangeExpr]) {
-            // TODO: truthMillisCount
+          val c = range match {
+            case r: RepetitionRangeExpr =>
+              val q = PhaseParser.Functions.truthCount(nextBuild(cond).asInstanceOf[BooleanPhaseParser[Event, _]], w)
+              q.map(x => r.contains(x))
+            case tr: TimeRangeExpr =>
+              // TODO: truthMillisCount
+              val q = PhaseParser.Functions.truthMillisCount(nextBuild(cond).asInstanceOf[BooleanPhaseParser[Event, _]],
+                w)
+             q.map(x => tr.contains(x))
+            case _ => nextBuild(cond)
           }
           if (exactly) {
             c.timed(w, w)

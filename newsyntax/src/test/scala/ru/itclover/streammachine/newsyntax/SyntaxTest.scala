@@ -4,6 +4,7 @@ import org.parboiled2.ParseError
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.streammachine.Event
+import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
 
 import scala.util.{Failure, Success}
@@ -26,7 +27,6 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and abs(avg(TExGasCylinder, 10 sec) - TExGasCylinder) > 100 for 60 sec",
     "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
     "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
-    "inQT1_A12_T = 1 and B_OtklSB = 0 and B_PROIZ = 0 and  B_SINHR_1 = 0 and B_SINHR_2 = 0 and B_SKOL = 0 and  B_USK = 0 and each(TED_number, inBS_led_TD) = 0 and abs(avrBy(TED_number, I) - I) > 100 and outStup2 = 1",
     "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and U_Br = 1 and pr_OFF_P7 = 1 and SA7 = 0 and Iheat < 300 and lag(Iheat) < 300",
     "SpeedEngine > 300 and (ContactorOilPump = 1 or ContactorFuelPump = 1) for 5 sec",
     "SpeedEngine>300 for 60 sec andThen PAirMainRes > 7.8 and lag(CurrentCompressorMotor) < 10 and CurrentCompressorMotor >= 10 andThen CurrentCompressorMotor > 100 for 2 sec",
@@ -37,7 +37,6 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     "SpeedEngine > 300 and PowerPolling > 50 and PFuelFineFuelFilter < 1.3 and PFuelFineFuelFilter > 0.1 for 10 sec",
     "workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1, 1 sec) > 150",
     "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen POilPumpOut > 0.1 for 100 sec < 50 sec",
-    "(K7_1 = 1 and WORK1_VPP = 1) and each(Number_Fan, S18) = 0 and Uline > 2200 and Uline < 4000 for 10 min",
     "SpeedEngine > 300 and TOilOutDiesel > 80 and (PosKM > 3 and PosKM < 15 and POilDieselOut < 1.3 or PosKM = 15 and POilDieselOut < 5.5) for 10 sec",
     "CurrentExcitationGenerator > 5400 for 5 min",
     "SpeedEngine > 260 and (PowerPolling > 70 and PosKM = 1 or " +
@@ -85,6 +84,6 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       val x = p.start.run()
       x shouldBe a[Success[_]]
       val pb = new PhaseBuilder[Event]
-      pb.build(x.get)
+      pb.build(x.get) shouldBe a[PhaseParser[Event, _, _]]
   }
 }

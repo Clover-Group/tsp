@@ -24,6 +24,8 @@ trait PhaseParser[Event, State, +T] extends ((Event, State) => (PhaseResult[T], 
   def aggregate(event: Event, state: State): State = apply(event, state)._2
 
   def format(event: Event, state: State): String = s"${this.getClass.getSimpleName}($state)"
+
+  def formatWithInitialState(event: Event): String = format(event, initialState)
 }
 
 object PhaseParser {
