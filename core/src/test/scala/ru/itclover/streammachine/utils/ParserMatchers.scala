@@ -9,14 +9,21 @@ import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TestPhase, Test
 trait ParserMatchers extends Matchers {
   val log = Logger[ParserMatchers]
 
+  def applyOnTestEvents[InnerOut, Out: Numeric](
+      parser: TestPhase[InnerOut] => PhaseParser[TestingEvent[InnerOut], _, Out],
+      events: Seq[TestingEvent[InnerOut]]
+  ) = {
+    val rule = parser(TestPhase())
+    runRule(rule, events)
+  }
+
   def checkOnTestEvents[InnerOut, Out: Numeric](
       parser: TestPhase[InnerOut] => PhaseParser[TestingEvent[InnerOut], _, Out],
       events: Seq[TestingEvent[InnerOut]],
       expectedResults: Seq[PhaseResult[Out]],
       epsilon: Option[Out] = None
   ): Unit = {
-    val rule = parser(TestPhase())
-    val results = runRule(rule, events)
+    val results = applyOnTestEvents(parser, events)
     log.debug(s"\nresults = `$results`\nexpected = `$expectedResults`")
     results.length should equal(expectedResults.length)
     results.zip(expectedResults) map {

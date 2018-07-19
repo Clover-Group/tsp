@@ -1,50 +1,23 @@
 package ru.itclover.streammachine.aggregators
 
+import scala.Ordering.Implicits._
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.Time._
-import ru.itclover.streammachine.utils.CollectionsOps.MutableQueueOps
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, Time, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
-import ru.itclover.streammachine.phases.CombiningPhases.{And, TogetherParserLike}
+import ru.itclover.streammachine.phases.CombiningPhases.And
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 import ru.itclover.streammachine._
+import ru.itclover.streammachine.aggregators.accums._
+import ru.itclover.streammachine.aggregators.accums.OneTimeStates._
 
 
 trait AggregatorPhases[Event, S, T] extends PhaseParser[Event, S, T]
 
 object AggregatorPhases {
 
-  trait AggregatorFunctions {
 
-    def avg[Event, S](numeric: PhaseParser[Event, S, Double], window: Window)
-                     (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] = {
-      AccumulationPhase(numeric, NumericAccumulatedState(window), window)({ case a: NumericAccumulatedState => a.avg }, "avg")
-    }
-
-    def sum[Event, S, T](numeric: NumericPhaseParser[Event, S], window: Window)
-                        (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Double, Double] =
-      AccumulationPhase(numeric, NumericAccumulatedState(window), window)({ case a: NumericAccumulatedState => a.sum }, "sum")
-
-    def count[Event, S, T](phase: PhaseParser[Event, S, T], window: Window)
-                          (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] = {
-      AccumulationPhase(phase, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.count }, "count")
-    }
-
-    def millisCount[Event, S, T](phase: PhaseParser[Event, S, T], window: Window)
-                                (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, T, Long] =
-      AccumulationPhase(phase, CountAccumulatedState[T](window), window)({ case a: CountAccumulatedState[T] => a.overallTimeMs.getOrElse(0L) }, "millisCount")
-
-
-    def truthCount[Event, S](boolean: BooleanPhaseParser[Event, S], window: Window)
-                            (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Boolean, Long] = {
-      AccumulationPhase(boolean, TruthAccumulatedState(window), window)({ case a: TruthAccumulatedState => a.truthCount }, "truthCount")
-    }
-
-    def truthMillisCount[Event, S](boolean: BooleanPhaseParser[Event, S], window: Window)
-                                  (implicit timeExtractor: TimeExtractor[Event]): AccumulationPhase[Event, S, Boolean, Long] = {
-      AccumulationPhase(boolean, TruthAccumulatedState(window), window)({ case a: TruthAccumulatedState => a.truthMillisCount }, "truthMillisCount")
-    }
-
+  trait AggregatorFunctions extends AccumFunctions {
 
     def lag[Event, S, Out](phase: PhaseParser[Event, S, Out]) = PreviousValue(phase)
 
@@ -60,6 +33,66 @@ object AggregatorPhases {
   }
 
   //todo MinParser, MaxParser, MedianParser, ConcatParser, Timer
+
+
+  /**
+    * Can be useful in andThen phase (to apply next step to next event after success on left, not the same one)
+    */
+  case class Skip[Event, InnerState, T](numEvents: Int, phase: PhaseParser[Event, InnerState, T])
+       extends PhaseParser[Event, (InnerState, Option[Int]), T] {
+    require(numEvents > 0)
+
+    override def initialState: (InnerState, Option[Int]) = (phase.initialState, None)
+
+    override def apply(event: Event, state: (InnerState, Option[Int])) = {
+      val (innerState, skippedOpt) = state
+      skippedOpt match {
+        case Some(skipped) =>
+          if (skipped >= numEvents) {
+            val (innerResult, newInnerState) = phase(event, innerState)
+            innerResult -> (newInnerState, Some(skipped + 1))
+          } else {
+            Stay -> (innerState, Some(skipped + 1))
+          }
+
+        case None => Stay -> (innerState, Some(1))
+      }
+    }
+  }
+
+  /**
+    * Phase, mainly for technical purposes - to align OneTime accumulators in simple cases,
+    * for example `avg(‘speed, 50 min) > avg(‘speed, 5 min)` compares 0-50 min and 0-5 min values, but:
+    * `avg(‘speed, 50 min) > Aligned(45 min, avg(‘speed, 5 min))` compare 0-50 min and 45-50, as expected
+    */
+  case class Aligned[Event, InnerState, T](by: Window, phase: PhaseParser[Event, InnerState, T])
+                                          (implicit timeExtractor: TimeExtractor[Event])
+       extends PhaseParser[Event, (InnerState, Option[Time]), T] {
+    require(by.toMillis > 0, "For performance reasons you cannot have empty alignment.")
+
+    override def initialState = (phase.initialState, None)
+
+    override def apply(event: Event, state: (InnerState, Option[Time])): (PhaseResult[T], (InnerState, Option[Time])) = {
+      val currTime = timeExtractor(event)
+      val (phaseState, startTimeOpt) = state
+      startTimeOpt match {
+        case Some(startTime) =>
+          if (currTime >= startTime.plus(by)) {
+            val (result, newState) = phase(event, phaseState)
+            result -> (newState, startTimeOpt)
+          }
+          else Stay -> state
+        case None =>
+          Stay -> (phaseState, Some(currTime))
+      }
+    }
+
+    override def format(event: Event, state: (InnerState, Option[Time])) = {
+      val sec = by.toMillis / 1000.0
+      s"Aligned(by $sec sec)(${phase.format(event, state._1)})"
+    }
+  }
+
 
   case class PreviousValue[Event, State, Out](innerPhase: PhaseParser[Event, State, Out])
     extends AggregatorPhases[Event, State And Option[Out], Out] {

@@ -1,16 +1,19 @@
 package ru.itclover.streammachine.core
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.streammachine.aggregators.{Aligned, Skip}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip}
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success, TerminalResult}
+import ru.itclover.streammachine.core.PhaseParser.Functions._
 import ru.itclover.streammachine.aggregators.AggregatorPhases._
+import ru.itclover.streammachine.aggregators.accums.{AccumPhase, ContinuousStates}
+import ru.itclover.streammachine.aggregators.accums.ContinuousStates.{CountAccumState, NumericAccumState, TruthAccumState}
 import scala.concurrent.duration._
 import ru.itclover.streammachine.core.Time._
-import ru.itclover.streammachine.core.PhaseParser.Functions._
+import ru.itclover.streammachine.phases.BooleanPhases.BooleanPhaseParser
 import ru.itclover.streammachine.phases.{ConstantPhases, NoState}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 import ru.itclover.streammachine.utils.ParserMatchers
-import scala.language.implicitConversions
+import scala.language.{higherKinds, implicitConversions}
 
 
 class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
@@ -21,7 +24,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
       val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
       val expectedResults = Seq(Success(7.0))
       checkOnTestEvents(
-                                  // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
+        // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
         (p: TestPhase[Double]) => Skip(2, avg(p, 2.seconds)) plus avg(p, 4.seconds),
         simpleRange,
         expectedResults,
@@ -48,7 +51,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
       val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
       val expectedResults = Seq(Success(7.0))
       checkOnTestEvents(
-                                  // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
+        // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
         (p: TestPhase[Double]) => Aligned(2.seconds, avg(p, 2.seconds)) plus avg(p, 4.seconds),
         simpleRange,
         expectedResults,
