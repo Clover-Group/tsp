@@ -1,8 +1,9 @@
 package ru.itclover.streammachine.newsyntax
 
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
+import ru.itclover.streammachine.aggregators.accums.AccumState
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
-import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
+import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
 import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolExtractor, SymbolNumberExtractor, SymbolParser}
@@ -12,24 +13,28 @@ class PhaseBuilder[Event] {
 
   def build(x: Expr)(implicit timeExtractor: TimeExtractor[Event],
                      numberExtractor: SymbolNumberExtractor[Event]): PhaseParser[Event, _, _] = {
-    buildParser(x, maxTimePhase(x))
+    ToSegments(buildParser(x, maxTimePhase(x)))
   }
 
-  protected def buildParser(x: Expr, maxPhase: Long, level: Int = 0)
+  protected def buildParser(x: Expr, maxPhase: Long, level: Int = 0, asAssert: Boolean = false)
                            (implicit timeExtractor: TimeExtractor[Event],
                             numberExtractor: SymbolNumberExtractor[Event]): PhaseParser[Event, _, _] = {
-    val nextBuild = (x: Expr) => buildParser(x, maxPhase, level + 1)
+    def nextBuild(x: Expr, asAssert: Boolean = false) = buildParser(x, maxPhase, level + 1, asAssert)
     x match {
       case BooleanLiteral(value) => OneRowPhaseParser[Event, Boolean](_ => value)
       case IntegerLiteral(value) => OneRowPhaseParser[Event, Long](_ => value)
-      case BooleanOperatorExpr(operator, lhs, rhs) => new ComparingParser[Event, Any, Any, Boolean](
+      case BooleanOperatorExpr(operator, lhs, rhs) =>
+        val cp = new ComparingParser[Event, Any, Any, Boolean](
         nextBuild(lhs).asInstanceOf[PhaseParser[Event, Any, Boolean]],
         nextBuild(rhs).asInstanceOf[PhaseParser[Event, Any, Boolean]])(operator.comparingFunction,
         operator.operatorSymbol) {}
-      case ComparisonOperatorExpr(operator, lhs, rhs) => new ComparingParser[Event, Any, Any, Double](
+        if (asAssert) Assert(cp) else cp
+      case ComparisonOperatorExpr(operator, lhs, rhs) =>
+        val cp = new ComparingParser[Event, Any, Any, Double](
         nextBuild(lhs).asInstanceOf[PhaseParser[Event, Any, Double]],
         nextBuild(rhs).asInstanceOf[PhaseParser[Event, Any, Double]])(operator.comparingFunction,
         operator.operatorSymbol) {}
+        if (asAssert) Assert(cp) else cp
       case DoubleLiteral(value) => OneRowPhaseParser[Event, Double](_ => value)
       case FunctionCallExpr(function, arguments) => function match {
         case "avg" =>
@@ -61,16 +66,16 @@ class PhaseBuilder[Event] {
         }
         else {
           val w = Window(window.millis)
-          val c = range match {
+          val g = nextBuild(cond).asInstanceOf[BooleanPhaseParser[Event, _]]
+          val c: PhaseParser[Event, _, _] = range match {
             case r: RepetitionRangeExpr =>
-              val q = PhaseParser.Functions.truthCount(nextBuild(cond).asInstanceOf[BooleanPhaseParser[Event, _]], w)
-              q.map(x => r.contains(x))
+              val q = PhaseParser.Functions.truthCount(g, w)
+              q > OneRowPhaseParser(_ => 1L)
+              Assert(q.map[Boolean](x => r.contains(x)))
             case tr: TimeRangeExpr =>
-              // TODO: truthMillisCount
-              val q = PhaseParser.Functions.truthMillisCount(nextBuild(cond).asInstanceOf[BooleanPhaseParser[Event, _]],
-                w)
-              q.map(x => tr.contains(x))
-            case _ => nextBuild(cond)
+              val q = PhaseParser.Functions.truthMillisCount(g, w)
+              Assert(q.map[Boolean](x => tr.contains(x)))
+            case _ => g
           }
           if (exactly) {
             c.timed(w, w)
@@ -80,9 +85,9 @@ class PhaseBuilder[Event] {
         }
       case TrileanOperatorExpr(operator, lhs, rhs) =>
         operator match {
-          case And => nextBuild(lhs) togetherWith nextBuild(rhs)
-          case AndThen => nextBuild(lhs) andThen Skip(1, nextBuild(rhs))
-          case Or => nextBuild(lhs) either nextBuild(rhs)
+          case And => nextBuild(lhs, asAssert = true) togetherWith nextBuild(rhs, asAssert = true)
+          case AndThen => nextBuild(lhs, asAssert = true) andThen nextBuild(rhs, asAssert = true) // Skip(1, nextBuild(rhs))
+          case Or => nextBuild(lhs, asAssert = true) either nextBuild(rhs, asAssert = true)
         }
       case _ => throw new RuntimeException(s"something went wrong parsing $x")
     }

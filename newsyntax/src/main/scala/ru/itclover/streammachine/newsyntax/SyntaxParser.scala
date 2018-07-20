@@ -114,18 +114,18 @@ final case class TrileanOperatorExpr(op: TrileanOperators.Value, lhs: Expr, rhs:
 final case class OperatorExpr(op: Operators.Value, lhs: Expr, rhs: Expr) extends Expr
 
 final case class TimeRangeExpr(lower: TimeLiteral, upper: TimeLiteral, strict: Boolean) extends Expr {
-  def contains(x: Long) = if (strict) {
-    x > lower.millis & x < upper.millis
+  def contains(x: Long): Boolean = if (strict) {
+    (lower == null || x > lower.millis) && (upper == null || x < upper.millis)
   } else {
-    x >= lower.millis & x <= upper.millis
+    (lower == null || x >= lower.millis) && (upper == null || x <= upper.millis)
   }
 }
 
 final case class RepetitionRangeExpr(lower: IntegerLiteral, upper: IntegerLiteral, strict: Boolean) extends Expr {
-  def contains(x: Long) = if (strict) {
-    x > lower.value & x < upper.value
+  def contains(x: Long): Boolean = if (strict) {
+    (lower == null || x > lower.value) && (upper == null || x < upper.value)
   } else {
-    x >= lower.value & x <= upper.value
+    (lower == null || x >= lower.value) && (upper == null || x <= upper.value)
   }
 }
 

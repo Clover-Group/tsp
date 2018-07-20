@@ -36,6 +36,8 @@ object MonadPhases {
       (phaseResult.map(f), state)
     }
 
+    override def format(event: Event, state: State): String = s"MapParser( ${phaseParser.format(event, state)} mapped with $f)"
+
     override def aggregate(event: Event, oldState: State): State = phaseParser.aggregate(event, oldState)
 
     override def initialState = phaseParser.initialState

@@ -83,6 +83,21 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     p.start.run() shouldBe a[Failure[_]]
   }
 
+  "TimeRange" should "correctly check for contain" in {
+    val tr1 = TimeRangeExpr(TimeLiteral(1), TimeLiteral(1000), strict = false)
+    val tr2 = TimeRangeExpr(null, TimeLiteral(2000), strict = false)
+    val tr3 = TimeRangeExpr(TimeLiteral(5), null, strict = false)
+    tr1.contains(10) shouldBe true
+    tr2.contains(10) shouldBe true
+    tr3.contains(10) shouldBe true
+    tr1.contains(4) shouldBe true
+    tr2.contains(4) shouldBe true
+    tr3.contains(4) shouldBe false
+    tr1.contains(1010) shouldBe false
+    tr2.contains(1010) shouldBe true
+    tr3.contains(1010) shouldBe true
+  }
+
   forAll(Table("rules", rules: _*)) {
     r =>
       val p = new SyntaxParser(r)
