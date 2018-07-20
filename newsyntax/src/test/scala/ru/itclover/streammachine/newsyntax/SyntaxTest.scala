@@ -6,6 +6,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.streammachine.Event
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 
 import scala.util.{Failure, Success}
 
@@ -15,6 +16,10 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
 
   implicit val extractTime: TimeExtractor[Event] = new TimeExtractor[Event] {
     override def apply(v1: Event) = v1.time
+  }
+
+  implicit val numberExtractor: SymbolNumberExtractor[Event] = new SymbolNumberExtractor[Event] {
+    override def extract(event: Event, symbol: Symbol): Double = 0.0
   }
 
   val rules = Seq(

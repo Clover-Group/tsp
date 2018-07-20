@@ -5,17 +5,19 @@ import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
-import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolExtractor, SymbolParser}
+import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolExtractor, SymbolNumberExtractor, SymbolParser}
 import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParser, ComparingParser}
 
 class PhaseBuilder[Event] {
 
-  def build(x: Expr)(implicit timeExtractor: TimeExtractor[Event]): PhaseParser[Event, _, _] = {
+  def build(x: Expr)(implicit timeExtractor: TimeExtractor[Event],
+                     numberExtractor: SymbolNumberExtractor[Event]): PhaseParser[Event, _, _] = {
     buildParser(x, maxTimePhase(x))
   }
 
   protected def buildParser(x: Expr, maxPhase: Long, level: Int = 0)
-                           (implicit timeExtractor: TimeExtractor[Event]): PhaseParser[Event, _, _] = {
+                           (implicit timeExtractor: TimeExtractor[Event],
+                            numberExtractor: SymbolNumberExtractor[Event]): PhaseParser[Event, _, _] = {
     val nextBuild = (x: Expr) => buildParser(x, maxPhase, level + 1)
     x match {
       case BooleanLiteral(value) => OneRowPhaseParser[Event, Boolean](_ => value)
@@ -46,11 +48,7 @@ class PhaseBuilder[Event] {
         case "abs" => PhaseParser.Functions.abs(nextBuild(arguments.head).asInstanceOf[PhaseParser[Event, _, Double]])
         case _ => throw new RuntimeException(s"Unknown function $function")
       }
-      case Identifier(identifier) => SymbolParser(Symbol(identifier)).as[Double](
-        ev = new SymbolExtractor[Event, Double] {
-          override def extract(event: Event, symbol: Symbol): Double = 0.0 // TODO: real identifier value
-        }
-      ) // TODO: Correct type
+      case Identifier(identifier) => SymbolParser(Symbol(identifier)).as[Double]
       case OperatorExpr(operator, lhs, rhs) =>
         val lhsParser = nextBuild(lhs).asInstanceOf[PhaseParser[Event, _, Double]]
         val rhsParser = nextBuild(rhs).asInstanceOf[PhaseParser[Event, _, Double]]

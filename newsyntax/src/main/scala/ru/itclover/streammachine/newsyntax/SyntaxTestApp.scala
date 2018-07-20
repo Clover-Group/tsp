@@ -6,12 +6,17 @@ import org.parboiled2.{ErrorFormatter, ParseError}
 import ru.itclover.streammachine.Event
 import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
+import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 
 import scala.util.{Failure, Success}
 
 object SyntaxTestApp extends App {
   implicit val extractTime: TimeExtractor[Event] = new TimeExtractor[Event] {
     override def apply(v1: Event) = v1.time
+  }
+
+  implicit val numberExtractor: SymbolNumberExtractor[Event] = new SymbolNumberExtractor[Event] {
+    override def extract(event: Event, symbol: Symbol): Double = 0.0
   }
 
   if (args.length < 1) {

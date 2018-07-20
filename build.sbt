@@ -62,7 +62,7 @@ lazy val flinkConnector = project.in(file("flink"))
     libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
       ++ Library.kafka ++ Library.jackson ++ Library.cats
   )
-  .dependsOn(core, config)
+  .dependsOn(core, config, newsyntax)
 
 lazy val http = project.in(file("http"))
   .settings(commonSettings)
