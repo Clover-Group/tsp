@@ -297,7 +297,7 @@ class SyntaxParser(val input: ParserInput) extends Parser {
   }
 
   def string: Rule1[StringLiteral] = rule {
-    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~> ((id: String) => StringLiteral(id.replace("'", "''")))
+    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~> ((id: String) => StringLiteral(id.replace("''", "'")))
   }
 
   def boolean: Rule1[BooleanLiteral] = rule {
