@@ -21,22 +21,27 @@ class AccumPhase[Event, InnerState, AccumOut, Out]
     val (oldInnerState, oldAccumState) = oldState
     val (innerResult, newInnerState) = innerPhase(event, oldInnerState)
 
-    innerResult match {
-      case Success(t) => {
+    (innerResult, oldAccumState.startTime) match {
+      // If too much time has passed since last update - return old state (notice strict comparison)
+      case (Success(_), Some(oldStartTime)) if time > oldStartTime.plus(window) =>
+        (Success(extractResult(oldAccumState)), (oldInnerState, oldAccumState))
+
+      // If we still in time bounds, continue updating
+      case (Success(t), _) => {
         val newAccumState = oldAccumState.updated(time, t)
-
         val newAccumResult = newAccumState.startTime match {
-          // Success, if window is fully accumulated (all window time has passed)
-          case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
-          case _ => Stay
-        }
-
+              // Success, if new window is fully accumulated
+              case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
+              case _ => Stay
+            }
         newAccumResult -> (newInnerState -> newAccumState)
       }
-      case f@Failure(msg) =>
-        Failure(msg) -> (newInnerState -> oldAccumState) // aggregate here?
-      case Stay => Stay ->
-        (newInnerState -> oldAccumState)
+
+      case (f: Failure, _) =>
+        f -> (newInnerState -> oldAccumState)
+
+      case (Stay, _) =>
+        Stay -> (innerPhase.aggregate(event, newInnerState) -> oldAccumState)
     }
   }
 
@@ -63,5 +68,5 @@ trait AccumState[T] extends Product with Serializable {
     last <- lastTime
   } yield last.toMillis - start.toMillis
 
-  def hasState: Boolean = startTime.isDefined
+  def hasState: Boolean = startTime.isDefined && lastTime.isDefined
 }

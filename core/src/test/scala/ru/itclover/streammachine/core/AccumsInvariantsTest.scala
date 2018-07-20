@@ -18,6 +18,10 @@ import ru.itclover.streammachine.utils.ParserMatchers
 class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChecks {
 
   val testResults = Seq(
+    (for (i <- 1 to 10000) yield {
+      if (i % 100 == 0) Failure("Test") else if (i % 10 == 0) Stay else Success(Math.random() * 100.0)
+    }),
+    (Seq(Success(1.0), Success(2.0), Stay, Success(3.0), Success(4.0), Failure("Test"), Success(5.0))),
     (Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))),
     (Seq(Failure("Test"))),
     (Seq(Failure("Test"), Success(1.0))),
@@ -55,6 +59,7 @@ class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChe
           val events = for((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
           val oneTime = applyOnTestEvents[Double, Double](p1(_), events)
           val continuous = applyOnTestEvents[Double, Double](p2(_), events)
+          println(s"Tested for testResults = `$testResults`")
           (id, oneTime) shouldEqual ((id, continuous))
       }
     }
