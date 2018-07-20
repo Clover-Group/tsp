@@ -1,7 +1,6 @@
 package ru.itclover.streammachine.newsyntax
 
-import ru.itclover.streammachine.aggregators.AggregatorPhases.AggregatorFunctions
-import ru.itclover.streammachine.aggregators.{Aligned, Skip}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip}
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
@@ -10,16 +9,14 @@ import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, Symb
 import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParser, ComparingParser}
 
 class PhaseBuilder[Event] {
-  protected var maxPhase = 0L
 
   def build(x: Expr)(implicit timeExtractor: TimeExtractor[Event]): PhaseParser[Event, _, _] = {
-    maxPhase = maxTimePhase(x)
-    buildParser(x)
+    buildParser(x, maxTimePhase(x))
   }
 
-  protected def buildParser(x: Expr, level: Integer = 0)
+  protected def buildParser(x: Expr, maxPhase: Long, level: Int = 0)
                            (implicit timeExtractor: TimeExtractor[Event]): PhaseParser[Event, _, _] = {
-    val nextBuild = (x: Expr) => buildParser(x, level + 1)
+    val nextBuild = (x: Expr) => buildParser(x, maxPhase, level + 1)
     x match {
       case BooleanLiteral(value) => OneRowPhaseParser[Event, Boolean](_ => value)
       case IntegerLiteral(value) => OneRowPhaseParser[Event, Long](_ => value)
@@ -94,19 +91,13 @@ class PhaseBuilder[Event] {
   }
 
   protected def maxTimePhase(x: Expr): Long = x match {
-    case TrileanExpr(cond, exactly, window, range, until) => maxTimePhase(cond)
-    case FunctionCallExpr(fun, args) => args.map(maxTimePhase).max
-    case ComparisonOperatorExpr(op, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
-    case BooleanOperatorExpr(op, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
-    case TrileanOperatorExpr(op, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
-    case OperatorExpr(op, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
-    case TimeRangeExpr(lower, upper, strict) => 0
-    case RepetitionRangeExpr(lower, upper, strict) => 0
-    case Identifier(identifier) => 0
-    case IntegerLiteral(value) => 0
+    case TrileanExpr(cond, _, _, _, _) => maxTimePhase(cond)
+    case FunctionCallExpr(_, args) => args.map(maxTimePhase).max
+    case ComparisonOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
+    case BooleanOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
+    case TrileanOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
+    case OperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
     case TimeLiteral(millis) => millis
-    case DoubleLiteral(value) => 0
-    case StringLiteral(value) => 0
-    case BooleanLiteral(value) => 0
+    case _ => 0
   }
 }

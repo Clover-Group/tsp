@@ -9,6 +9,7 @@ object Operators {
 
   sealed abstract class Value(op: String) {
     val operatorSymbol: String = op
+
     def comp[T](implicit num: Fractional[T]): (T, T) => T
   }
 
@@ -34,6 +35,7 @@ object ComparisonOperators {
 
   sealed abstract class Value(op: String) {
     def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean
+
     val operatorSymbol: String = op
   }
 
@@ -67,6 +69,7 @@ object BooleanOperators {
 
   sealed abstract class Value(op: String) {
     val operatorSymbol: String = op
+
     def comparingFunction: (Boolean, Boolean) => Boolean
   }
 
@@ -147,8 +150,10 @@ class SyntaxParser(val input: ParserInput) extends Parser {
 
   def trileanExpr: Rule1[Expr] = rule {
     trileanTerm ~ zeroOrMore(
-      ignoreCase("andthen") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
-        | ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
+      ignoreCase("andthen") ~ ws ~ trileanTerm ~>
+        ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
+        |
+        ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
         | ignoreCase("or") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
     )
   }
@@ -168,11 +173,13 @@ class SyntaxParser(val input: ParserInput) extends Parser {
   }
 
   def booleanExpr: Rule1[Expr] = rule {
-    booleanTerm ~ zeroOrMore(ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
+    booleanTerm ~ zeroOrMore(
+      ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
   }
 
   def booleanTerm: Rule1[Expr] = rule {
-    booleanFactor ~ zeroOrMore(ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
+    booleanFactor ~ zeroOrMore(
+      ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
   }
 
   def booleanFactor: Rule1[Expr] = rule {
@@ -222,7 +229,8 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       | "<=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = false))
       | ">" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
       | ">=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = false))
-      | time ~ ignoreCase("to") ~ ws ~ time ~> ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
+      | time ~ ignoreCase("to") ~ ws ~ time ~>
+      ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
       | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~> ((d1: DoubleLiteral, d2: DoubleLiteral, u: Int) =>
       TimeRangeExpr(TimeLiteral((d1.value * u).toLong), TimeLiteral((d2.value * u).toLong), strict = false))
       )
@@ -233,7 +241,8 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       | "<=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = false))
       | ">" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = true))
       | ">=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = false))
-      | integer ~ ignoreCase("to") ~ ws ~ repetition ~> ((t1: IntegerLiteral, t2: IntegerLiteral) => RepetitionRangeExpr(t1, t2, strict = false))
+      | integer ~ ignoreCase("to") ~ ws ~ repetition ~>
+      ((t1: IntegerLiteral, t2: IntegerLiteral) => RepetitionRangeExpr(t1, t2, strict = false))
       )
   }
 
@@ -276,12 +285,14 @@ class SyntaxParser(val input: ParserInput) extends Parser {
   }
 
   def functionCall: Rule1[FunctionCallExpr] = rule {
-    identifier ~ ws ~ "(" ~ ws ~ (time | expr).*(ws ~ "," ~ ws) ~ ")" ~ ws ~> ((i: Identifier, el: Seq[Expr]) => FunctionCallExpr(i.identifier, el.toList))
+    identifier ~ ws ~ "(" ~ ws ~ (time | expr).*(ws ~ "," ~ ws) ~ ")" ~ ws ~> ((i: Identifier, el: Seq[Expr]) =>
+      FunctionCallExpr(i.identifier.toLowerCase, el.toList))
   }
 
   def identifier: Rule1[Identifier] = rule {
     (capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws ~> ((id: String) => Identifier(id))
-      | '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws ~> ((id: String) => Identifier(id.replace("\"\"", "\"")))
+      | '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws ~>
+      ((id: String) => Identifier(id.replace("\"\"", "\"")))
       )
   }
 
