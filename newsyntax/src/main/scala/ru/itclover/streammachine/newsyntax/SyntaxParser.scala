@@ -4,6 +4,10 @@ import org.parboiled2._
 import shapeless.HNil
 
 sealed trait Expr
+sealed trait ArithmeticExpr extends Expr
+sealed trait BooleanExpr extends Expr
+sealed trait TrileanExpr extends Expr
+sealed trait RangeExpr extends Expr
 
 object Operators {
 
@@ -100,20 +104,22 @@ object TrileanOperators {
 }
 
 // TODO: storing time-related attributes
-final case class TrileanExpr(cond: Expr, exactly: Boolean = false,
-                             window: TimeLiteral = null, range: Expr = null, until: Expr = null) extends Expr
+final case class TrileanCondExpr(cond: Expr, exactly: Boolean = false,
+                                 window: TimeLiteral = null, range: Expr = null, until: Expr = null) extends TrileanExpr
 
-final case class FunctionCallExpr(fun: String, args: List[Expr]) extends Expr
+final case class TrileanOnlyBooleanExpr(cond: BooleanExpr) extends TrileanExpr
 
-final case class ComparisonOperatorExpr(op: ComparisonOperators.Value, lhs: Expr, rhs: Expr) extends Expr
+final case class FunctionCallExpr(fun: String, args: List[Expr]) extends ArithmeticExpr
 
-final case class BooleanOperatorExpr(op: BooleanOperators.Value, lhs: Expr, rhs: Expr) extends Expr
+final case class ComparisonOperatorExpr(op: ComparisonOperators.Value, lhs: ArithmeticExpr, rhs: ArithmeticExpr) extends BooleanExpr
 
-final case class TrileanOperatorExpr(op: TrileanOperators.Value, lhs: Expr, rhs: Expr) extends Expr
+final case class BooleanOperatorExpr(op: BooleanOperators.Value, lhs: BooleanExpr, rhs: BooleanExpr) extends BooleanExpr
 
-final case class OperatorExpr(op: Operators.Value, lhs: Expr, rhs: Expr) extends Expr
+final case class TrileanOperatorExpr(op: TrileanOperators.Value, lhs: TrileanExpr, rhs: TrileanExpr) extends TrileanExpr
 
-final case class TimeRangeExpr(lower: TimeLiteral, upper: TimeLiteral, strict: Boolean) extends Expr {
+final case class OperatorExpr(op: Operators.Value, lhs: ArithmeticExpr, rhs: ArithmeticExpr) extends ArithmeticExpr
+
+final case class TimeRangeExpr(lower: TimeLiteral, upper: TimeLiteral, strict: Boolean) extends RangeExpr {
   def contains(x: Long): Boolean = if (strict) {
     (lower == null || x > lower.millis) && (upper == null || x < upper.millis)
   } else {
@@ -121,7 +127,7 @@ final case class TimeRangeExpr(lower: TimeLiteral, upper: TimeLiteral, strict: B
   }
 }
 
-final case class RepetitionRangeExpr(lower: IntegerLiteral, upper: IntegerLiteral, strict: Boolean) extends Expr {
+final case class RepetitionRangeExpr(lower: IntegerLiteral, upper: IntegerLiteral, strict: Boolean) extends RangeExpr {
   def contains(x: Long): Boolean = if (strict) {
     (lower == null || x > lower.value) && (upper == null || x < upper.value)
   } else {
@@ -129,102 +135,102 @@ final case class RepetitionRangeExpr(lower: IntegerLiteral, upper: IntegerLitera
   }
 }
 
-final case class Identifier(identifier: String) extends Expr
+final case class Identifier(identifier: String) extends ArithmeticExpr
 
-final case class IntegerLiteral(value: Long) extends Expr
+final case class IntegerLiteral(value: Long) extends ArithmeticExpr
 
 final case class TimeLiteral(millis: Long) extends Expr
 
-final case class DoubleLiteral(value: Double) extends Expr
+final case class DoubleLiteral(value: Double) extends ArithmeticExpr
 
-final case class StringLiteral(value: String) extends Expr
+final case class StringLiteral(value: String) extends ArithmeticExpr
 
-final case class BooleanLiteral(value: Boolean) extends Expr
+final case class BooleanLiteral(value: Boolean) extends BooleanExpr
 
 
 class SyntaxParser(val input: ParserInput) extends Parser {
 
-  def start = rule {
+  def start: Rule1[TrileanExpr] = rule {
     trileanExpr ~ EOI
   }
 
-  def trileanExpr: Rule1[Expr] = rule {
+  def trileanExpr: Rule1[TrileanExpr] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-        ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
+        ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
         |
-        ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
-        | ignoreCase("or") ~ ws ~ trileanTerm ~> ((e: Expr, f: Expr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
+        ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
+        | ignoreCase("or") ~ ws ~ trileanTerm ~> ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
     )
   }
 
-  def trileanTerm: Rule1[Expr] = rule {
-    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~> (() => 1)) ~ time ~ optional(range) ~>
+  def trileanTerm: Rule1[TrileanExpr] = rule {
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~ optional(range) ~>
       ((c: Expr, ex: Option[Int], w: TimeLiteral, r: Option[Expr])
-      => TrileanExpr(c, exactly = ex.isDefined, window = w, range = r.orNull))
+      => TrileanCondExpr(c, exactly = ex.isDefined, window = w, range = r.orNull))
       | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~>
-      ((c: Expr, b: Expr, r: Option[Expr]) => TrileanExpr(c, until = b, range = r.orNull))
+      ((c: Expr, b: Expr, r: Option[Expr]) => TrileanCondExpr(c, until = b, range = r.orNull))
       | trileanFactor
       )
   }
 
-  def trileanFactor: Rule1[Expr] = rule {
-    booleanExpr | '(' ~ trileanExpr ~ ')' ~ ws
+  def trileanFactor: Rule1[TrileanExpr] = rule {
+    booleanExpr ~> { b: BooleanExpr => TrileanOnlyBooleanExpr(b) } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def booleanExpr: Rule1[Expr] = rule {
+  def booleanExpr: Rule1[BooleanExpr] = rule {
     booleanTerm ~ zeroOrMore(
-      ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
+      ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: BooleanExpr, f: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
   }
 
-  def booleanTerm: Rule1[Expr] = rule {
+  def booleanTerm: Rule1[BooleanExpr] = rule {
     booleanFactor ~ zeroOrMore(
-      ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: Expr, f: Expr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
+      ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: BooleanExpr, f: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
   }
 
-  def booleanFactor: Rule1[Expr] = rule {
+  def booleanFactor: Rule1[BooleanExpr] = rule {
     (comparison | boolean | "(" ~ booleanExpr ~ ")" ~ ws
-      | "not" ~ booleanExpr ~> ((b: Expr) => BooleanOperatorExpr(BooleanOperators.Not, b, null)))
+      | "not" ~ booleanExpr ~> ((b: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.Not, b, null)))
   }
 
-  def comparison: Rule1[Expr] = rule {
+  def comparison: Rule1[BooleanExpr] = rule {
     (
-      expr ~ "<" ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+      expr ~ "<" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.Less, e1, e2))
-        | expr ~ "<=" ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+        | expr ~ "<=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.LessOrEqual, e1, e2))
-        | expr ~ ">" ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+        | expr ~ ">" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.Greater, e1, e2))
-        | expr ~ ">=" ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+        | expr ~ ">=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.GreaterOrEqual, e1, e2))
-        | expr ~ "=" ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+        | expr ~ "=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.Equal, e1, e2))
-        | expr ~ ("!=" | "<>") ~ ws ~ expr ~> ((e1: Expr, e2: Expr) =>
+        | expr ~ ("!=" | "<>") ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
         ComparisonOperatorExpr(ComparisonOperators.NotEqual, e1, e2))
       )
   }
 
-  def expr: Rule1[Expr] = rule {
-    term ~ zeroOrMore('+' ~ ws ~ term ~> ((e: Expr, f: Expr) => OperatorExpr(Operators.Add, e, f))
-      | '-' ~ ws ~ term ~> ((e: Expr, f: Expr) => OperatorExpr(Operators.Sub, e, f))
+  def expr: Rule1[ArithmeticExpr] = rule {
+    term ~ zeroOrMore('+' ~ ws ~ term ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Add, e, f))
+      | '-' ~ ws ~ term ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Sub, e, f))
     )
   }
 
-  def term: Rule1[Expr] = rule {
-    factor ~ zeroOrMore('*' ~ ws ~ factor ~> ((e: Expr, f: Expr) => OperatorExpr(Operators.Mul, e, f))
-      | '/' ~ ws ~ factor ~> ((e: Expr, f: Expr) => OperatorExpr(Operators.Div, e, f))
+  def term: Rule1[ArithmeticExpr] = rule {
+    factor ~ zeroOrMore('*' ~ ws ~ factor ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Mul, e, f))
+      | '/' ~ ws ~ factor ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Div, e, f))
     )
   }
 
-  def factor: Rule1[Expr] = rule {
-    real | integer | boolean | string | functionCall | identifier | '(' ~ expr ~ ')' ~ ws
+  def factor: Rule1[ArithmeticExpr] = rule {
+    real | integer | string | functionCall | identifier | '(' ~ expr ~ ')' ~ ws
   }
 
-  def range: Rule1[Expr] = rule {
+  def range: Rule1[RangeExpr] = rule {
     timeRange | repetitionRange
   }
 
-  def timeRange: Rule1[Expr] = rule {
+  def timeRange: Rule1[RangeExpr] = rule {
     ("<" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = true))
       | "<=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = false))
       | ">" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
@@ -236,7 +242,7 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       )
   }
 
-  def repetitionRange: Rule1[Expr] = rule {
+  def repetitionRange: Rule1[RangeExpr] = rule {
     ("<" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = true))
       | "<=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = false))
       | ">" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = true))

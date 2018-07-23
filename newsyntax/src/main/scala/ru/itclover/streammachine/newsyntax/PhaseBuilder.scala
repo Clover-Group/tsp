@@ -59,7 +59,7 @@ class PhaseBuilder[Event] {
         val rhsParser = nextBuild(rhs).asInstanceOf[PhaseParser[Event, _, Double]]
         BinaryNumericParser(lhsParser, rhsParser, operator.comp[Double], operator.operatorSymbol)
       case StringLiteral(value) => OneRowPhaseParser[Event, String](_ => value)
-      case TrileanExpr(cond, exactly, window, range, until) =>
+      case TrileanCondExpr(cond, exactly, window, range, until) =>
         if (until != null) {
           nextBuild(cond).timed(MaxWindow).asInstanceOf[PhaseParser[Event, _, Boolean]] and
             Assert(nextBuild(until).asInstanceOf[BooleanPhaseParser[Event, _]])
@@ -86,19 +86,21 @@ class PhaseBuilder[Event] {
       case TrileanOperatorExpr(operator, lhs, rhs) =>
         operator match {
           case And => nextBuild(lhs, asAssert = true) togetherWith nextBuild(rhs, asAssert = true)
-          case AndThen => nextBuild(lhs, asAssert = true) andThen nextBuild(rhs, asAssert = true) // Skip(1, nextBuild(rhs))
+          case AndThen => nextBuild(lhs, asAssert = true) andThen Skip(1, nextBuild(rhs, asAssert = true))
           case Or => nextBuild(lhs, asAssert = true) either nextBuild(rhs, asAssert = true)
         }
+      case TrileanOnlyBooleanExpr(cond) => nextBuild(cond)
       case _ => throw new RuntimeException(s"something went wrong parsing $x")
     }
   }
 
   protected def maxTimePhase(x: Expr): Long = x match {
-    case TrileanExpr(cond, _, _, _, _) => maxTimePhase(cond)
+    case TrileanCondExpr(cond, _, _, _, _) => maxTimePhase(cond)
     case FunctionCallExpr(_, args) => args.map(maxTimePhase).max
     case ComparisonOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
     case BooleanOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
     case TrileanOperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
+    case TrileanOnlyBooleanExpr(cond) => maxTimePhase(cond)
     case OperatorExpr(_, lhs, rhs) => Math.max(maxTimePhase(lhs), maxTimePhase(rhs))
     case TimeLiteral(millis) => millis
     case _ => 0
