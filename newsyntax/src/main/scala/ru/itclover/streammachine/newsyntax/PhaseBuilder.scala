@@ -1,5 +1,7 @@
 package ru.itclover.streammachine.newsyntax
 
+import java.nio.DoubleBuffer
+
 import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
@@ -52,13 +54,13 @@ class PhaseBuilder[Event] {
         case "abs" => PhaseParser.Functions.abs(nextBuild(arguments.head).asInstanceOf[PhaseParser[Event, _, Double]])
         case "minof" =>
           val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
-          Reduce[Event, Any]((x1: Double, x2: Double) => Math.min(x1, x2))(as.head, as.tail: _*)
+          Reduce[Event, Any](min)(as.head, as.tail: _*)
         case "maxof" =>
           val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
-          Reduce[Event, Any]((x1: Double, x2: Double) => Math.max(x1, x2))(as.head, as.tail: _*)
+          Reduce[Event, Any](max)(as.head, as.tail: _*)
         case "avgof" =>
           val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
-          Reduce[Event, Any]((x1: Double, x2: Double) => x1 + x2)(as.head, as.tail: _*) div OneRowPhaseParser(_ => as.length)
+          Reduce[Event, Any](plus)(as.head, as.tail: _*) div Reduce[Event, Any](countNotNan)(as.head, as.tail: _*)
         case _ => throw new RuntimeException(s"Unknown function $function")
       }
       case Identifier(identifier) => SymbolParser(Symbol(identifier)).as[Double]
@@ -113,4 +115,9 @@ class PhaseBuilder[Event] {
     case TimeLiteral(millis) => millis
     case _ => 0
   }
+
+  def min(d1: Double, d2: Double): Double = Math.min(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+  def max(d1: Double, d2: Double): Double = Math.max(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+  def plus(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else d1) + (if (d2.isNaN) 0 else d2)
+  def countNotNan(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else 1) + (if (d2.isNaN) 0 else 1)
 }

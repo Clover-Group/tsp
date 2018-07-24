@@ -16,7 +16,7 @@ object SyntaxTestApp extends App {
   }
 
   implicit val numberExtractor: SymbolNumberExtractor[Event] = new SymbolNumberExtractor[Event] {
-    override def extract(event: Event, symbol: Symbol): Double = 0.0
+    override def extract(event: Event, symbol: Symbol): Double = Double.NaN
   }
 
   if (args.length < 1) {
