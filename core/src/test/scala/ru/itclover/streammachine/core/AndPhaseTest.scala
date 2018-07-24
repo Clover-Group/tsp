@@ -16,9 +16,9 @@ class AndPhaseTest extends WordSpec with Matchers {
     }
 
     "Failure if any side is failure" in {
-      def andPhaseLeft(right: PhaseParser[TestingEvent[Int], Unit, Int]) = TogetherParser(alwaysFailure, right)
+      def andPhaseLeft(right: PhaseParser[TestEvent[Int], Unit, Int]) = TogetherParser(alwaysFailure, right)
 
-      def andPhaseRight(left: PhaseParser[TestingEvent[Int], Unit, Int]) = TogetherParser(left, alwaysFailure)
+      def andPhaseRight(left: PhaseParser[TestEvent[Int], Unit, Int]) = TogetherParser(left, alwaysFailure)
 
       val results = for (secondResult <- Set(alwaysFailure, alwaysSuccess, alwaysStay);
                          parserFunc <- Set(andPhaseLeft _, andPhaseRight _)

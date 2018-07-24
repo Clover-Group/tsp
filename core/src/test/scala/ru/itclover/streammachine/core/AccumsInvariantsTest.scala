@@ -15,6 +15,11 @@ import org.scalatest.prop.PropertyChecks
 import ru.itclover.streammachine.utils.ParserMatchers
 
 
+// TODO fix divergence in oneTimers, or rm tests
+// tests not working for now - small divergence due to situations when even oneTime accums need to
+// pop out older elements, for example
+// (sum(1.0, 1.0, Stay, 1.0), 2.sec) -> 3.0, but
+// (sum.continuous(1.0, 1.0, Stay, 1.0), 2.sec) -> 2.0 (drop first 1.0 on last event)
 class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChecks {
 
   val testResults = Seq(
@@ -30,13 +35,23 @@ class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChe
     (Seq())
   )
 
-  type PhaseToDoubleAccum = TestPhase[Double] => AccumPhase[TestingEvent[Double], NoState, Double, Double]
-  type PhaseToLongAccum = TestPhase[Double] => AccumPhase[TestingEvent[Double], NoState, Double, Long]
-  type BoolPhaseToLongAccum = TestPhase[Boolean] => AccumPhase[TestingEvent[Double], NoState, Double, Long]
+  type PhaseToDoubleAccum = TestPhase[Double] => PhaseParser[TestEvent[Double], _, Double]
+  type PhaseToLongAccum = TestPhase[Double] => AccumPhase[TestEvent[Double], NoState, Double, Long]
+  type BoolPhaseToLongAccum = TestPhase[Boolean] => AccumPhase[TestEvent[Double], NoState, Double, Long]
 
   val doublePhases: Seq[(String, PhaseToDoubleAccum, PhaseToDoubleAccum)] = Seq(
     ("avg", avg(_, 2.seconds), avg.continuous(_, 2.seconds)),
-    ("sum", sum(_, 2.seconds), sum.continuous(_, 2.seconds))
+    ("sum", sum(_, 2.seconds), sum.continuous(_, 2.seconds)),
+    /*("\nsum andThen sum",
+      (p: TestPhase[Double]) => sum(p, 4.seconds) minus Aligned(2.seconds, sum(p, 2.seconds)),
+      (p: TestPhase[Double]) => sum(p, 4.seconds) minus sum.continuous(p, 2.seconds)),
+
+    ("sum and aligned(sum)",
+      (p: TestPhase[Double]) => (sum(p, 2.seconds) plus Aligned(2.seconds, sum(p, 3.seconds))),
+      (p: TestPhase[Double]) => sum.continuous(p, 4.seconds)),*/
+    ("\nsum(sum)",
+      (p: TestPhase[Double]) => sum(sum.continuous(p, 2.seconds), 2.seconds),
+      (p: TestPhase[Double]) => sum.continuous(sum.continuous(p, 2.seconds), 2.seconds))
   )
   val longPhases: Seq[(String, PhaseToLongAccum, PhaseToLongAccum)] = Seq(
     ("count", count(_, 2.seconds), count.continuous(_, 2.seconds)),
@@ -56,7 +71,7 @@ class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChe
     "return the same result for double accums" in {
       doublePhasesAndResults map {
         case (results: Seq[PhaseResult[Double]], (id: String, p1: PhaseToDoubleAccum, p2: PhaseToDoubleAccum)) =>
-          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
+          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
           val oneTime = applyOnTestEvents[Double, Double](p1(_), events)
           val continuous = applyOnTestEvents[Double, Double](p2(_), events)
           println(s"Tested for testResults = `$testResults`")
@@ -67,7 +82,7 @@ class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChe
     "return the same result for long accums" in {
       longPhasesAndResults map {
         case (results: Seq[PhaseResult[Double]], (id: String, p1: PhaseToLongAccum, p2: PhaseToLongAccum)) =>
-          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
+          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
           val oneTime = applyOnTestEvents[Double, Long](p1(_), events)
           val continuous = applyOnTestEvents[Double, Long](p2(_), events)
           (id, oneTime) shouldEqual ((id, continuous))

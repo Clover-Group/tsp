@@ -3,26 +3,23 @@ package ru.itclover.streammachine.utils
 import com.typesafe.scalalogging.Logger
 import org.scalatest.Matchers
 import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
-import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TestPhase, TestingEvent, runRule}
+import ru.itclover.streammachine.core.{PhaseParser, PhaseResult, TestPhase, TestEvent, runRule}
 
 
 trait ParserMatchers extends Matchers {
   val log = Logger[ParserMatchers]
 
-  def applyOnTestEvents[InnerOut, Out: Numeric](
-      parser: TestPhase[InnerOut] => PhaseParser[TestingEvent[InnerOut], _, Out],
-      events: Seq[TestingEvent[InnerOut]]
-  ) = {
+  def applyOnTestEvents[InnerOut, Out](parser: TestPhase[InnerOut] => PhaseParser[TestEvent[InnerOut], _, Out],
+                                       events: Seq[TestEvent[InnerOut]]) = {
     val rule = parser(TestPhase())
     runRule(rule, events)
   }
 
-  def checkOnTestEvents[InnerOut, Out: Numeric](
-      parser: TestPhase[InnerOut] => PhaseParser[TestingEvent[InnerOut], _, Out],
-      events: Seq[TestingEvent[InnerOut]],
-      expectedResults: Seq[PhaseResult[Out]],
-      epsilon: Option[Out] = None
-  ): Unit = {
+  def checkOnTestEvents[InnerOut, Out: Numeric](parser: TestPhase[InnerOut] => PhaseParser[TestEvent[InnerOut], _, Out],
+                                                events: Seq[TestEvent[InnerOut]],
+                                                expectedResults: Seq[PhaseResult[Out]],
+                                                epsilon: Option[Out] = None
+                                               ): Unit = {
     val results = applyOnTestEvents(parser, events)
     log.debug(s"\nresults = `$results`\nexpected = `$expectedResults`")
     results.length should equal(expectedResults.length)
@@ -38,11 +35,9 @@ trait ParserMatchers extends Matchers {
     }
   }
 
-  def checkOnTestEvents_strict[InnerOut, Out](
-      parser: TestPhase[InnerOut] => PhaseParser[TestingEvent[InnerOut], _, Out],
-      events: Seq[TestingEvent[InnerOut]],
-      expectedResults: Seq[PhaseResult[Out]]
-  ): Unit = {
+  def checkOnTestEvents_strict[InnerOut, Out](parser: TestPhase[InnerOut] => PhaseParser[TestEvent[InnerOut], _, Out],
+                                              events: Seq[TestEvent[InnerOut]],
+                                              expectedResults: Seq[PhaseResult[Out]]): Unit = {
     val rule = parser(TestPhase())
     val results = runRule(rule, events)
     log.debug(s"\nresults = `$results`\nexpected = `$expectedResults`")

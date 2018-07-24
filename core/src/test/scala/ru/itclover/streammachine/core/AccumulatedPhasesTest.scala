@@ -21,7 +21,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
   "Skip phase" should {
     "skip on avg phases" in {
       val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
-      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestEvent(res, t)
       val expectedResults = Seq(Success(7.0))
       checkOnTestEvents(
         // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
@@ -34,7 +34,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
 
     "not skip for empty padding" in {
       val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
-      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestEvent(res, t)
       val expectedResults = Seq(Success(6.0))
       val a = intercept[Exception] { checkOnTestEvents(
         (p: TestPhase[Double]) => Skip(0, avg(p, 4.seconds)) plus avg(p, 4.seconds),
@@ -46,9 +46,20 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
   }
 
   "Aligned phase" should {
-    "align avg phases" in {
+    "align andThen phases" in {
+      val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0), Success(6.0))
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestEvent(res, t)
+      val expectedResults = Seq(Success((6.0, 12.0)), Success((9.0, 15.0)))
+      checkOnTestEvents_strict(
+        (p: TestPhase[Double]) => sum(p, 2.seconds) andThen Aligned(2.seconds, sum(p, 2.seconds)),
+        simpleRange,
+        expectedResults
+      )
+    }
+
+    "align simple avg phases" in {
       val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
-      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestEvent(res, t)
       val expectedResults = Seq(Success(7.0))
       checkOnTestEvents(
         // (3 + 4 + 5) / 3 + (1 + 2 + 3 + 4 + 5) / 5 = 7.0
@@ -61,7 +72,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
 
     "not align for empty padding" in {
       val rangeRes = Seq(Success(1.0), Success(2.0), Success(3.0), Success(4.0), Success(5.0))
-      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestingEvent(res, t)
+      val simpleRange = for((t, res) <- times.take(rangeRes.length).zip(rangeRes)) yield TestEvent(res, t)
       val expectedResults = Seq(Success(6.0))
       val a = intercept[Exception] { checkOnTestEvents(
         (p: TestPhase[Double]) => Aligned(0.seconds, avg(p, 4.seconds)) plus avg(p, 4.seconds),
@@ -121,7 +132,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
     "work on bool staySuccesses" in {
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => count(p, 2.seconds),
-        staySuccesses map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        staySuccesses map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
         Seq(Success(2L), Success(2L), Success(3L), Success(3L), Failure("Test"), Failure("Test"), Failure("Test"))
       )
     }
@@ -157,7 +168,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
     "work on staySuccesses" in {
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => truthCount(p, 2.seconds),
-        staySuccesses map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        staySuccesses map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
         // Note: phase skipping Stay results, hence fewer successes
         Seq(Success(1L), Success(1L), Success(2L), Success(2L), Failure("Test"), Failure("Test"), Failure("Test"))
       )
@@ -165,7 +176,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
     "not work on fails" in {
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => truthCount(p, 2.seconds),
-        fails map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        fails map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
         (0 until 10).map(_ => Failure("Test"))
       )
     }
@@ -183,7 +194,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
 
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => truthMillisCount(p, 2.seconds),
-        staySuccesses map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        staySuccesses map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
         // Note: phase skipping Stay results, hence fewer successes
         Seq(Success(2000L), Success(2000L), Success(2000L), Success(2000L), Failure("Test"), Failure("Test"), Failure("Test"))
       )
@@ -191,7 +202,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
     "not work on fails" in {
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => truthCount(p, 2.seconds),
-        fails map (t => TestingEvent(t.result.map(_ > 1.0), t.time)),
+        fails map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
         (0 until 10).map(_ => Failure("Test"))
       )
     }

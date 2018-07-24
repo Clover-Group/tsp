@@ -18,7 +18,7 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
 
   "BinaryNumericParser" should {
     "work on stay and success events and +, -, *, /" in {
-      val b: NumericPhaseParser[TestingEvent[Double], NoState] = ConstantPhases[TestingEvent[Double], Double](10.0)
+      val b: NumericPhaseParser[TestEvent[Double], NoState] = ConstantPhases[TestEvent[Double], Double](10.0)
       checkOnTestEvents(
         (p: TestPhase[Double]) => p plus b,
         staySuccesses,
@@ -55,23 +55,23 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
       val strVal = "18"
       val longVal = 18L
 
-      implicit val fixedIntSymbolExtractor = new SymbolExtractor[TestingEvent[Double], Int] {
-        override def extract(event: TestingEvent[Double], symbol: Symbol) = intVal
+      implicit val fixedIntSymbolExtractor = new SymbolExtractor[TestEvent[Double], Int] {
+        override def extract(event: TestEvent[Double], symbol: Symbol) = intVal
       }
-      implicit val fixedFloatSymbolExtractor = new SymbolExtractor[TestingEvent[Double], Float] {
-        override def extract(event: TestingEvent[Double], symbol: Symbol) = floatVal
+      implicit val fixedFloatSymbolExtractor = new SymbolExtractor[TestEvent[Double], Float] {
+        override def extract(event: TestEvent[Double], symbol: Symbol) = floatVal
       }
-      implicit val fixedStringSymbolExtractor = new SymbolExtractor[TestingEvent[Double], String] {
-        override def extract(event: TestingEvent[Double], symbol: Symbol) = strVal
+      implicit val fixedStringSymbolExtractor = new SymbolExtractor[TestEvent[Double], String] {
+        override def extract(event: TestEvent[Double], symbol: Symbol) = strVal
       }
-      implicit val fixedLongSymbolExtractor = new SymbolExtractor[TestingEvent[Double], Long] {
-        override def extract(event: TestingEvent[Double], symbol: Symbol) = longVal
+      implicit val fixedLongSymbolExtractor = new SymbolExtractor[TestEvent[Double], Long] {
+        override def extract(event: TestEvent[Double], symbol: Symbol) = longVal
       }
 
-      val intParser: PhaseParser[TestingEvent[Double], NoState, Int] = 'i.as[Int]
-      val floatParser: PhaseParser[TestingEvent[Double], NoState, Float] = 'i.as[Float]
-      val strParser: PhaseParser[TestingEvent[Double], NoState, String] = 'i.as[String]
-      val longParser: PhaseParser[TestingEvent[Double], NoState, Long] = 'i.as[Long]
+      val intParser: PhaseParser[TestEvent[Double], NoState, Int] = 'i.as[Int]
+      val floatParser: PhaseParser[TestEvent[Double], NoState, Float] = 'i.as[Float]
+      val strParser: PhaseParser[TestEvent[Double], NoState, String] = 'i.as[String]
+      val longParser: PhaseParser[TestEvent[Double], NoState, Long] = 'i.as[Long]
 
 
       checkOnTestEvents(
@@ -108,7 +108,7 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
       val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
       checkOnTestEvents(
         (p: TestPhase[Double]) => abs(p),
-        for((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t),
+        for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t),
         Seq(Success(1.0), Success(1.0), Success(1.0), Failure("Test"))
       )
     }
@@ -116,7 +116,7 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
 
   "Reduce phase" should {
     val results = Stay :: Success(-1.0) :: Success(1.0) :: Failure("Test") :: Nil
-    val events = for ((t, res) <- times.take(results.length).zip(results)) yield TestingEvent(res, t)
+    val events = for ((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
 
     "work for one argument (return as it is)" in {
       checkOnTestEvents(
@@ -141,12 +141,12 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
     }
 
     "not work on mixed arguments e.g. (Stay, Success) and etc" in {
-      val constStay = new ConstResult(Stay: PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]]
-      val constFail = new ConstResult(Failure("Const Failure"): PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]]
+      val constStay = new ConstResult(Stay: PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestEvent[Double], Any]]
+      val constFail = new ConstResult(Failure("Const Failure"): PhaseResult[Double]).asInstanceOf[NumericPhaseParser[TestEvent[Double], Any]]
 
       checkOnTestEvents(
         (p: TestPhase[Double]) => {
-          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]], constStay)
+          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestEvent[Double], Any]], constStay)
         },
         events,
         Seq(Failure("Test"), Failure("Test"), Failure("Test"), Failure("Test"))
@@ -154,7 +154,7 @@ class NumericPhaseTest extends WordSpec with ParserMatchers {
 
       checkOnTestEvents(
         (p: TestPhase[Double]) => {
-          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestingEvent[Double], Any]], constFail)
+          Reduce(Math.max)(p.asInstanceOf[NumericPhaseParser[TestEvent[Double], Any]], constFail)
         },
         events,
         Seq(Failure("Const Failure"), Failure("Const Failure"), Failure("Const Failure"), Failure("Test"))

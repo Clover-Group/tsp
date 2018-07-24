@@ -16,9 +16,9 @@ class OrPhaseTest extends WordSpec with Matchers {
     }
 
     "Success if any side is success" in {
-      def orPhaseLeft(right: PhaseParser[TestingEvent[Int], Unit, Int]) = EitherParser(alwaysSuccess, right)
+      def orPhaseLeft(right: PhaseParser[TestEvent[Int], Unit, Int]) = EitherParser(alwaysSuccess, right)
 
-      def orPhaseRight(left: PhaseParser[TestingEvent[Int], Unit, Int]) = EitherParser(left, alwaysSuccess)
+      def orPhaseRight(left: PhaseParser[TestEvent[Int], Unit, Int]) = EitherParser(left, alwaysSuccess)
 
       val results = for (secondResult <- Set(alwaysFailure, alwaysSuccess, alwaysStay);
                          parserFunc <- Set(orPhaseLeft _, orPhaseRight _)

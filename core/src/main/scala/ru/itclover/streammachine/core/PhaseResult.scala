@@ -6,6 +6,8 @@ sealed trait PhaseResult[+T] {
   def flatMap[B](f: T => PhaseResult[B]): PhaseResult[B]
 
   def isTerminal: Boolean
+
+  def getOrElse[B >: T](other: => B) = other
 }
 
 object PhaseResult {
@@ -18,6 +20,8 @@ object PhaseResult {
     override def map[B](f: T => B): PhaseResult[B] = Success(f(t))
 
     override def flatMap[B](f: T => PhaseResult[B]): PhaseResult[B] = f(t)
+
+    override def getOrElse[B >: T](other: => B) = t
   }
 
   case class Failure(msg: String) extends TerminalResult[Nothing] {
