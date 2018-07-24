@@ -1,13 +1,12 @@
 package ru.itclover.streammachine.newsyntax
 
 import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
-import ru.itclover.streammachine.aggregators.accums.AccumState
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
-import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
+import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
-import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
-import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolExtractor, SymbolNumberExtractor, SymbolParser}
 import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParser, ComparingParser}
+import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
+import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolNumberExtractor, SymbolParser}
 
 class PhaseBuilder[Event] {
 
