@@ -6,7 +6,7 @@ import ru.itclover.streammachine.core.{PhaseParser, Time, Window}
 import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
 import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParser, ComparingParser}
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
-import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolNumberExtractor, SymbolParser}
+import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, NumericPhaseParser, Reduce, SymbolNumberExtractor, SymbolParser}
 
 class PhaseBuilder[Event] {
 
@@ -50,6 +50,15 @@ class PhaseBuilder[Event] {
           if (align > 0) Aligned(Window(align), p) else p
         case "lag" => PhaseParser.Functions.lag(nextBuild(arguments.head))
         case "abs" => PhaseParser.Functions.abs(nextBuild(arguments.head).asInstanceOf[PhaseParser[Event, _, Double]])
+        case "minof" =>
+          val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
+          Reduce[Event, Any]((x1: Double, x2: Double) => Math.min(x1, x2))(as.head, as.tail: _*)
+        case "maxof" =>
+          val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
+          Reduce[Event, Any]((x1: Double, x2: Double) => Math.max(x1, x2))(as.head, as.tail: _*)
+        case "avgof" =>
+          val as = arguments.map(a => nextBuild(a).asInstanceOf[NumericPhaseParser[Event, Any]])
+          Reduce[Event, Any]((x1: Double, x2: Double) => x1 + x2)(as.head, as.tail: _*) div OneRowPhaseParser(_ => as.length)
         case _ => throw new RuntimeException(s"Unknown function $function")
       }
       case Identifier(identifier) => SymbolParser(Symbol(identifier)).as[Double]
