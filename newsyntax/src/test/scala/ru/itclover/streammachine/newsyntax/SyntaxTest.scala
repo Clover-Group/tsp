@@ -40,7 +40,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and pr_OFF_P1 = 0 and pr_OFF_P2 = 0 and pr_OFF_P3 = 0 and pr_OFF_P4 = 0 and pr_OFF_P5 = 0 and pr_OFF_P7 = 0 and pr_OFF_P10 = 0 and pr_OFF_P11 = 0",
     "(K7_1 = 1 and WORK1_VPP = 1) or (K7_2 = 1 and WORK2_VPP = 1) andThen A4 = 1 for 60 min",
     "SpeedEngine > 300 and PowerPolling > 50 and PFuelFineFuelFilter < 1.3 and PFuelFineFuelFilter > 0.1 for 10 sec",
-    "workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1, 1 sec) > 150",
+    "workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1) > 150",
     "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen POilPumpOut > 0.1 for 100 sec < 50 sec",
     "SpeedEngine > 300 and TOilOutDiesel > 80 and (PosKM > 3 and PosKM < 15 and POilDieselOut < 1.3 or PosKM = 15 and POilDieselOut < 5.5) for 10 sec",
     "CurrentExcitationGenerator > 5400 for 5 min",
@@ -83,27 +83,11 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     p.start.run() shouldBe a[Failure[_]]
   }
 
-  "TimeRange" should "correctly check for contain" in {
-    val tr1 = TimeRangeExpr(TimeLiteral(1), TimeLiteral(1000), strict = false)
-    val tr2 = TimeRangeExpr(null, TimeLiteral(2000), strict = false)
-    val tr3 = TimeRangeExpr(TimeLiteral(5), null, strict = false)
-    tr1.contains(10) shouldBe true
-    tr2.contains(10) shouldBe true
-    tr3.contains(10) shouldBe true
-    tr1.contains(4) shouldBe true
-    tr2.contains(4) shouldBe true
-    tr3.contains(4) shouldBe false
-    tr1.contains(1010) shouldBe false
-    tr2.contains(1010) shouldBe true
-    tr3.contains(1010) shouldBe true
-  }
-
   forAll(Table("rules", rules: _*)) {
     r =>
       val p = new SyntaxParser(r)
       val x = p.start.run()
       x shouldBe a[Success[_]]
-      val pb = new PhaseBuilder[Event]
-      pb.build(x.get) shouldBe a[PhaseParser[Event, _, _]]
+      x.get shouldBe an[PhaseParser[Event, _, _]]
   }
 }

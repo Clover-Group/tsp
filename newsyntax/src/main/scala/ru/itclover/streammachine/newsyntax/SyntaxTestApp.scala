@@ -22,14 +22,14 @@ object SyntaxTestApp extends App {
   if (args.length < 1) {
     System.exit(0)
   }
-  val parser = new SyntaxParser(args(0))
+  val parser = new SyntaxParser[Event](args(0))
   val result = parser.start.run()
   result match {
-    case Success(x: Expr) =>
+    case Success(x: PhaseParser[Event, _, _]) =>
       println(x)
-      val pb = new PhaseBuilder[Event]
-      val pp = pb.build(x)
-      println(pp.formatWithInitialState(Event(1, Instant.now)))
+//      val pb = new PhaseBuilder[Event]
+//      val pp = pb.build(x)
+//      println(pp.formatWithInitialState(Event(1, Instant.now)))
     case Failure(x: ParseError) =>
       println(parser.formatError(x, new ErrorFormatter(showTraces = true)))
     case Failure(z) =>

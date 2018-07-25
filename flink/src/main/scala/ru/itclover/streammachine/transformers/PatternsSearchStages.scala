@@ -10,7 +10,7 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.RowSchema
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
-import ru.itclover.streammachine.newsyntax.{PhaseBuilder, SyntaxParser}
+import ru.itclover.streammachine.newsyntax.SyntaxParser
 import ru.itclover.streammachine.phases.NumericPhases.{SymbolExtractor, SymbolNumberExtractor}
 import ru.itclover.streammachine.utils.CollectionsOps._
 
@@ -82,5 +82,5 @@ object PatternsSearchStagesDSL extends PatternsSearchStages {
                                           fieldIndexesMap: Map[Symbol, Int])(implicit timeExtractor: TimeExtractor[Row],
                                                                              numberExtractor: SymbolNumberExtractor[Row]):
   ClassLoader => PhaseParser[Row, Any, Any] =
-    _ => new PhaseBuilder[Row].build(new SyntaxParser(code).start.run().get).asInstanceOf[PhaseParser[Row, Any, Any]]
+    _ => new SyntaxParser(code).start.run().get
 }

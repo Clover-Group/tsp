@@ -34,6 +34,7 @@ case class Window(toMillis: Long) extends Serializable
 case class TimeInterval(min: Window = MinWindow, max: Window = MaxWindow) {
   assert(min.toMillis >= 0 && max.toMillis >= 0 && max.toMillis >= min.toMillis,
     s"Incorrect Timer configuration (min: ${min.toMillis}, max: ${max.toMillis})")
+  def contains(w: Window): Boolean = w.toMillis >= min.toMillis && w.toMillis <= max.toMillis
 }
 
 object Time {

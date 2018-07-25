@@ -1,268 +1,178 @@
 package ru.itclover.streammachine.newsyntax
 
 import org.parboiled2._
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, ToSegments}
+import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
+import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
+import ru.itclover.streammachine.phases.BooleanPhases.{AndParser, BooleanPhaseParser, NotParser, OrParser}
+//import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
+import ru.itclover.streammachine.phases.BooleanPhases.{Assert, ComparingParser}
+import ru.itclover.streammachine.phases.CombiningPhases.TogetherParser
+import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
+import ru.itclover.streammachine.phases.NoState
+import ru.itclover.streammachine.phases.NumericPhases._
 import shapeless.HNil
 
-sealed trait Expr
-sealed trait ArithmeticExpr extends Expr
-sealed trait BooleanExpr extends Expr
-sealed trait TrileanExpr extends Expr
-sealed trait RangeExpr extends Expr
+import scala.collection.immutable.NumericRange
 
-object Operators {
+class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: TimeExtractor[Event],
+                                                  symbolNumberExtractor: SymbolNumberExtractor[Event]) extends Parser {
 
-  sealed abstract class Value(op: String) {
-    val operatorSymbol: String = op
+  type AnyPhaseParser = PhaseParser[Event, Any, Any]
+  type AnyBooleanPhaseParser = BooleanPhaseParser[Event, Any]
+  type AnyNumericPhaseParser = NumericPhaseParser[Event, Any]
 
-    def comp[T](implicit num: Fractional[T]): (T, T) => T
+  def start: Rule1[AnyPhaseParser] = rule {
+    trileanExpr ~ EOI ~> ((e: AnyPhaseParser) => ToSegments(e)(timeExtractor).asInstanceOf[AnyPhaseParser])
   }
 
-  case object Add extends Value("+") {
-    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.plus
-  }
-
-  case object Sub extends Value("-") {
-    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.minus
-  }
-
-  case object Mul extends Value("*") {
-    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.times
-  }
-
-  case object Div extends Value("/") {
-    override def comp[T](implicit num: Fractional[T]): (T, T) => T = num.div
-  }
-
-}
-
-object ComparisonOperators {
-
-  sealed abstract class Value(op: String) {
-    def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean
-
-    val operatorSymbol: String = op
-  }
-
-  case object Equal extends Value("==") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.equiv
-  }
-
-  case object NotEqual extends Value("!=") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = (x1, x2) => !ord.equiv(x1, x2)
-  }
-
-  case object Less extends Value("<") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.lt
-  }
-
-  case object Greater extends Value(">") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.gt
-  }
-
-  case object LessOrEqual extends Value("<=") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.lteq
-  }
-
-  case object GreaterOrEqual extends Value(">=") {
-    override def comparingFunction[T](implicit ord: Ordering[T]): (T, T) => Boolean = ord.gteq
-  }
-
-}
-
-object BooleanOperators {
-
-  sealed abstract class Value(op: String) {
-    val operatorSymbol: String = op
-
-    def comparingFunction: (Boolean, Boolean) => Boolean
-  }
-
-  case object And extends Value("and") {
-    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, x2) => x1 & x2
-  }
-
-  case object Or extends Value("or") {
-    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, x2) => x1 | x2
-  }
-
-  case object Not extends Value("not") {
-    override def comparingFunction: (Boolean, Boolean) => Boolean = (x1, _) => !x1
-  }
-
-}
-
-object TrileanOperators {
-
-  sealed trait Value
-
-  case object And extends Value
-
-  case object AndThen extends Value
-
-  case object Or extends Value
-
-}
-
-// TODO: storing time-related attributes
-final case class TrileanCondExpr(cond: Expr, exactly: Boolean = false,
-                                 window: TimeLiteral = null, range: Expr = null, until: Expr = null) extends TrileanExpr
-
-final case class TrileanOnlyBooleanExpr(cond: BooleanExpr) extends TrileanExpr
-
-final case class FunctionCallExpr(fun: String, args: List[Expr]) extends ArithmeticExpr
-
-final case class ComparisonOperatorExpr(op: ComparisonOperators.Value, lhs: ArithmeticExpr, rhs: ArithmeticExpr) extends BooleanExpr
-
-final case class BooleanOperatorExpr(op: BooleanOperators.Value, lhs: BooleanExpr, rhs: BooleanExpr) extends BooleanExpr
-
-final case class TrileanOperatorExpr(op: TrileanOperators.Value, lhs: TrileanExpr, rhs: TrileanExpr) extends TrileanExpr
-
-final case class OperatorExpr(op: Operators.Value, lhs: ArithmeticExpr, rhs: ArithmeticExpr) extends ArithmeticExpr
-
-final case class TimeRangeExpr(lower: TimeLiteral, upper: TimeLiteral, strict: Boolean) extends RangeExpr {
-  def contains(x: Long): Boolean = if (strict) {
-    (lower == null || x > lower.millis) && (upper == null || x < upper.millis)
-  } else {
-    (lower == null || x >= lower.millis) && (upper == null || x <= upper.millis)
-  }
-}
-
-final case class RepetitionRangeExpr(lower: IntegerLiteral, upper: IntegerLiteral, strict: Boolean) extends RangeExpr {
-  def contains(x: Long): Boolean = if (strict) {
-    (lower == null || x > lower.value) && (upper == null || x < upper.value)
-  } else {
-    (lower == null || x >= lower.value) && (upper == null || x <= upper.value)
-  }
-}
-
-final case class Identifier(identifier: String) extends ArithmeticExpr
-
-final case class IntegerLiteral(value: Long) extends ArithmeticExpr
-
-final case class TimeLiteral(millis: Long) extends Expr
-
-final case class DoubleLiteral(value: Double) extends ArithmeticExpr
-
-final case class StringLiteral(value: String) extends ArithmeticExpr
-
-final case class BooleanLiteral(value: Boolean) extends BooleanExpr
-
-
-class SyntaxParser(val input: ParserInput) extends Parser {
-
-  def start: Rule1[TrileanExpr] = rule {
-    trileanExpr ~ EOI
-  }
-
-  def trileanExpr: Rule1[TrileanExpr] = rule {
+  def trileanExpr: Rule1[AnyPhaseParser] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-        ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.AndThen, e, f))
-        |
-        ignoreCase("and") ~ ws ~ trileanTerm ~> ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.And, e, f))
-        | ignoreCase("or") ~ ws ~ trileanTerm ~> ((e: TrileanExpr, f: TrileanExpr) => TrileanOperatorExpr(TrileanOperators.Or, e, f))
+        ((e: AnyPhaseParser, f: AnyPhaseParser) => (e andThen f).asInstanceOf[AnyPhaseParser])
+        | ignoreCase("and") ~ ws ~ trileanTerm ~>
+        ((e: AnyPhaseParser, f: AnyPhaseParser) => (e togetherWith f).asInstanceOf[AnyPhaseParser])
+        | ignoreCase("or") ~ ws ~ trileanTerm ~>
+        ((e: AnyPhaseParser, f: AnyPhaseParser) => (e either f).asInstanceOf[AnyPhaseParser])
     )
   }
 
-  def trileanTerm: Rule1[TrileanExpr] = rule {
-    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~ optional(range) ~>
-      ((c: Expr, ex: Option[Int], w: TimeLiteral, r: Option[Expr])
-      => TrileanCondExpr(c, exactly = ex.isDefined, window = w, range = r.orNull))
+  def trileanTerm: Rule1[AnyPhaseParser] = rule {
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
+      optional(range) ~> ((c: AnyPhaseParser, ex: Option[Int], w: Window, r: Option[Any]) => {
+      val ac: AnyPhaseParser = r match {
+        case Some(nr) if nr.isInstanceOf[NumericRange[_]] =>
+          val q = PhaseParser.Functions.truthCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
+          Assert(q.map[Boolean](x => nr.asInstanceOf[NumericRange[Long]].contains(x))).asInstanceOf[AnyPhaseParser]
+        case Some(tr) if tr.isInstanceOf[TimeInterval] =>
+          val q = PhaseParser.Functions.truthMillisCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
+          Assert(q.map[Boolean](x => tr.asInstanceOf[TimeInterval].contains(Window(x)))).asInstanceOf[AnyPhaseParser]
+        case _ => c
+      }
+      (if (ex.isDefined) ac.timed(w, w) else ac.timed(Time.less(w))).asInstanceOf[AnyPhaseParser]
+    })
       | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~>
-      ((c: Expr, b: Expr, r: Option[Expr]) => TrileanCondExpr(c, until = b, range = r.orNull))
+      ((c: AnyPhaseParser, b: AnyBooleanPhaseParser, r: Option[Any]) => {
+        val ac = c
+        (ac.timed(MaxWindow).asInstanceOf[AnyBooleanPhaseParser] and
+          Assert(NotParser(b)).asInstanceOf[AnyBooleanPhaseParser]).asInstanceOf[AnyPhaseParser]
+      })
       | trileanFactor
       )
   }
 
-  def trileanFactor: Rule1[TrileanExpr] = rule {
-    booleanExpr ~> { b: BooleanExpr => TrileanOnlyBooleanExpr(b) } | '(' ~ trileanExpr ~ ')' ~ ws
+  def trileanFactor: Rule1[AnyPhaseParser] = rule {
+    booleanExpr ~> { b: AnyBooleanPhaseParser => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def booleanExpr: Rule1[BooleanExpr] = rule {
+  def booleanExpr: Rule1[AnyBooleanPhaseParser] = rule {
     booleanTerm ~ zeroOrMore(
-      ignoreCase("or") ~ ws ~ booleanTerm ~> ((e: BooleanExpr, f: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.Or, e, f)))
+      ignoreCase("or") ~ ws ~ booleanTerm ~>
+        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => OrParser(e, f).asInstanceOf[AnyBooleanPhaseParser]))
   }
 
-  def booleanTerm: Rule1[BooleanExpr] = rule {
+  def booleanTerm: Rule1[AnyBooleanPhaseParser] = rule {
     booleanFactor ~ zeroOrMore(
-      ignoreCase("and") ~ ws ~ booleanFactor ~> ((e: BooleanExpr, f: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.And, e, f)))
+      ignoreCase("and") ~ ws ~ booleanFactor ~>
+        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => AndParser(e, f).asInstanceOf[AnyBooleanPhaseParser]))
   }
 
-  def booleanFactor: Rule1[BooleanExpr] = rule {
-    (comparison | boolean | "(" ~ booleanExpr ~ ")" ~ ws
-      | "not" ~ booleanExpr ~> ((b: BooleanExpr) => BooleanOperatorExpr(BooleanOperators.Not, b, null)))
+  def booleanFactor: Rule1[AnyBooleanPhaseParser] = rule {
+    comparison |
+      boolean ~> ((b: OneRowPhaseParser[Event, Boolean]) => b.asInstanceOf[AnyBooleanPhaseParser]) |
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AnyBooleanPhaseParser) => NotParser(b))
   }
 
-  def comparison: Rule1[BooleanExpr] = rule {
+  def comparison: Rule1[AnyBooleanPhaseParser] = rule {
     (
-      expr ~ "<" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.Less, e1, e2))
-        | expr ~ "<=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.LessOrEqual, e1, e2))
-        | expr ~ ">" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.Greater, e1, e2))
-        | expr ~ ">=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.GreaterOrEqual, e1, e2))
-        | expr ~ "=" ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.Equal, e1, e2))
-        | expr ~ ("!=" | "<>") ~ ws ~ expr ~> ((e1: ArithmeticExpr, e2: ArithmeticExpr) =>
-        ComparisonOperatorExpr(ComparisonOperators.NotEqual, e1, e2))
+      expr ~ "<" ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 < d2,
+          "<") {}.asInstanceOf[AnyBooleanPhaseParser])
+        | expr ~ "<=" ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 <= d2,
+          "<=") {}.asInstanceOf[AnyBooleanPhaseParser])
+        | expr ~ ">" ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 > d2,
+          ">") {}.asInstanceOf[AnyBooleanPhaseParser])
+        | expr ~ ">=" ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 >= d2,
+          ">") {}.asInstanceOf[AnyBooleanPhaseParser])
+        | expr ~ "=" ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 == d2,
+          "==") {}.asInstanceOf[AnyBooleanPhaseParser])
+        |
+        expr ~ ("!=" | "<>") ~ ws ~ expr ~> ((e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 != d2,
+            "!=") {}.asInstanceOf[AnyBooleanPhaseParser])
       )
   }
 
-  def expr: Rule1[ArithmeticExpr] = rule {
-    term ~ zeroOrMore('+' ~ ws ~ term ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Add, e, f))
-      | '-' ~ ws ~ term ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Sub, e, f))
+  def expr: Rule1[AnyNumericPhaseParser] = rule {
+    term ~ zeroOrMore('+' ~ ws ~ term ~> ((e: AnyNumericPhaseParser, f: AnyNumericPhaseParser) =>
+      new BinaryNumericParser[Event, Any, Any, Double](e, f, _ + _, "+").asInstanceOf[AnyNumericPhaseParser])
+      | '-' ~ ws ~ term ~> ((e: AnyNumericPhaseParser, f: AnyNumericPhaseParser) =>
+      new BinaryNumericParser[Event, Any, Any, Double](e, f, _ - _, "-").asInstanceOf[AnyNumericPhaseParser])
     )
   }
 
-  def term: Rule1[ArithmeticExpr] = rule {
-    factor ~ zeroOrMore('*' ~ ws ~ factor ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Mul, e, f))
-      | '/' ~ ws ~ factor ~> ((e: ArithmeticExpr, f: ArithmeticExpr) => OperatorExpr(Operators.Div, e, f))
-    )
+  def term: Rule1[AnyNumericPhaseParser] = rule {
+    factor ~
+      zeroOrMore('*' ~ ws ~ factor ~> ((e: AnyNumericPhaseParser, f: AnyNumericPhaseParser) =>
+        new BinaryNumericParser[Event, Any, Any, Double](e, f, _ * _, "*").asInstanceOf[AnyNumericPhaseParser])
+        | '/' ~ ws ~ factor ~> ((e: AnyNumericPhaseParser, f: AnyNumericPhaseParser) =>
+        new BinaryNumericParser[Event, Any, Any, Double](e, f, _ / _, "/").asInstanceOf[AnyNumericPhaseParser])
+      )
   }
 
-  def factor: Rule1[ArithmeticExpr] = rule {
-    real | integer | string | functionCall | identifier | '(' ~ expr ~ ')' ~ ws
+  def factor: Rule1[AnyNumericPhaseParser] = rule {
+    (
+      real ~> (_.asInstanceOf[AnyNumericPhaseParser])
+        | integer ~> (_.asInstanceOf[AnyNumericPhaseParser])
+        | functionCall
+        | identifier ~> (_.as[Double].asInstanceOf[AnyNumericPhaseParser])
+        | '(' ~ expr ~ ')' ~ ws
+      )
   }
 
-  def range: Rule1[RangeExpr] = rule {
+  def range: Rule1[Any] = rule {
     timeRange | repetitionRange
   }
 
-  def timeRange: Rule1[RangeExpr] = rule {
-    ("<" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = true))
-      | "<=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(null, t, strict = false))
-      | ">" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = true))
-      | ">=" ~ ws ~ time ~> ((t: TimeLiteral) => TimeRangeExpr(t, null, strict = false))
+  def timeRange: Rule1[TimeInterval] = rule {
+    ("<" ~ ws ~ time ~> ((t: Window) => Time.less(t))
+      | "<=" ~ ws ~ time ~> ((t: Window) => Time.less(t))
+      | ">" ~ ws ~ time ~> ((t: Window) => Time.more(t))
+      | ">=" ~ ws ~ time ~> ((t: Window) => Time.more(t))
       | time ~ ignoreCase("to") ~ ws ~ time ~>
-      ((t1: TimeLiteral, t2: TimeLiteral) => TimeRangeExpr(t1, t2, strict = false))
-      | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~> ((d1: DoubleLiteral, d2: DoubleLiteral, u: Int) =>
-      TimeRangeExpr(TimeLiteral((d1.value * u).toLong), TimeLiteral((d2.value * u).toLong), strict = false))
+      ((t1: Window, t2: Window) => TimeInterval(t1, t2))
+      | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~>
+      ((d1: OneRowPhaseParser[Event, Double], d2: OneRowPhaseParser[Event, Double], u: Int) =>
+        TimeInterval(Window((d1.extract(null.asInstanceOf[Event]) * u).toLong),
+          Window((d2.extract(null.asInstanceOf[Event]) * u).toLong)))
       )
   }
 
-  def repetitionRange: Rule1[RangeExpr] = rule {
-    ("<" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = true))
-      | "<=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(null, t, strict = false))
-      | ">" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = true))
-      | ">=" ~ ws ~ repetition ~> ((t: IntegerLiteral) => RepetitionRangeExpr(t, null, strict = false))
+  def repetitionRange: Rule1[NumericRange[Long]] = rule {
+    ("<" ~ ws ~ repetition ~> ((t: Long) => 0L until t)
+      | "<=" ~ ws ~ repetition ~> ((t: Long) => 0L to t)
+      | ">" ~ ws ~ repetition ~> ((t: Long) => t + 1 to Long.MaxValue)
+      | ">=" ~ ws ~ repetition ~> ((t: Long) => t to Long.MaxValue)
       | integer ~ ignoreCase("to") ~ ws ~ repetition ~>
-      ((t1: IntegerLiteral, t2: IntegerLiteral) => RepetitionRangeExpr(t1, t2, strict = false))
+      ((t1: OneRowPhaseParser[Event, Long], t2: Long) => t1.extract(null.asInstanceOf[Event]) to t2)
       )
   }
 
-  def repetition: Rule1[IntegerLiteral] = rule {
-    integer ~ ignoreCase("times")
+  def repetition: Rule1[Long] = rule {
+    integer ~ ignoreCase("times") ~> ((e: OneRowPhaseParser[Event, Long]) => e.extract(null.asInstanceOf[Event]))
   }
 
-  def time: Rule1[TimeLiteral] = rule {
-    singleTime.+(ws) ~> ((ts: Seq[TimeLiteral]) => TimeLiteral(ts.foldLeft(0L) { (acc, t) => acc + t.millis }))
+  def time: Rule1[Window] = rule {
+    singleTime.+(ws) ~> ((ts: Seq[Window]) => Window(ts.foldLeft(0L) { (acc, t) => acc + t.toMillis }))
   }
 
-  def singleTime: Rule1[TimeLiteral] = rule {
+  def singleTime: Rule1[Window] = rule {
     real ~ timeUnit ~ ws ~>
-      ((i: DoubleLiteral, u: Int) => TimeLiteral((i.value * u).toLong))
+      ((i: OneRowPhaseParser[Event, Double], u: Int) => Window((i.extract(null.asInstanceOf[Event]) * u).toLong))
   }
 
   def timeUnit: Rule1[Int] = rule {
@@ -276,42 +186,83 @@ class SyntaxParser(val input: ParserInput) extends Parser {
       | ignoreCase("hr") ~> (() => 3600000))
   }
 
-  def real: Rule1[DoubleLiteral] = rule {
+  def real: Rule1[OneRowPhaseParser[Event, Double]] = rule {
     ((str("+") ~> (() => 1) | str("-") ~> (() => -1) | str("") ~> (() => 1)) ~
       capture(oneOrMore(CharPredicate.Digit) ~ optional('.' ~ oneOrMore(CharPredicate.Digit))) ~ ws
-      ~> ((s: Int, i: String) => DoubleLiteral(s * i.toDouble))
+      ~> ((s: Int, i: String) => OneRowPhaseParser[Event, Double](_ => s * i.toDouble))
       )
   }
 
-  def integer: Rule1[IntegerLiteral] = rule {
+  def integer: Rule1[OneRowPhaseParser[Event, Long]] = rule {
     ((str("+") ~> (() => 1) | str("-") ~> (() => -1) | str("") ~> (() => 1))
       ~ capture(oneOrMore(CharPredicate.Digit)) ~ ws
-      ~> ((s: Int, i: String) => IntegerLiteral(s * i.toInt))
+      ~> ((s: Int, i: String) => OneRowPhaseParser[Event, Long](_ => s * i.toLong))
       )
   }
 
-  def functionCall: Rule1[FunctionCallExpr] = rule {
-    identifier ~ ws ~ "(" ~ ws ~ (time | expr).*(ws ~ "," ~ ws) ~ ")" ~ ws ~> ((i: Identifier, el: Seq[Expr]) =>
-      FunctionCallExpr(i.identifier.toLowerCase, el.toList))
+  def functionCall: Rule1[AnyNumericPhaseParser] = rule {
+    (
+      identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ ")" ~ ws ~>
+        ((i: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser]) => {
+          val function = i.symbol.toString.tail
+          function match {
+            case "lag" => PhaseParser.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            case "abs" => PhaseParser.Functions.abs(arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            case "minof" =>
+              val as = arguments
+              Reduce[Event, Any](TestFunctions.min)(as.head, as.tail: _*).asInstanceOf[AnyNumericPhaseParser]
+            case "maxof" =>
+              val as = arguments
+              Reduce[Event, Any](TestFunctions.max)(as.head, as.tail: _*).asInstanceOf[AnyNumericPhaseParser]
+            case "avgof" =>
+              val as = arguments
+              (Reduce[Event, Any](TestFunctions.plus)(as.head, as.tail: _*) div
+                Reduce[Event, Any](TestFunctions.countNotNan)(as.head, as.tail: _*)).asInstanceOf[AnyNumericPhaseParser]
+            case _ => throw new RuntimeException(s"Unknown function $function")
+          }
+        })
+        | identifier ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
+        (
+          (i: SymbolParser[Event], arg: AnyNumericPhaseParser, w: Window) => {
+            val function = i.symbol.toString.tail
+            function match {
+              case "avg" => PhaseParser.Functions.avg(arg, w).asInstanceOf[AnyNumericPhaseParser]
+              case "sum" => PhaseParser.Functions.sum(arg, w).asInstanceOf[AnyNumericPhaseParser]
+            }
+          }
+          )
+      )
   }
 
-  def identifier: Rule1[Identifier] = rule {
-    (capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws ~> ((id: String) => Identifier(id))
+  def identifier: Rule1[SymbolParser[Event]] = rule {
+    (capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws ~>
+      ((id: String) => SymbolParser[Event](Symbol(id)))
       | '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws ~>
-      ((id: String) => Identifier(id.replace("\"\"", "\"")))
+      ((id: String) => SymbolParser[Event](Symbol(id.replace("\"\"", "\""))))
       )
   }
 
-  def string: Rule1[StringLiteral] = rule {
-    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~> ((id: String) => StringLiteral(id.replace("''", "'")))
+  def string: Rule1[OneRowPhaseParser[Event, String]] = rule {
+    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~>
+      ((id: String) => OneRowPhaseParser[Event, String](_ => id.replace("''", "'")))
   }
 
-  def boolean: Rule1[BooleanLiteral] = rule {
-    (ignoreCase("true") ~ ws ~> (() => BooleanLiteral(true))
-      | ignoreCase("false") ~ ws ~> (() => BooleanLiteral(false)) ~ ws)
+  def boolean: Rule1[OneRowPhaseParser[Event, Boolean]] = rule {
+    (ignoreCase("true") ~ ws ~> (() => OneRowPhaseParser[Event, Boolean](_ => true))
+      | ignoreCase("false") ~ ws ~> (() => OneRowPhaseParser[Event, Boolean](_ => false)) ~ ws)
   }
 
   def ws = rule {
     quiet(zeroOrMore(anyOf(" \t \n")))
   }
+}
+
+object TestFunctions {
+  def min(d1: Double, d2: Double): Double = Math.min(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+
+  def max(d1: Double, d2: Double): Double = Math.max(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+
+  def plus(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else d1) + (if (d2.isNaN) 0 else d2)
+
+  def countNotNan(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else 1) + (if (d2.isNaN) 0 else 1)
 }
