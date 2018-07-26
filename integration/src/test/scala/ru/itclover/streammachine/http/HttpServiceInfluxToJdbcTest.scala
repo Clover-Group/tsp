@@ -72,7 +72,7 @@ class HttpServiceInfluxToJdbcTest extends FlatSpec with SqlMatchers with Scalate
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
-    Post("/streamJob/from-influxdb/to-jdbc/", FindPatternsRequest(inputConf, outputConf, basicAssertions)) ~>
+    Post("/streamJob/from-influxdb/to-jdbc/", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 
@@ -90,7 +90,7 @@ class HttpServiceInfluxToJdbcTest extends FlatSpec with SqlMatchers with Scalate
   }
 
   "Types casting" should "work for wide dense table" in {
-    Post("/streamJob/from-influxdb/to-jdbc/", FindPatternsRequest(typeCastingInputConf, outputConf, typesCasting)) ~>
+    Post("/streamJob/from-influxdb/to-jdbc/", FindPatternsRequest("2", typeCastingInputConf, outputConf, typesCasting)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 

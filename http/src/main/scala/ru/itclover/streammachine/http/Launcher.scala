@@ -11,6 +11,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
 import cats._
 import cats.implicits._
+import org.apache.flink.configuration.{ConfigConstants, Configuration}
 
 
 object Launcher extends App with HttpService {
@@ -23,11 +24,16 @@ object Launcher extends App with HttpService {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
+
+  val conf: Configuration = new Configuration()
+  conf.setBoolean(ConfigConstants.LOCAL_START_WEBSERVER, true)
+  conf.setInteger("rest.port", configs.getInt("http.monitoring.port"))
+  val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf)
   streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
 
-  private val host = configs.getString("general.host")
-  private val port = configs.getInt("general.port")
+
+  private val host = configs.getString("http.host")
+  private val port = configs.getInt("http.port")
   val bindingFuture = Http().bindAndHandle(route, host, port)
 
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))

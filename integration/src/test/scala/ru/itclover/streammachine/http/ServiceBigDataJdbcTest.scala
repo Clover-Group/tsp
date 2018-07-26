@@ -57,7 +57,7 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
 
   "Basic assertions" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest(inputConf, outputConf, assertions)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 

@@ -66,7 +66,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest(inputConf, outputConf, basicAssertions)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 
@@ -84,7 +84,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   }
 
   "Types casting" should "work for wide dense table" in {
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest(typeCastingInputConf, outputConf, typesCasting)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", typeCastingInputConf, outputConf, typesCasting)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 

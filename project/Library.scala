@@ -61,6 +61,7 @@ object Library {
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink = flinkCore ++ Seq(
+    "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" %% "flink-connector-kafka-0.10" % Version.flink,
     "org.apache.flink" % "flink-jdbc" % Version.flink

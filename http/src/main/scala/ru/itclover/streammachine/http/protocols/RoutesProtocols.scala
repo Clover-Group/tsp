@@ -8,7 +8,7 @@ import ru.itclover.streammachine.io.output.{JDBCOutputConf, OutputConf, RowSchem
 import spray.json.{DefaultJsonProtocol, JsonFormat}
 
 
-trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
+trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
 
@@ -24,5 +24,5 @@ trait JsonProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
   implicit def patternsRequestFmt[IN <: InputConf[_] : JsonFormat, OUT <: OutputConf : JsonFormat] =
-    jsonFormat3(FindPatternsRequest.apply[IN, OUT])
+    jsonFormat4(FindPatternsRequest.apply[IN, OUT])
 }

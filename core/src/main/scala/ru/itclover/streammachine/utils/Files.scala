@@ -1,14 +1,14 @@
 package ru.itclover.streammachine.utils
 
 import CollectionsOps._
-import java.io.{File, FileNotFoundException}
+import java.io.{File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.util.Try
 
 
 object Files {
-  def writeToFile(path: String, content: String): Try[Unit] = {
-    val pw = new java.io.PrintWriter(new File(path))
+  def writeToFile(path: String, content: String, overwrite: Boolean = false): Try[Unit] = {
+    val pw = new FileWriter(new File(path), !overwrite)
     Try {
       pw.write(content)
     } eventually {
@@ -27,4 +27,8 @@ object Files {
       src.close
     }
   } yield str
+
+  def rmFile(path: String): Boolean =
+    new File(path).delete()
+
 }

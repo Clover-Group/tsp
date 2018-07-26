@@ -5,12 +5,11 @@ import com.typesafe.scalalogging.Logger
 object Time {
   private val log = Logger("Time")
 
-  def timeIt[R](block: => R): R = {
+  def timeIt[R](block: => R): (Double, R) = {
     val t0 = System.nanoTime()
     val result = block
     val t1 = System.nanoTime()
-    log.info("Elapsed time: " + (t1 - t0) / 10e9 + "sec")
-    result
+    ((t1 - t0) / 10e9, result)
   }
 
 }

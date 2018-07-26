@@ -10,15 +10,16 @@ import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.{InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.RowSchema
 import ru.itclover.streammachine.DataStreamUtils.DataStreamOps
-import ru.itclover.streammachine.newsyntax.SyntaxParser
-import ru.itclover.streammachine.phases.NumericPhases.{SymbolExtractor, SymbolNumberExtractor}
+import ru.itclover.streammachine.phases.NumericPhases.{SymbolNumberExtractor, SymbolExtractor}
 import ru.itclover.streammachine.utils.CollectionsOps._
 
 
-class PatternsSearchStages {
+object PatternsSearchStages {
+  val stageName: String = "Patterns search stage"
 
   // TODO Event type param (after external DSL)
-  def findInRows(stream: DataStream[Row], inputConf: InputConf[Row], patterns: Seq[RawPattern], rowSchema: RowSchema)
+  def findInRows(stream: DataStream[Row], inputConf: InputConf[Row], patterns: Seq[RawPattern],
+                 rowSchema: RowSchema)
                 (implicit rowTypeInfo: TypeInformation[Row],
                  streamEnv: StreamExecutionEnvironment): Either[Throwable, DataStream[Row]] =
     for {
@@ -34,28 +35,25 @@ class PatternsSearchStages {
       val patternsMappers = patterns.map { pattern =>
         def packInMapper = SegmentResultsMapper[Row, Any]() andThen
           new ToRowResultMapper[Row](inputConf.sourceId, rowSchema, pattern)
-
         val compilePhase = getPhaseCompiler(pattern.sourceCode, inputConf.datetimeField, fieldsIdxMap)
         (pattern.id, new FlinkPatternMapper(compilePhase, packInMapper, inputConf.eventsMaxGapMs, new Row(0),
           isTerminal(fieldsIdxMap(nullField))).asInstanceOf[RichStatefulFlatMapper[Row, Any, Row]])
       }
-      val partitionFields = inputConf.partitionFields // make job code serializable
+      val partitionFields = inputConf.partitionFields // made job code serializable
       val keyedStream = stream.keyBy(e => {
         val extractor = anyExt
         partitionFields.map(extractor(e, _)).mkString
       })
 
-      keyedStream.flatMapAll(patternsMappers.map(_._2))(rowSchema.getTypeInfo).name(s"Patterns search stage")
+      keyedStream.flatMapAll(patternsMappers.map(_._2))(rowSchema.getTypeInfo).name(stageName)
     }
 
-  protected def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int])
-                                (implicit timeExtractor: TimeExtractor[Row],
-                                 numberExtractor: SymbolNumberExtractor[Row]): ClassLoader => PhaseParser[Row, Any, Any] = {
-    classLoader: ClassLoader =>
-      val evaluator = new EvalUtils.Eval(classLoader)
-      evaluator.apply[(PhaseParser[Row, Any, Any])](
-        EvalUtils.composePhaseCodeUsingRowExtractors(code, timestampField, fieldIndexesMap)
-      )
+  private def getPhaseCompiler(code: String, timestampField: Symbol, fieldIndexesMap: Map[Symbol, Int]) =
+  { classLoader: ClassLoader =>
+    val evaluator = new EvalUtils.Eval(classLoader)
+    evaluator.apply[(PhaseParser[Row, Any, Any])](
+      EvalUtils.composePhaseCodeUsingRowExtractors(code, timestampField, fieldIndexesMap)
+    )
   }
 
   private def isTerminal(nullInd: Int) = { row: Row =>
@@ -71,16 +69,4 @@ class PatternsSearchStages {
         Left(new IllegalArgumentException(s"Fail to compute nullIndex, query contains only date and partition cols."))
     }
   }
-}
-
-object PatternsSearchStages extends PatternsSearchStages {
-
-}
-
-object PatternsSearchStagesDSL extends PatternsSearchStages {
-  override protected def getPhaseCompiler(code: String, timestampField: Symbol,
-                                          fieldIndexesMap: Map[Symbol, Int])(implicit timeExtractor: TimeExtractor[Row],
-                                                                             numberExtractor: SymbolNumberExtractor[Row]):
-  ClassLoader => PhaseParser[Row, Any, Any] =
-    _ => new SyntaxParser(code).start.run().get
 }
