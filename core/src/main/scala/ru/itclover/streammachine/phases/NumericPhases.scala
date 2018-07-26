@@ -83,6 +83,9 @@ object NumericPhases {
                                                 (implicit innerEv: Numeric[Out])
     extends PhaseParser[E, (S1, S2), Out] {
 
+    type State1 = S1
+    type State2 = S2
+
     val andParser = left togetherWith right
 
     override def initialState = (left.initialState, right.initialState)

@@ -13,6 +13,7 @@ import scala.util.{Failure, Success}
 class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   val validRule = "(x > 1) for 5 seconds andthen (y < 2)"
   val invalidRule = "1 = invalid rule"
+  val multiAvgRule = "avg(x, 5 sec) + avg(x, 30 sec) + avg(x, 60 sec) > 300"
 
   implicit val extractTime: TimeExtractor[Event] = new TimeExtractor[Event] {
     override def apply(v1: Event) = v1.time
@@ -81,6 +82,15 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   "Parser" should "not parse invalid rule" in {
     val p = new SyntaxParser(invalidRule)
     p.start.run() shouldBe a[Failure[_]]
+  }
+
+  "Phase builder" should "correctly determine max time phase" in {
+    val p = new SyntaxParser(multiAvgRule)
+    PhaseBuilder.maxTimePhase(p.start.run().get) shouldBe 60000
+  }
+
+  "Phase builder" should "correctly build rule" in {
+    PhaseBuilder.build(multiAvgRule) shouldBe a[PhaseParser[Event, _, _]]
   }
 
   forAll(Table("rules", rules: _*)) {

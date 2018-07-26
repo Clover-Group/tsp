@@ -75,28 +75,37 @@ object BooleanPhases {
   }
 
 
-  abstract class ComparingParser[Event, State1, State2, T]
-  (left: PhaseParser[Event, State1, T],
-   right: PhaseParser[Event, State2, T])(
+  abstract class ComparingParser[Event, S1, S2, T]
+  (left: PhaseParser[Event, S1, T],
+   right: PhaseParser[Event, S2, T])(
     compare: (T, T) => Boolean, compareFnName: String)
-    extends BooleanPhaseParser[Event, State1 And State2] {
+    extends BooleanPhaseParser[Event, S1 And S2] {
+
+    val leftParser: PhaseParser[Event, S1, T] = left
+    val rightParser: PhaseParser[Event, S2, T] = right
+    val comparingFunction: (T, T) => Boolean = compare
+    val comparingFunctionName: String = compareFnName
+
+    type State1 = S1
+    type State2 = S2
+    type ExpressionType = T
 
     private val andParser = left togetherWith right
 
-    override def apply(e: Event, state: (State1, State2)): (PhaseResult[Boolean], (State1, State2)) = {
+    override def apply(e: Event, state: (S1, S2)): (PhaseResult[Boolean], (S1, S2)) = {
       val (res, newState) = andParser(e, state)
 
       res.map { case (a, b) => compare(a, b) } -> newState
     }
 
-    override def aggregate(event: Event, state: (State1, State2)): (State1, State2) = {
+    override def aggregate(event: Event, state: (S1, S2)): (S1, S2) = {
       val (leftState, rightState) = state
       left.aggregate(event, leftState) -> right.aggregate(event, rightState)
     }
 
-    override def initialState: (State1, State2) = (left.initialState, right.initialState)
+    override def initialState: (S1, S2) = (left.initialState, right.initialState)
 
-    override def format(event: Event, state: (State1, State2)): String = {
+    override def format(event: Event, state: (S1, S2)): String = {
       left.format(event, state._1) + s" ${compareFnName} " + right.format(event, state._2)
     }
   }

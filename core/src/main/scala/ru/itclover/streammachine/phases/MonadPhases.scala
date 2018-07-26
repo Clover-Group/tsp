@@ -44,7 +44,11 @@ object MonadPhases {
   }
 
   case class MapParser[Event, State, In, Out](phaseParser: PhaseParser[Event, State, In])(f: In => Out)
-    extends MapParserLike(phaseParser)(f)
+    extends MapParserLike(phaseParser)(f) {
+    val function: In => Out = f
+    type InType = In
+    type OutType = Out
+  }
 
   case class FlatMapParser[Event, State1, State2, Out1, Out2](parser: PhaseParser[Event, State1, Out1], f: Out1 => PhaseParser[Event, State2, Out2]) extends PhaseParser[Event, Either[State1, (PhaseParser[Event, State2, Out2], State2)], Out2] {
 
