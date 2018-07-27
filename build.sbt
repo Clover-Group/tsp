@@ -70,7 +70,7 @@ lazy val http = project.in(file("http"))
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
       Library.akkaHttp ++ Library.twitterUtil
   )
-  .dependsOn(core, config, flinkConnector)
+  .dependsOn(core, config, flinkConnector, newsyntax)
 
 lazy val integration = project.in(file("integration"))
   .settings(commonSettings)

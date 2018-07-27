@@ -204,7 +204,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
     (
       identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ ")" ~ ws ~>
         ((i: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser]) => {
-          val function = i.symbol.toString.tail
+          val function = i.symbol.toString.tail.toLowerCase
           function match {
             case "lag" => PhaseParser.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
             case "abs" => PhaseParser.Functions.abs(arguments.head).asInstanceOf[AnyNumericPhaseParser]
@@ -258,9 +258,9 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
 }
 
 object TestFunctions {
-  def min(d1: Double, d2: Double): Double = Math.min(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+  def min(d1: Double, d2: Double): Double = Math.min(if (d1.isNaN) Double.MaxValue else d1, if (d2.isNaN) Double.MaxValue else d2)
 
-  def max(d1: Double, d2: Double): Double = Math.max(if (d1.isNaN) 0 else d1, if (d2.isNaN) 0 else d2)
+  def max(d1: Double, d2: Double): Double = Math.max(if (d1.isNaN) Double.MinValue else d1, if (d2.isNaN) Double.MinValue else d2)
 
   def plus(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else d1) + (if (d2.isNaN) 0 else d2)
 
