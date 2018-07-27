@@ -2,6 +2,7 @@ package ru.itclover.streammachine.utils
 
 import java.util.regex.Pattern
 import scala.collection.mutable
+import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 
@@ -36,9 +37,14 @@ object CollectionsOps {
 
 
   implicit class OptionOps[T](val o: Option[T]) extends AnyVal {
-    def toEither[L](whenLeft: => L): Either[L, T] = o match {
+    def toEither[L](whenNone: => L): Either[L, T] = o match {
       case Some(s) => Right(s)
-      case None => Left(whenLeft)
+      case None => Left(whenNone)
+    }
+
+    def toFuture[L](whenNone: => Throwable): Future[T] = o match {
+      case Some(s) => Future.successful(s)
+      case None => Future.failed(whenNone)
     }
 
     def toTry(whenFail: => Throwable): Try[T] = o match {

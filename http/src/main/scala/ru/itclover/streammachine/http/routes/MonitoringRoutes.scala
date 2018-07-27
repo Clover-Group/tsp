@@ -3,6 +3,7 @@ package ru.itclover.streammachine.http.routes
 import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import akka.stream.ActorMaterializer
@@ -12,6 +13,7 @@ import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import ru.itclover.streammachine.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
+import ru.itclover.streammachine.utils.Exceptions
 import scala.util.{Failure, Success}
 
 object MonitoringRoutes {
@@ -35,21 +37,32 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
   val uri: Uri
   lazy val monitoring = MonitoringService(uri)
 
+  val noSuchJobErr = "No such job or lack of FlinkMonitoring connection"
+
   private val log = Logger[MonitoringRoutes]
 
   val route: Route = path("job" / Segment / "status"./) { uuid =>
     onComplete(monitoring.queryJobInfo(uuid)) {
-      case Success(r) => complete(r)
-      case Failure(err) => failWith(err)
+      case Success(Some(details)) => complete(details)
+      case Success(None) => complete(SuccessfulResponse(0, Seq(noSuchJobErr)))
+      case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
     }
   } ~
   path("job" / Segment / "stop"./) { uuid =>
-    parameters('reason) { reason =>
-      val resultFuture = monitoring.queryJobIdByName(uuid).flatMap(monitoring.sendStopQuery)
-      onComplete(resultFuture) {
-        case Success(r) => complete(SuccessfulResponse(()))
-        case Failure(err) => failWith(err)
-      }
+    val query = monitoring.sendStopQuery(uuid).map {
+      case Some(_) => SuccessfulResponse(1)
+      case None => SuccessfulResponse(0, Seq(noSuchJobErr))
+    }
+    onComplete(query) {
+      case Success(resp) => complete(resp)
+      case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
+    }
+  } ~
+  path("jobs" / "overview"./) {
+    onComplete(monitoring.queryJobsOverview) {
+      case Success(Some(resp)) => complete(resp)
+      case Success(None) => complete(SuccessfulResponse(0, Seq("No jobs")))
+      case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
     }
   }
 

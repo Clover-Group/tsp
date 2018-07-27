@@ -3,6 +3,7 @@ package ru.itclover.streammachine.http
 import akka.actor.ActorSystem
 import akka.event.Logging
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
@@ -11,21 +12,23 @@ import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.streammachine.http.routes.{DSLTestRoute, JdbcStreamRoutes, JdbcToKafkaStreamRoute}
-
+import ru.itclover.streammachine.http.routes.{JdbcStreamRoutes, JdbcToKafkaStreamRoute, MonitoringRoutes}
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
-import ru.itclover.streammachine.http.protocols.JsonProtocols
+import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import ru.itclover.streammachine.utils.Exceptions
 import ru.itclover.streammachine.http.UtilsDirectives.{logRequest, logResponse}
 import ru.yandex.clickhouse.except.ClickHouseException
 
 
-trait HttpService extends JsonProtocols {
+trait HttpService extends RoutesProtocols {
   val isDebug = true
-  val isHideExceptions = ConfigFactory.load().getBoolean("general.is-hide-exceptions")
+  val config = ConfigFactory.load()
+  val isHideExceptions = config.getBoolean("general.is-hide-exceptions")
+  val monitoringUri: Uri = "http://" + config.getString("http.flink-monitoring.host") + ":" +
+    config.getString("http.flink-monitoring.port")
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -37,8 +40,8 @@ trait HttpService extends JsonProtocols {
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
     jdbcBatch <- JdbcStreamRoutes.fromExecutionContext
     kafkaStream <- JdbcToKafkaStreamRoute.fromExecutionContext
-    dslTest <- DSLTestRoute.fromExecutionContext
-  } yield jdbcBatch ~ kafkaStream ~ dslTest
+    monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
+  } yield jdbcBatch ~ kafkaStream ~ monitoring
 
   def route = (logRequestAndResponse & handleErrors) {
     composeRoutes.run(executionContext).andThen { futureRoute =>

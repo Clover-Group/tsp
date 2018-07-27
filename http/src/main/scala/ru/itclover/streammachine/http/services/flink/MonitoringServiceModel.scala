@@ -7,10 +7,10 @@ import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.language.implicitConversions
 
-
 object MonitoringServiceModel {
 
-  case class JobDetails(jid: String, name: String, state: String, vertices: Vector[Vertex]) {
+  case class JobDetails(jid: String, name: String, state: String, startTsMs: Long, durationMs: Long,
+                        vertices: Vector[Vertex]) {
     def getNumProcessedRecords: Option[Int] = vertices.lastOption.map(_.metrics.readRecords)
     def getNumRecordsRead(vertexName: String): Option[Int] =
       vertices.find(_.name == vertexName).map(_.metrics.readRecords)
@@ -24,8 +24,11 @@ object MonitoringServiceModel {
 
   case class JobInfo(jid: String, name: String)
 
+  case class EmptyResponse()
+
 
   case class MonitoringException(err: String) extends RuntimeException(err)
+
   case class MonitoringError(errors: Seq[String]) {
     def toThrowable = MonitoringException(errors.mkString("; "))
   }
@@ -36,7 +39,7 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   import MonitoringServiceModel._
 
   implicit object JobDetailsFormat extends RootJsonFormat[JobDetails] {
-    val jobFormat = jsonFormat4(JobDetails.apply)
+    val jobFormat = jsonFormat(JobDetails.apply, "jid", "name", "state", "start-time", "duration", "vertices")
 
     override def read(json: JsValue): JobDetails =
       jobFormat.read(json)
@@ -50,6 +53,7 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
     }
   }
 
+  implicit val emptyFormat = jsonFormat0(EmptyResponse.apply)
   implicit val monitoringErrorFormat = jsonFormat1(MonitoringError.apply)
   implicit val vertexMetricsFormat = jsonFormat(VertexMetrics.apply, "read-records", "write-records")
   implicit val vertexFormat = jsonFormat3(Vertex.apply)
@@ -58,4 +62,6 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
 
   implicit val errorOrDetailsUnmarshaller = Unmarshaller.eitherUnmarshaller[MonitoringError, JobDetails]
   implicit val errorOrInfoUnmarshaller = Unmarshaller.eitherUnmarshaller[MonitoringError, JobsOverview]
+  implicit val errorOrUnitUnmarshaller = Unmarshaller.eitherUnmarshaller[MonitoringError, EmptyResponse]
+  implicit val emptyOrDetailsUnmarshaller = Unmarshaller.eitherUnmarshaller[EmptyResponse, JobDetails]
 }
