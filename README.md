@@ -82,7 +82,7 @@ __Example request body__
 
 Error responses same as for `streamJob`-s
 
-#### 1. Get "job/<job_uuid>/status/"
+#### 1. Get "job/:job_uuid/status/"
 
 - Response formats:
     - Running Job
@@ -93,7 +93,7 @@ Error responses same as for `streamJob`-s
     - Finished or non-existent job: `{response: 0}`
 
 
-#### 2. Get "job/<job_uuid>/stop/"
+#### 2. Get "job/:job_uuid/stop/"
 
 Responses:
 - `{response: 1}` - job has stopped
