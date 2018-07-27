@@ -39,7 +39,7 @@ Translated to json directly
 
 ### Methods
 
-#### 1. POST "streaming" / "find-patterns" / "wide-dense-table" /
+#### 1. POST "streamJob/from-jdbc/to-jdbc/"
 
 __GET Params:__
 
@@ -78,45 +78,30 @@ __Example request body__
 }
 ```
 
-#### 2. POST "streaming" / "find-patterns" / "narrow-table" /
+### Monitoring
 
-__GET Params:__
+Error responses same as for `streamJob`-s
 
-__Request body:__
+#### 1. Get "job/<job_uuid>/status/"
 
-```
-{
-    "source": @InputConf.JDBCNarrowInputConf
-    "sink": @OutputConf
-    "patternsIdsAndCodes": Map[String, String]
-}
-```
+- Response formats:
+    - Running Job
+`{"duration": <Long millis>, "name": <Task uuid>,
+"numProcessedRecords": <Long>, "state": "RUNNING",
+"start-time":<Unix TS in millis Long>,"jid":<Internal ID, String>,
+"vertices":<Not matter>}`
+    - Finished or non-existent job: `{response: 0}`
 
-__Example request body__
-```
-{
-    "source": {
-        "jdbcConf": {
-            "jdbcUrl": "jdbc:clickhouse://localhost:8123/default",
-            "query": "select date_time, loco_id, CurrentBattery from TE116U_062_SM_TEST limit 0, 50000",
-            "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
-            "datetimeColname": "date_time",
-            "partitionColnames": ["loco_id"],
-            "userName": "test",
-            "password": "test",
-            "eventsMaxGapMs": 60000
-        },
-        keyColname: "sensor_id",
-        valColname: "value_float",
-        fieldsTimeoutsMs: {"speed": 1000, "pump": 10000}
-    },
-    "sink": {
-        "jdbcUrl": "jdbc:clickhouse://localhost:8123/renamedTest",
-        "sinkSchema": {"tableName": "series765_data_res", "fromTimeField": "from", "fromTimeMillisField": "from_millis",
-            "toTimeField": "to", "toTimeMillisField": "to_millis", "patternIdField": "rule_id", "forwardedFields": ["loco_id"]},
-        "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
-        "batchInterval": 5000
-    },
-    "patternsIdsAndCodes": {"1": "'CurrentBattery > 10"}
-}
-```
+
+#### 2. Get "job/<job_uuid>/stop/"
+
+Responses:
+- `{response: 1}` - job has stopped
+- `{response: 0}` - job not found
+
+
+#### 3. Get "jobs/overview/"
+Responses:
+- `{response: {name, jid}}`
+- `{response: 0}` - no jobs
+
