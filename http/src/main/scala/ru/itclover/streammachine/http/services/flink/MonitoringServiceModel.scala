@@ -2,9 +2,8 @@ package ru.itclover.streammachine.http.services.flink
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.{DefaultJsonProtocol, _}
-import akka.http.scaladsl.model.{HttpEntity, _}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.language.implicitConversions
 
 object MonitoringServiceModel {
@@ -38,6 +37,7 @@ object MonitoringServiceModel {
 trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   import MonitoringServiceModel._
 
+  /** Add numProcessedRecords here to response. */
   implicit object JobDetailsFormat extends RootJsonFormat[JobDetails] {
     val jobFormat = jsonFormat(JobDetails.apply, "jid", "name", "state", "start-time", "duration", "vertices")
 

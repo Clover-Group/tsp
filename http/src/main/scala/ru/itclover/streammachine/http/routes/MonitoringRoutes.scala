@@ -37,21 +37,21 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
   val uri: Uri
   lazy val monitoring = MonitoringService(uri)
 
-  val noSuchJobErr = "No such job or lack of FlinkMonitoring connection"
+  val noSuchJobWarn = "No such job or no connection to the FlinkMonitoring"
 
   private val log = Logger[MonitoringRoutes]
 
   val route: Route = path("job" / Segment / "status"./) { uuid =>
     onComplete(monitoring.queryJobInfo(uuid)) {
       case Success(Some(details)) => complete(details)
-      case Success(None) => complete(SuccessfulResponse(0, Seq(noSuchJobErr)))
+      case Success(None) => complete(SuccessfulResponse(0, Seq(noSuchJobWarn)))
       case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
     }
   } ~
   path("job" / Segment / "stop"./) { uuid =>
     val query = monitoring.sendStopQuery(uuid).map {
       case Some(_) => SuccessfulResponse(1)
-      case None => SuccessfulResponse(0, Seq(noSuchJobErr))
+      case None => SuccessfulResponse(0, Seq(noSuchJobWarn))
     }
     onComplete(query) {
       case Success(resp) => complete(resp)
@@ -61,7 +61,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
   path("jobs" / "overview"./) {
     onComplete(monitoring.queryJobsOverview) {
       case Success(Some(resp)) => complete(resp)
-      case Success(None) => complete(SuccessfulResponse(0, Seq("No jobs")))
+      case Success(None) => complete(SuccessfulResponse(0, Seq("No jobs or no connection to the FlinkMonitoring")))
       case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
     }
   }
