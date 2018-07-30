@@ -90,7 +90,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   }
 
   "Phase builder" should "correctly build rule" in {
-    PhaseBuilder.build(multiAvgRule) shouldBe a[PhaseParser[Event, _, _]]
+    PhaseBuilder.build(multiAvgRule)._1.get shouldBe a[PhaseParser[Event, _, _]]
   }
 
   forAll(Table("rules", rules: _*)) {
