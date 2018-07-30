@@ -134,6 +134,73 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
       )
   }
 
+  def underscoreConstraint: Rule1[Double => Boolean] = rule {
+    underscoreConjunction ~ zeroOrMore(
+      ignoreCase("or") ~ ws ~ underscoreConjunction ~>
+        ((e: Double => Boolean, f: Double => Boolean) => (x: Double) => e(x) || f(x))
+        | ignoreCase("xor") ~ ws ~ underscoreConjunction ~>
+        ((e: Double => Boolean, f: Double => Boolean) => (x: Double) => e(x) != f(x))
+    )
+  }
+
+  def underscoreConjunction: Rule1[Double => Boolean] = rule {
+    underscoreCond ~ zeroOrMore(
+      ignoreCase("and") ~ ws ~ underscoreCond ~>
+        ((e: Double => Boolean, f: Double => Boolean) => (x: Double) => e(x) && f(x))
+    )
+  }
+
+  def underscoreCond: Rule1[Double => Boolean] = rule {
+    (
+      underscoreComparison
+        | boolean ~> ((e: OneRowPhaseParser[Event, Boolean]) => (_: Double) => e.extract(null.asInstanceOf[Event]))
+        | '(' ~ underscoreConstraint ~ ')'
+        | ignoreCase("not") ~ underscoreCond ~> ((e: Double => Boolean) => (x: Double) => !e(x))
+      )
+  }
+
+  def underscoreComparison: Rule1[Double => Boolean] = rule {
+    (
+      underscoreExpr ~ "<" ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) < f(x))
+        | underscoreExpr ~ "<=" ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) <= f(x))
+        | underscoreExpr ~ ">" ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) > f(x))
+        | underscoreExpr ~ ">=" ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) >= f(x))
+        | underscoreExpr ~ "==" ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) == f(x))
+        | underscoreExpr ~ ("!=" | "<>") ~ ws ~ underscoreExpr ~>
+        ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) != f(x))
+      )
+  }
+
+  def underscoreExpr: Rule1[Double => Double] = rule {
+    underscoreTerm ~
+      zeroOrMore(
+        '+' ~ ws ~ underscoreTerm ~> ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) + f(x))
+          | '-' ~ ws ~ underscoreTerm ~> ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) - f(x))
+      )
+  }
+
+  def underscoreTerm: Rule1[Double => Double] = rule {
+    underscoreFactor ~
+      zeroOrMore(
+        '*' ~ ws ~ underscoreFactor ~> ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) * f(x))
+          | '/' ~ ws ~ underscoreFactor ~> ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) / f(x)))
+  }
+
+  def underscoreFactor: Rule1[Double => Double] = rule {
+    (
+      real ~ ws ~> ((r: OneRowPhaseParser[Event, Double]) => (_: Double) => r.extract(null.asInstanceOf[Event]))
+        | integer ~ ws ~>
+        ((r: OneRowPhaseParser[Event, Long]) => (_: Double) => r.extract(null.asInstanceOf[Event]).toDouble)
+        | str("_") ~ ws ~> (() => (x: Double) => x)
+        | '(' ~ underscoreExpr ~ ')' ~ ws
+      )
+  }
+
   def range: Rule1[Any] = rule {
     timeRange | repetitionRange
   }
@@ -202,22 +269,24 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
 
   def functionCall: Rule1[AnyNumericPhaseParser] = rule {
     (
-      identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ ")" ~ ws ~>
-        ((i: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser]) => {
+      identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
+        ((i: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser], constraint: Option[Double => Boolean]) => {
           val function = i.symbol.toString.tail.toLowerCase
+          val c: Double => Boolean = constraint.getOrElse(_ => true)
+          //println((1.0 to 10.0 by 1.0).map(q => (q, c(q))))
           function match {
             case "lag" => PhaseParser.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
             case "abs" => PhaseParser.Functions.abs(arguments.head).asInstanceOf[AnyNumericPhaseParser]
             case "minof" =>
               val as = arguments
-              Reduce[Event, Any](TestFunctions.min)(as.head, as.tail: _*).asInstanceOf[AnyNumericPhaseParser]
+              Reduce[Event, Any](TestFunctions.min(_, _, c))(OneRowPhaseParser[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
             case "maxof" =>
               val as = arguments
-              Reduce[Event, Any](TestFunctions.max)(as.head, as.tail: _*).asInstanceOf[AnyNumericPhaseParser]
+              Reduce[Event, Any](TestFunctions.max(_, _, c))(OneRowPhaseParser[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
             case "avgof" =>
               val as = arguments
-              (Reduce[Event, Any](TestFunctions.plus)(as.head, as.tail: _*) div
-                Reduce[Event, Any](TestFunctions.countNotNan)(as.head, as.tail: _*)).asInstanceOf[AnyNumericPhaseParser]
+              (Reduce[Event, Any](TestFunctions.plus(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*) div
+                Reduce[Event, Any](TestFunctions.countNotNan(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*)).asInstanceOf[AnyNumericPhaseParser]
             case _ => throw new RuntimeException(s"Unknown function $function")
           }
         })
@@ -258,11 +327,17 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
 }
 
 object TestFunctions {
-  def min(d1: Double, d2: Double): Double = Math.min(if (d1.isNaN) Double.MaxValue else d1, if (d2.isNaN) Double.MaxValue else d2)
+  def min(d1: Double, d2: Double, cond: Double => Boolean): Double = Math.min(
+    if (d1.isNaN) Double.MaxValue else d1,
+    if (d2.isNaN || !cond(d2)) Double.MaxValue else d2)
 
-  def max(d1: Double, d2: Double): Double = Math.max(if (d1.isNaN) Double.MinValue else d1, if (d2.isNaN) Double.MinValue else d2)
+  def max(d1: Double, d2: Double, cond: Double => Boolean): Double = Math.max(
+    if (d1.isNaN) Double.MinValue else d1,
+    if (d2.isNaN || !cond(d2)) Double.MinValue else d2)
 
-  def plus(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else d1) + (if (d2.isNaN) 0 else d2)
+  def plus(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
+    (if (d2.isNaN || !cond(d2)) 0 else d2)
 
-  def countNotNan(d1: Double, d2: Double): Double = (if (d1.isNaN) 0 else 1) + (if (d2.isNaN) 0 else 1)
+  def countNotNan(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
+    (if (d2.isNaN || !cond(d2)) 0 else 1)
 }

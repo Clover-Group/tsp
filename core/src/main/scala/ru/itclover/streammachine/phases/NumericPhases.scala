@@ -57,7 +57,7 @@ object NumericPhases {
     }
 
     override def format(event: Event, states: Seq[State]) = {
-      val phasesWithState = (firstPhase, states.head) +: otherPhases.zip(states)
+      val phasesWithState = (firstPhase, states.head) +: otherPhases.zip(states.tail)
       val numericsResults = (phasesWithState.map {
         case (phase, state) => phase.format(event, state)
       }).mkString(", ")

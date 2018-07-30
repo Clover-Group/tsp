@@ -8,6 +8,7 @@ import ru.itclover.streammachine.core.PhaseParser
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
 
+import scala.io.StdIn
 import scala.util.{Failure, Success}
 
 object SyntaxTestApp extends App {
@@ -19,10 +20,12 @@ object SyntaxTestApp extends App {
     override def extract(event: Event, symbol: Symbol): Double = Double.NaN
   }
 
-  if (args.length < 1) {
-    System.exit(0)
+  val rule = if (args.length < 1) {
+    StdIn.readLine("Enter a rule for testing: ")
+  } else {
+    args(0)
   }
-  val (result, parser) = PhaseBuilder.build(args(0))
+  val (result, parser) = PhaseBuilder.build(rule)
   result match {
     case Success(x: PhaseParser[Event, _, _]) =>
       println(x.formatWithInitialState(Event(1, Instant.now)))
