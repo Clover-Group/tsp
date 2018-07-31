@@ -33,14 +33,19 @@ case class InfluxDBInputConf(sourceId: Int,
 
   override lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = (for {
     series <- firstSeries
-    values <- series.getValues.headOption.toTry(whenFail=new InfluxDBException(s"Empty values in query - `$query`."))
+    values <- series.getValues.headOption
+      .toTry(whenFail=emptyException)
+      .flatMap(v => if(v.contains(null)) Failure(emptyException)
+                    else Success(v))
+    tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
+    _ <- if (tags.contains(null)) Failure(emptyException) else Success()
   } yield {
-    val tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
     val classes = tags.map(_.getClass) ++ values.map(_.getClass)
     series.getColumns.zip(classes).map {
       case (field, clazz) => (Symbol(field), TypeInformation.of(clazz))
     }
   }).toEither
+  private val emptyException = new InfluxDBException(s"Empty/Null values or tags in query - `$query`.")
 
 
   private lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
