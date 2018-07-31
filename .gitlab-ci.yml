@@ -59,7 +59,7 @@ deploy_to_renamed_prod:
   tags:
     - ssh-runner-to-mvm-renamed
   script:
-    - cd /opt/clover/projects/streamMachine
+    - cd /opt/clover/projects/streammachine
     - docker-compose pull streammachine
     - docker-compose up -d
   only:
