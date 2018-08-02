@@ -166,6 +166,10 @@ object BooleanPhases {
                                              right: BooleanPhaseParser[Event, State2])
     extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a | b, "or")
 
+  case class XorParser[Event, State1, State2](left: BooleanPhaseParser[Event, State1],
+                                             right: BooleanPhaseParser[Event, State2])
+    extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a ^ b, "xor")
+
   case class InParser[Event, State, T](parser: PhaseParser[Event, State, T], set: Set[T])
     extends MapParserLike(parser)(set.apply) with BooleanPhaseParser[Event, State]
 

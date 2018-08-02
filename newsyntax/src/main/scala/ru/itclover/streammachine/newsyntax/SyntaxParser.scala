@@ -4,7 +4,7 @@ import org.parboiled2._
 import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, ToSegments}
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
-import ru.itclover.streammachine.phases.BooleanPhases.{AndParser, BooleanPhaseParser, NotParser, OrParser}
+import ru.itclover.streammachine.phases.BooleanPhases.{AndParser, BooleanPhaseParser, NotParser, OrParser, XorParser}
 //import ru.itclover.streammachine.newsyntax.TrileanOperators.{And, AndThen, Or}
 import ru.itclover.streammachine.phases.BooleanPhases.{Assert, ComparingParser}
 import ru.itclover.streammachine.phases.CombiningPhases.TogetherParser
@@ -68,7 +68,9 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   def booleanExpr: Rule1[AnyBooleanPhaseParser] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => OrParser(e, f).asInstanceOf[AnyBooleanPhaseParser]))
+        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => OrParser(e, f).asInstanceOf[AnyBooleanPhaseParser])
+    | ignoreCase("xor") ~ ws ~ booleanTerm ~>
+        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => XorParser(e, f).asInstanceOf[AnyBooleanPhaseParser]))
   }
 
   def booleanTerm: Rule1[AnyBooleanPhaseParser] = rule {
