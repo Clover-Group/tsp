@@ -1,7 +1,7 @@
 package ru.itclover.streammachine.http.routes
 
 import java.util.concurrent.TimeUnit
-import akka.http.scaladsl.model.StatusCodes.InternalServerError
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import com.typesafe.scalalogging.Logger
@@ -22,6 +22,7 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.{PatternsSearchJob, ResultMapper}
 import ru.itclover.streammachine.resultmappers.{ResultMappable, ToRowResultMappers}
 import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
+import ru.itclover.streammachine.utils.UtilityTypes.ParseException
 
 
 object JobsRoutes {
@@ -46,39 +47,45 @@ trait JobsRoutes extends RoutesProtocols {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
         implicit val src = JdbcSource(request.source)
         val job = new PatternsSearchJob[Row, Any, Row](
-          request.patterns,
           request.source,
           request.sink,
           ToRowResultMappers(request.source.sourceId, request.sink.rowSchema))
-        completeJob(job.execute(request.uuid), request.uuid, isAsync)
+        runJob(job, request.patterns, request.uuid, isAsync)
       }
     } ~
       path("streamJob" / "from-influxdb" / "to-jdbc"./) {
         entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
           implicit val src = InfluxDBSource(request.source)
           val job = new PatternsSearchJob[Row, Any, Row](
-            request.patterns,
             request.source,
             request.sink,
             ToRowResultMappers(request.source.sourceId, request.sink.rowSchema))
-          completeJob(job.execute(request.uuid), request.uuid, isAsync)
+          runJob(job, request.patterns, request.uuid, isAsync)
         }
       }
    }
   // TODO: Kafka outputConf
 
-  def completeJob(job: => Either[Throwable, JobExecutionResult], uuid: String, runAsync: Boolean = true) = {
-    if (runAsync) {
-      Future { job }
-      complete(SuccessfulResponse(uuid, Seq(s"Job ${uuid} has started.")))
-    } else {
-      job match {
-        case Right(result) => {
-          val execTimeLog = s"Job execution time - ${result.getNetRuntime(TimeUnit.SECONDS)}sec"
-          complete(SuccessfulResponse(result.hashCode.toString, Seq(execTimeLog)))
+  def runJob[InEvent](job: PatternsSearchJob[InEvent, _, _], rawPatterns: Seq[RawPattern], uuid: String, runAsync: Boolean = true) = {
+    job.preparePhases(rawPatterns) match {
+      case Left(ParseException(errs)) =>
+        complete(BadRequest, FailureResponse(4001, "Parsing errors", errs))
+      case Left(ex) =>
+        complete(InternalServerError, FailureResponse(ex))
+
+      case Right(patterns) => if (runAsync) {
+        Future { job.findAndSavePatterns(patterns, uuid) }
+        complete(SuccessfulResponse(uuid, Seq(s"Job `${uuid}` has started.")))
+      } else {
+        job.findAndSavePatterns(patterns, uuid) match {
+          case Right(result) => {
+            val execTimeLog = s"Job execution time - ${result.getNetRuntime(TimeUnit.SECONDS)}sec"
+            complete(SuccessfulResponse(result.hashCode.toString, Seq(execTimeLog)))
+          }
+          case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
         }
-        case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
       }
     }
+
   }
 }

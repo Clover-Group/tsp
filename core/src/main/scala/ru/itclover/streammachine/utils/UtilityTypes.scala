@@ -5,5 +5,9 @@ object UtilityTypes {
 
   type ThrowableOr[T] = Either[Throwable, T]
 
-  case class ParseException(info: String) extends RuntimeException
+  case class ParseException(errs: Seq[String]) extends Throwable
+
+  object ParseException {
+    def apply(info: String): ParseException = ParseException(Seq(info))
+  }
 }
