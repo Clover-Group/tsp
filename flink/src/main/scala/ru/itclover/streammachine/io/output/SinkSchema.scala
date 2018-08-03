@@ -23,7 +23,7 @@ case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: Str
 }
 
 
-trait EventSchema { // TODO
+trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
   require(fieldsCount == fieldsTypes.length)
 
   def fieldsTypes: List[Class[_]]

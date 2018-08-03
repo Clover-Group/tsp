@@ -8,8 +8,11 @@ import scala.Ordering.Implicits._
 
 
 class AccumPhase[Event, InnerState, AccumOut, Out]
-    (innerPhase: PhaseParser[Event, InnerState, AccumOut], window: Window, accumulator: => AccumState[AccumOut])
-    (extractResult: AccumState[AccumOut] => Out, extractorName: String)
+    (val innerPhase: PhaseParser[Event, InnerState, AccumOut],
+     val window: Window,
+     getAccumulator: => AccumState[AccumOut])
+    (val extractResult: AccumState[AccumOut] => Out,
+     val extractorName: String)
     (implicit timeExtractor: TimeExtractor[Event])
   extends AggregatorPhases[Event, (InnerState, AccumState[AccumOut]), Out] {
 
@@ -17,11 +20,7 @@ class AccumPhase[Event, InnerState, AccumOut, Out]
   type AccumOutput = AccumOut
   type Output = Out
 
-  val timeWindow: Window = window
-  val accum: AccumState[AccumOut] = accumulator
-  val inner: PhaseParser[Event, InnerState, AccumOut] = innerPhase
-  val extractor: AccumState[AccumOut] => Out = extractResult
-  val exName: String = extractorName
+  val accumulator: AccumState[AccumOut] = getAccumulator
 
   def toContinuous: AccumPhase[Event, InnerState, AccumOut, Out] = this
 
@@ -32,31 +31,25 @@ class AccumPhase[Event, InnerState, AccumOut, Out]
     val (oldInnerState, oldAccumState) = oldState
     val (innerResult, newInnerState) = innerPhase(event, oldInnerState)
 
-    (innerResult, oldAccumState.startTime) match {
-      // If too much time has passed since last update - return old state (notice strict comparison)
-      case (Success(_), Some(oldStartTime)) if time > oldStartTime.plus(window) =>
-        (Success(extractResult(oldAccumState)), (oldInnerState, oldAccumState))
-
-      // If we still in time bounds, continue updating
-      case (Success(t), _) => {
+    innerResult match {
+      case Success(t) => {
         val newAccumState = oldAccumState.updated(time, t)
         val newAccumResult = newAccumState.startTime match {
-              // Success, if new window is fully accumulated
-              case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
-              case _ => Stay
-            }
+          // Success, if window is fully accumulated (all window time has passed)
+          case Some(startTime) if time >= startTime.plus(window) => Success(extractResult(newAccumState))
+          case _ => Stay
+        }
+
         newAccumResult -> (newInnerState -> newAccumState)
       }
-
-      case (f: Failure, _) =>
-        f -> (newInnerState -> oldAccumState)
-
-      case (Stay, _) =>
-        Stay -> (innerPhase.aggregate(event, newInnerState) -> oldAccumState)
+      case f@Failure(msg) =>
+        Failure(msg) -> (newInnerState -> oldAccumState)
+      case Stay =>
+        Stay -> (newInnerState -> oldAccumState)
     }
   }
 
-  override def initialState: (InnerState, AccumState[AccumOut]) = innerPhase.initialState -> accumulator
+  override def initialState: (InnerState, AccumState[AccumOut]) = innerPhase.initialState -> getAccumulator
 
   override def format(event: Event, state: (InnerState, AccumState[AccumOut])) = if (state._2.hasState) {
     s"$extractorName(${innerPhase.format(event, state._1)})=${extractResult(state._2)}"

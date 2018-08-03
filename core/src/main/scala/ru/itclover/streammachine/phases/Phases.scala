@@ -10,6 +10,9 @@ object Phases {
 
   type Phase[Event] = PhaseParser[Event, _, _]
 
+  type AnyExtractor[Event] = ((Event, Symbol) => Any)
+
+  // TODO Rm
   /**
     * Expect decreasing of value. If value has entered to range between from and to, it must monotonically decrease to `to` for success.
     *

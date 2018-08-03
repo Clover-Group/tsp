@@ -1,5 +1,6 @@
 package ru.itclover.streammachine.newsyntax
 
+import org.parboiled2.{ErrorFormatter, ParseError}
 import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, ToSegments}
 import ru.itclover.streammachine.aggregators.accums.AccumPhase
 import ru.itclover.streammachine.core.Time.TimeExtractor
@@ -8,24 +9,21 @@ import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParse
 import ru.itclover.streammachine.phases.CombiningPhases.{AndThenParser, EitherParser, TogetherParser}
 import ru.itclover.streammachine.phases.MonadPhases.MapParser
 import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolNumberExtractor}
+import ru.itclover.streammachine.utils.CollectionsOps.TryOps
+import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 
-import scala.util.{Failure, Success, Try}
 
 object PhaseBuilder {
-  def build[Event](x: String)(implicit timeExtractor: TimeExtractor[Event],
-                              symbolNumberExtractor: SymbolNumberExtractor[Event]):
-  (Try[PhaseParser[Event, _, _]], SyntaxParser[Event]) = {
-    val parser = new SyntaxParser[Event](x)
-    val prep = parser.start.run()
-    (if (prep.isFailure) {
-      prep
-    } else {
-      try {
-        Success(postProcess(prep.get, maxTimePhase(prep.get)))
-      } catch {
-        case e: Throwable => Failure(e)
-      }
-    }, parser)
+  def build[Event](input: String, formatter: ErrorFormatter=new ErrorFormatter())
+                  (implicit timeExtractor: TimeExtractor[Event],
+                   symbolNumberExtractor: SymbolNumberExtractor[Event]):
+  Either[String, PhaseParser[Event, _, _]] = {
+    val parser = new SyntaxParser[Event](input)
+    val rawPhase = parser.start.run()
+    rawPhase.map(p => postProcess(p, maxTimePhase(p))).toEither.transformLeft {
+      case ex: ParseError => formatter.format(ex, input)
+      case ex => throw ex // Unknown exceptional case
+    }
   }
 
 
@@ -56,8 +54,8 @@ object PhaseBuilder {
       case a: Assert[Event, _] => Assert(postProcess(a.predicate, mtf).asInstanceOf[BooleanPhaseParser[Event, _]])
       case aph: AccumPhase[Event, _, _, _] =>
         val q = new AccumPhase[Event, aph.Inner, aph.AccumOutput, aph.Output](
-          postProcess(aph.inner, mtf, asContinuous = true).asInstanceOf[PhaseParser[Event, aph.Inner, aph.AccumOutput]],
-          aph.timeWindow, aph.accum)(aph.extractor, aph.exName) {
+          postProcess(aph.innerPhase, mtf, asContinuous = true).asInstanceOf[PhaseParser[Event, aph.Inner, aph.AccumOutput]],
+          aph.window, aph.accumulator)(aph.extractResult, aph.extractorName) {
           override def toContinuous: AccumPhase[Event, aph.Inner, aph.AccumOutput, aph.Output] = aph.toContinuous
         }
         val a = if (asContinuous) {
@@ -65,7 +63,7 @@ object PhaseBuilder {
         } else {
           q
         }
-        val diff = mtf - a.timeWindow.toMillis
+        val diff = mtf - a.window.toMillis
         if (diff > 0) Aligned(Window(diff), a) else a
       case _ => x
     }
@@ -78,7 +76,7 @@ object PhaseBuilder {
       case tp: TogetherParser[Event, _, _, _, _] => Math.max(maxTimePhase(tp.leftParser), maxTimePhase(tp.rightParser))
       case cp: ComparingParser[Event, _, _, _] => Math.max(maxTimePhase(cp.leftParser), maxTimePhase(cp.rightParser))
       case bnp: BinaryNumericParser[Event, _, _, _] => Math.max(maxTimePhase(bnp.left), maxTimePhase(bnp.right))
-      case aph: AccumPhase[Event, _, _, _] => aph.timeWindow.toMillis
+      case aph: AccumPhase[Event, _, _, _] => aph.window.toMillis
       case ts: ToSegments[Event, _, _] => maxTimePhase(ts.innerPhase)
       case mp: MapParser[Event, _, _, _] => maxTimePhase(mp.phaseParser)
       case a: Assert[Event, _] => maxTimePhase(a.predicate)

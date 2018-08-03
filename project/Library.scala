@@ -17,7 +17,7 @@ object Version {
   val akka = "2.5.13"
   val akkaHttp = "10.1.3"
 
-  val cats = "1.0.1"
+  val cats = "1.2.0"
 
   val jodaTime = "2.9.9"
   val twitterUtilVersion = "6.43.0"

@@ -13,10 +13,9 @@ import ru.itclover.streammachine.core.{PhaseParser, Time}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.http.domain.input.DSLPatternRequest
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.streammachine.http.protocols.JsonProtocols
+import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import ru.itclover.streammachine.newsyntax.PhaseBuilder
 import ru.itclover.streammachine.phases.NumericPhases.SymbolNumberExtractor
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
 
@@ -30,7 +29,7 @@ object DSLTestRoute {
     }
 }
 
-trait DSLTestRoute extends JsonProtocols {
+trait DSLTestRoute extends RoutesProtocols {
   implicit val system: ActorSystem = ActorSystem("my-system")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -46,7 +45,9 @@ trait DSLTestRoute extends JsonProtocols {
 
   private val log = Logger[DSLTestRoute]
 
-  val route: Route = path("streamJobDSL" / "validate-dsl") {
+  val route: Route = path("/123/") {
+    complete(SuccessfulResponse(1))
+  }  /*path("streamJobDSL" / "validate-dsl") {
     entity(as[DSLPatternRequest]) { dslPatternRequest =>
       val (result, parser) = PhaseBuilder.build[Unit](dslPatternRequest.pattern)
       result match {
@@ -61,5 +62,5 @@ trait DSLTestRoute extends JsonProtocols {
           complete(500, FailureResponse(new Exception(z.toString)))
       }
     }
-  }
+  }*/
 }

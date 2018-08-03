@@ -1,31 +1,75 @@
 package ru.itclover.streammachine.transformers
 
 import java.util
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.core.io.InputSplit
 import collection.JavaConversions._
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.types.Row
+import org.influxdb.dto.QueryResult
 import scala.collection.mutable
 
 
-object StreamSources {
+trait StreamSource[Event] {
+  def createStream: Either[Throwable, DataStream[Event]]
 
-  def fromJdbc(inputConf: JDBCInputConf)
-              (implicit streamEnv: StreamExecutionEnvironment) = inputConf.fieldsTypesInfo map { fTypesInfo =>
+  def inputConf: InputConf[Event]
+
+  def emptyEvent: Event
+
+  def getTerminalCheck: Either[Throwable, Event => Boolean]
+
+  protected def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
+    allFields.find {
+      field => !excludedFields.contains(field)
+    } match {
+      case Some(nullField) => Right(nullField)
+      case None =>
+        Left(new IllegalArgumentException(s"Fail to compute nullIndex, query contains only date and partition cols."))
+    }
+  }
+}
+
+case class JdbcSource(inputConf: JDBCInputConf)
+                     (implicit streamEnv: StreamExecutionEnvironment) extends StreamSource[Row] {
+  val stageName = "JDBC input processing stage"
+
+  override def createStream = for {
+    fTypesInfo <- inputConf.fieldsTypesInfo
+  } yield {
     val stream = streamEnv
       .createInput(inputConf.getInputFormat(fTypesInfo.toArray))
-      .name("JDBC input processing stage")
+      .name(stageName)
     inputConf.parallelism match {
       case Some(p) => stream.setParallelism(p)
       case None => stream
     }
   }
 
-  def fromInfluxDB(inputConf: InfluxDBInputConf)
-                (implicit streamEnv: StreamExecutionEnvironment): DataStream[Row] = {
-    streamEnv.createInput(inputConf.getInputFormat)(inputConf.resultTypeInfo)
+  override def emptyEvent = new Row(0)
+
+  override def getTerminalCheck = for {
+    fieldsIdxMap <- inputConf.errOrFieldsIdxMap
+    nullField <- findNullField(fieldsIdxMap.keys.toSeq, inputConf.datetimeField +: inputConf.partitionFields)
+    nullInd = fieldsIdxMap(nullField)
+  } yield (event: Row) => event.getArity > nullInd && event.getField(nullInd) == null
+}
+
+
+case class InfluxDBSource(inputConf: InfluxDBInputConf)
+                         (implicit streamEnv: StreamExecutionEnvironment) extends StreamSource[Row] {
+  val dummyResult: Class[QueryResult.Result] = new QueryResult.Result().getClass.asInstanceOf[Class[QueryResult.Result]]
+  val queryResultTypeInfo: TypeInformation[QueryResult.Result] = TypeInformation.of(dummyResult)
+  val stageName = "InfluxDB input processing stage"
+
+  override def createStream = for {
+    fTypesInfo <- inputConf.fieldsTypesInfo
+  } yield {
+    streamEnv
+      .createInput(inputConf.getInputFormat(fTypesInfo.toArray))(queryResultTypeInfo)
       .flatMap(queryResult => {
         // extract Flink.rows form series of points
         if (queryResult == null || queryResult.getSeries == null) {
@@ -42,6 +86,14 @@ object StreamSources {
           row
         }
       })
-      .name("InfluxDB input processing stage")
+      .name(stageName)
   }
+
+  override def emptyEvent = new Row(0)
+
+  override def getTerminalCheck = for {
+    fieldsIdxMap <- inputConf.errOrFieldsIdxMap
+    nullField <- findNullField(fieldsIdxMap.keys.toSeq, inputConf.datetimeField +: inputConf.partitionFields)
+    nullInd = fieldsIdxMap(nullField)
+  } yield (event: Row) => event.getArity > nullInd && event.getField(nullInd) == null
 }

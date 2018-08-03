@@ -44,8 +44,8 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
     s"jdbc:clickhouse://localhost:$port/default", "ru.yandex.clickhouse.ClickHouseDriver")
 
   val assertions = Seq(
-    RawPattern("6", "Assert('HI__wagon_id__6.as[Double] < 0.5)"),
-    RawPattern("4", "Assert('HI__wagon_id__4.as[Double] < 0.5)")
+    RawPattern("6", "HI__wagon_id__6 < 0.5"),
+    RawPattern("4", "HI__wagon_id__4 < 0.5")
   )
 
   override def afterStart(): Unit = {
@@ -57,7 +57,7 @@ class ServiceBigDataJdbcTest extends FlatSpec with SqlMatchers with ScalatestRou
 
   "Basic assertions" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 

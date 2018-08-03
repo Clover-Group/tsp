@@ -15,7 +15,7 @@ import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.PhaseParser.Functions.not
 import ru.itclover.streammachine.core.Time.more
 import ru.itclover.streammachine.phases.Phases.Phase
-import ru.itclover.streammachine.transformers.{FlinkPatternMapper}
+import ru.itclover.streammachine.transformers.{FlinkCompilingPatternMapper}
 import ru.itclover.streammachine.core.Time._
 import ru.itclover.streammachine.core._
 import ru.itclover.streammachine.core.PhaseParser.Functions._

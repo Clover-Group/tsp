@@ -1,10 +1,12 @@
 package ru.itclover.streammachine.io.input
 
 import java.time.Instant
+import org.apache.flink.api.common.io.RichInputFormat
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.InfluxDBInputFormat
+import org.apache.flink.core.io.{GenericInputSplit, InputSplit}
 import org.apache.flink.types.Row
 import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
@@ -23,7 +25,8 @@ case class InfluxDBInputConf(sourceId: Int,
                              partitionFields: Seq[Symbol],
                              datetimeField: Symbol = 'time,
                              userName: Option[String] = None,
-                             password: Option[String] = None) extends InputConf[Row] {
+                             password: Option[String] = None,
+                             parallelism: Option[Int] = None) extends InputConf[Row] {
 
   lazy val connectionAndDb = InfluxDBService.connectDb(url, dbName, userName, password)
 
@@ -48,8 +51,7 @@ case class InfluxDBInputConf(sourceId: Int,
   private val emptyException = new InfluxDBException(s"Empty/Null values or tags in query - `$query`.")
 
 
-  private lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
-
+  lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
   implicit lazy val timeExtractor = {
     val timeIndOrErr = errOrFieldsIdxMap.map(_.apply(datetimeField))
@@ -64,7 +66,7 @@ case class InfluxDBInputConf(sourceId: Int,
   implicit lazy val symbolNumberExtractor = errOrFieldsIdxMap.map(fieldsIdxMap =>
     new SymbolNumberExtractor[Row] {
       override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
-        case d: java.lang.Double => d.doubleValue()
+        case d: java.lang.Double => d
         case f: java.lang.Float => f.floatValue().toDouble
         case some => Try(some.toString.toDouble).getOrElse(
           throw new ClassCastException(s"Cannot cast value $some to double."))
@@ -76,13 +78,15 @@ case class InfluxDBInputConf(sourceId: Int,
     (event: Row, name: Symbol) => event.getField(fieldsIdxMap(name))
   )
 
-  def getInputFormat = InfluxDBInputFormat.create()
-    .url(url)
-    .username(userName.getOrElse(""))
-    .password(password.getOrElse(""))
-    .database(dbName)
-    .query(query)
-    .and().buildIt()
+  def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
+    InfluxDBInputFormat.create()
+      .url(url)
+      .username(userName.getOrElse(""))
+      .password(password.getOrElse(""))
+      .database(dbName)
+      .query(query)
+      .and().buildIt()
+  }
 
   lazy val firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)

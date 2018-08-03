@@ -15,7 +15,8 @@ import ru.itclover.streammachine.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.streammachine.utils.Files
 
 
-class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService
+      with ForAllTestContainer {
   override implicit val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
   override implicit val streamEnvironment: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
@@ -44,14 +45,12 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     "ru.yandex.clickhouse.ClickHouseDriver")
 
   val basicAssertions = Seq(
-    RawPattern("1", "Assert('speed.field < 15.0)"),
-    RawPattern("2", """Assert(Symbol("speed(1)(2)").field > 10.0)"""),
-    RawPattern("3", "Assert('speed.field > 10.0)", Map("test" -> "test"), Seq('speed)))
+    RawPattern("1", "speed < 15"),
+    RawPattern("2", """"speed(1)(2)" > 10"""),
+    RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed)))
   val typesCasting = Seq(
-    RawPattern("10", "Assert('speed.as[String] === \"15\" and 'speed.as[Int] === 15)"),
-    RawPattern("11", "Assert('speed.as[Int] < 15)"),
-    RawPattern("12", "Assert('speed64.as[Double] < 15.0)"),
-    RawPattern("13", "Assert('speed64.field < 15.0)"))
+    RawPattern("10", "speed = 15"),
+    RawPattern("11", "speed64 < 15.0"))
 
 
   override def afterStart(): Unit = {
@@ -66,7 +65,7 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 
@@ -84,17 +83,13 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   }
 
   "Types casting" should "work for wide dense table" in {
-    Post("/streamJob/from-jdbc/to-jdbc/", FindPatternsRequest("1", typeCastingInputConf, outputConf, typesCasting)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", typeCastingInputConf, outputConf, typesCasting)) ~>
         route ~> check {
       status shouldEqual StatusCodes.OK
 
       checkByQuery(0 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'")
       checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 12 AND " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(2 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 13 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'")
     }
   }

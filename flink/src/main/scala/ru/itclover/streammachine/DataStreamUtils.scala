@@ -6,7 +6,7 @@ import org.apache.flink.api.scala.typeutils.UnitTypeInfo
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
-import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkPatternMapper, SparseRowsDataAccumulator, RichStatefulFlatMapper}
+import ru.itclover.streammachine.transformers.{FlatMappersCombinator, FlinkCompilingPatternMapper, SparseRowsDataAccumulator, RichStatefulFlatMapper}
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 

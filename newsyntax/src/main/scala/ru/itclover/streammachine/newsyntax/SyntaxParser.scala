@@ -289,7 +289,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
               val as = arguments
               (Reduce[Event, Any](TestFunctions.plus(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*) div
                 Reduce[Event, Any](TestFunctions.countNotNan(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*)).asInstanceOf[AnyNumericPhaseParser]
-            case _ => throw new RuntimeException(s"Unknown function $function")
+            case _ => throw new RuntimeException(s"Unknown function `$function`")
           }
         })
         | identifier ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>

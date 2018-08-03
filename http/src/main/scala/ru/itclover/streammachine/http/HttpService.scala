@@ -12,7 +12,7 @@ import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.streammachine.http.routes.{JdbcStreamRoutes, JdbcToKafkaStreamRoute, MonitoringRoutes}
+import ru.itclover.streammachine.http.routes._
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import com.typesafe.scalalogging.Logger
@@ -38,10 +38,9 @@ trait HttpService extends RoutesProtocols {
   private val log = Logger[HttpService]
 
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
-    jdbcBatch <- JdbcStreamRoutes.fromExecutionContext
-    kafkaStream <- JdbcToKafkaStreamRoute.fromExecutionContext
+    jobs <- JobsRoutes.fromExecutionContext
     monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-  } yield jdbcBatch ~ kafkaStream ~ monitoring
+  } yield jobs ~ monitoring
 
   def route = (logRequestAndResponse & handleErrors) {
     composeRoutes.run(executionContext).andThen { futureRoute =>

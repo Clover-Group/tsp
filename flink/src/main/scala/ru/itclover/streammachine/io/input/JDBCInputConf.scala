@@ -1,10 +1,11 @@
 package ru.itclover.streammachine.io.input
 
 import java.sql.DriverManager
-
+import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
+import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.utils.CollectionsOps.{RightBiasedEither, TryOps}
@@ -41,7 +42,7 @@ case class JDBCInputConf(sourceId: Int,
     }).toEither map (_ map { case (name, ti) => Symbol(name) -> ti })
   }
 
-  def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): JDBCInputFormat = {
+  def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
     JDBCInputFormat.buildJDBCInputFormat()
       .setDrivername(driverName)
@@ -53,7 +54,7 @@ case class JDBCInputConf(sourceId: Int,
       .finish()
   }
 
-  private lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
+  lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
   implicit lazy val timeExtractor = {
     val timeIndOrErr = errOrFieldsIdxMap.map(_.apply(datetimeField))

@@ -9,6 +9,24 @@ import ru.itclover.streammachine.core.PhaseResult.heartbeat
 
 
 class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
+  phase: PhaseParser[Event, PhaseState, PhaseOut],
+  resultsMapper: ResultMapper[Event, PhaseOut, MapperOut],
+  eventsMaxGapMs: Long,
+  emptyEvent: Event,
+  isTerminalEvent: Event => Boolean
+)(implicit timeExtractor: TimeExtractor[Event])
+extends FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
+  ((_: ClassLoader) => phase),
+  resultsMapper,
+  eventsMaxGapMs,
+  emptyEvent,
+  isTerminalEvent
+) {
+
+}
+
+
+class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   compilePhaseParser: ClassLoader => PhaseParser[Event, PhaseState, PhaseOut],
   resultsMapper: ResultMapper[Event, PhaseOut, MapperOut],
   eventsMaxGapMs: Long,
