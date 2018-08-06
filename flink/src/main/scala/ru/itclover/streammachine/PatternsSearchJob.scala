@@ -40,7 +40,8 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       te <- inputConf.timeExtractor
       sn <- inputConf.symbolNumberExtractor
       validated <- Traverse[List].traverse(patterns.toList)(p =>
-        Validated.fromEither(PhaseBuilder.build[InEvent](p.sourceCode)(te, sn)).leftMap(List(_))
+        Validated.fromEither(PhaseBuilder.build[InEvent](p.sourceCode)(te, sn))
+          .leftMap(err => List(s"PatternID#${p.id}: " + err))
       ).leftMap(errs => ParseException(errs)).toEither
     } yield validated.zip(patterns)
   }

@@ -69,7 +69,7 @@ trait JobsRoutes extends RoutesProtocols {
   def runJob[InEvent](job: PatternsSearchJob[InEvent, _, _], rawPatterns: Seq[RawPattern], uuid: String, runAsync: Boolean = true) = {
     job.preparePhases(rawPatterns) match {
       case Left(ParseException(errs)) =>
-        complete(BadRequest, FailureResponse(4001, "Parsing errors", errs))
+        complete(BadRequest, FailureResponse(4001, "Invalid patterns source code", errs))
       case Left(ex) =>
         complete(InternalServerError, FailureResponse(ex))
 
