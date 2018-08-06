@@ -11,7 +11,7 @@ import ru.itclover.streammachine.io.output.{JDBCOutputConf, RowSchema}
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
-import ru.itclover.streammachine.http.utils.{JDBCContainer, SqlMatchers}
+import ru.itclover.streammachine.http.utils.{JDBCContainer, RangeMatchers, SqlMatchers}
 import ru.itclover.streammachine.utils.Files
 
 
@@ -51,6 +51,9 @@ class HttpServiceJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   val typesCasting = Seq(
     RawPattern("10", "speed = 15"),
     RawPattern("11", "speed64 < 15.0"))
+  val errors = Seq(
+    RawPattern("20", "speed = QWE 15"),
+    RawPattern("21", "speed64 < 15.0"))
 
 
   override def afterStart(): Unit = {

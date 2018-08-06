@@ -7,7 +7,7 @@ import com.dimafeng.testcontainers._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
-import ru.itclover.streammachine.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
+import ru.itclover.streammachine.http.utils.{InfluxDBContainer, JDBCContainer, RangeMatchers, SqlMatchers}
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.streammachine.utils.Files
