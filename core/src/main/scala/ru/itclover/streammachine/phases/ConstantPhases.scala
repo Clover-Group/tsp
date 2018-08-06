@@ -1,9 +1,8 @@
 package ru.itclover.streammachine.phases
 
-import ru.itclover.streammachine.core.PhaseResult.{Failure, Success}
+import ru.itclover.streammachine.core.PhaseResult.{Failure, Stay, Success}
 import ru.itclover.streammachine.core.{PhaseParser, PhaseResult}
 import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
-
 import scala.language.implicitConversions
 
 object ConstantPhases {
@@ -14,7 +13,10 @@ object ConstantPhases {
 
   trait OneRowPhaseParser[Event, +T] extends PhaseParser[Event, NoState, T] {
 
-    override def apply(v1: Event, v2: NoState): (PhaseResult[T], NoState) = Success(extract(v1)) -> NoState.instance
+    override def apply(v1: Event, v2: NoState): (PhaseResult[T], NoState) = {
+      val value = extract(v1)
+      (if (value != null && value != Double.NaN) Success(value) else Stay) -> NoState.instance
+    }
 
     override def aggregate(event: Event, state: NoState): NoState = initialState
 

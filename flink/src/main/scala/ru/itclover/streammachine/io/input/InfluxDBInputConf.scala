@@ -38,12 +38,12 @@ case class InfluxDBInputConf(sourceId: Int,
     series <- firstSeries
     values <- series.getValues.headOption
       .toTry(whenFail=emptyException)
-      .flatMap(v => if(v.contains(null)) Failure(emptyException)
-                    else Success(v))
+      /*.flatMap(v => if(v.contains(null)) Failure(emptyException)
+                    else Success(v))*/
     tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
-    _ <- if (tags.contains(null)) Failure(emptyException) else Success()
+    // _ <- if (tags.contains(null)) Failure(emptyException) else Success()
   } yield {
-    val classes = tags.map(_.getClass) ++ values.map(_.getClass)
+    val classes = tags.map(_ => classOf[String]) ++ values.map(v => if (v != null) v.getClass else classOf[Double])
     series.getColumns.zip(classes).map {
       case (field, clazz) => (Symbol(field), TypeInformation.of(clazz))
     }
@@ -68,8 +68,7 @@ case class InfluxDBInputConf(sourceId: Int,
       override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
         case d: java.lang.Double => d
         case f: java.lang.Float => f.floatValue().toDouble
-        case some => Try(some.toString.toDouble).getOrElse(
-          throw new ClassCastException(s"Cannot cast value $some to double."))
+        case some => Try(some.toString.toDouble).getOrElse(Double.NaN)
       }
     }
   )
