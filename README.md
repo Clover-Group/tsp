@@ -25,7 +25,8 @@ API endpoints
 
 ### Response format
 #### Success:
-`{'response': ...}`
+- Generic `{'response': ...}`
+- Successful synchronous job `{'response': {"execTimeSec": Long}}`
 #### Failure:
 `{'errorCode': Int, 'message': String, 'errors': List[String], ...}`
 
@@ -37,6 +38,8 @@ Translated to json directly
 
 2. [@OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
 
+3. [@Pattern](flink/src/main/scala/ru/itclover/streammachine/io/input/RawPattern.scala) (camelCase -> snake_case)
+
 ### Methods
 
 #### 1. POST "streamJob/from-jdbc/to-jdbc/"
@@ -47,9 +50,10 @@ __Request body:__
 
 ```
 {
-    "source": @InputConf
-    "sink": @OutputConf
-    "patternsIdsAndCodes": Map[String, String]
+    "uuid": String,
+    "source": @InputConf,
+    "sink": @OutputConf,
+    "patternsIdsAndCodes": [@Pattern]
 }
 ```
 
@@ -57,6 +61,7 @@ __Example request body__
 
 ```
 {
+    "uuid": "test",
     "source": {
         "jdbcUrl": "jdbc:clickhouse://localhost:8123/default",
         "query": "select date_time, loco_id, CurrentBattery from TE116U_062_SM_TEST limit 0, 50000",
@@ -74,7 +79,17 @@ __Example request body__
         "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
         "batchInterval": 5000
     },
-    "patternsIdsAndCodes": {"1": "'CurrentBattery > 10"}
+    "patternsIdsAndCodes": {"1": "CurrentBattery > 10"}
+}
+```
+
+__Example response:__
+```
+{
+    "response": {
+        "execTimeSec": 1
+    },
+    "messages": []
 }
 ```
 

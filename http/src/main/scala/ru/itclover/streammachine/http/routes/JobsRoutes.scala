@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route}
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala._
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
-import ru.itclover.streammachine.http.domain.output.{FailureResponse, SuccessfulResponse}
+import ru.itclover.streammachine.http.domain.output.{ExecTime, FailureResponse, FinishedJobResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
@@ -73,18 +73,19 @@ trait JobsRoutes extends RoutesProtocols {
       case Left(ex) =>
         complete(InternalServerError, FailureResponse(ex))
 
-      case Right(patterns) => if (runAsync) {
-        Future { job.findAndSavePatterns(patterns, uuid) }
-        complete(SuccessfulResponse(uuid, Seq(s"Job `${uuid}` has started.")))
-      } else {
-        job.findAndSavePatterns(patterns, uuid) match {
-          case Right(result) => {
-            val execTimeLog = s"Job execution time - ${result.getNetRuntime(TimeUnit.SECONDS)}sec"
-            complete(SuccessfulResponse(result.hashCode.toString, Seq(execTimeLog)))
+      case Right(patterns) =>
+        if (runAsync) {
+          Future { job.findAndSavePatterns(patterns, uuid) }
+          complete(SuccessfulResponse(uuid, Seq(s"Job `${uuid}` has started.")))
+        } else {
+          job.findAndSavePatterns(patterns, uuid) match {
+            case Right(result) => {
+              val execTime = ExecTime(result.getNetRuntime(TimeUnit.SECONDS))
+              complete(FinishedJobResponse(execTime))
+            }
+            case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
           }
-          case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
         }
-      }
     }
 
   }
