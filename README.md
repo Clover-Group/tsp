@@ -38,7 +38,7 @@ Translated to json directly
 
 2. [@OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
 
-3. [@Pattern](flink/src/main/scala/ru/itclover/streammachine/io/input/RawPattern.scala) (camelCase -> snake_case)
+3. [@Pattern](flink/src/main/scala/ru/itclover/streammachine/io/input/RawPattern.scala)
 
 ### Methods
 
