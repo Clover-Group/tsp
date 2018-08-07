@@ -10,12 +10,15 @@ import ru.itclover.streammachine.utils.CollectionsOps.StringOps
 
 object InfluxDBService {
   def connectDb(url: String, dbName: String, userName: Option[String] = None, password: Option[String] = None,
-                readTimeoutSec: Long = 200L) = {
-    val extraConf = new OkHttpClient.Builder().readTimeout(readTimeoutSec, TimeUnit.SECONDS)
+                timeoutSec: Long = 200L) = {
+    val extraConf = new OkHttpClient.Builder()
+      .readTimeout(timeoutSec, TimeUnit.SECONDS)
+      .writeTimeout(timeoutSec, TimeUnit.SECONDS)
+      .connectTimeout(timeoutSec, TimeUnit.SECONDS)
     for {
       connection <- Try(InfluxDBFactory.connect(url, userName.orNull, password.orNull, extraConf))
       db <- Try(connection.setDatabase(dbName))
-    } yield (connection, db)
+    } yield db
   }
 
   def makeLimit1Query(query: String) = {

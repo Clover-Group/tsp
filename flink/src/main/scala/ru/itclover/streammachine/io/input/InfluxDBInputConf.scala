@@ -5,8 +5,6 @@ import org.apache.flink.api.common.io.RichInputFormat
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.io.InfluxDBInputFormat
-import org.apache.flink.core.io.{GenericInputSplit, InputSplit}
 import org.apache.flink.types.Row
 import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
@@ -26,9 +24,11 @@ case class InfluxDBInputConf(sourceId: Int,
                              datetimeField: Symbol = 'time,
                              userName: Option[String] = None,
                              password: Option[String] = None,
-                             parallelism: Option[Int] = None) extends InputConf[Row] {
+                             parallelism: Option[Int] = None,
+                             timeoutSec: Option[Long] = None) extends InputConf[Row] {
+  val defaultTimeoutSec = 200L
 
-  lazy val connectionAndDb = InfluxDBService.connectDb(url, dbName, userName, password)
+  lazy val dbConnect = InfluxDBService.connectDb(url, dbName, userName, password)
 
   private val dummyResult: Class[QueryResult.Result] = new QueryResult.Result().getClass.asInstanceOf[Class[QueryResult.Result]]
   val resultTypeInfo: TypeInformation[QueryResult.Result] = TypeInformation.of(dummyResult)
@@ -80,6 +80,7 @@ case class InfluxDBInputConf(sourceId: Int,
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
     InfluxDBInputFormat.create()
       .url(url)
+      .timeoutSec(timeoutSec.getOrElse(defaultTimeoutSec))
       .username(userName.getOrElse(""))
       .password(password.getOrElse(""))
       .database(dbName)
@@ -90,7 +91,7 @@ case class InfluxDBInputConf(sourceId: Int,
   lazy val firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)
     for {
-      (_, db) <- connectionAndDb
+      db <- dbConnect
       result <- Try(db.query(influxQuery))
       _      <- if (result.hasError) Failure(new InfluxDBException(result.getError)) else
                   if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))

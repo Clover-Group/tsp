@@ -6,7 +6,7 @@ import org.apache.flink.core.io.InputSplit
 import collection.JavaConversions._
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
-import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
+import ru.itclover.streammachine.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
