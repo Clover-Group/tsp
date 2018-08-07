@@ -12,6 +12,7 @@ import ru.itclover.streammachine.http.domain.output.{FailureResponse, Successful
 import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
+import ru.itclover.streammachine.BuildInfo
 import ru.itclover.streammachine.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
 import ru.itclover.streammachine.utils.Exceptions
 import scala.util.{Failure, Success}
@@ -64,6 +65,8 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
       case Success(None) => complete(SuccessfulResponse(0, Seq("No jobs or no connection to the FlinkMonitoring")))
       case Failure(err) => complete(InternalServerError, FailureResponse(5005, err))
     }
+  } ~
+  path("metainfo" /  "getVersion"./) {
+    complete(SuccessfulResponse(BuildInfo.version))
   }
-
 }

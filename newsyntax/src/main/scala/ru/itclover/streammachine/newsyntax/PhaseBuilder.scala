@@ -43,6 +43,7 @@ object PhaseBuilder {
         postProcess(cp.rightParser, mtf).asInstanceOf[PhaseParser[Event, cp.State2, cp.ExpressionType]]
       )(cp.comparingFunction, cp.comparingFunctionName) {
       }
+      // TODO Fix warning
       case bnp: BinaryNumericParser[Event, _, _, Double] => BinaryNumericParser[Event, bnp.State1, bnp.State2, Double](
         postProcess(bnp.left, mtf).asInstanceOf[PhaseParser[Event, bnp.State1, Double]],
         postProcess(bnp.right, mtf).asInstanceOf[PhaseParser[Event, bnp.State2, Double]],

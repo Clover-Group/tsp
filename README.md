@@ -120,3 +120,6 @@ Responses:
 - `{response: {name, jid}}`
 - `{response: 0}` - no jobs
 
+#### 4. Get "monitoring/getVersion/"
+Response -  `{response: "x.y.z"}`
+

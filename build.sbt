@@ -53,7 +53,12 @@ lazy val core = project.in(file("core"))
   )
 
 lazy val config = project.in(file("config"))
+  .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
+  .settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := "ru.itclover.streammachine"
+  )
   .dependsOn(core)
 
 lazy val flinkConnector = project.in(file("flink"))
