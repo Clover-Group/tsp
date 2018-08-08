@@ -28,7 +28,8 @@ case class InfluxDBInputConf(sourceId: Int,
                              timeoutSec: Option[Long] = None) extends InputConf[Row] {
   val defaultTimeoutSec = 200L
 
-  lazy val dbConnect = InfluxDBService.connectDb(url, dbName, userName, password)
+  lazy val dbConnect = InfluxDBService.connectDb(url, dbName, userName, password,
+    timeoutSec.getOrElse(defaultTimeoutSec))
 
   private val dummyResult: Class[QueryResult.Result] = new QueryResult.Result().getClass.asInstanceOf[Class[QueryResult.Result]]
   val resultTypeInfo: TypeInformation[QueryResult.Result] = TypeInformation.of(dummyResult)
