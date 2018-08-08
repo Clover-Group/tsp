@@ -44,8 +44,9 @@ case class InfluxDBInputConf(sourceId: Int,
     tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
     // _ <- if (tags.contains(null)) Failure(emptyException) else Success()
   } yield {
+    val fields = tags.map(_._1) ++ series.getColumns.toSeq
     val classes = tags.map(_ => classOf[String]) ++ values.map(v => if (v != null) v.getClass else classOf[Double])
-    series.getColumns.zip(classes).map {
+    fields.zip(classes).map {
       case (field, clazz) => (Symbol(field), TypeInformation.of(clazz))
     }
   }).toEither

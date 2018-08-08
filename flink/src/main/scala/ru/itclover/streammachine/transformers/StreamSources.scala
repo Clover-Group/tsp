@@ -66,10 +66,11 @@ case class InfluxDBSource(inputConf: InfluxDBInputConf)
   val stageName = "InfluxDB input processing stage"
 
   override def createStream = for {
-    fTypesInfo <- inputConf.fieldsTypesInfo
+    fieldsTypesInfo <- inputConf.fieldsTypesInfo
+    fieldsIdxMap <- inputConf.errOrFieldsIdxMap
   } yield {
     streamEnv
-      .createInput(inputConf.getInputFormat(fTypesInfo.toArray))(queryResultTypeInfo)
+      .createInput(inputConf.getInputFormat(fieldsTypesInfo.toArray))(queryResultTypeInfo)
       .flatMap(queryResult => {
         // extract Flink.rows form series of points
         if (queryResult == null || queryResult.getSeries == null) {
@@ -81,8 +82,10 @@ case class InfluxDBSource(inputConf: InfluxDBInputConf)
         } yield {
           val tags = if (series.getTags != null) series.getTags else new util.HashMap[String, String]()
           val row = new Row(tags.size() + valueSet.size())
-          tags.toSeq.sortBy(_._1).zipWithIndex.foreach { case ((_, tag), ind) => row.setField(ind, tag) }
-          valueSet.zipWithIndex.foreach { case (value, ind) => row.setField(ind, value) }
+          val fieldsAndValues = tags ++ series.getColumns.toSeq.zip(valueSet)
+          fieldsAndValues.foreach {
+            case (field, value) => row.setField(fieldsIdxMap(Symbol(field)), value)
+          }
           row
         }
       })
