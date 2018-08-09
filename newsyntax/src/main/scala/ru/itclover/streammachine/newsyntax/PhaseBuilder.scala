@@ -9,7 +9,8 @@ import ru.itclover.streammachine.phases.BooleanPhases.{Assert, BooleanPhaseParse
 import ru.itclover.streammachine.phases.CombiningPhases.{AndThenParser, EitherParser, TogetherParser}
 import ru.itclover.streammachine.phases.ConstantPhases.OneRowPhaseParser
 import ru.itclover.streammachine.phases.MonadPhases.MapParser
-import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, SymbolNumberExtractor}
+import ru.itclover.streammachine.phases.NumericPhases.{BinaryNumericParser, Reduce, SymbolNumberExtractor}
+import ru.itclover.streammachine.phases.TimePhases.Timed
 import ru.itclover.streammachine.utils.CollectionsOps.TryOps
 import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 
@@ -93,12 +94,15 @@ object PhaseBuilder {
       case atp: AndThenParser[Event, _, _, _, _] => fields(atp.first) ++ fields(atp.second)
       case tp: TogetherParser[Event, _, _, _, _] => fields(tp.leftParser) ++ fields(tp.rightParser)
       case cp: ComparingParser[Event, _, _, _] => fields(cp.leftParser) ++ fields(cp.rightParser)
+      case r: Reduce[Event, _] => fields(r.firstPhase) ++ r.otherPhases.foldLeft(List[String]())(
+        (r: List[String], x: PhaseParser[Event, _, _]) => r ++ fields(x))
       case bnp: BinaryNumericParser[Event, _, _, _] => fields(bnp.left) ++ fields(bnp.right)
       case aph: AccumPhase[Event, _, _, _] => fields(aph.innerPhase)
       case ts: ToSegments[Event, _, _] => fields(ts.innerPhase)
       case mp: MapParser[Event, _, _, _] => fields(mp.phaseParser)
       case a: Assert[Event, _] => fields(a.predicate)
-      case orpp: OneRowPhaseParser[Event, _] => if (orpp.fieldName.isDefined) List(orpp.fieldName.get) else List()
+      case t: Timed[Event, _, _] => fields(t.inner)
+      case orpp: OneRowPhaseParser[Event, _] => if (orpp.fieldName.isDefined) List(orpp.fieldName.get.tail) else List()
       case _ => List()
     }
   }

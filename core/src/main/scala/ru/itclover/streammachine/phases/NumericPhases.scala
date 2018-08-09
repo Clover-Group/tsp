@@ -37,8 +37,8 @@ object NumericPhases {
 
 
   case class Reduce[Event, State](reducer: (Double, Double) => Double)(
-    firstPhase: NumericPhaseParser[Event, State],
-    otherPhases: NumericPhaseParser[Event, State]*
+    val firstPhase: NumericPhaseParser[Event, State],
+    val otherPhases: NumericPhaseParser[Event, State]*
   )
     extends NumericPhaseParser[Event, Seq[State]]
   {
