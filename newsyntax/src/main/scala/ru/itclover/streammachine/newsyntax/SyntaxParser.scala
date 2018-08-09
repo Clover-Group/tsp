@@ -324,7 +324,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   }
 
   def ws = rule {
-    quiet(zeroOrMore(anyOf(" \t \n")))
+    quiet(zeroOrMore(anyOf(" \t \n \r")))
   }
 }
 

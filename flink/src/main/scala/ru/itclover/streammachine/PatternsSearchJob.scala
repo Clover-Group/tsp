@@ -43,7 +43,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         Validated.fromEither(PhaseBuilder.build[InEvent](p.sourceCode)(te, sn))
           .leftMap(err => List(s"PatternID#${p.id}: " + err))
       ).leftMap(errs => ParseException(errs)).toEither
-    } yield validated.zip(patterns)
+    } yield validated.map(v => v._1).zip(patterns)
   }
 
   def findAndSavePatterns(phases: Phases[InEvent], jobUuid: String)
