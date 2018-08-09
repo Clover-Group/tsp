@@ -20,7 +20,7 @@ class AccumPhase[Event, InnerState, AccumOut, Out]
   type AccumOutput = AccumOut
   type Output = Out
 
-  val accumulator: AccumState[AccumOut] = getAccumulator
+  def accumulator: AccumState[AccumOut] = getAccumulator
 
   def toContinuous: AccumPhase[Event, InnerState, AccumOut, Out] = this
 
