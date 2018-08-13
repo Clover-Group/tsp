@@ -11,8 +11,7 @@ object MonitoringServiceModel {
   case class JobDetails(jid: String, name: String, state: String, startTsMs: Long, durationMs: Long,
                         vertices: Vector[Vertex]) {
     def getNumProcessedRecords: Option[Int] = vertices.lastOption.map(_.metrics.readRecords)
-    def getNumRecordsRead(vertexName: String): Option[Int] =
-      vertices.find(_.name == vertexName).map(_.metrics.readRecords)
+    def getNumRecordsRead: Option[Int] = vertices.headOption.map(_.metrics.readRecords)
   }
 
   case class Vertex(id: String, name: String, metrics: VertexMetrics)

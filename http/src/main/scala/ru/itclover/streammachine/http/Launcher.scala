@@ -11,6 +11,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
 import cats._
 import cats.implicits._
+import org.apache.flink.client.program.PackagedProgram
 import org.apache.flink.configuration.{ConfigConstants, Configuration}
 
 
@@ -30,6 +31,8 @@ object Launcher extends App with HttpService {
   conf.setInteger("rest.port", configs.getInt("http.flink-monitoring.port"))
   val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf)
   streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
+
+  val a = new PackagedProgram()
 
 
   private val host = configs.getString("http.host")

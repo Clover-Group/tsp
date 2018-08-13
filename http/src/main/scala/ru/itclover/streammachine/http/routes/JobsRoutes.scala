@@ -1,13 +1,17 @@
 package ru.itclover.streammachine.http.routes
 
 import java.util.concurrent.TimeUnit
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala._
 import ru.itclover.streammachine.http.domain.input.FindPatternsRequest
-import ru.itclover.streammachine.http.domain.output.{ExecTime, FailureResponse, FinishedJobResponse, SuccessfulResponse}
+import ru.itclover.streammachine.http.domain.output.{
+  ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
 import ru.itclover.streammachine.http.protocols.RoutesProtocols
 import ru.itclover.streammachine.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.streammachine.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
@@ -20,17 +24,24 @@ import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.types.Row
 import ru.itclover.streammachine.{PatternsSearchJob, ResultMapper}
+import ru.itclover.streammachine.http.services.flink.MonitoringService
 import ru.itclover.streammachine.resultmappers.{ResultMappable, ToRowResultMappers}
 import ru.itclover.streammachine.utils.CollectionsOps.RightBiasedEither
 import ru.itclover.streammachine.utils.UtilityTypes.ParseException
+import scala.util.Success
 
 
 object JobsRoutes {
-  def fromExecutionContext(implicit strEnv: StreamExecutionEnvironment): Reader[ExecutionContextExecutor, Route] =
+  def fromExecutionContext(monitoringUrl: Uri)(implicit strEnv: StreamExecutionEnvironment,
+                                               as: ActorSystem,
+                                               am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
     Reader { execContext =>
       new JobsRoutes {
         implicit val executionContext: ExecutionContextExecutor = execContext
         implicit val streamEnv: StreamExecutionEnvironment = strEnv
+        implicit val actorSystem = as
+        implicit val materializer = am
+        override val monitoringUri = monitoringUrl
       }.route
     }
 }
@@ -39,6 +50,11 @@ object JobsRoutes {
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
   implicit def streamEnv: StreamExecutionEnvironment
+  implicit val actorSystem: ActorSystem
+  implicit val materializer: ActorMaterializer
+
+  val monitoringUri: Uri
+  lazy val monitoring = MonitoringService(monitoringUri)
 
   private val log = Logger[JobsRoutes]
 
@@ -80,8 +96,14 @@ trait JobsRoutes extends RoutesProtocols {
         } else {
           job.findAndSavePatterns(patterns, uuid) match {
             case Right(result) => {
-              val execTime = ExecTime(result.getNetRuntime(TimeUnit.SECONDS))
-              complete(FinishedJobResponse(execTime))
+              val execTime = result.getNetRuntime(TimeUnit.SECONDS)
+              // TODO after standalone Flink cluster test work
+              onComplete(monitoring.queryJobInfo(uuid)) {
+                case Success(Some(details)) => complete(FinishedJobResponse(
+                  ExecInfo(execTime, details.getNumRecordsRead, details.getNumProcessedRecords)
+                ))
+                case _ => complete(FinishedJobResponse(ExecInfo(execTime, None, None)))
+              }
             }
             case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
           }

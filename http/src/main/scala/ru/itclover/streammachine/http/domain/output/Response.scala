@@ -9,8 +9,8 @@ trait Response[T] extends Product with Serializable
 
 final case class SuccessfulResponse[T](response: T, messages: Seq[String]=Seq.empty) extends Response[T]
 
-case class ExecTime(execTimeSec: Long)
-final case class FinishedJobResponse(response: ExecTime, messages: Seq[String]=Seq.empty) extends Response[ExecTime]
+case class ExecInfo(execTimeSec: Long, readRecords: Option[Int], writtenRecords: Option[Int])
+final case class FinishedJobResponse(response: ExecInfo, messages: Seq[String]=Seq.empty) extends Response[ExecInfo]
 
 
 final case class FailureResponse(errorCode: Int, message: String, errors: Seq[String]) extends Response[Unit]
