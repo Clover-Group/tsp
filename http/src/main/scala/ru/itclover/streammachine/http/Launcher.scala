@@ -32,9 +32,6 @@ object Launcher extends App with HttpService {
   val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf)
   streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
 
-  val a = new PackagedProgram()
-
-
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
   val bindingFuture = Http().bindAndHandle(route, host, port)
