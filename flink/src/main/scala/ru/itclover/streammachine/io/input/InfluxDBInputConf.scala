@@ -26,6 +26,7 @@ case class InfluxDBInputConf(sourceId: Int,
                              password: Option[String] = None,
                              parallelism: Option[Int] = None,
                              timeoutSec: Option[Long] = None) extends InputConf[Row] {
+  import InfluxDBInputConf._
   val defaultTimeoutSec = 200L
 
   lazy val dbConnect = InfluxDBService.connectDb(url, dbName, userName, password,
@@ -55,28 +56,30 @@ case class InfluxDBInputConf(sourceId: Int,
 
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
-  implicit lazy val timeExtractor = {
-    val timeIndOrErr = errOrFieldsIdxMap.map(_.apply(datetimeField))
-    timeIndOrErr.map(timeInd => new TimeExtractor[Row] {
+  implicit lazy val timeExtractor = errOrFieldsIdxMap.map { fieldsIdxMap =>
+    val dtField = datetimeField
+    new TimeExtractor[Row] {
       override def apply(event: Row) = {
-        val isoTime = event.getField(timeInd).asInstanceOf[String]
+        val isoTime = getFieldOrThrow(event, fieldsIdxMap, dtField).asInstanceOf[String]
         Instant.parse(isoTime).toEpochMilli / 1000.0
       }
-    })
+    }
   }
 
   implicit lazy val symbolNumberExtractor = errOrFieldsIdxMap.map(fieldsIdxMap =>
     new SymbolNumberExtractor[Row] {
-      override def extract(event: Row, symbol: Symbol): Double = event.getField(fieldsIdxMap(symbol)) match {
-        case d: java.lang.Double => d
-        case f: java.lang.Float => f.floatValue().toDouble
-        case some => Try(some.toString.toDouble).getOrElse(Double.NaN)
+      override def extract(event: Row, name: Symbol): Double = {
+        getFieldOrThrow(event, fieldsIdxMap, name) match {
+          case d: java.lang.Double => d
+          case f: java.lang.Float  => f.floatValue().toDouble
+          case some                => Try(some.toString.toDouble).getOrElse(Double.NaN)
+        }
       }
     }
   )
 
   implicit lazy val anyExtractor = errOrFieldsIdxMap.map(fieldsIdxMap =>
-    (event: Row, name: Symbol) => event.getField(fieldsIdxMap(name))
+    (event: Row, name: Symbol) => getFieldOrThrow(event, fieldsIdxMap, name)
   )
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
@@ -102,5 +105,15 @@ case class InfluxDBInputConf(sourceId: Int,
       firstSeries <- result.getResults.headOption.flatMap(r => Option(r.getSeries).flatMap(_.headOption))
         .toTry(whenFail=new InfluxDBException(s"Empty results in query - `$query`."))
     } yield firstSeries
+  }
+}
+
+object InfluxDBInputConf {
+  private def getFieldOrThrow(event: Row, fieldsIdxMap: Map[Symbol, Int], field: Symbol): AnyRef = {
+    val ind = fieldsIdxMap.getOrElse(field, Int.MaxValue)
+    if (ind >= event.getArity) {
+      throw new IndexOutOfBoundsException(s"There is no `$field` in event `$event`")
+    }
+    event.getField(ind)
   }
 }

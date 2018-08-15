@@ -15,7 +15,7 @@ import ru.itclover.streammachine.phases.NumericPhases.NumericPhaseParser
 import ru.itclover.streammachine.utils.ParserMatchers
 import scala.language.{higherKinds, implicitConversions}
 
-
+// TODO Continuous accums
 class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
 
   "Skip phase" should {

@@ -107,6 +107,11 @@ object CombiningPhases {
     }
 
     override def initialState: LState And RState = leftParser.initialState -> rightParser.initialState
+
+    override def format(event: Event, state: LState And RState) = {
+      val (lState, rState) = state
+      s"${leftParser.format(event, lState)} ${this.getClass.getSimpleName} ${rightParser.format(event, rState)}"
+    }
   }
 
   case class TogetherParser[Event, LState, RState, LOut, ROut](leftParser: PhaseParser[Event, LState, LOut],

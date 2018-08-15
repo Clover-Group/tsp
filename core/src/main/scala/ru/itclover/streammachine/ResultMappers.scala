@@ -1,5 +1,6 @@
 package ru.itclover.streammachine
 
+import com.typesafe.scalalogging.Logger
 import ru.itclover.streammachine.core.PhaseResult
 import ru.itclover.streammachine.core.PhaseResult.{Success, TerminalResult}
 import ru.itclover.streammachine.core.Time.{TimeExtractor, timeOrdering}
@@ -44,12 +45,15 @@ case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeE
 {
   var currSegmentOpt: Option[Segment] = None
 
+  // val log = Logger("SegmentResultsMapper")
+
   def apply(event: Event, results: Seq[TerminalResult[PhaseOut]]): Seq[TerminalResult[Segment]] = {
     val eventTime = extractTime(event)
     val (successes, failures) = results.partition(_.isInstanceOf[Success[PhaseOut]])
     val failuresResults = failures.map(_.asInstanceOf[TerminalResult[Segment]])
     // If results successful and they are present - accumulate it
     if (successes.nonEmpty && !failures.contains(PhaseResult.heartbeat)) {
+      // log.debug(s"Successes = ${successes.mkString}")
       val segment = successes.head match {
         case Success(s: Segment) => currSegmentOpt.getOrElse(s)
         case _ => currSegmentOpt.getOrElse(Segment(eventTime, eventTime))

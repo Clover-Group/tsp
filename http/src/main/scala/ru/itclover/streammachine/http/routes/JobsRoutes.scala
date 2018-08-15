@@ -66,7 +66,7 @@ trait JobsRoutes extends RoutesProtocols {
           request.source,
           request.sink,
           ToRowResultMappers(request.source.sourceId, request.sink.rowSchema))
-        runJob(job, request.patterns, request.uuid, isAsync)
+        runJob(job, src.emptyEvent, request.patterns, request.uuid, isAsync)
       }
     } ~
       path("streamJob" / "from-influxdb" / "to-jdbc"./) {
@@ -76,13 +76,13 @@ trait JobsRoutes extends RoutesProtocols {
             request.source,
             request.sink,
             ToRowResultMappers(request.source.sourceId, request.sink.rowSchema))
-          runJob(job, request.patterns, request.uuid, isAsync)
+          runJob(job, src.emptyEvent, request.patterns, request.uuid, isAsync)
         }
       }
    }
   // TODO: Kafka outputConf
 
-  def runJob[InEvent](job: PatternsSearchJob[InEvent, _, _], rawPatterns: Seq[RawPattern], uuid: String, runAsync: Boolean = true) = {
+  def runJob[InEvent](job: PatternsSearchJob[InEvent, _, _], nullEvent: InEvent, rawPatterns: Seq[RawPattern], uuid: String, runAsync: Boolean = true) = {
     job.preparePhases(rawPatterns) match {
       case Left(ParseException(errs)) =>
         complete(BadRequest, FailureResponse(4001, "Invalid patterns source code", errs))
@@ -90,6 +90,7 @@ trait JobsRoutes extends RoutesProtocols {
         complete(InternalServerError, FailureResponse(ex))
 
       case Right(patterns) =>
+        log.info(s"Parsed patterns: ${patterns.map(_._1.formatWithInitialState(nullEvent)).mkString(";\n")}")
         if (runAsync) {
           Future { job.findAndSavePatterns(patterns, uuid) }
           complete(SuccessfulResponse(uuid, Seq(s"Job `${uuid}` has started.")))

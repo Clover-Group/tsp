@@ -49,7 +49,15 @@ case class JdbcSource(inputConf: JDBCInputConf)
     }
   }
 
-  override def emptyEvent = new Row(0)
+  override def emptyEvent = nullEvent.getOrElse(throw new RuntimeException("Cannot access db for metainfo"))
+
+  def nullEvent = for {
+    fieldsIdxMap <- inputConf.errOrFieldsIdxMap
+  } yield {
+    val r = new Row(fieldsIdxMap.size)
+    fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, "") }
+    r
+  }
 
   override def getTerminalCheck = for {
     fieldsIdxMap <- inputConf.errOrFieldsIdxMap
@@ -92,7 +100,15 @@ case class InfluxDBSource(inputConf: InfluxDBInputConf)
       .name(stageName)
   }
 
-  override def emptyEvent = new Row(0)
+  override def emptyEvent = nullEvent.getOrElse(throw new RuntimeException("Cannot access db for metainfo"))
+
+  def nullEvent = for {
+    fieldsIdxMap <- inputConf.errOrFieldsIdxMap
+  } yield {
+    val r = new Row(fieldsIdxMap.size)
+    fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, "") }
+    r
+  }
 
   override def getTerminalCheck = for {
     fieldsIdxMap <- inputConf.errOrFieldsIdxMap
