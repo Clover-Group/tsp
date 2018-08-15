@@ -38,15 +38,15 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   }
 
   def trileanTerm: Rule1[AnyPhaseParser] = rule {
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
       optional(range) ~> ((c: AnyPhaseParser, ex: Option[Int], w: Window, r: Option[Any]) => {
       val ac: AnyPhaseParser = r match {
         case Some(nr) if nr.isInstanceOf[NumericRange[_]] =>
           val q = PhaseParser.Functions.truthCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
-          q.map[Boolean]({ x => nr.asInstanceOf[NumericRange[Long]].contains(x) }).asInstanceOf[AnyPhaseParser]
+          Assert(q.map[Boolean](x => nr.asInstanceOf[NumericRange[Long]].contains(x))).asInstanceOf[AnyPhaseParser]
         case Some(tr) if tr.isInstanceOf[TimeInterval] =>
           val q = PhaseParser.Functions.truthMillisCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
-          q.map[Boolean](x => tr.asInstanceOf[TimeInterval].contains(Window(x))).asInstanceOf[AnyPhaseParser]
+          Assert(q.map[Boolean](x => tr.asInstanceOf[TimeInterval].contains(Window(x)))).asInstanceOf[AnyPhaseParser]
         case _ => c
       }
       (if (ex.isDefined) ac.timed(w, w) else ac.timed(Time.less(w))).asInstanceOf[AnyPhaseParser]
@@ -59,10 +59,6 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
       })
       | trileanFactor
       )
-  }
-
-  def nonFatalTrileanFactor: Rule1[AnyPhaseParser] = rule {
-    booleanExpr ~> { b: AnyBooleanPhaseParser => b } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def trileanFactor: Rule1[AnyPhaseParser] = rule {
@@ -228,8 +224,8 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   def repetitionRange: Rule1[NumericRange[Long]] = rule {
     ("<" ~ ws ~ repetition ~> ((t: Long) => 0L until t)
       | "<=" ~ ws ~ repetition ~> ((t: Long) => 0L to t)
-      | ">" ~ ws ~ repetition ~> ((t: Long) => t + 1 to Int.MaxValue)
-      | ">=" ~ ws ~ repetition ~> ((t: Long) => t to Int.MaxValue)
+      | ">" ~ ws ~ repetition ~> ((t: Long) => t + 1 to Int.MaxValue.toLong)
+      | ">=" ~ ws ~ repetition ~> ((t: Long) => t to Int.MaxValue.toLong)
       | integer ~ ignoreCase("to") ~ ws ~ repetition ~>
       ((t1: OneRowPhaseParser[Event, Long], t2: Long) => t1.extract(null.asInstanceOf[Event]) to t2)
       )
@@ -278,21 +274,23 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
       identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
         ((i: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser], constraint: Option[Double => Boolean]) => {
           val function = i.symbol.toString.tail.toLowerCase
-          val c: Double => Boolean = constraint.getOrElse(_ => true)
-          //println((1.0 to 10.0 by 1.0).map(q => (q, c(q))))
+          val cond: Double => Boolean = constraint.getOrElse(_ => true)
           function match {
             case "lag" => PhaseParser.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
             case "abs" => PhaseParser.Functions.abs(arguments.head).asInstanceOf[AnyNumericPhaseParser]
             case "minof" =>
               val as = arguments
-              Reduce[Event, Any](TestFunctions.min(_, _, c))(OneRowPhaseParser[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
+              Reduce[Event, Any](TestFunctions.min(_, _, cond))(OneRowPhaseParser[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
             case "maxof" =>
               val as = arguments
-              Reduce[Event, Any](TestFunctions.max(_, _, c))(OneRowPhaseParser[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
+              Reduce[Event, Any](TestFunctions.max(_, _, cond))(OneRowPhaseParser[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
             case "avgof" =>
               val as = arguments
-              (Reduce[Event, Any](TestFunctions.plus(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*) div
-                Reduce[Event, Any](TestFunctions.countNotNan(_, _, c))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*)).asInstanceOf[AnyNumericPhaseParser]
+              (Reduce[Event, Any](TestFunctions.plus(_, _, cond))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*) div
+                Reduce[Event, Any](TestFunctions.countNotNan(_, _, cond))(OneRowPhaseParser[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser], as: _*)).asInstanceOf[AnyNumericPhaseParser]
+            case "countof" =>
+              val as = arguments
+              Reduce[Event, Any](TestFunctions.countNotNan(_, _, cond))(OneRowPhaseParser[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser], as: _*).asInstanceOf[AnyNumericPhaseParser]
             case _ => throw new RuntimeException(s"Unknown function `$function`")
           }
         })
@@ -319,7 +317,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
 
   def string: Rule1[OneRowPhaseParser[Event, String]] = rule {
     "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~>
-      ((id: String) => OneRowPhaseParser[Event, String](_ => id.replace("''", "'")))
+      ((str: String) => OneRowPhaseParser[Event, String](_ => str.replace("''", "'")))
   }
 
   def boolean: Rule1[OneRowPhaseParser[Event, Boolean]] = rule {
@@ -328,7 +326,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   }
 
   def ws = rule {
-    quiet(zeroOrMore(anyOf(" \t \n")))
+    quiet(zeroOrMore(anyOf(" \t \n \r")))
   }
 }
 
