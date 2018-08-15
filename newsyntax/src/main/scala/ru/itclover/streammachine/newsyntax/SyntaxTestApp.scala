@@ -26,8 +26,8 @@ object SyntaxTestApp extends App {
   val formatter = new ErrorFormatter(showTraces=true)
   val result = PhaseBuilder.build(rule)
   result match {
-    case Right(x: PhaseParser[Event, _, _]) =>
-      println(x.formatWithInitialState(Event(1, Instant.now)))
+    case Right(x: (PhaseParser[Event, _, _], List[_])) =>
+      println(x._1.formatWithInitialState(Event(1, Instant.now)))
     case Right(z) =>
       println(z)
     case Left(z) =>

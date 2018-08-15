@@ -58,6 +58,9 @@ object AggregatorPhases {
         case None => Stay -> (innerState, Some(1))
       }
     }
+
+    override def format(event: Event, state: (InnerState, Option[Int])): String =
+      s"Skip($numEvents, ${phase.format(event, state._1)})"
   }
 
   /**

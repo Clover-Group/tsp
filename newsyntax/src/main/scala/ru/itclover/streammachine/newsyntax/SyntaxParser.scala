@@ -1,7 +1,7 @@
 package ru.itclover.streammachine.newsyntax
 
 import org.parboiled2._
-import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, ToSegments}
+import ru.itclover.streammachine.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
 import ru.itclover.streammachine.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.streammachine.core.{PhaseParser, Time, TimeInterval, Window}
 import ru.itclover.streammachine.phases.BooleanPhases.{AndParser, BooleanPhaseParser, NotParser, OrParser, XorParser}
@@ -29,7 +29,7 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   def trileanExpr: Rule1[AnyPhaseParser] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-        ((e: AnyPhaseParser, f: AnyPhaseParser) => (e andThen f).asInstanceOf[AnyPhaseParser])
+        ((e: AnyPhaseParser, f: AnyPhaseParser) => (e andThen Skip(1, f)).asInstanceOf[AnyPhaseParser])
         | ignoreCase("and") ~ ws ~ trileanTerm ~>
         ((e: AnyPhaseParser, f: AnyPhaseParser) => (e togetherWith f).asInstanceOf[AnyPhaseParser])
         | ignoreCase("or") ~ ws ~ trileanTerm ~>
