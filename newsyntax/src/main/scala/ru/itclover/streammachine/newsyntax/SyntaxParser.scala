@@ -38,20 +38,20 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
   }
 
   def trileanTerm: Rule1[AnyPhaseParser] = rule {
-    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
-      optional(range) ~> ((c: AnyPhaseParser, ex: Option[Int], w: Window, r: Option[Any]) => {
+    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
+      optional(range) ~ ws ~> ((c: AnyPhaseParser, ex: Option[Int], w: Window, r: Option[Any]) => {
       val ac: AnyPhaseParser = r match {
         case Some(nr) if nr.isInstanceOf[NumericRange[_]] =>
           val q = PhaseParser.Functions.truthCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
-          Assert(q.map[Boolean](x => nr.asInstanceOf[NumericRange[Long]].contains(x))).asInstanceOf[AnyPhaseParser]
+          q.map[Boolean]({ x => nr.asInstanceOf[NumericRange[Long]].contains(x) }).asInstanceOf[AnyPhaseParser]
         case Some(tr) if tr.isInstanceOf[TimeInterval] =>
           val q = PhaseParser.Functions.truthMillisCount(c.asInstanceOf[AnyBooleanPhaseParser], w)
-          Assert(q.map[Boolean](x => tr.asInstanceOf[TimeInterval].contains(Window(x)))).asInstanceOf[AnyPhaseParser]
+          q.map[Boolean](x => tr.asInstanceOf[TimeInterval].contains(Window(x))).asInstanceOf[AnyPhaseParser]
         case _ => c
       }
       (if (ex.isDefined) ac.timed(w, w) else ac.timed(Time.less(w))).asInstanceOf[AnyPhaseParser]
     })
-      | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~>
+      | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
       ((c: AnyPhaseParser, b: AnyBooleanPhaseParser, r: Option[Any]) => {
         val ac = c
         (ac.timed(MaxWindow).asInstanceOf[AnyBooleanPhaseParser] and
@@ -59,6 +59,10 @@ class SyntaxParser[Event](val input: ParserInput)(implicit val timeExtractor: Ti
       })
       | trileanFactor
       )
+  }
+
+  def nonFatalTrileanFactor: Rule1[AnyPhaseParser] = rule {
+    booleanExpr ~> { b: AnyBooleanPhaseParser => b } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def trileanFactor: Rule1[AnyPhaseParser] = rule {
