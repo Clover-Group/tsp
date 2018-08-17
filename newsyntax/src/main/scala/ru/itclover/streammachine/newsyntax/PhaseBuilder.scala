@@ -19,13 +19,16 @@ object PhaseBuilder {
   def build[Event](input: String, formatter: ErrorFormatter = new ErrorFormatter())(
     implicit timeExtractor: TimeExtractor[Event],
     symbolNumberExtractor: SymbolNumberExtractor[Event]
-  ): Either[String, (PhaseParser[Event, _, _], List[String])] = {
+  ): Either[String, (PhaseParser[Event, _, _], ParserMetadata)] = {
     val parser = new SyntaxParser[Event](input)
     val rawPhase = parser.start.run()
-    rawPhase.map(p => (postProcess(p, maxTimePhase(p)), fields(p))).toEither.transformLeft {
-      case ex: ParseError => formatter.format(ex, input)
-      case ex             => throw ex // Unknown exceptional case
-    }
+    rawPhase
+      .map(p => (postProcess(p, maxTimePhase(p)), ParserMetadata(fields(p).toSet, maxTimePhase(p))))
+      .toEither
+      .transformLeft {
+        case ex: ParseError => formatter.format(ex, input)
+        case ex             => throw ex // Unknown exceptional case
+      }
   }
 
   def postProcess[Event](parser: PhaseParser[Event, _, _], maxPhase: Long, asContinuous: Boolean = false)(
