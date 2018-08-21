@@ -5,7 +5,9 @@ import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
-import ru.itclover.streammachine.core.PhaseParser
+import org.apache.flink.streaming.api.windowing.assigners.EventTimeSessionWindows
+import org.apache.flink.streaming.api.windowing.time.Time
+import ru.itclover.streammachine.core.{PhaseParser, Window}
 import ru.itclover.streammachine.core.Time.TimeExtractor
 import ru.itclover.streammachine.io.input.{InputConf, RawPattern}
 import ru.itclover.streammachine.io.output.OutputConf
@@ -34,6 +36,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   val streamSrc = implicitly[StreamSource[InEvent]]
   val searchStageName = "Patterns search stage"
   val saveStageName = "Writing found patterns"
+  var maxWindowSize: Window = _ // .. non mutable
 
   def preparePhases(patterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
     for {
@@ -63,7 +66,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 
 
   def findPatterns(phases: Phases[InEvent],
-                   inputConf: InputConf[InEvent],
                    getResultMappers: ResultMappable[InEvent, PhaseOut, OutEvent])
                   (implicit extractTime: TimeExtractor[InEvent],
                    extractNumber: SymbolNumberExtractor[InEvent],
@@ -72,16 +74,25 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       stream <- streamSrc.createStream
       isTerminal <- streamSrc.getTerminalCheck
     } yield {
+      val rm = new ToFoundRuleResultMapper(outputConf.forwardedFields, inputConf.partitionFields)
       val patternMappers = phases.map({ case (phase, raw) =>
-        val resultsMapper = getResultMappers(raw).asInstanceOf[ResultMapper[InEvent, Any, OutEvent]]
-        new FlinkPatternMapper(phase, resultsMapper, inputConf.eventsMaxGapMs,
-          streamSrc.emptyEvent, isTerminal).asInstanceOf[RichStatefulFlatMapper[InEvent, Any, OutEvent]]
+        // val resultsMapper = getResultMappers(raw).asInstanceOf[ResultMapper[InEvent, Any, OutEvent]]
+        new FlinkPatternMapper(phase, rm, inputConf.eventsMaxGapMs,
+          streamSrc.emptyEvent, isTerminal).asInstanceOf[RichStatefulFlatMapper[InEvent, Any, FoundPattern]]
       })
       val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
       val keyed = stream.keyBy(e => {
         serPartitionFields.map(serExtractAny(e, _)).mkString
       })
-      keyed.flatMapAll(patternMappers)(implicitly[TypeInformation[OutEvent]])
+      val r = keyed.flatMapAll(patternMappers)/*(implicitly[TypeInformation[OutEvent]])*/
+      val e = r
+        .keyBy(e => e.partitionFields.values.mkString)
+        .window(EventTimeSessionWindows.withGap(Time.milliseconds(maxWindowSize.toMillis))) // .. assign timestamps
+        .reduce { (patternA, patternB) =>
+          val unitedSegment = Segment(patternA.segment.from, patternB.segment.to)
+          FoundPattern(unitedSegment, patternB.forwardedFields, patternB.partitionFields)
+        }
+      r
     }
   }
 

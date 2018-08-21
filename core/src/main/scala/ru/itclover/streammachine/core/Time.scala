@@ -23,7 +23,7 @@ case class Time(toMillis: Long) extends Serializable {
   // def minusWindow(window: Window): Time
 
   // def plus(t: Time): Time e.g. Time(toMillis + t.toMillis)
-  // def minus(t: Time): Time
+  // def minus(t: Time): Time // ..
 
   override def toString: String = Time.DATE_TIME_FORMAT.print(toMillis)
 

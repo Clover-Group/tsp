@@ -1,10 +1,9 @@
 package ru.itclover.streammachine.io.output
 
 import java.sql.{Timestamp, Types}
-
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
-
+import ru.itclover.streammachine.Segment
 import scala.collection.mutable
 
 

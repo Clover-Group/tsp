@@ -10,6 +10,49 @@ import ru.itclover.streammachine.io.input.RawPattern
 import ru.itclover.streammachine.io.output.RowSchema
 
 
+case class FoundPattern(segment: Segment,
+                        forwardedFields: Map[Symbol, Any],
+                        partitionFields: Map[Symbol, Any]) extends Product with Serializable
+
+
+class ToFoundRuleResultMapper[Event](forwardedFields: Seq[Symbol], partitionFields: Seq[Symbol])
+                                    (implicit timeExtractor: TimeExtractor[Event], extractAny: (Event, Symbol) => Any)
+  extends ResultMapper[Event, Segment, FoundPattern] {
+
+  // TODO: replace mappers with result_phase on parser like `SELECT [result_phase] WHERE [phase]`
+  // Segments closes on next after last success event, hence forwarded fields should be got from prev successful Event.
+  var prevEvent: Option[Event] = None
+
+  override def apply(event: Event, results: Seq[TerminalResult[Segment]]) = {
+    val prevOrCurrEvent = prevEvent.getOrElse(event)
+    val findings = results map {
+      case Success(segment) => Success(FoundPattern(
+        segment,
+        forwardedFields.map(f => f -> extractAny(prevOrCurrEvent, f)).toMap,
+        partitionFields.map(f => f -> extractAny(prevOrCurrEvent, f)).toMap
+      ))
+      case f: Failure => f
+    }
+    prevEvent = Some(event)
+    findings
+  }
+}
+
+class PatternsToRowMapper[Event](sourceId: Int, schema: RowSchema, rawPattern: RawPattern)
+                                (implicit timeExtractor: TimeExtractor[Event], extractAny: (Event, Symbol) => Any)
+  extends ResultMapper[Event, FoundPattern, Row] {
+
+  override def apply(event: Event, results: Seq[TerminalResult[FoundPattern]]) = {
+    results map {
+      case (Success(foundPattern)) => {
+        val resultRow = new Row(schema.fieldsCount)
+        // ..
+      }
+    }
+  }
+}
+
+
 /**
   * Packer of PhaseOut into [[org.apache.flink.types.Row]]
   * @tparam Event - inner Event

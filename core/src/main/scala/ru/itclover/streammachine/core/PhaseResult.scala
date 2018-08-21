@@ -1,6 +1,6 @@
 package ru.itclover.streammachine.core
 
-sealed trait PhaseResult[+T] {
+sealed trait PhaseResult[+T] extends Product with Serializable {
   def map[B](f: T => B): PhaseResult[B]
 
   def flatMap[B](f: T => PhaseResult[B]): PhaseResult[B]
