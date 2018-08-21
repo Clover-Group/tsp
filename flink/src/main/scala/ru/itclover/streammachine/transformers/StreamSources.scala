@@ -55,7 +55,7 @@ case class JdbcSource(inputConf: JDBCInputConf)
     fieldsIdxMap <- inputConf.errOrFieldsIdxMap
   } yield {
     val r = new Row(fieldsIdxMap.size)
-    fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, "") }
+    fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, 0) }
     r
   }
 

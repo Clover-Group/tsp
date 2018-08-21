@@ -98,6 +98,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 
   def saveStream(stream: DataStream[OutEvent], outputConf: OutputConf[OutEvent]): DataStreamSink[OutEvent] = {
     val outFormat = outputConf.getOutputFormat
-    stream.writeUsingOutputFormat(outFormat)
+    stream.writeUsingOutputFormat(outFormat).setParallelism(1)
   }
 }
