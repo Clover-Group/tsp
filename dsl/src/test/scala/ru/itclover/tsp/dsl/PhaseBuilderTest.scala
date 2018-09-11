@@ -12,7 +12,7 @@ class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
 
   val timedRulesAndSensors = Seq(
     ("rule1s >= 8 for 10 min > 9 min", Seq("rule1s")),
-    ("rule2s2 = 100 andThen rule2s2 >= 8 for 10 min > 9 min", Seq("rule2s1", "rule2s2")),
+    ("rule2s1 = 100 andThen rule2s2 >= 8 for 10 min > 9 min", Seq("rule2s1", "rule2s2")),
     ("rule3s = 1 for 120 sec > 115 times", Seq("rule3s")),
     ("rule4s >= 5990 for 5 min", Seq("rule4s"))
   )
@@ -30,7 +30,7 @@ class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
     timedRulesAndSensors.foreach {
       case (rule, sensors) => {
         (new SyntaxParser(rule)).start.run() match {
-          case Success(phase) => PhaseBuilder.findFields(phase) shouldBe equal(sensors)
+          case Success(phase) => PhaseBuilder.findFields(phase) shouldBe sensors
           case Failure(ex)    => fail(ex)
         }
       }

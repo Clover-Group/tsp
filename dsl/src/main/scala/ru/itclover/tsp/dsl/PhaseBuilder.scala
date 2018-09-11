@@ -114,6 +114,7 @@ object PhaseBuilder {
   }
 
   def findFields[Event](x: Pattern[Event, _, _]): List[String] = {
+    //println(x.format(null.asInstanceOf[Event]))
     x match {
       case ep: EitherParser[Event, _, _, _, _]   => findFields(ep.leftParser) ++ findFields(ep.rightParser)
       case atp: AndThenParser[Event, _, _, _, _] => findFields(atp.first) ++ findFields(atp.second)
