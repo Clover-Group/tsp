@@ -236,7 +236,7 @@ class SyntaxParser[Event](val input: ParserInput)(
       ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) > f(x))
       | underscoreExpr ~ ">=" ~ ws ~ underscoreExpr ~>
       ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) >= f(x))
-      | underscoreExpr ~ "==" ~ ws ~ underscoreExpr ~>
+      | underscoreExpr ~ "=" ~ ws ~ underscoreExpr ~>
       ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) == f(x))
       | underscoreExpr ~ ("!=" | "<>") ~ ws ~ underscoreExpr ~>
       ((e: Double => Double, f: Double => Double) => (x: Double) => e(x) != f(x))
@@ -336,14 +336,14 @@ class SyntaxParser[Event](val input: ParserInput)(
     // sign of a number: positive (or empty) = 1, negative = -1
     ((str("+") ~> (() => 1) | str("-") ~> (() => -1) | str("") ~> (() => 1)) ~
     capture(oneOrMore(CharPredicate.Digit) ~ optional('.' ~ oneOrMore(CharPredicate.Digit))) ~ ws
-    ~> ((s: Int, i: String) => OneRowPattern[Event, Double](_ => s * i.toDouble)))
+    ~> ((s: Int, i: String) => ConstantPhases[Event, Double](s * i.toDouble)))
   }
 
   def integer: Rule1[OneRowPattern[Event, Long]] = rule {
     // sign of a number: positive (or empty) = 1, negative = -1
     ((str("+") ~> (() => 1) | str("-") ~> (() => -1) | str("") ~> (() => 1))
     ~ capture(oneOrMore(CharPredicate.Digit)) ~ ws
-    ~> ((s: Int, i: String) => OneRowPattern[Event, Long](_ => s * i.toLong)))
+    ~> ((s: Int, i: String) => ConstantPhases[Event, Long](s * i.toLong)))
   }
 
   def functionCall: Rule1[AnyNumericPhaseParser] = rule {
@@ -408,12 +408,12 @@ class SyntaxParser[Event](val input: ParserInput)(
 
   def string: Rule1[OneRowPattern[Event, String]] = rule {
     "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~>
-    ((str: String) => OneRowPattern[Event, String](_ => str.replace("''", "'")))
+    ((str: String) => ConstantPhases[Event, String](str.replace("''", "'")))
   }
 
   def boolean: Rule1[OneRowPattern[Event, Boolean]] = rule {
-    (ignoreCase("true") ~ ws ~> (() => OneRowPattern[Event, Boolean](_ => true))
-    | ignoreCase("false") ~ ws ~> (() => OneRowPattern[Event, Boolean](_ => false)) ~ ws)
+    (ignoreCase("true") ~ ws ~> (() => ConstantPhases[Event, Boolean](true))
+    | ignoreCase("false") ~ ws ~> (() => ConstantPhases[Event, Boolean](false)) ~ ws)
   }
 
   def ws = rule {

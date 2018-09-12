@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 
 object ConstantPhases {
 
-  def apply[Event, T](value: T): Pattern[Event, NoState, T] = new OneRowPattern[Event, T] {
+  def apply[Event, T](value: T): OneRowPattern[Event, T] = new OneRowPattern[Event, T] {
     override def extract(event: Event): T = value
   }
 
