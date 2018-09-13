@@ -7,11 +7,14 @@ import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.TestApp.TestEvent
 import ru.itclover.tsp.aggregators.AggregatorPhases.{Skip, ToSegments}
+import ru.itclover.tsp.aggregators.accums.AccumState
+import ru.itclover.tsp.aggregators.accums.OneTimeStates.TruthAccumState
+import ru.itclover.tsp.aggregators.accums.PredicatePushers.{PushFalseToFailure, PushTrueToSuccess}
 import ru.itclover.tsp.core.Pattern.Functions
 import ru.itclover.tsp.core.{Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.phases.BooleanPhases.{Assert, EqualParser}
-import ru.itclover.tsp.phases.ConstantPhases.{FailurePattern, OneRowPattern, ConstantFunctions}
+import ru.itclover.tsp.phases.ConstantPhases.{ConstantFunctions, FailurePattern, OneRowPattern}
 import ru.itclover.tsp.phases.{ConstantPhases, NoState}
 import ru.itclover.tsp.phases.MonadPhases.FlatMapParser
 import ru.itclover.tsp.phases.NumericPhases.{BinaryNumericParser, SymbolExtractor, SymbolNumberExtractor, SymbolParser}
@@ -81,11 +84,13 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         Assert(EqualParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
-        Functions
-          .truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000))
-          .flatMap(
-            msCount => ConstantPhases(msCount > 50000)
-          )
+        PushTrueToSuccess(
+          Functions
+            .truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000)),
+          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount > 50000
+        ).flatMap(
+          msCount => ConstantPhases(msCount > 50000)
+        )
         andThen Skip(1, Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0.0)))
       )
     ),
@@ -98,12 +103,14 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
           and 'TOilInDiesel.as[Double](numberExtractor) > ConstantPhases(8.0)
         )
         togetherWith
-        Functions
-          .truthMillisCount(
-            EqualParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
-            Window(420000)
-          )
-          .flatMap(
+        PushFalseToFailure(
+          Functions
+            .truthMillisCount(
+              EqualParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
+              Window(420000)
+            ),
+          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount < 80000
+        ).flatMap(
             msCount => ConstantPhases(msCount < 80000)
           )
         andThen Skip(1, Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0.0)))
@@ -131,24 +138,31 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         ).timed(Window(60000), Window(60000))
       )
     ),
-    ("Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
+    (
+      "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
       ToSegments(
         Assert(EqualParser('Current_V.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0)))
-        andThen Skip(1, Assert(
-          EqualParser(Functions.lag('I_OP.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0))
+        andThen Skip(
+          1,
+          Assert(
+            EqualParser(Functions.lag('I_OP.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0))
             and EqualParser('I_OP.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
             and 'Current_V.as[Double](numberExtractor) < ConstantPhases(15)
-        ))
+          )
+        )
       )
     ),
-    ("(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
+    (
+      "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
       ToSegments(
-        Functions
-          .truthMillisCount(
-            'PosKM.as[Double](numberExtractor) > ConstantPhases[TestEvent, Double](4),
-            Window(7200000)
-          )
-          .flatMap(
+        PushFalseToFailure(
+          Functions
+            .truthMillisCount(
+              'PosKM.as[Double](numberExtractor) > ConstantPhases[TestEvent, Double](4),
+              Window(7200000)
+            ),
+          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount < 60000
+        ).flatMap(
             msCount => ConstantPhases(msCount < 60000)
           )
         togetherWith Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0))
@@ -181,73 +195,76 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         ).timed(Window(5000), Window(5000))
       )
     ),
+//    (
+//      "SpeedEngine>300 for 60 sec andThen PAirMainRes > 7.8 and lag(CurrentCompressorMotor) < 10 and CurrentCompressorMotor >= 10 andThen CurrentCompressorMotor > 100 for 2 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "SpeedEngine > 260 and PowerPolling >= 50 and (PowerPolling > 136.5 and PosKM = 1 or PowerPolling > 273 and PosKM = 2 or PowerPolling > 462 and PosKM = 3 or PowerPolling > 724.5 and PosKM = 4 or PowerPolling > 997.5 and PosKM = 5 or PowerPolling > 1207.5 and PosKM = 6 or PowerPolling > 1344 and PosKM = 7 or PowerPolling > 1470 and PosKM = 8 or PowerPolling > 1522.5 and PosKM = 9 or PowerPolling > 1680 and PosKM = 10 or PowerPolling > 1827 and PosKM = 11 or PowerPolling > 2058 and PosKM = 12 or PowerPolling > 2152.5 and PosKM = 13 or PowerPolling > 2257.5 and PosKM = 14 or PowerPolling > 2373 and PosKM = 15) for 60 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "(Uks > 0 and Uks < 150 and (Uks <76 or Uks > 120)) or (Uks > 150 and (Uks<19000 or Uks < 30000)) for 30 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and pr_OFF_P1 = 0 and pr_OFF_P2 = 0 and pr_OFF_P3 = 0 and pr_OFF_P4 = 0 and pr_OFF_P5 = 0 and pr_OFF_P7 = 0 and pr_OFF_P10 = 0 and pr_OFF_P11 = 0",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "(K7_1 = 1 and WORK1_VPP = 1) or (K7_2 = 1 and WORK2_VPP = 1) andThen A4 = 1 for 60 min",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "SpeedEngine > 300 and PowerPolling > 50 and PFuelFineFuelFilter < 1.3 and PFuelFineFuelFilter > 0.1 for 10 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    ("workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1) > 150", ConstantPhases[TestEvent, Double](0.0)),
+//    (
+//      "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen POilPumpOut > 0.1 for 100 sec < 50 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    (
+//      "SpeedEngine > 300 and TOilOutDiesel > 80 and (PosKM > 3 and PosKM < 15 and POilDieselOut < 1.3 or PosKM = 15 and POilDieselOut < 5.5) for 10 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    ("CurrentExcitationGenerator > 5400 for 5 min", ConstantPhases[TestEvent, Double](0.0)),
+//    (
+//      "SpeedEngine > 260 and (PowerPolling > 70 and PosKM = 1 or " +
+//      "PowerPolling > 85 and PosKM = 2 or PowerPolling > 170 and PosKM = 3 or " +
+//      "PowerPolling > 300 and PosKM = 4 or PowerPolling > 445 and PosKM = 5 or " +
+//      "PowerPolling > 575 and PosKM = 6 or PowerPolling > 720 and PosKM = 7 or " +
+//      "PowerPolling > 860 and PosKM = 8 or PowerPolling > 1140 and PosKM = 9 or " +
+//      "PowerPolling > 1000 and PosKM = 10 or PowerPolling > 1180 and PosKM = 11 or " +
+//      "PowerPolling > 1520 and PosKM = 12 or PowerPolling > 1680 and PosKM = 13 or " +
+//      "PowerPolling > 1785 and PosKM = 14) for 60 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
+//    ("K31 = 0 and KM126 =1 and KM131=0 for 3 sec", ConstantPhases[TestEvent, Double](0.0)),
+//    ("lag(SpeedEngine) >0  and SpeedEngine = 0 and Speed < 5 for 60 min", ConstantPhases[TestEvent, Double](0.0)),
+//    (
+//      "SpeedEngine > 260 and PowerPolling > 50 and " +
+//      "(PowerPolling < 33 and PosKM = 1 or " +
+//      "PowerPolling < 47 and PosKM = 2 or " +
+//      "PowerPolling < 114 and PosKM = 3 or " +
+//      "PowerPolling < 213 and PosKM = 4 or " +
+//      "PowerPolling < 351 and PosKM = 5 or " +
+//      "PowerPolling < 456 and PosKM = 6 or " +
+//      "PowerPolling < 570 and PosKM = 7 or " +
+//      "PowerPolling < 684 and PosKM = 8 or " +
+//      "PowerPolling < 712 and PosKM = 9 or " +
+//      "PowerPolling < 807 and PosKM = 10 or " +
+//      "PowerPolling < 940 and PosKM = 11 or " +
+//      "PowerPolling < 1225 and PosKM = 12 or " +
+//      "PowerPolling < 1368 and PosKM = 13 or " +
+//      "PowerPolling < 1548 and PosKM = 14 or " +
+//      "PowerPolling < 1757 and PosKM = 15) for 60 sec",
+//      ConstantPhases[TestEvent, Double](0.0)
+//    ),
     (
-      "SpeedEngine>300 for 60 sec andThen PAirMainRes > 7.8 and lag(CurrentCompressorMotor) < 10 and CurrentCompressorMotor >= 10 andThen CurrentCompressorMotor > 100 for 2 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "SpeedEngine > 260 and PowerPolling >= 50 and (PowerPolling > 136.5 and PosKM = 1 or PowerPolling > 273 and PosKM = 2 or PowerPolling > 462 and PosKM = 3 or PowerPolling > 724.5 and PosKM = 4 or PowerPolling > 997.5 and PosKM = 5 or PowerPolling > 1207.5 and PosKM = 6 or PowerPolling > 1344 and PosKM = 7 or PowerPolling > 1470 and PosKM = 8 or PowerPolling > 1522.5 and PosKM = 9 or PowerPolling > 1680 and PosKM = 10 or PowerPolling > 1827 and PosKM = 11 or PowerPolling > 2058 and PosKM = 12 or PowerPolling > 2152.5 and PosKM = 13 or PowerPolling > 2257.5 and PosKM = 14 or PowerPolling > 2373 and PosKM = 15) for 60 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "(Uks > 0 and Uks < 150 and (Uks <76 or Uks > 120)) or (Uks > 150 and (Uks<19000 or Uks < 30000)) for 30 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and pr_OFF_P1 = 0 and pr_OFF_P2 = 0 and pr_OFF_P3 = 0 and pr_OFF_P4 = 0 and pr_OFF_P5 = 0 and pr_OFF_P7 = 0 and pr_OFF_P10 = 0 and pr_OFF_P11 = 0",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "(K7_1 = 1 and WORK1_VPP = 1) or (K7_2 = 1 and WORK2_VPP = 1) andThen A4 = 1 for 60 min",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "SpeedEngine > 300 and PowerPolling > 50 and PFuelFineFuelFilter < 1.3 and PFuelFineFuelFilter > 0.1 for 10 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    ("workmodeRecupPull = 0 and uivoltage > 900 and i1 - lag(i1) > 150", ConstantPhases[TestEvent, Double](0.0)),
-    (
-      "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen POilPumpOut > 0.1 for 100 sec < 50 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    (
-      "SpeedEngine > 300 and TOilOutDiesel > 80 and (PosKM > 3 and PosKM < 15 and POilDieselOut < 1.3 or PosKM = 15 and POilDieselOut < 5.5) for 10 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    ("CurrentExcitationGenerator > 5400 for 5 min", ConstantPhases[TestEvent, Double](0.0)),
-    (
-      "SpeedEngine > 260 and (PowerPolling > 70 and PosKM = 1 or " +
-      "PowerPolling > 85 and PosKM = 2 or PowerPolling > 170 and PosKM = 3 or " +
-      "PowerPolling > 300 and PosKM = 4 or PowerPolling > 445 and PosKM = 5 or " +
-      "PowerPolling > 575 and PosKM = 6 or PowerPolling > 720 and PosKM = 7 or " +
-      "PowerPolling > 860 and PosKM = 8 or PowerPolling > 1140 and PosKM = 9 or " +
-      "PowerPolling > 1000 and PosKM = 10 or PowerPolling > 1180 and PosKM = 11 or " +
-      "PowerPolling > 1520 and PosKM = 12 or PowerPolling > 1680 and PosKM = 13 or " +
-      "PowerPolling > 1785 and PosKM = 14) for 60 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    ("K31 = 0 and KM126 =1 and KM131=0 for 3 sec", ConstantPhases[TestEvent, Double](0.0)),
-    ("lag(SpeedEngine) >0  and SpeedEngine = 0 and Speed < 5 for 60 min", ConstantPhases[TestEvent, Double](0.0)),
-    (
-      "SpeedEngine > 260 and PowerPolling > 50 and " +
-      "(PowerPolling < 33 and PosKM = 1 or " +
-      "PowerPolling < 47 and PosKM = 2 or " +
-      "PowerPolling < 114 and PosKM = 3 or " +
-      "PowerPolling < 213 and PosKM = 4 or " +
-      "PowerPolling < 351 and PosKM = 5 or " +
-      "PowerPolling < 456 and PosKM = 6 or " +
-      "PowerPolling < 570 and PosKM = 7 or " +
-      "PowerPolling < 684 and PosKM = 8 or " +
-      "PowerPolling < 712 and PosKM = 9 or " +
-      "PowerPolling < 807 and PosKM = 10 or " +
-      "PowerPolling < 940 and PosKM = 11 or " +
-      "PowerPolling < 1225 and PosKM = 12 or " +
-      "PowerPolling < 1368 and PosKM = 13 or " +
-      "PowerPolling < 1548 and PosKM = 14 or " +
-      "PowerPolling < 1757 and PosKM = 15) for 60 sec",
-      ConstantPhases[TestEvent, Double](0.0)
-    ),
-    ("\"Section\" = 0", ConstantPhases[TestEvent, Double](0.0))
+      "\"Section\" = 0",
+      ToSegments(Assert(EqualParser('Section.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0))))
+    )
   )
 
   "Parser" should "parse rule" in {
