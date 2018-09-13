@@ -287,8 +287,8 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     val event = TestEvent(0, Instant.now)
     processedResult shouldBe a[Success[_]]
     processedResult.get shouldBe a[Pattern[TestEvent, _, _]]
-    println(processedResult.get.format(event))
-    println(result.format(event))
+    //println(processedResult.get.format(event))
+    //println(result.format(event))
     processedResult.get.format(event) shouldBe result.format(event)
   }
 }
