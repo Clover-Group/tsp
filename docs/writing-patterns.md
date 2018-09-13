@@ -129,6 +129,8 @@ Examples:
 Column1 = 0 for 20 min andThen Column1 > 0 for 3 sec
 ```
 
+
+
 #### Functions
 TODO
 

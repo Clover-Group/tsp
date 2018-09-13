@@ -87,6 +87,18 @@ class SyntaxParser[Event](val input: ParserInput)(
     }
   }
 
+  protected def wrapPhaseIntoPredicatePusher[InnerState, AccumOut, Out](
+    phase: AccumPhase[Event, InnerState, AccumOut, Out],
+    condition: AccumState[AccumOut] => Boolean,
+    hasUpperBound: Boolean
+  ): AggregatorPhases[Event, (InnerState, AccumState[AccumOut]), Out] = {
+    if (hasUpperBound) {
+      PushFalseToFailure(phase, condition)
+    } else {
+      PushTrueToSuccess(phase, condition)
+    }
+  }
+
   // format: off
 
   def nonFatalTrileanFactor: Rule1[AnyPhaseParser] = rule {
