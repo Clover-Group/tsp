@@ -55,9 +55,7 @@ object PhaseBuilder {
       case bnp: BinaryNumericParser[Event, _, _, Double] @unchecked =>
         bnp.copy(
           left = postProcess(bnp.left, maxPhase).asInstanceOf[Pattern[Event, _, Double]],
-          right = postProcess(bnp.right, maxPhase).asInstanceOf[Pattern[Event, _, Double]],
-          operation = bnp.operation,
-          operationSign = bnp.operationSign
+          right = postProcess(bnp.right, maxPhase).asInstanceOf[Pattern[Event, _, Double]]
         )
       case ts: ToSegments[Event, _, _] => ts.copy(innerPhase = postProcess(ts.innerPhase, maxPhase))
       case mp: MapParser[Event, _, _, _] =>
