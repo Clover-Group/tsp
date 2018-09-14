@@ -14,6 +14,8 @@ import ru.itclover.tsp.phases.TimePhases.Timed
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
 
+import scala.math.Numeric.DoubleIsFractional
+
 object PhaseBuilder {
 
   def build[Event](input: String, formatter: ErrorFormatter = new ErrorFormatter())(
@@ -40,29 +42,28 @@ object PhaseBuilder {
   ): Pattern[Event, _, _] = {
     parser match {
       case ep: EitherParser[Event, _, _, _, _] =>
-        EitherParser(postProcess(ep.leftParser, maxPhase), postProcess(ep.rightParser, maxPhase))
+        ep.copy(leftParser = postProcess(ep.leftParser, maxPhase), rightParser = postProcess(ep.rightParser, maxPhase))
       case atp: AndThenParser[Event, _, _, _, _] =>
-        AndThenParser(postProcess(atp.first, maxPhase), postProcess(atp.second, maxPhase))
+        atp.copy(first = postProcess(atp.first, maxPhase), second = postProcess(atp.second, maxPhase))
       case tp: TogetherParser[Event, _, _, _, _] =>
-        TogetherParser(postProcess(tp.leftParser, maxPhase), postProcess(tp.rightParser, maxPhase))
+        tp.copy(leftParser = postProcess(tp.leftParser, maxPhase), rightParser = postProcess(tp.rightParser, maxPhase))
       case cp: ComparingParser[Event, _, _, _] =>
-        new ComparingParser[Event, cp.State1, cp.State2, cp.ExpressionType](
-          postProcess(cp.leftParser, maxPhase).asInstanceOf[Pattern[Event, cp.State1, cp.ExpressionType]],
-          postProcess(cp.rightParser, maxPhase).asInstanceOf[Pattern[Event, cp.State2, cp.ExpressionType]]
-        )(cp.comparingFunction, cp.comparingFunctionName) {}
+        cp.copy(
+          left=postProcess(cp.left, maxPhase),
+          right=postProcess(cp.right, maxPhase)
+        )(cp.comparingFunction.asInstanceOf[(Any, Any) => Boolean], cp.comparingFunctionName)
       case bnp: BinaryNumericParser[Event, _, _, Double] @unchecked =>
-        BinaryNumericParser[Event, bnp.State1, bnp.State2, Double](
-          postProcess(bnp.left, maxPhase).asInstanceOf[Pattern[Event, bnp.State1, Double]],
-          postProcess(bnp.right, maxPhase).asInstanceOf[Pattern[Event, bnp.State2, Double]],
-          bnp.operation,
-          bnp.operationSign
+        bnp.copy(
+          left = postProcess(bnp.left, maxPhase).asInstanceOf[Pattern[Event, _, Double]],
+          right = postProcess(bnp.right, maxPhase).asInstanceOf[Pattern[Event, _, Double]],
+          operation = bnp.operation,
+          operationSign = bnp.operationSign
         )
-      case ts: ToSegments[Event, _, _] => ToSegments(postProcess(ts.innerPhase, maxPhase))
+      case ts: ToSegments[Event, _, _] => ts.copy(innerPhase = postProcess(ts.innerPhase, maxPhase))
       case mp: MapParser[Event, _, _, _] =>
-        MapParser[Event, Any, mp.InType, mp.OutType](
-          postProcess(mp.phaseParser, maxPhase).asInstanceOf[Pattern[Event, Any, mp.InType]]
-        )(mp.function.asInstanceOf[mp.InType => mp.OutType])
-      case a: Assert[Event, _] => Assert(postProcess(a.predicate, maxPhase).asInstanceOf[BooleanPhaseParser[Event, _]])
+        mp.copy(phaseParser = postProcess(mp.phaseParser, maxPhase))(mp.function.asInstanceOf[Any => _])
+      case a: Assert[Event, _] =>
+        a.copy(predicate = postProcess(a.predicate, maxPhase).asInstanceOf[BooleanPhaseParser[Event, _]])
       case aph: AccumPhase[Event, _, _, _] =>
         val withProcessedInners = new AccumPhase[Event, aph.Inner, aph.AccumOutput, aph.Output](
           postProcess(aph.innerPhase, maxPhase, asContinuous = true)
@@ -92,7 +93,7 @@ object PhaseBuilder {
       case tp: TogetherParser[Event, _, _, _, _] =>
         Math.max(maxPhaseWindowMs(tp.leftParser), maxPhaseWindowMs(tp.rightParser))
       case cp: ComparingParser[Event, _, _, _] =>
-        Math.max(maxPhaseWindowMs(cp.leftParser), maxPhaseWindowMs(cp.rightParser))
+        Math.max(maxPhaseWindowMs(cp.left), maxPhaseWindowMs(cp.right))
       case bnp: BinaryNumericParser[Event, _, _, _] =>
         Math.max(maxPhaseWindowMs(bnp.left), maxPhaseWindowMs(bnp.right))
 
@@ -119,7 +120,7 @@ object PhaseBuilder {
       case ep: EitherParser[Event, _, _, _, _]   => findFields(ep.leftParser) ++ findFields(ep.rightParser)
       case atp: AndThenParser[Event, _, _, _, _] => findFields(atp.first) ++ findFields(atp.second)
       case tp: TogetherParser[Event, _, _, _, _] => findFields(tp.leftParser) ++ findFields(tp.rightParser)
-      case cp: ComparingParser[Event, _, _, _]   => findFields(cp.leftParser) ++ findFields(cp.rightParser)
+      case cp: ComparingParser[Event, _, _, _]   => findFields(cp.left) ++ findFields(cp.right)
       case r: Reduce[Event, _] =>
         findFields(r.firstPhase) ++ r.otherPhases.foldLeft(List[String]())(
           (r: List[String], x: Pattern[Event, _, _]) => r ++ findFields(x)

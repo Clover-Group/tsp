@@ -13,7 +13,7 @@ import ru.itclover.tsp.aggregators.accums.PredicatePushers.{PushFalseToFailure, 
 import ru.itclover.tsp.core.Pattern.Functions
 import ru.itclover.tsp.core.{Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.BooleanPhases.{Assert, EqualParser}
+import ru.itclover.tsp.phases.BooleanPhases.{Assert, ComparingParser}
 import ru.itclover.tsp.phases.ConstantPhases.{ConstantFunctions, FailurePattern, OneRowPattern}
 import ru.itclover.tsp.phases.{ConstantPhases, NoState}
 import ru.itclover.tsp.phases.MonadPhases.FlatMapParser
@@ -26,6 +26,9 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   val validRule = "(x > 1) for 5 seconds andthen (y < 2)"
   val invalidRule = "1 = invalid rule"
   val multiAvgRule = "avg(x, 5 sec) + avg(x, 30 sec) + avg(x, 60 sec) > 300"
+
+  def equalParser[State1, State2, T](left: Pattern[TestEvent, State1, T], right: Pattern[TestEvent, State2, T]
+  ): ComparingParser[TestEvent, State1, State2, T] = ComparingParser(left, right)((a, b) => a equals b, "==")
 
   implicit val extractTime: TimeExtractor[TestEvent] = new TimeExtractor[TestEvent] {
     override def apply(v1: TestEvent) = v1.time
@@ -59,7 +62,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       "BreakCylinderPressure = 1 and SpeedEngine > 300 and PosKM > 0 and SpeedEngine > 340 for 3 sec",
       ToSegments(
         Assert(
-          EqualParser('BreakCylinderPressure.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1.0))
+          equalParser('BreakCylinderPressure.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1.0))
           and 'SpeedEngine.as[Double](numberExtractor) > ConstantPhases(300.0)
           and 'PosKM.as[Double](numberExtractor) > ConstantPhases(0.0)
           and 'SpeedEngine.as[Double](numberExtractor) > ConstantPhases(340.0)
@@ -70,7 +73,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       "SensorBrakeRelease = 1 and SpeedEngine > 260 and PosKM > 3 and PosKM < 16 and Speed > 2 for 3 sec",
       ToSegments(
         Assert(
-          EqualParser('SensorBrakeRelease.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1.0))
+          equalParser('SensorBrakeRelease.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1.0))
           and 'SpeedEngine.as[Double](numberExtractor) > ConstantPhases(260.0)
           and 'PosKM.as[Double](numberExtractor) > ConstantPhases(3.0)
           and 'PosKM.as[Double](numberExtractor) < ConstantPhases(16.0)
@@ -81,7 +84,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     (
       "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for 100 sec > 50 sec) andThen SpeedEngine > 0",
       ToSegments(
-        Assert(EqualParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
+        Assert(equalParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
         PushTrueToSuccess(
@@ -98,7 +101,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorOilPump = 1 for 7 min < 80 sec)) andThen SpeedEngine > 0",
       ToSegments(
         Assert(
-          EqualParser(Functions.lag('SpeedEngine.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0.0))
+          equalParser(Functions.lag('SpeedEngine.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0.0))
           and 'TOilInDiesel.as[Double](numberExtractor) < ConstantPhases(45.0)
           and 'TOilInDiesel.as[Double](numberExtractor) > ConstantPhases(8.0)
         )
@@ -106,7 +109,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         PushFalseToFailure(
           Functions
             .truthMillisCount(
-              EqualParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
+              equalParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
               Window(420000)
             ),
           (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount < 80000
@@ -141,12 +144,12 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     (
       "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
       ToSegments(
-        Assert(EqualParser('Current_V.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0)))
+        Assert(equalParser('Current_V.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0)))
         andThen Skip(
           1,
           Assert(
-            EqualParser(Functions.lag('I_OP.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0))
-            and EqualParser('I_OP.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
+            equalParser(Functions.lag('I_OP.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](0))
+            and equalParser('I_OP.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
             and 'Current_V.as[Double](numberExtractor) < ConstantPhases(15)
           )
         )
@@ -172,12 +175,12 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and U_Br = 1 and pr_OFF_P7 = 1 and SA7 = 0 and Iheat < 300 and lag(Iheat) < 300",
       ToSegments(
         Assert(
-          EqualParser('K31.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
-          and EqualParser(Functions.lag('QF1.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](1))
-          and EqualParser('QF1.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
-          and EqualParser('U_Br.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
-          and EqualParser('pr_OFF_P7.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
-          and EqualParser('SA7.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
+          equalParser('K31.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
+          and equalParser(Functions.lag('QF1.as[Double](numberExtractor)), ConstantPhases[TestEvent, Double](1))
+          and equalParser('QF1.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
+          and equalParser('U_Br.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
+          and equalParser('pr_OFF_P7.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
+          and equalParser('SA7.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0))
           and 'Iheat.as[Double](numberExtractor) < ConstantPhases(300)
           and Functions.lag('Iheat.as[Double](numberExtractor)) < ConstantPhases(300)
         )
@@ -189,8 +192,8 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         Assert(
           'SpeedEngine.as[Double](numberExtractor) > ConstantPhases(300.0)
           and (
-            EqualParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
-            or EqualParser('ContactorFuelPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
+            equalParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
+            or equalParser('ContactorFuelPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1))
           )
         ).timed(Window(5000), Window(5000))
       )
@@ -263,7 +266,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
 //    ),
     (
       "\"Section\" = 0",
-      ToSegments(Assert(EqualParser('Section.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0))))
+      ToSegments(Assert(equalParser('Section.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0))))
     )
   )
 

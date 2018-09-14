@@ -87,18 +87,6 @@ class SyntaxParser[Event](val input: ParserInput)(
     }
   }
 
-  protected def wrapPhaseIntoPredicatePusher[InnerState, AccumOut, Out](
-    phase: AccumPhase[Event, InnerState, AccumOut, Out],
-    condition: AccumState[AccumOut] => Boolean,
-    hasUpperBound: Boolean
-  ): AggregatorPhases[Event, (InnerState, AccumState[AccumOut]), Out] = {
-    if (hasUpperBound) {
-      PushFalseToFailure(phase, condition)
-    } else {
-      PushTrueToSuccess(phase, condition)
-    }
-  }
-
   // format: off
 
   def nonFatalTrileanFactor: Rule1[AnyPhaseParser] = rule {
@@ -112,16 +100,16 @@ class SyntaxParser[Event](val input: ParserInput)(
   def booleanExpr: Rule1[AnyBooleanPhaseParser] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => OrParser(e, f).asInstanceOf[AnyBooleanPhaseParser])
+      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a | b, "or").asInstanceOf[AnyBooleanPhaseParser])
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => XorParser(e, f).asInstanceOf[AnyBooleanPhaseParser])
+        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a ^ b, "xor").asInstanceOf[AnyBooleanPhaseParser])
     )
   }
 
   def booleanTerm: Rule1[AnyBooleanPhaseParser] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ ws ~ booleanFactor ~>
-      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => AndParser(e, f).asInstanceOf[AnyBooleanPhaseParser])
+      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a & b, "and").asInstanceOf[AnyBooleanPhaseParser])
     )
   }
 
@@ -135,33 +123,33 @@ class SyntaxParser[Event](val input: ParserInput)(
     (
       expr ~ "<" ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 < d2, "<") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 < d2, "<")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 <= d2, "<=") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 <= d2, "<=")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
       | expr ~ ">" ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 > d2, ">") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 > d2, ">")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 >= d2, ">") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 >= d2, ">")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
       | expr ~ "=" ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 == d2, "==") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 == d2, "==")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
         (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
-          new ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 != d2, "!=") {}
+          ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 != d2, "!=")
             .asInstanceOf[AnyBooleanPhaseParser]
       )
     )
@@ -192,13 +180,13 @@ class SyntaxParser[Event](val input: ParserInput)(
         (
           e: AnyNumericPhaseParser,
           f: AnyNumericPhaseParser
-        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ * _, "*").asInstanceOf[AnyNumericPhaseParser]
+        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ * _, "*").asInstanceOf[AnyNumericPhaseParser]
       )
       | '/' ~ ws ~ factor ~> (
         (
           e: AnyNumericPhaseParser,
           f: AnyNumericPhaseParser
-        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ / _, "/").asInstanceOf[AnyNumericPhaseParser]
+        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ / _, "/").asInstanceOf[AnyNumericPhaseParser]
       )
     )
   }
