@@ -4,7 +4,7 @@
 name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 
-version in ThisBuild := IO.read(file("./VERSION"))
+//version in ThisBuild := IO.read(file("./VERSION"))
 scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
@@ -47,6 +47,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
 
 
 lazy val root = (project in file("."))
+  .enablePlugins(GitVersioning, JavaAppPackaging)
   .settings(commonSettings)
   .aggregate(core, config, http, flinkConnector, spark)
 
