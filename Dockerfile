@@ -9,7 +9,8 @@ RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.
 WORKDIR /code
 
 RUN chmod +x /code/compile-jar.sh
-RUN chmod +x /code/start-jar.sh
+RUN chmod +x /code/start-jar-local.sh
+RUN chmod +x /code/start-jar-cluster.sh
 RUN chmod +x /docker-entrypoint.sh
 
 RUN /code/compile-jar.sh

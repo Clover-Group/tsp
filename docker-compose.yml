@@ -3,6 +3,6 @@ services:
   streammachine:
     restart: always
     image: registry.itclover.ru/clover/streammachine:latest
-    command: start
+    command: start-local
     ports:
       - "8080:8080"

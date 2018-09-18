@@ -1,11 +1,11 @@
 package ru.itclover.spark
 
-import ru.itclover.streammachine.core.PhaseParser.Functions._
-import ru.itclover.streammachine.core.PhaseParser._
-import ru.itclover.streammachine.core.Time
-import ru.itclover.streammachine.core.Time.{TimeExtractor, _}
-import ru.itclover.streammachine.phases.BooleanPhases.Assert
-import ru.itclover.streammachine.phases.NumericPhases.{SymbolExtractor, SymbolNumberExtractor, _}
+import ru.itclover.tsp.core.Pattern.Functions._
+import ru.itclover.tsp.core.Pattern._
+import ru.itclover.tsp.core.Time
+import ru.itclover.tsp.core.Time.{TimeExtractor, _}
+import ru.itclover.tsp.phases.BooleanPhases.Assert
+import ru.itclover.tsp.phases.NumericPhases.{SymbolExtractor, SymbolNumberExtractor, _}
 import scala.concurrent.duration._
 
 
