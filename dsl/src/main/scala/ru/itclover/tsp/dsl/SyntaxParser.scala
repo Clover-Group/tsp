@@ -6,10 +6,11 @@ import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
 import ru.itclover.tsp.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.tsp.core.{Pattern, Time, Window}
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
-import ru.itclover.tsp.phases.BooleanPhases.{AndParser, BooleanPhaseParser, NotParser, OrParser, XorParser}
+import ru.itclover.tsp.phases.BooleanPhases.{BooleanPhaseParser, NotParser}
 import ru.itclover.tsp.phases.ConstantPhases.FailurePattern
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.phases.BooleanPhases.{Assert, ComparingParser}
+import ru.itclover.tsp.phases.ConstantPhases
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.NumericPhases._
 

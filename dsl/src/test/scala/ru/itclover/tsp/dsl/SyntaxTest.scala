@@ -7,9 +7,10 @@ import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.TestApp.TestEvent
 import ru.itclover.tsp.aggregators.AggregatorPhases.{Skip, ToSegments}
-import ru.itclover.tsp.aggregators.accums.AccumState
+import ru.itclover.tsp.aggregators.accums
+import ru.itclover.tsp.aggregators.accums.{AccumState, PushDownAccumInterval}
 import ru.itclover.tsp.aggregators.accums.OneTimeStates.TruthAccumState
-import ru.itclover.tsp.aggregators.accums.PredicatePushers.{PushFalseToFailure, PushTrueToSuccess}
+import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.Functions
 import ru.itclover.tsp.core.{Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
@@ -87,10 +88,10 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         Assert(equalParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
-        PushTrueToSuccess(
+        PushDownAccumInterval(
           Functions
             .truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000)),
-          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount > 50000
+          TimeInterval(Window(0),Window(50000))
         ).flatMap(
           msCount => ConstantPhases(msCount > 50000)
         )
@@ -106,13 +107,13 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
           and 'TOilInDiesel.as[Double](numberExtractor) > ConstantPhases(8.0)
         )
         togetherWith
-        PushFalseToFailure(
+          PushDownAccumInterval(
           Functions
             .truthMillisCount(
               equalParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
               Window(420000)
             ),
-          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount < 80000
+            TimeInterval(Window(0), Window(80000))
         ).flatMap(
             msCount => ConstantPhases(msCount < 80000)
           )
@@ -158,13 +159,13 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     (
       "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
       ToSegments(
-        PushFalseToFailure(
+        accums.PushDownAccumInterval(
           Functions
             .truthMillisCount(
               'PosKM.as[Double](numberExtractor) > ConstantPhases[TestEvent, Double](4),
               Window(7200000)
             ),
-          (s: AccumState[Boolean]) => s.asInstanceOf[TruthAccumState].truthMillisCount < 60000
+          TimeInterval(Window(0), Window(60000))
         ).flatMap(
             msCount => ConstantPhases(msCount < 60000)
           )
