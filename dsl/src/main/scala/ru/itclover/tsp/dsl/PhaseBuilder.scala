@@ -1,7 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import org.parboiled2.{ErrorFormatter, ParseError}
-import ru.itclover.tsp.aggregators.AggregatorPhases.{Aligned, ToSegments}
+import ru.itclover.tsp.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.core.{Pattern, Window}
@@ -128,6 +128,8 @@ object PhaseBuilder {
       case p: PushDownAccumInterval[Event, _, _, _] => findFields(p.accum.innerPhase)
       case ts: ToSegments[Event, _, _]              => findFields(ts.innerPhase)
       case mp: MapParser[Event, _, _, _]            => findFields(mp.phaseParser)
+      case fmp: FlatMapParser[Event, _, _, _, _]    => findFields(fmp.phase)
+      case s: Skip[Event, _, _]                     => findFields(s.phase)
       case a: Assert[Event, _]                      => findFields(a.predicate)
       case t: Timed[Event, _, _]                    => findFields(t.inner)
       case orpp: OneRowPattern[Event, _]            => if (orpp.fieldName.isDefined) List(orpp.fieldName.get.tail) else List()

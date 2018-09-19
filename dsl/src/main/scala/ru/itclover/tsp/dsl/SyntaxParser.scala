@@ -53,7 +53,12 @@ class SyntaxParser[Event](val input: ParserInput)(
     | trileanFactor)
   }
 
-  protected def buildForExpr(phase: AnyPhaseParser, exactly: Option[Int], w: Window, range: Option[Any]) = {
+  protected def buildForExpr(
+    phase: AnyPhaseParser,
+    exactly: Option[Int],
+    w: Window,
+    range: Option[Any]
+  ): AnyPhaseParser = {
     range match {
       case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[Long]] => {
         val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)

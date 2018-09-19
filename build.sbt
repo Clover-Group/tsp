@@ -112,3 +112,59 @@ lazy val integrationPerformance = project.in(file("integration/performance"))
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(integrationCorrectness)
+
+// Git-specific settings
+import sbtrelease.Version.Bump
+import sbtrelease.{versionFormatError, Version => ReleaseVersion}
+
+git.useGitDescribe := true
+git.baseVersion := IO.read(file("./VERSION")) // if no tags are present
+val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
+
+def nextVersion(v: String): String = Bump.Next.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+
+git.gitTagToVersionNumber := {
+  case VersionRegex(v,"") => Some(v)
+  case VersionRegex(v,"SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
+  case VersionRegex(v,s) => Some(s"${nextVersion(v)}-$s")
+  case _ => None
+}
+
+// Release specific settings
+import ReleaseTransformations.{setReleaseVersion => _, _}
+import sbtrelease._
+
+def setVersion(selectVersion: Versions => String): ReleaseStep =  { st: State =>
+  val vs = st.get(ReleaseKeys.versions)
+    .getOrElse(sys.error("No versions are set! Was this release part executed before inquireVersions?"))
+  val selected = selectVersion(vs)
+
+  st.log.info("Setting version to '%s'." format selected)
+  val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
+  val versionStr = "%s" format selected
+  val file = Project.extract(st).get(releaseVersionFile)
+  IO.writeLines(file, Seq(versionStr))
+
+  reapply(Seq(
+    if (useGlobal) version in ThisBuild := selected
+    else version := selected
+  ), st)
+}
+
+lazy val setReleaseVersion: ReleaseStep = setVersion(_._1)
+
+releaseVersionFile := file("./VERSION")
+releaseUseGlobalVersion := false
+
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,              // : ReleaseStep
+  inquireVersions,                        // : ReleaseStep
+  runClean,                               // : ReleaseStep
+  runTest,                                // : ReleaseStep
+  setReleaseVersion,                      // : ReleaseStep (custom)
+  commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+  tagRelease,                             // : ReleaseStep
+  // TODO: Configure publishing on GitHub (if needed)
+  // publishArtifacts,                    // : ReleaseStep, checks whether `publishTo` is properly set up
+  pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+)
