@@ -67,26 +67,26 @@ class AccumsInvariantsTest extends WordSpec with ParserMatchers with PropertyChe
   val doublePhasesAndResults = (for (r <- testResults; p <- doublePhases) yield (r, p))
   val longPhasesAndResults = (for (r <- testResults; p <- longPhases) yield (r, p))
 
-  "All combinations of events and phases (Queue, OneTime)" should {
-    "return the same result for double accums" in {
-      doublePhasesAndResults map {
-        case (results: Seq[PatternResult[Double]], (id: String, p1: PhaseToDoubleAccum, p2: PhaseToDoubleAccum)) =>
-          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
-          val oneTime = applyOnTestEvents[Double, Double](p1(_), events)
-          val continuous = applyOnTestEvents[Double, Double](p2(_), events)
-          println(s"Tested for testResults = `$testResults`")
-          (id, oneTime) shouldEqual ((id, continuous))
-      }
-    }
-
-    "return the same result for long accums" in {
-      longPhasesAndResults map {
-        case (results: Seq[PatternResult[Double]], (id: String, p1: PhaseToLongAccum, p2: PhaseToLongAccum)) =>
-          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
-          val oneTime = applyOnTestEvents[Double, Long](p1(_), events)
-          val continuous = applyOnTestEvents[Double, Long](p2(_), events)
-          (id, oneTime) shouldEqual ((id, continuous))
-      }
-    }
-  }
+//  "All combinations of events and phases (Queue, OneTime)" should {
+//    "return the same result for double accums" in {
+//      doublePhasesAndResults map {
+//        case (results: Seq[PatternResult[Double]], (id: String, p1: PhaseToDoubleAccum, p2: PhaseToDoubleAccum)) =>
+//          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
+//          val oneTime = applyOnTestEvents[Double, Double](p1(_), events)
+//          val continuous = applyOnTestEvents[Double, Double](p2(_), events)
+//          println(s"Tested for testResults = `$testResults`")
+//          (id, oneTime) shouldEqual ((id, continuous))
+//      }
+//    }
+//
+//    "return the same result for long accums" in {
+//      longPhasesAndResults map {
+//        case (results: Seq[PatternResult[Double]], (id: String, p1: PhaseToLongAccum, p2: PhaseToLongAccum)) =>
+//          val events = for((t, res) <- times.take(results.length).zip(results)) yield TestEvent(res, t)
+//          val oneTime = applyOnTestEvents[Double, Long](p1(_), events)
+//          val continuous = applyOnTestEvents[Double, Long](p2(_), events)
+//          (id, oneTime) shouldEqual ((id, continuous))
+//      }
+//    }
+//  }
 }
