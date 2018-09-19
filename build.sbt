@@ -47,9 +47,10 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
 
 
 lazy val root = (project in file("."))
-  .enablePlugins(GitVersioning, JavaAppPackaging)
+  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
-  .aggregate(core, config, http, flinkConnector, spark)
+  .aggregate(core, config, http, flinkConnector, spark, dsl)
+  .dependsOn(core, config, http, flinkConnector, spark, dsl)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
