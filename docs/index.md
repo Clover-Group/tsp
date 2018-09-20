@@ -2,8 +2,34 @@ Documentation
 =============
 
 ### Overview
-__TSP__ (Time Series Patterns) - the service and library for searching
+__TSP__ (Time Series Patterns) - analytical backend for searching
 patterns in high-volume time-series data.
+
+
+__Key Properties:__
+- Agile - flexible DSL for expressing unique patterns
+- Fast - optimized stream-based processing engine on top of Apache Flink
+
+
+__Example patterns:__
+- Invalid use of engine:
+Description: `5 seconds average speed greater than 5000 for 10 min then maximum oil pump for 20 sec is bigger than zero`
+Tsp DSL: `avg(engineSpeed, 5 sec) > 5000 for 10 min andThen max(oilPump, 20 sec) > 0`
+Sql?
+
+- Sessionization by user activity:
+Description: `Time between any user actions is less than 10 min`
+Tsp DSL: `anyOf(click, move, ...) for 10 minutes > 0 times`
+
+- Behavioral analytics:
+Description: `User spent too little time on advertisement page`
+Tsp DSL: `activePage = "AdPage" for lessThen 0 sec`
+
+- [More about writing patterns](./writing-patterns.md)
+
+
+__Deployment options:__
+It can be used as the service and library:
 - As a service it:
     - Takes as input: source and sink type in URL (JDBC or InfluxDB
     for now), they configuration and patterns to search in the body
@@ -14,14 +40,9 @@ event and some previous state into some result and new state
 (see [architectural overview](./architectural-overview.md)).
 
 
-__Key Properties:__
-- Agile - flexible DSL for expressing unique patterns
-- Fast - optimized stream-based processing engine on top of Apache Flink
-
-
 ### Guides
 - [Architectural overview](./architectural-overview.md)
-- [Writing patterns](./writing-patterns.md) TODO
+- [Writing patterns](./writing-patterns.md)
 - [Debugging guidelines](./debugging-guidelines.md)
 - [Installation](./installation.md)
 - [Contribution guide](./contribution-guide.md)
