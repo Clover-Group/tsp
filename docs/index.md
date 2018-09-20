@@ -12,23 +12,18 @@ __Key Properties:__
 
 
 __Example patterns:__
-- Invalid use of engine:
-    - Description: `5 seconds average engine speed greater than 5000 for 10 min then maximum oil pump for 20 sec is bigger than zero`
-    - Tsp DSL: 
-    ```
-    avg(engineSpeed, 5 sec) > 5000 for 10 min 
-        andThen 
-    max(oilPump, 20 sec) > 0
-    ```
-    - Sql?
+- Invalid use of engine - "5 seconds average engine speed greater than 5000 for 10 min then maximum oil pump for 20 sec is bigger than zero":
+```
+avg(engineSpeed, 5 sec) > 5000 for 10 min 
+    andThen 
+max(oilPump, 20 sec) > 0
+```
 
-- Sessionization by user activity:
-    - Description: `Time between any user actions is less than 10 min`
-    - Tsp DSL: `anyOf(click, move, ...) for 10 minutes > 0 times`
+- Sessionization by user activity - "Time between any user actions is less than 10 min":
+<br>`anyOf(click, move, ...) for 10 minutes > 0 times`
 
-- Behavioral analytics:
-    - Description: `User spent too little time on advertisement page`
-    - Tsp DSL: `activePage = "AdPage" for lessThen 0 sec`
+- Behavioral analytics - "User spent too little time on advertisement page":
+<br>`activePage = "AdPage" for lessThen 0 sec`
 
 - [More about writing patterns](./writing-patterns.md)
 
