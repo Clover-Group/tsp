@@ -168,3 +168,7 @@ releaseProcess := Seq[ReleaseStep](
   // publishArtifacts,                    // : ReleaseStep, checks whether `publishTo` is properly set up
   pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
+
+ghreleaseAssets := Seq(file(s"./mainRunner/target/TSP_v${version.value}.jar"))
+
+githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
