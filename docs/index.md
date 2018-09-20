@@ -13,7 +13,7 @@ __Key Properties:__
 
 __Example patterns:__
 - Invalid use of engine:
-    - Description: `5 seconds average speed greater than 5000 for 10 min then maximum oil pump for 20 sec is bigger than zero`
+    - Description: `5 seconds average engine speed greater than 5000 for 10 min then maximum oil pump for 20 sec is bigger than zero`
     - Tsp DSL: 
     ```
     avg(engineSpeed, 5 sec) > 5000 for 10 min 
@@ -34,7 +34,7 @@ __Example patterns:__
 
 
 __Deployment options:__
-It can be used as the service and library:
+<br>It can be used as the service and library:
 - As a service it:
     - Takes as input: source and sink type in URL (JDBC or InfluxDB
     for now), they configuration and patterns to search in the body
