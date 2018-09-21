@@ -34,7 +34,8 @@ __Deployment options:__
     - Takes as input: source and sink type in URL (JDBC or InfluxDB
     for now), they configuration and patterns to search in the body
     ([endpoints details](./api/patterns.md))
-    - Write events in sink as they're found
+    - Write incidents (occurrences of the pattern) in the sink as they're found, with neighbours united together
+    - Provide monitoring [end-points](./api/monitoring.md)
 - As a library it provides functions for transforming each input
 event and some previous state into some result and new state
 (see [architectural overview](./architectural-overview.md)).
