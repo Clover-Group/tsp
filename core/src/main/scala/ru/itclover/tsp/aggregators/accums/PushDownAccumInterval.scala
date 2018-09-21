@@ -21,7 +21,7 @@ case class PushDownAccumInterval[Event, InnerState, AccumOut, Out](
           case GreaterThanEnd                => Failure(s"Accum value `$accumOut` went outside of interval `$interval`.")
           case Inside if interval.isInfinite => Success(accumOut)
 
-          case LessThanBegin => newResult
+          case Inside | LessThanBegin => newResult
         }
       case _ => newResult // result, other than Stay - return as it is
     }
