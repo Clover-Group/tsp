@@ -8,6 +8,7 @@ RUN curl https://bintray.com/sbt/rpm/rpm | tee /etc/yum.repos.d/bintray-sbt-rpm.
 
 WORKDIR /code
 
+RUN yum install git -y
 RUN chmod +x /code/compile-jar.sh
 RUN chmod +x /code/start-jar-local.sh
 RUN chmod +x /code/start-jar-cluster.sh
