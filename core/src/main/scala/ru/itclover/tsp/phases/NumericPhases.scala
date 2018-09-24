@@ -8,7 +8,7 @@ import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
-
+import shapeless.HList
 
 object NumericPhases {
 
@@ -29,19 +29,33 @@ object NumericPhases {
       BinaryNumericParser(this.parser, right, (a: T, b: T) => ev.div(a, b), "div")
   }
 
-
   trait NumericFunctions {
+
     def abs[Event, State](numeric: NumericPhaseParser[Event, State])(implicit timeExtractor: TimeExtractor[Event]) =
       AbsPhase(numeric) // TODO map(_.abs) with format in Writer monad
-  }
 
+    def call1[Event, State](
+      function: Double => Double,
+      functionName: String,
+      phase1: NumericPhaseParser[Event, State]
+    )(
+      implicit timeExtractor: TimeExtractor[Event]
+    ) =
+      Function1Phase(function, functionName, phase1)
+
+    def call2[Event, State1, State2](
+      function: (Double, Double) => Double,
+      functionName: String,
+      phase1: NumericPhaseParser[Event, State1],
+      phase2: NumericPhaseParser[Event, State2]
+    )(implicit timeExtractor: TimeExtractor[Event]) =
+      Function2Phase(function, functionName, phase1, phase2)
+  }
 
   case class Reduce[Event, State](reducer: (Double, Double) => Double)(
     val firstPhase: NumericPhaseParser[Event, State],
     val otherPhases: NumericPhaseParser[Event, State]*
-  )
-    extends NumericPhaseParser[Event, Seq[State]]
-  {
+  ) extends NumericPhaseParser[Event, Seq[State]] {
     override def initialState: Seq[State] = firstPhase.initialState +: otherPhases.map(_.initialState)
 
     override def apply(event: Event, states: Seq[State]): (PatternResult[Double], Seq[State]) = {
@@ -58,30 +72,37 @@ object NumericPhases {
 
     override def format(event: Event, states: Seq[State]) = {
       val phasesWithState = (firstPhase, states.head) +: otherPhases.zip(states.tail)
-      val numericsResults = (phasesWithState.map {
-        case (phase, state) => phase.format(event, state)
-      }).mkString(", ")
+      val numericsResults = (phasesWithState
+        .map {
+          case (phase, state) => phase.format(event, state)
+        })
+        .mkString(", ")
       apply(event, states)._1 match {
         case Success(result) => s"Reduce($numericsResults)=$result"
-        case Failure(err) => s"Reduce($numericsResults)=Failure($err)"
-        case _ => s"Reduce($numericsResults)"
+        case Failure(err)    => s"Reduce($numericsResults)=Failure($err)"
+        case _               => s"Reduce($numericsResults)"
       }
     }
 
-    @inline private def reduceResults(current: PatternResult[Double], next: PatternResult[Double]): PatternResult[Double] =
+    @inline private def reduceResults(
+      current: PatternResult[Double],
+      next: PatternResult[Double]
+    ): PatternResult[Double] =
       (current, next) match {
         case (Success(curr), Success(newNum)) => Success(reducer(curr, newNum))
-        case (fail: Failure, _) => fail
-        case (_, fail: Failure) => fail
-        case _ => Stay
+        case (fail: Failure, _)               => fail
+        case (_, fail: Failure)               => fail
+        case _                                => Stay
       }
   }
 
-
-  case class BinaryNumericParser[E, S1, S2, Out](left: Pattern[E, S1, Out], right: Pattern[E, S2, Out],
-                                                 operation: (Out, Out) => Out, operationSign: String)
-                                                (implicit innerEv: Numeric[Out])
-    extends Pattern[E, (S1, S2), Out] {
+  case class BinaryNumericParser[E, S1, S2, Out](
+    left: Pattern[E, S1, Out],
+    right: Pattern[E, S2, Out],
+    operation: (Out, Out) => Out,
+    operationSign: String
+  )(implicit innerEv: Numeric[Out])
+      extends Pattern[E, (S1, S2), Out] {
 
     val andParser = left togetherWith right
 
@@ -109,7 +130,8 @@ object NumericPhases {
 
   implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal with Serializable {
 
-    def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, NoState] = OneRowPattern(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol), Some(symbol.toString))
+    def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, NoState] =
+      OneRowPattern(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol), Some(symbol.toString))
   }
 
   implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal with Serializable {
@@ -118,16 +140,14 @@ object NumericPhases {
       OneRowPattern[Event, T](e => ev.extract(e, symbol), Some(symbol.toString))
   }
 
-
-  case class AbsPhase[Event, State](numeric: NumericPhaseParser[Event, State])
-    extends NumericPhaseParser[Event, State] {
-
+  // TODO@trolley813: replace with a generic function
+  case class AbsPhase[Event, State](numeric: NumericPhaseParser[Event, State]) extends NumericPhaseParser[Event, State] {
 
     override def apply(event: Event, state: State) = {
       val (innerResult, newState) = numeric(event, state)
       (innerResult match {
         case Success(x) => Success(Math.abs(x))
-        case x => x
+        case x          => x
       }) -> newState
     }
 
@@ -135,5 +155,52 @@ object NumericPhases {
 
     override def format(event: Event, state: State) =
       s"abs(${numeric.format(event, state)})"
+  }
+
+  case class Function1Phase[Event, State](
+    function: Double => Double,
+    functionName: String,
+    phase1: NumericPhaseParser[Event, State]
+  ) extends NumericPhaseParser[Event, State] {
+
+    override def apply(event: Event, state: State): (PatternResult[Double], State) = {
+      val (innerResult, newState) = phase1(event, state)
+      (innerResult match {
+        case Success(x) => Success(function(x))
+        case x          => x
+      }) -> newState
+    }
+
+    override def initialState: State = phase1.initialState
+
+    override def format(event: Event, state: State) =
+      s"$functionName(${phase1.format(event, state)})"
+  }
+
+  case class Function2Phase[Event, State1, State2](
+    function: (Double, Double) => Double,
+    functionName: String,
+    phase1: NumericPhaseParser[Event, State1],
+    phase2: NumericPhaseParser[Event, State2]
+  ) extends Pattern[Event, (State1, State2), Double] {
+
+    override def apply(event: Event, state: (State1, State2)): (PatternResult[Double], (State1, State2)) = {
+      val (results, newState) = (phase1 togetherWith phase2)(event, state)
+      results.map { case (x1, x2) => function(x1, x2) } -> newState
+    }
+
+    override def initialState = (phase1.initialState, phase2.initialState)
+
+    override def format(event: Event, state: (State1, State2)): String =
+      s"$functionName(${phase1.format(event, state._1)}, ${phase2.format(event, state._2)})"
+  }
+
+  case class FunctionNPhase[Event, States <: HList](
+    function: Seq[Double] => Double,
+    functionName: String,
+    phases: States
+  ) extends Pattern[Event, States, Double] {
+    override def initialState: States = ???
+    override def apply(v1: Event, v2: States): (PatternResult[Double], States) = ???
   }
 }

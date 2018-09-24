@@ -14,7 +14,6 @@ import ru.itclover.tsp.phases.ConstantPhases
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.NumericPhases._
 
-
 class SyntaxParser[Event](val input: ParserInput)(
   implicit val timeExtractor: TimeExtractor[Event],
   symbolNumberExtractor: SymbolNumberExtractor[Event]
@@ -70,11 +69,12 @@ class SyntaxParser[Event](val input: ParserInput)(
               FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
             }
           })
-        .asInstanceOf[AnyPhaseParser]
+          .asInstanceOf[AnyPhaseParser]
       }
 
       case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
-        val accum = Pattern.Functions.truthMillisCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
+        val accum = Pattern.Functions
+          .truthMillisCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
         PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
           .flatMap(msCount => {
@@ -302,7 +302,7 @@ class SyntaxParser[Event](val input: ParserInput)(
 
   def repetitionRange: Rule1[NumericInterval[Long]] = rule {
     ("<" ~ ws ~ repetition ~> ((t: Long) => NumericInterval(0L, Some(t)))
-    | "<=" ~ ws ~ repetition ~> ((t: Long) => NumericInterval(0L, Some(t+1L)))
+    | "<=" ~ ws ~ repetition ~> ((t: Long) => NumericInterval(0L, Some(t + 1L)))
     | ">" ~ ws ~ repetition ~> ((t: Long) => NumericInterval.more(t + 1L))
     | ">=" ~ ws ~ repetition ~> ((t: Long) => NumericInterval.more(t))
     | integer ~ ignoreCase("to") ~ ws ~ repetition ~>
@@ -360,7 +360,7 @@ class SyntaxParser[Event](val input: ParserInput)(
         val ifCondition: Double => Boolean = constraint.getOrElse(_ => true)
         function match {
           case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "abs" => Pattern.Functions.abs(arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPhaseParser]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser],

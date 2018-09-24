@@ -36,6 +36,8 @@ object Version {
   val parseback = "0.3"
 
   val parboiled = "2.1.4"
+
+  val shapeless = "2.3.3"
 }
 
 
@@ -120,5 +122,9 @@ object Library {
 
   val parboiled = Seq (
     "org.parboiled" %% "parboiled" % Version.parboiled
+  )
+
+  val shapeless = Seq(
+    "com.chuusai" %% "shapeless" % Version.shapeless
   )
 }

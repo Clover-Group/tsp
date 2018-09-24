@@ -27,6 +27,36 @@ lazy val assemblySettings = Seq(
 // make run command include the provided dependencies (for sbt run)
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
+// make native packager use only the fat jar
+mappings in Universal := {
+  // universalMappings: Seq[(File,String)]
+  val universalMappings = (mappings in Universal).value
+  val fatJar = (assembly in mainRunner).value
+  // removing means filtering
+  val filtered = universalMappings filter {
+    case (file, name) => !name.contains(".jar")
+  }
+  // add the fat jar
+  filtered :+ (fatJar -> ("lib/" + fatJar.getName))
+}
+
+mappings in Docker := {
+  // universalMappings: Seq[(File,String)]
+  val universalMappings = (mappings in Universal).value
+  val fatJar = (assembly in mainRunner).value
+  // removing means filtering
+  val filtered = universalMappings filter {
+    case (file, name) => !name.contains(".jar")
+  }
+  // add the fat jar
+  filtered :+ (fatJar -> ("lib/" + fatJar.getName))
+}
+
+scriptClasspath := Seq((assemblyJarName in (assembly in mainRunner)).value)
+
+dockerBaseImage := "airdock/oracle-jdk:jdk-8u112"
+dockerEntrypoint := Seq("java", "-jar", s"/opt/docker/lib/TSP_v${version.value}.jar")
+
 
 /*** Projects configuration ***/
 
@@ -55,7 +85,7 @@ lazy val root = (project in file("."))
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging ++ Library.config ++ Library.cats
+    libraryDependencies ++= Library.scalaTest ++ Library.jodaTime ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
@@ -132,26 +162,9 @@ git.gitTagToVersionNumber := {
 
 // Release specific settings
 import ReleaseTransformations.{setReleaseVersion => _, _}
-import sbtrelease._
 
-def setVersion(selectVersion: Versions => String): ReleaseStep =  { st: State =>
-  val vs = st.get(ReleaseKeys.versions)
-    .getOrElse(sys.error("No versions are set! Was this release part executed before inquireVersions?"))
-  val selected = selectVersion(vs)
 
-  st.log.info("Setting version to '%s'." format selected)
-  val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
-  val versionStr = "%s" format selected
-  val file = Project.extract(st).get(releaseVersionFile)
-  IO.writeLines(file, Seq(versionStr))
-
-  reapply(Seq(
-    if (useGlobal) version in ThisBuild := selected
-    else version := selected
-  ), st)
-}
-
-lazy val setReleaseVersion: ReleaseStep = setVersion(_._1)
+lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
 
 releaseVersionFile := file("./VERSION")
 releaseUseGlobalVersion := false
