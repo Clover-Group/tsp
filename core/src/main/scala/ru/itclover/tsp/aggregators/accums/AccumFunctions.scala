@@ -131,4 +131,24 @@ trait AccumFunctions {
 
   }
 
+  object lag {
+
+    def apply[E, S, T](p: Pattern[E, S, T], window: Window)(implicit timeExtractor: TimeExtractor[E]) =
+      new AccumPhase(p, window, Ots.LagState(window))({
+        case s: Ots.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T])
+      }, "lag") {
+        override def toContinuous: AccumPhase[E, S, T, T] =
+          new AccumPhase(p, window, Qs.LagState(window))(
+            { case s: Qs.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T]) },
+            "lag.continuous"
+          )
+      }
+
+    def continuous[E, S, T](p: Pattern[E, S, T], window: Window)(implicit timeExtractor: TimeExtractor[E]) =
+      new AccumPhase(p, window, Qs.LagState(window))(
+        { case s: Qs.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T]) },
+        "lag.continuous"
+      )
+  }
+
 }

@@ -361,6 +361,14 @@ class SyntaxParser[Event](val input: ParserInput)(
         function match {
           case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
           case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "sin" => Pattern.Functions.call1(Math.sin, "sin", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "cos" => Pattern.Functions.call1(Math.cos, "cos", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "tan" | "tg" => Pattern.Functions.call1(Math.tan, "tan", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "cot" | "ctg" => Pattern.Functions.call1(1.0 / Math.tan(_), "cot", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "sind" => Pattern.Functions.call1((x: Double) => Math.sin(x * Math.PI / 180.0), "sind", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "cosd" => Pattern.Functions.call1((x: Double) => Math.cos(x * Math.PI / 180.0), "cosd", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "tand" | "tgd" => Pattern.Functions.call1((x: Double) => Math.tan(x * Math.PI / 180.0), "tand", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "cotd" | "ctgd" => Pattern.Functions.call1((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0), "cotd", arguments.head).asInstanceOf[AnyNumericPhaseParser]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser],
@@ -399,6 +407,7 @@ class SyntaxParser[Event](val input: ParserInput)(
           function match {
             case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPhaseParser]
             case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPhaseParser]
+            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPhaseParser]
           }
         }
       )

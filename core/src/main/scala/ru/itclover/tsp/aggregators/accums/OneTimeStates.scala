@@ -2,12 +2,14 @@ package ru.itclover.tsp.aggregators.accums
 
 import ru.itclover.tsp.core.{Time, Window}
 
-
 object OneTimeStates {
 
-  case class CountAccumState[T](window: Window, count: Long = 0L, startTime: Option[Time] = None,
-                                lastTime: Option[Time] = None)
-       extends AccumState[T] {
+  case class CountAccumState[T](
+    window: Window,
+    count: Long = 0L,
+    startTime: Option[Time] = None,
+    lastTime: Option[Time] = None
+  ) extends AccumState[T] {
     override def updated(time: Time, value: T) = {
       CountAccumState(
         window = window,
@@ -18,10 +20,14 @@ object OneTimeStates {
     }
   }
 
-  case class TruthAccumState(window: Window, truthCount: Long = 0L, truthMillisCount: Long = 0L,
-                             prevValue: Boolean = false, startTime: Option[Time] = None,
-                             lastTime: Option[Time] = None)
-       extends AccumState[Boolean] {
+  case class TruthAccumState(
+    window: Window,
+    truthCount: Long = 0L,
+    truthMillisCount: Long = 0L,
+    prevValue: Boolean = false,
+    startTime: Option[Time] = None,
+    lastTime: Option[Time] = None
+  ) extends AccumState[Boolean] {
 
     def updated(time: Time, value: Boolean): TruthAccumState = {
       lastTime match {
@@ -51,11 +57,13 @@ object OneTimeStates {
     }
   }
 
-
-
-  case class NumericAccumState(window: Window, sum: Double = 0d, count: Long = 0l,
-                               startTime: Option[Time] = None, lastTime: Option[Time] = None)
-       extends AccumState[Double] {
+  case class NumericAccumState(
+    window: Window,
+    sum: Double = 0d,
+    count: Long = 0l,
+    startTime: Option[Time] = None,
+    lastTime: Option[Time] = None
+  ) extends AccumState[Double] {
 
     def updated(time: Time, value: Double): NumericAccumState = {
       NumericAccumState(
@@ -70,6 +78,26 @@ object OneTimeStates {
     def avg: Double = {
       assert(count != 0, "Illegal state: avg shouldn't be called on empty state.")
       sum / count
+    }
+  }
+
+  case class LagState[T](
+    window: Window,
+    value: Either[T, Null] = Right(null),
+    startTime: Option[Time] = None,
+    lastTime: Option[Time] = None
+  ) extends AccumState[T] {
+
+    def updated(
+      time: Time,
+      value: T
+    ): AccumState[T] = {
+      LagState[T](
+        window = window,
+        value = if (value == null) Left(value) else Right(null),
+        startTime = startTime.orElse(Some(time)),
+        lastTime = Some(time)
+      )
     }
   }
 }

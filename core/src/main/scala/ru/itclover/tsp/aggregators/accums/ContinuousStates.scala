@@ -88,4 +88,25 @@ object ContinuousStates {
       sum / count
     }
   }
+
+  // TODO@trolley813: transferred from OneTimeStates, make continuous
+  case class LagState[T](
+    window: Window,
+    value: Either[T, Null] = Right(null),
+    startTime: Option[Time] = None,
+    lastTime: Option[Time] = None
+  ) extends AccumState[T] {
+
+    def updated(
+      time: Time,
+      value: T
+    ): AccumState[T] = {
+      LagState[T](
+        window = window,
+        value = if (value == null) Left(value) else Right(null),
+        startTime = startTime.orElse(Some(time)),
+        lastTime = Some(time)
+      )
+    }
+  }
 }

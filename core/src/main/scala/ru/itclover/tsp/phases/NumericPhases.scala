@@ -5,10 +5,13 @@ import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
+
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
-import shapeless.HList
+import shapeless.{HList, Poly, Poly1}
+import shapeless.UnaryTCConstraint.*->*
+import shapeless.ops.hlist.{Comapped, Mapped, NatTRel}
 
 object NumericPhases {
 
@@ -189,18 +192,30 @@ object NumericPhases {
       results.map { case (x1, x2) => function(x1, x2) } -> newState
     }
 
-    override def initialState = (phase1.initialState, phase2.initialState)
+    override def initialState: (State1, State2) = (phase1.initialState, phase2.initialState)
 
     override def format(event: Event, state: (State1, State2)): String =
       s"$functionName(${phase1.format(event, state._1)}, ${phase2.format(event, state._2)})"
   }
 
-  case class FunctionNPhase[Event, States <: HList](
-    function: Seq[Double] => Double,
-    functionName: String,
-    phases: States
-  ) extends Pattern[Event, States, Double] {
-    override def initialState: States = ???
-    override def apply(v1: Event, v2: States): (PatternResult[Double], States) = ???
-  }
+//  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
+//    function: Seq[Double] => Double,
+//    functionName: String,
+//    phases: Phases
+//  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
+//      extends Pattern[Event, States, Double] {
+//    override def initialState: States = phases.map(new Poly1 {
+//      implicit val pat = at[Pattern[Event, _, _]] { p =>
+//        p.initialState
+//      }
+//    })
+//    override def apply(v1: Event, v2: Phases): (PatternResult[Double], Phases) = {
+//      val allPhasesTogether =
+//        phases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
+//      val (results, newState) = allPhasesTogether(event, state)
+//      // FIXME@trolley813: it's pseudocode, won't work
+//      results.map { case x => function(x.toSeq) } -> newState
+//
+//    }
+//  }
 }
