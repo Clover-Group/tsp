@@ -1,5 +1,6 @@
 package ru.itclover.tsp.aggregators.accums
 
+import ru.itclover.tsp.aggregators.AggregatorPhases.PreviousValue
 import ru.itclover.tsp.core.{Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.aggregators.accums.{ContinuousStates => Qs, OneTimeStates => Ots}
@@ -134,19 +135,19 @@ trait AccumFunctions {
   object lag {
 
     def apply[E, S, T](p: Pattern[E, S, T], window: Window)(implicit timeExtractor: TimeExtractor[E]) =
-      new AccumPhase(p, window, Ots.LagState(window))({
-        case s: Ots.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T])
+      new AccumPhase(p, window, Ots.LagState[T](window))({
+        case s: Ots.LagState[T] => s.value.getOrElse(null.asInstanceOf[T])
       }, "lag") {
         override def toContinuous: AccumPhase[E, S, T, T] =
           new AccumPhase(p, window, Qs.LagState(window))(
-            { case s: Qs.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T]) },
+            { case s: Qs.LagState[T] => s.value.getOrElse(null.asInstanceOf[T]) },
             "lag.continuous"
           )
       }
 
     def continuous[E, S, T](p: Pattern[E, S, T], window: Window)(implicit timeExtractor: TimeExtractor[E]) =
-      new AccumPhase(p, window, Qs.LagState(window))(
-        { case s: Qs.LagState[T] => s.value.left.getOrElse(null.asInstanceOf[T]) },
+      new AccumPhase(p, window, Qs.LagState[T](window))(
+        { case s: Qs.LagState[T] => s.value.getOrElse(null.asInstanceOf[T]) },
         "lag.continuous"
       )
   }

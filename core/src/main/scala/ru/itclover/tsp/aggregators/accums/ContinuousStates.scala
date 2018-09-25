@@ -89,23 +89,25 @@ object ContinuousStates {
     }
   }
 
-  // TODO@trolley813: transferred from OneTimeStates, make continuous
   case class LagState[T](
     window: Window,
-    value: Either[T, Null] = Right(null),
-    startTime: Option[Time] = None,
-    lastTime: Option[Time] = None
-  ) extends AccumState[T] {
+    value: Option[T] = None,
+    queue: m.Queue[(Time, T)] = m.Queue.empty[(Time, T)]
+  ) extends ContinuousAccumState[T] {
 
     def updated(
       time: Time,
       value: T
     ): AccumState[T] = {
+      val v = queue.dequeueWhile(_._1 < time.toMillis - window.toMillis).lastOption match {
+        case Some(p) => Some(p._2)
+        case None => None
+      }
+      queue.enqueue((time, value))
       LagState[T](
         window = window,
-        value = if (value == null) Left(value) else Right(null),
-        startTime = startTime.orElse(Some(time)),
-        lastTime = Some(time)
+        value = v,
+        queue = queue
       )
     }
   }

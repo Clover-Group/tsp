@@ -83,7 +83,7 @@ object OneTimeStates {
 
   case class LagState[T](
     window: Window,
-    value: Either[T, Null] = Right(null),
+    value: Option[T] = None,
     startTime: Option[Time] = None,
     lastTime: Option[Time] = None
   ) extends AccumState[T] {
@@ -94,7 +94,7 @@ object OneTimeStates {
     ): AccumState[T] = {
       LagState[T](
         window = window,
-        value = if (value == null) Left(value) else Right(null),
+        value = if (value == null) Some(value) else None,
         startTime = startTime.orElse(Some(time)),
         lastTime = Some(time)
       )

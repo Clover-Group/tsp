@@ -54,7 +54,7 @@ mappings in Docker := {
 
 scriptClasspath := Seq((assemblyJarName in (assembly in mainRunner)).value)
 
-dockerBaseImage := "airdock/oracle-jdk:jdk-8u112"
+//dockerBaseImage := "airdock/oracle-jdk:jdk-8u112"
 dockerEntrypoint := Seq("java", "-jar", s"/opt/docker/lib/TSP_v${version.value}.jar")
 
 
