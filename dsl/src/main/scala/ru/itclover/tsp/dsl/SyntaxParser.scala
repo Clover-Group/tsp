@@ -61,30 +61,40 @@ class SyntaxParser[Event](val input: ParserInput)(
     range match {
       case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[Long]] => {
         val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
-        PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
-          .flatMap({ truthCount =>
-            if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
-              OneRowPattern((_: Event) => truthCount)
-            } else {
-              FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
-            }
-          })
-          .asInstanceOf[AnyPhaseParser]
+        exactly.getOrElse(0) match {
+          case 0 =>
+            PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
+              .flatMap({ truthCount =>
+                if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
+                  OneRowPattern((_: Event) => truthCount)
+                } else {
+                  FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
+                }
+              })
+              .asInstanceOf[AnyPhaseParser]
+          case 1 =>
+            accum.timed(w, w).asInstanceOf[AnyPhaseParser]
+        }
       }
 
       case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
         val accum = Pattern.Functions
           .truthMillisCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
-        PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
-          .flatMap(msCount => {
-            if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
-              OneRowPattern((_: Event) => msCount)
-            } else {
-              FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
-            }
-          })
-          .asInstanceOf[AnyPhaseParser]
+        exactly.getOrElse(0) match {
+          case 0 =>
+            PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
+              .flatMap(msCount => {
+                if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
+                  OneRowPattern((_: Event) => msCount)
+                } else {
+                  FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
+                }
+              })
+              .asInstanceOf[AnyPhaseParser]
+          case 1 =>
+            accum.timed(w, w).asInstanceOf[AnyPhaseParser]
+        }
       }
 
       case None => Assert(phase.asInstanceOf[AnyBooleanPhaseParser]).timed(w, w).asInstanceOf[AnyPhaseParser]
