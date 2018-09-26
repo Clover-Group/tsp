@@ -18,7 +18,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val jdbcInpConfFmt = jsonFormat(JDBCInputConf.apply, "sourceId", "jdbcUrl", "query", "driverName",
     "datetimeField", "eventsMaxGapMs", "defaultEventsGapMs",
-    "partitionFields", "userName", "password", "parallelism")
+    "partitionFields", "userName", "password", "props", "parallelism")
   implicit val influxInpConfFmt = jsonFormat(InfluxDBInputConf.apply, "sourceId", "dbName", "url",
     "query", "eventsMaxGapMs", "defaultEventsGapMs", "partitionFields",
     "datetimeField", "userName", "password", "parallelism", "timeoutSec")

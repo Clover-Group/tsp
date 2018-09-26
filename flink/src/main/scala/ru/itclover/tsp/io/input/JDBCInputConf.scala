@@ -1,6 +1,8 @@
 package ru.itclover.tsp.io.input
 
 import java.sql.DriverManager
+import java.util.Properties
+
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
@@ -11,7 +13,9 @@ import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
+
 import scala.util.Try
+
 
 case class JDBCInputConf(
   sourceId: Int,
@@ -24,6 +28,7 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
+  props: Option[Map[String, AnyRef]] = None,
   parallelism: Option[Int] = None
 ) extends InputConf[Row] {
 
@@ -31,7 +36,12 @@ case class JDBCInputConf(
 
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry = Try(Class.forName(driverName))
-    val connectionTry = Try(DriverManager.getConnection(jdbcUrl, userName.getOrElse(""), password.getOrElse("")))
+    val properties: Properties = new Properties()
+    properties.put("user", userName.getOrElse(""))
+    properties.put("password", password.getOrElse(""))
+    props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
+
+    val connectionTry = Try(DriverManager.getConnection(jdbcUrl, properties))
     (for {
       _          <- classTry
       connection <- connectionTry
