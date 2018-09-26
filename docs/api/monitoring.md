@@ -6,11 +6,26 @@ remote Flink cluster.
 API respond with [general response fromat](./index.md).
 
 
-### Endpoints
+### Jos endpoints
 
 Error responses same as for `streamJob`-s
 
-#### 1. GET "job/:job_uuid/status/"
+#### GET "job/:job_uuid/statusAndMetrics/"
+
+- Response formats:
+    - `numRecordsReadNum` - records read from source
+    - `currentEventTs` - records handled by patterns
+    - `numRecordsProcessed` - records sent to sink (approx.)
+```
+"details": <same as job/:job_uuid/status/>,
+"metrics": {
+  "numRecordsRead": <String>,
+  "currentEventTs": <String>,
+  "numRecordsProcessed": <String>
+}
+```
+
+#### GET "job/:job_uuid/status/"
 
 - Response formats:
 `{"duration": <Long millis>, "name": <Task uuid>,
@@ -19,23 +34,26 @@ Error responses same as for `streamJob`-s
 "vertices":<Not matter>}`
 
 
-#### 2. GET "job/:job_uuid/stop/"
+#### GET "job/:job_uuid/stop/"
 
 Responses:
 - `{response: 1}` - job has stopped
 - `{response: 0}` - job not found
 
 
-#### 3. GET "jobs/overview/"
+#### GET "jobs/overview/"
 Responses:
 - `{response: {name, jid}}`
 - `{response: 0}` - no jobs
 
 
-#### 4. GET "jobs/:job_uuid/exceptions"
+#### GET "jobs/:job_uuid/exceptions"
 `{"root-exception": <String>,"timestamp": <Long>, "truncated": <Bool>}`
 - `truncated` shows that exception is truncated when it's too big
 
-#### 5. GET "metainfo/getVersion/"
+
+### Other endpoints
+
+#### GET "metainfo/getVersion/"
 Response -  `{response: "x.y.z"}`
 
