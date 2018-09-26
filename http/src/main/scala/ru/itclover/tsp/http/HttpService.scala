@@ -40,7 +40,7 @@ trait HttpService extends RoutesProtocols {
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
     jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
     monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-  } yield jobs ~ monitoring
+  } yield ignoreTrailingSlash { jobs ~ monitoring }
 
   def route = (logRequestAndResponse & handleErrors) {
     composeRoutes.run(executionContext).andThen { futureRoute =>

@@ -9,7 +9,7 @@ trait Response[T] extends Product with Serializable
 
 final case class SuccessfulResponse[T](response: T, messages: Seq[String]=Seq.empty) extends Response[T]
 
-case class ExecInfo(execTimeSec: Long, readRecords: Option[Int], writtenRecords: Option[Int])
+case class ExecInfo(execTimeSec: Long, extraMetrics: Map[String, Option[Long]])
 final case class FinishedJobResponse(response: ExecInfo, messages: Seq[String]=Seq.empty) extends Response[ExecInfo]
 
 

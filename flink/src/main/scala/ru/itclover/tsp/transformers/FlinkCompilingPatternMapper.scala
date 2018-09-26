@@ -1,13 +1,14 @@
 package ru.itclover.tsp.transformers
 
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.metrics.{Counter, Gauge}
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time}
 import ru.itclover.tsp.core.PatternResult.{Failure, Success}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.{AbstractPatternMapper, ResultMapper}
 import ru.itclover.tsp.core.PatternResult.heartbeat
 
-
+// .. TODO: Fix inheritance
 class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   phase: Pattern[Event, PhaseState, PhaseOut],
   resultsMapper: ResultMapper[Event, PhaseOut, MapperOut],
@@ -15,16 +16,13 @@ class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   emptyEvent: Event,
   isTerminalEvent: Event => Boolean
 )(implicit timeExtractor: TimeExtractor[Event])
-extends FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
-  ((_: ClassLoader) => phase),
-  resultsMapper,
-  eventsMaxGapMs,
-  emptyEvent,
-  isTerminalEvent
-) {
-
-}
-
+    extends FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
+      ((_: ClassLoader) => phase),
+      resultsMapper,
+      eventsMaxGapMs,
+      emptyEvent,
+      isTerminalEvent
+    ) {}
 
 // .. TODO: Mb set concrete ToFoundRuleResultMapper
 class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
@@ -35,18 +33,27 @@ class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   isTerminalEvent: Event => Boolean
 )(
   implicit timeExtractor: TimeExtractor[Event]
-) extends RichStatefulFlatMapper[Event, (Seq[PhaseState], Event), MapperOut] with
-          AbstractPatternMapper[Event, PhaseState, PhaseOut] with Serializable {
+) extends RichStatefulFlatMapper[Event, (Seq[PhaseState], Event), MapperOut]
+    with AbstractPatternMapper[Event, PhaseState, PhaseOut]
+    with Serializable {
 
   override val initialState = (Seq.empty, emptyEvent)
   var phaseParser: Pattern[Event, PhaseState, PhaseOut] = _
 
+  @transient
+  var currentEvent: Event = emptyEvent
+
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     phaseParser = compilePhaseParser(getRuntimeContext.getUserCodeClassLoader)
+    getRuntimeContext.getMetricGroup
+      .gauge[Long, Gauge[Long]](FlinkCompilingPatternMapper.currentEventTsMetric, new Gauge[Long] {
+        override def getValue = timeExtractor(currentEvent).toMillis
+      })
   }
 
   override def apply(event: Event, stateAndPrevEvent: (Seq[PhaseState], Event)) = {
+    currentEvent = event
     val prevEvent = stateAndPrevEvent._2
     val (results, newStates) = if (doProcessOldState(event, prevEvent)) {
       process(event, stateAndPrevEvent._1)
@@ -57,7 +64,7 @@ class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
       }
     }
     // Accumulated successes (failures logged in process fn) and new states
-    (resultsMapper(event, results).foldLeft[List[MapperOut]] (Nil) {
+    (resultsMapper(event, results).foldLeft[List[MapperOut]](Nil) {
       case (successes, Success(x)) => x :: successes
       case (successes, Failure(_)) => successes // Failures just dropped here
     }, (newStates, event))
@@ -76,4 +83,8 @@ class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
 
   /** Is it last event in a stream? */
   override def isEventTerminal(event: Event) = isTerminalEvent(event)
+}
+
+object FlinkCompilingPatternMapper {
+  val currentEventTsMetric = "currentEventTs"
 }

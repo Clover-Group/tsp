@@ -14,7 +14,6 @@ import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJo
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
-import ru.itclover.tsp.transformers.PatternsSearchStages
 import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -126,10 +125,10 @@ trait JobsRoutes extends RoutesProtocols {
                 case Success(Some(details)) =>
                   complete(
                     FinishedJobResponse(
-                      ExecInfo(execTime, details.getNumRecordsRead, details.getNumProcessedRecords)
+                      ExecInfo(execTime, Map.empty)
                     )
                   )
-                case _ => complete(FinishedJobResponse(ExecInfo(execTime, None, None)))
+                case _ => complete(FinishedJobResponse(ExecInfo(execTime, Map.empty)))
               }
             }
             case Left(err) => complete(InternalServerError, FailureResponse(5005, err))

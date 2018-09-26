@@ -11,7 +11,7 @@ import spray.json.{DefaultJsonProtocol, JsonFormat}
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
-  implicit val execTimeFmt = jsonFormat3(ExecInfo.apply)
+  implicit val execTimeFmt = jsonFormat2(ExecInfo.apply)
   implicit val finishedJobResponseFmt = jsonFormat2(FinishedJobResponse.apply)
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
