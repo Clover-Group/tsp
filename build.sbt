@@ -3,6 +3,7 @@
 
 name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
+maintainer in Docker := "Clover Group"
 
 //version in ThisBuild := IO.read(file("./VERSION"))
 scalaVersion in ThisBuild := "2.11.12"
@@ -54,8 +55,16 @@ mappings in Docker := {
 
 scriptClasspath := Seq((assemblyJarName in (assembly in mainRunner)).value)
 
-//dockerBaseImage := "airdock/oracle-jdk:jdk-8u112"
-dockerEntrypoint := Seq("java", "-jar", s"/opt/docker/lib/TSP_v${version.value}.jar")
+// clear the existing docker commands
+dockerCommands := Seq()
+
+import com.typesafe.sbt.packager.docker._
+dockerCommands := Seq(
+  Cmd("FROM", "openjdk:11"),
+  Cmd("LABEL", s"""MAINTAINER="${maintainer.value}""""),
+  Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
+  ExecCmd("CMD", "sh", "-c", "java -jar /opt/tsp.jar flink-${FLINK}")
+)
 
 
 /*** Projects configuration ***/

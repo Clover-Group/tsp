@@ -1,7 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import org.parboiled2._
-import ru.itclover.tsp.aggregators.AggregatorPhases.{Skip, ToSegments}
+import ru.itclover.tsp.aggregators.AggregatorPhases.{PreviousValue, Skip, ToSegments}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
 import ru.itclover.tsp.core.Time.{MaxWindow, TimeExtractor}
 import ru.itclover.tsp.core.{Pattern, Time, Window}
@@ -417,7 +417,7 @@ class SyntaxParser[Event](val input: ParserInput)(
           function match {
             case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPhaseParser]
             case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPhaseParser]
-            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPhaseParser]
+            case "lag" => Pattern.Functions.lag(PreviousValue(arg), win).asInstanceOf[AnyNumericPhaseParser]
           }
         }
       )
