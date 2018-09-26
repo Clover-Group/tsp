@@ -13,7 +13,7 @@ object Intervals {
   }
 
   /** ADT for checking position of item relative to interval */
-  trait IntervalPosition extends Product with Serializable
+  sealed trait IntervalPosition extends Product with Serializable
 
   final case object LessThanBegin extends IntervalPosition
   final case object GreaterThanEnd extends IntervalPosition
