@@ -166,39 +166,39 @@ object NumericPhases {
   case class Function1Phase[Event, State](
     function: Double => Double,
     functionName: String,
-    phase1: NumericPhaseParser[Event, State]
+    innerPhase1: NumericPhaseParser[Event, State]
   ) extends NumericPhaseParser[Event, State] {
 
     override def apply(event: Event, state: State): (PatternResult[Double], State) = {
-      val (innerResult, newState) = phase1(event, state)
+      val (innerResult, newState) = innerPhase1(event, state)
       (innerResult match {
         case Success(x) => Success(function(x))
         case x          => x
       }) -> newState
     }
 
-    override def initialState: State = phase1.initialState
+    override def initialState: State = innerPhase1.initialState
 
     override def format(event: Event, state: State) =
-      s"$functionName(${phase1.format(event, state)})"
+      s"$functionName(${ innerPhase1.format(event, state)})"
   }
 
   case class Function2Phase[Event, State1, State2](
     function: (Double, Double) => Double,
     functionName: String,
-    phase1: NumericPhaseParser[Event, State1],
-    phase2: NumericPhaseParser[Event, State2]
+    innerPhase1: NumericPhaseParser[Event, State1],
+    innerPhase2: NumericPhaseParser[Event, State2]
   ) extends Pattern[Event, (State1, State2), Double] {
 
     override def apply(event: Event, state: (State1, State2)): (PatternResult[Double], (State1, State2)) = {
-      val (results, newState) = (phase1 togetherWith phase2)(event, state)
+      val (results, newState) = (innerPhase1 togetherWith innerPhase2)(event, state)
       results.map { case (x1, x2) => function(x1, x2) } -> newState
     }
 
-    override def initialState: (State1, State2) = (phase1.initialState, phase2.initialState)
+    override def initialState: (State1, State2) = (innerPhase1.initialState, innerPhase2.initialState)
 
     override def format(event: Event, state: (State1, State2)): String =
-      s"$functionName(${phase1.format(event, state._1)}, ${phase2.format(event, state._2)})"
+      s"$functionName(${ innerPhase1.format(event, state._1)}, ${ innerPhase2.format(event, state._2)})"
   }
 
 //  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
