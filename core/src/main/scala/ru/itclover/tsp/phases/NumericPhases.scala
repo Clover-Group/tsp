@@ -5,13 +5,16 @@ import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
+import shapeless.PolyDefns.{~>, ~>>}
 
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
-import shapeless.{HList, Poly, Poly1}
-import shapeless.UnaryTCConstraint.*->*
-import shapeless.ops.hlist.{Comapped, Mapped, NatTRel}
+import shapeless.{HList, Id, Poly, Poly1}
+import shapeless.ops.hlist.Mapped
+import shapeless.Poly._
+import shapeless.HList._
+import shapeless.ops.hlist.Mapper
 
 object NumericPhases {
 
@@ -198,24 +201,26 @@ object NumericPhases {
       s"$functionName(${phase1.format(event, state._1)}, ${phase2.format(event, state._2)})"
   }
 
-  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
-    function: Seq[Double] => Double,
-    functionName: String,
-    innerPhases: Phases
-  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
-      extends Pattern[Event, States, Double] {
-    override def initialState: States = innerPhases.map(new Poly1 {
-      implicit val pat = at[Pattern[Event, _, _]] { p =>
-        p.initialState
-      }
-    })
-    override def apply(v1: Event, v2: Phases): (PatternResult[Double], Phases) = {
-      val allPhasesTogether =
-        innerPhases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
-      val (results, newState) = allPhasesTogether(event, state)
-      // FIXME@trolley813: it's pseudocode, won't work
-      results.map { case x => function(x.toSeq) } -> newState
-
-    }
-  }
+//  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
+//    function: Seq[Double] => Double,
+//    functionName: String,
+//    innerPhases: Phases
+//  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
+//      extends Pattern[Event, States, Double] {
+//
+//    private val initialStateGetter = new (({ type U[State] = NumericPhaseParser[Event, State] })#U ~> Id) {
+//      override def apply[T](f: NumericPhaseParser[Event, T]): Id[T] = f.initialState
+//    }
+//
+//    override def initialState: States = innerPhases.map(initialStateGetter)
+//    override def apply(event: Event, state: States): (PatternResult[Double], States) = ???
+//    {
+//      val allPhasesTogether =
+//        innerPhases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
+//      val (results, newState) = allPhasesTogether(event, state)
+//      // FIXME@trolley813: it's pseudocode, won't work
+//      results.map { case x => function(x.toSeq) } -> newState
+//
+//    }
+//  }
 }
