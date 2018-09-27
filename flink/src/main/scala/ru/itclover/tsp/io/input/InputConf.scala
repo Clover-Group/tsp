@@ -18,6 +18,8 @@ trait InputConf[Event] extends Serializable {
   def fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]]
 
   def parallelism: Option[Int]
+  def sinkParallelism: Option[Int]
+  def patternsParallelism: Option[Int]
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
 

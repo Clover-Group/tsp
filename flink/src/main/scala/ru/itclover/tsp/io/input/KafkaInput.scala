@@ -2,7 +2,7 @@ package ru.itclover.tsp.io.input
 
 import java.util.{Properties, UUID}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer010, FlinkKafkaConsumerBase}
-import org.apache.flink.streaming.util.serialization.{DeserializationSchema, TypeInformationSerializationSchema}
+import org.apache.flink.api.common.serialization.{TypeInformationSerializationSchema, DeserializationSchema}
 
 
 case class KafkaConf(brokers: String, topic: String, group: String = UUID.randomUUID().toString,

@@ -47,7 +47,9 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
     datetimeField = 'ts,
     eventsMaxGapMs = 2000L,
     defaultEventsGapMs = 2000L,
-    partitionFields = Seq('t1)
+    partitionFields = Seq('t1),
+    patternsParallelism = Some(1),
+    sinkParallelism = Some(1)
   )
 
   val sinkSchema =
@@ -60,7 +62,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val windowMin = 20
+  val windowMin = 5
 
   val (timeWindowMaxTimeSec, timeWindowPattern) = 250L -> List(
     RawPattern("499", s"lt10Sens >= 8 for $windowMin min > ${windowMin - 1} min")

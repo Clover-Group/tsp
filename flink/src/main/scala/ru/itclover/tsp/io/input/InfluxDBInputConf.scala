@@ -25,8 +25,10 @@ case class InfluxDBInputConf(
   datetimeField: Symbol = 'time,
   userName: Option[String] = None,
   password: Option[String] = None,
+  timeoutSec: Option[Long] = None,
   parallelism: Option[Int] = None,
-  timeoutSec: Option[Long] = None
+  patternsParallelism: Option[Int] = Some(1),
+  sinkParallelism: Option[Int] = Some(1)
 ) extends InputConf[Row] {
 
   import InfluxDBInputConf._

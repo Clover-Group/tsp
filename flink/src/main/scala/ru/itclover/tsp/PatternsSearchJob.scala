@@ -22,9 +22,11 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
+import ru.itclover.tsp.utils.Bucketizer
 
 object PatternsSearchJob {
-  type Phases[InEvent] = scala.Seq[((Pattern[InEvent, _, _], PhaseMetadata), RawPattern)]
+  type PatternWithMeta[InEvent] = ((Pattern[InEvent, _, _], PhaseMetadata), RawPattern)
+  type Phases[InEvent] = scala.Seq[PatternWithMeta[InEvent]]
   type ValidatedPhases[InEvent] = Either[Throwable, Phases[InEvent]]
 }
 
@@ -38,9 +40,10 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   extractAny: AnyExtractor[InEvent]
 ) {
 
+  import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
+
   val streamSrc = implicitly[StreamSource[InEvent]]
-  val searchStageName = "Patterns search stage"
-  val saveStageName = "Writing found patterns"
+  def searchStageName(bucketNum: Int) = s"Patterns search and save stage in Bucket#${bucketNum}"
 
   def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
     Traverse[List]
@@ -61,21 +64,26 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     implicit streamEnv: StreamExecutionEnvironment
   ): Either[Throwable, JobExecutionResult] = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+    if (inputConf.parallelism.isDefined) streamEnv.setParallelism(inputConf.parallelism.get)
     for {
-      _  <- findPatterns(phases)
-        .map(_.name(searchStageName))
-        .map(saveStream(_, outputConf))
-        .map(_.name(saveStageName))
+      _  <- findAndSavePatterns(phases)
+        .map(_.zipWithIndex.map { case (phase, ind) => phase.name(searchStageName(ind)) })
       result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
     } yield result
   }
 
-  def findPatterns(phases: Phases[InEvent]): Either[Throwable, DataStream[OutEvent]] = {
+  def findAndSavePatterns(phases: Phases[InEvent]): Either[Throwable, Seq[DataStreamSink[OutEvent]]] = {
     for {
       stream     <- streamSrc.createStream
       isTerminal <- streamSrc.getTerminalCheck
+      _ <- Either.cond(
+        inputConf.patternsParallelism.getOrElse(1) > 0,
+        Unit,
+        new RuntimeException(s"Input conf patternsParallelism cannot be lower than 1.") // .. Specific exception
+      )
     } yield {
-      val patternMappers = phases.map({
+      val patternsBuckets = Bucketizer.bucketizeByWeight(phases, inputConf.patternsParallelism.getOrElse(1))
+      val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
             raw.id,
@@ -86,30 +94,30 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
           new FlinkPatternMapper(phase, incidentsRM, inputConf.eventsMaxGapMs, streamSrc.emptyEvent, isTerminal)
             .asInstanceOf[RichStatefulFlatMapper[InEvent, Any, Incident]]
       })
-      val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
-      val incidents = stream
-        .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
-        .flatMapAll(patternMappers)
+      for { mappers <- patternMappersBuckets } yield {
+        val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
+        val incidents = stream
+          .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
+          .flatMapAll(mappers)
 
-      // Aggregate contiguous incidents in one big pattern (if configured)
-      if (inputConf.defaultEventsGapMs > 0L) {
-        incidents
-          .assignAscendingTimestamps(p => p.segment.from.toMillis)
-          .keyBy(e => e.id + e.partitionFields.values.mkString)
-          .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
-            override def extract(element: Incident): Long = element.maxWindowMs
-          }))
-          .reduce { _ |+| _ }
-          .map(resultMapper)
-      }
-      else {
-        incidents.map(resultMapper)
+        // Aggregate contiguous incidents in one big pattern (if configured)
+        val results = if (inputConf.defaultEventsGapMs > 0L) {
+          incidents
+            .assignAscendingTimestamps(p => p.segment.from.toMillis)
+            .keyBy(e => e.id + e.partitionFields.values.mkString)
+            .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
+              override def extract(element: Incident): Long = element.maxWindowMs
+            }))
+            .reduce { _ |+| _ }
+            .map(resultMapper)
+        } else {
+          incidents.map(resultMapper)
+        }
+
+        results
+          .writeUsingOutputFormat(outputConf.getOutputFormat)
+          .setParallelism(inputConf.sinkParallelism.getOrElse(1))
       }
     }
-  }
-
-  def saveStream(stream: DataStream[OutEvent], outputConf: OutputConf[OutEvent]): DataStreamSink[OutEvent] = {
-    val outFormat = outputConf.getOutputFormat
-    stream.writeUsingOutputFormat(outFormat).setParallelism(1)
   }
 }
