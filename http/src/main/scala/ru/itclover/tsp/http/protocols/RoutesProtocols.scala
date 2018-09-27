@@ -44,8 +44,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "password",
     "props",
     "parallelism",
-    "patternsParallelism",
-    "sinkParallelism"
+    "patternsParallelism"
   )
   implicit val influxInpConfFmt = jsonFormat(
     InfluxDBInputConf.apply,
@@ -61,8 +60,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "password",
     "timeoutSec",
     "parallelism",
-    "patternsParallelism",
-    "sinkParallelism"
+    "patternsParallelism"
   )
 
   implicit val rowSchemaFmt = jsonFormat(
@@ -77,7 +75,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "forwardedFields"
   )
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
-  implicit val jdbcOutConfFmt = jsonFormat7(JDBCOutputConf.apply)
+  implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
   implicit def patternsRequestFmt[IN <: InputConf[_]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =

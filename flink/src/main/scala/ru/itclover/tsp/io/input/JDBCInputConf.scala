@@ -30,8 +30,7 @@ case class JDBCInputConf(
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
   parallelism: Option[Int] = None,
-  patternsParallelism: Option[Int] = Some(1),
-  sinkParallelism: Option[Int] = Some(1)
+  patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 
   import InputConf.getRowFieldOrThrow

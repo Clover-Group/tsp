@@ -28,7 +28,7 @@ class BasicJdbcTest
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8147
+  val port = 8148
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,

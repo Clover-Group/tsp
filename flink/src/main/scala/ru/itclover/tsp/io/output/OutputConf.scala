@@ -7,6 +7,8 @@ trait OutputConf[Event] {
   def forwardedFields: Seq[Symbol]
 
   def getOutputFormat: OutputFormat[Event]
+
+  def parallelism: Option[Int]
 }
 
 
@@ -16,7 +18,8 @@ case class JDBCOutputConf(tableName: String,
                           driverName: String,
                           password: Option[String] = None,
                           batchInterval: Option[Int] = None,
-                          userName: Option[String] = None) extends OutputConf[Row] {
+                          userName: Option[String] = None,
+                          parallelism: Option[Int] = Some(1)) extends OutputConf[Row] {
   override def getOutputFormat = JDBCOutput.getOutputFormat(this)
 
   override def forwardedFields = rowSchema.forwardedFields

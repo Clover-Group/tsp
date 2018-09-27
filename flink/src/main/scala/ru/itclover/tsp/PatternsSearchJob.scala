@@ -22,6 +22,7 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
+import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 
 object PatternsSearchJob {
@@ -76,11 +77,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     for {
       stream     <- streamSrc.createStream
       isTerminal <- streamSrc.getTerminalCheck
-      _ <- Either.cond(
-        inputConf.patternsParallelism.getOrElse(1) > 0,
-        Unit,
-        new RuntimeException(s"Input conf patternsParallelism cannot be lower than 1.") // .. Specific exception
-      )
+      _          <- checkConfigs
     } yield {
       val patternsBuckets = Bucketizer.bucketizeByWeight(phases, inputConf.patternsParallelism.getOrElse(1))
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
@@ -116,8 +113,26 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 
         results
           .writeUsingOutputFormat(outputConf.getOutputFormat)
-          .setParallelism(inputConf.sinkParallelism.getOrElse(1))
+          .setParallelism(outputConf.parallelism.getOrElse(1))
       }
     }
   }
+
+  def checkConfigs: Either[Throwable, Unit] = for {
+    _ <- Either.cond(
+        inputConf.parallelism.getOrElse(1) > 0,
+        Unit,
+        InvalidRequest(s"Input conf parallelism cannot be lower than 1.") // .. Specific exception
+      )
+    _ <- Either.cond(
+        inputConf.patternsParallelism.getOrElse(1) > 0,
+        Unit,
+        InvalidRequest(s"Input conf patternsParallelism cannot be lower than 1.")
+      )
+    _ <- Either.cond(
+        outputConf.parallelism.getOrElse(1) > 0,
+        Unit,
+        InvalidRequest(s"Output conf parallelism cannot be lower than 1.")
+      )
+  } yield Unit
 }
