@@ -40,19 +40,19 @@ object NumericPhases {
     def call1[Event, State](
       function: Double => Double,
       functionName: String,
-      phase1: NumericPhaseParser[Event, State]
+      innerPhase1: NumericPhaseParser[Event, State]
     )(
       implicit timeExtractor: TimeExtractor[Event]
     ) =
-      Function1Phase(function, functionName, phase1)
+      Function1Phase(function, functionName, innerPhase1)
 
     def call2[Event, State1, State2](
       function: (Double, Double) => Double,
       functionName: String,
-      phase1: NumericPhaseParser[Event, State1],
-      phase2: NumericPhaseParser[Event, State2]
+      innerPhase1: NumericPhaseParser[Event, State1],
+      innerPhase2: NumericPhaseParser[Event, State2]
     )(implicit timeExtractor: TimeExtractor[Event]) =
-      Function2Phase(function, functionName, phase1, phase2)
+      Function2Phase(function, functionName, innerPhase1, innerPhase2)
   }
 
   case class Reduce[Event, State](reducer: (Double, Double) => Double)(
@@ -198,24 +198,24 @@ object NumericPhases {
       s"$functionName(${phase1.format(event, state._1)}, ${phase2.format(event, state._2)})"
   }
 
-//  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
-//    function: Seq[Double] => Double,
-//    functionName: String,
-//    phases: Phases
-//  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
-//      extends Pattern[Event, States, Double] {
-//    override def initialState: States = phases.map(new Poly1 {
-//      implicit val pat = at[Pattern[Event, _, _]] { p =>
-//        p.initialState
-//      }
-//    })
-//    override def apply(v1: Event, v2: Phases): (PatternResult[Double], Phases) = {
-//      val allPhasesTogether =
-//        phases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
-//      val (results, newState) = allPhasesTogether(event, state)
-//      // FIXME@trolley813: it's pseudocode, won't work
-//      results.map { case x => function(x.toSeq) } -> newState
-//
-//    }
-//  }
+  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
+    function: Seq[Double] => Double,
+    functionName: String,
+    innerPhases: Phases
+  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
+      extends Pattern[Event, States, Double] {
+    override def initialState: States = innerPhases.map(new Poly1 {
+      implicit val pat = at[Pattern[Event, _, _]] { p =>
+        p.initialState
+      }
+    })
+    override def apply(v1: Event, v2: Phases): (PatternResult[Double], Phases) = {
+      val allPhasesTogether =
+        innerPhases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
+      val (results, newState) = allPhasesTogether(event, state)
+      // FIXME@trolley813: it's pseudocode, won't work
+      results.map { case x => function(x.toSeq) } -> newState
+
+    }
+  }
 }

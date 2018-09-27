@@ -94,7 +94,7 @@ object OneTimeStates {
     ): AccumState[T] = {
       LagState[T](
         window = window,
-        value = if (value == null) Some(value) else None,
+        value = this.value.orElse(Some(value)),
         startTime = startTime.orElse(Some(time)),
         lastTime = Some(time)
       )

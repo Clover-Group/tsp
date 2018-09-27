@@ -99,11 +99,8 @@ object ContinuousStates {
       time: Time,
       value: T
     ): AccumState[T] = {
-      val lastValue = queue.dequeueWhile(_._1 < time.toMillis - window.toMillis).lastOption match {
-        case Some(p) => Some(p._2)
-        case None => None
-      }
-      val newValue = if (lastValue.isDefined) lastValue else this.value
+      val lastValue = queue.dequeueWhile(_._1 < time.toMillis - window.toMillis).lastOption.map(_._2)
+      val newValue = lastValue.orElse(this.value)
       queue.enqueue((time, value))
       LagState[T](
         window = window,

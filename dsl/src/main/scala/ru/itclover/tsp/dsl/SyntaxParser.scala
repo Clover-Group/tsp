@@ -417,7 +417,7 @@ class SyntaxParser[Event](val input: ParserInput)(
           function match {
             case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPhaseParser]
             case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPhaseParser]
-            case "lag" => Pattern.Functions.lag(PreviousValue(arg), win).asInstanceOf[AnyNumericPhaseParser]
+            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPhaseParser]
           }
         }
       )
