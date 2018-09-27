@@ -1,7 +1,6 @@
 package ru.itclover.tsp.utils
 
 import org.scalatest.WordSpec
-import ru.itclover.tsp.core.{TestEvent, _}
 import ru.itclover.tsp.core.Pattern.Functions._
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
 import ru.itclover.tsp.core.Time._
