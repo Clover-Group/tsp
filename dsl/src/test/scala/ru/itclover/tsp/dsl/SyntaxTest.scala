@@ -99,6 +99,20 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
       )
     ),
     (
+      "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for exactly 100 sec > 50 sec) andThen SpeedEngine > 0",
+      ToSegments(
+        Assert(equalParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
+          .timed(Window(100000), Window(100000))
+        togetherWith
+          Functions.truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000))
+            .timed(Window(100000), Window(100000))
+            .flatMap(
+          x => ConstantPhases(x._1 > 50000)
+        )
+        andThen Skip(1, Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0.0)))
+      )
+    ),
+    (
       "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorOilPump = 1 for 7 min < 80 sec)) andThen SpeedEngine > 0",
       ToSegments(
         Assert(
