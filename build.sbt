@@ -18,7 +18,10 @@ lazy val commonSettings = Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation"           // warn about use of deprecated APIs
     // "-Xlint"                 // enable handy linter warnings
-  )
+  ),
+  ghreleaseNotes := Utils.releaseNotes,
+  ghreleaseRepoOrg := "Clover-Group",
+  ghreleaseRepoName := "tsp"
 )
 
 lazy val assemblySettings = Seq(

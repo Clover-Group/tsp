@@ -3,6 +3,7 @@ import sbt._
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease._
 import ReleaseTransformations._
+import ohnosequences.sbt.GithubRelease.keys.TagName
 
 object Utils {
 
@@ -25,5 +26,19 @@ object Utils {
       ),
       st
     )
+  }
+
+  def releaseNotes(tag: TagName): String = {
+    val changelog: String = IO.read(file("./CHANGELOG"))
+    val pattern = s"(?s)(?:^|\\n)## $tag\\s*(.*?)(?:\\n## |$$)".r
+    pattern.findAllIn(changelog).group(1)
+  }
+
+  def writeWipToChangelog(tag: TagName): Unit = {
+    val changelogWip: String = IO.read(file("./CHANGELOG.wip"))
+    val changelog: String = IO.read(file("./CHANGELOG"))
+    val newChangelog: String = s"## $tag\n$changelogWip\n$changelog"
+    IO.write(file("./CHANGELOG"), newChangelog)
+    IO.write(file("./CHANGELOG.wip"), "")
   }
 }
