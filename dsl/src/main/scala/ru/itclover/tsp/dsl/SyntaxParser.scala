@@ -73,7 +73,14 @@ class SyntaxParser[Event](val input: ParserInput)(
               })
               .asInstanceOf[AnyPhaseParser]
           case 1 =>
-            accum.timed(w, w).asInstanceOf[AnyPhaseParser]
+            accum.timed(w, w).flatMap({ x =>
+              val truthCount = x._1
+              if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
+                OneRowPattern((_: Event) => truthCount)
+              } else {
+                FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
+              }
+            }).asInstanceOf[AnyPhaseParser]
         }
       }
 
@@ -93,7 +100,14 @@ class SyntaxParser[Event](val input: ParserInput)(
               })
               .asInstanceOf[AnyPhaseParser]
           case 1 =>
-            accum.timed(w, w).asInstanceOf[AnyPhaseParser]
+            accum.timed(w, w).flatMap(x => {
+              val msCount = x._1
+              if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
+                OneRowPattern((_: Event) => msCount)
+              } else {
+                FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
+              }
+            }).asInstanceOf[AnyPhaseParser]
         }
       }
 
