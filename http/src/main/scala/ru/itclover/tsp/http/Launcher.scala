@@ -22,9 +22,22 @@ object Launcher extends App with HttpService {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val streamEnvOrError = if (args(0) == "flink-local-cluster-test") {
-    log.info(s"Starting TSP on cluster Flink: localhost:8081")
-    Right(StreamExecutionEnvironment.createRemoteEnvironment("localhost", 8080, args(1)))
+  override val flinkMonitoringHost = Properties
+    .propOrElse("FLINK_MONITORING_HOST", configs.getString("flink.monitoring.host"))
+  override val flinkMonitoringPort = Either.catchNonFatal(
+    Properties.propOrElse("FLINK_MONITORING_PORT", configs.getString("flink.monitoring.port")).toInt
+  ).fold(
+    ex => throw new RuntimeException(s"Cannot parse FLINK_MONITORING_PORT: ${ex.getMessage}"),
+    port => port
+  )
+
+  val streamEnvOrError = if (args(0) == "flink-cluster-test") {
+    val (host, port) = getClusterHostPort match {
+      case Right(hostAndPort) => hostAndPort
+      case Left(err) => throw new RuntimeException(err)
+    }
+    log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
+    Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
   } else if (args.length != 1) {
     Left("You need to provide one arg: `flink-local` or `flink-cluster` to specify Flink execution mode.")
   } else if (args(0) == "flink-local") {
@@ -64,7 +77,7 @@ object Launcher extends App with HttpService {
     }
   }
 
-  def createClusterEnv: Either[String, StreamExecutionEnvironment] = for {
+  def getClusterHostPort: Either[String, (String, Int)] = for {
     clusterPort <- Properties
       .propOrNone("FLINK_JOBMGR_PORT")
       .map(p =>
@@ -74,21 +87,23 @@ object Launcher extends App with HttpService {
       )
       .getOrElse(Right(configs.getInt("flink.job-manager.port")))
     clusterHost = Properties.envOrElse("FLINK_JOBMGR_HOST", configs.getString("flink.job-manager.host"))
+  } yield (clusterHost, clusterPort)
 
-    rawJarPath = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-    jarPath = URLDecoder.decode(rawJarPath, "UTF-8")
-    _ <- Either.cond(
-      jarPath.endsWith(".jar"),
-      Unit,
-      s"Jar path is invalid: `$jarPath` (no jar extension)"
-    )
-  } yield {
-    log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort")
-    StreamExecutionEnvironment.createRemoteEnvironment(clusterHost, clusterPort, jarPath)
+  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort flatMap {
+    case (clusterHost, clusterPort) =>
+      log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
+      val rawJarPath = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
+      val jarPath = URLDecoder.decode(rawJarPath, "UTF-8")
+
+      Either.cond(
+        jarPath.endsWith(".jar"),
+        StreamExecutionEnvironment.createRemoteEnvironment(clusterHost, clusterPort, jarPath),
+        s"Jar path is invalid: `$jarPath` (no jar extension)"
+      )
   }
 
   def createLocalEnv: Either[String, StreamExecutionEnvironment] = {
-    log.info("Starting local Flink")
+    log.info(s"Starting local Flink with monitoring in $monitoringUri")
     Right(StreamExecutionEnvironment.createLocalEnvironment())
   }
 }

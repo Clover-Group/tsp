@@ -24,30 +24,31 @@ import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
 trait HttpService extends RoutesProtocols {
-  val isDebug = true
-  val config = ConfigFactory.load()
-  val isHideExceptions = config.getBoolean("general.is-hide-exceptions")
-  val monitoringUri: Uri = "http://" + config.getString("flink.monitoring.host") + ":" +
-  config.getString("flink.monitoring.port")
-
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   implicit val streamEnvironment: StreamExecutionEnvironment
   implicit val executionContext: ExecutionContextExecutor
+
+  private val configs = ConfigFactory.load()
+  val isDebug = true
+  val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
+  val flinkMonitoringHost: String = configs.getString("flink.monitoring.host")
+  val flinkMonitoringPort: Int = configs.getInt("flink.monitoring.port")
+  def monitoringUri: Uri = "http://" + flinkMonitoringHost + ":" + flinkMonitoringPort
 
   private val log = Logger[HttpService]
 
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
     jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
     monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-  } yield ignoreTrailingSlash { jobs ~ monitoring }
+  } yield jobs ~ monitoring
 
   def route = (logRequestAndResponse & handleErrors) {
-    composeRoutes.run(executionContext).andThen { futureRoute =>
-      futureRoute.onComplete { _ =>
-        System.gc()
-      } // perform full GC after each route
-      futureRoute
+    ignoreTrailingSlash {
+      composeRoutes.run(executionContext).andThen { futureRoute =>
+        futureRoute.onComplete { _ => System.gc() } // perform full GC after each route
+        futureRoute
+      }
     }
   }
 
