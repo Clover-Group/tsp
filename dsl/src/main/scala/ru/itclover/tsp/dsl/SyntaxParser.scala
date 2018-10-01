@@ -67,12 +67,13 @@ class SyntaxParser[Event](val input: ParserInput)(
           case 1 =>
             accum
         }).flatMap({ truthCount =>
-          if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
-            OneRowPattern((_: Event) => truthCount)
-          } else {
-            FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
-          }
-        }).asInstanceOf[AnyPhaseParser]
+            if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
+              OneRowPattern((_: Event) => truthCount)
+            } else {
+              FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
+            }
+          })
+          .asInstanceOf[AnyPhaseParser]
       }
 
       case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
@@ -84,14 +85,15 @@ class SyntaxParser[Event](val input: ParserInput)(
             PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
           case 1 =>
             accum
-            }).flatMap(msCount => {
-          if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
-            OneRowPattern((_: Event) => msCount)
-          } else {
-            FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
-          }
-        }).asInstanceOf[AnyPhaseParser]
-    }
+        }).flatMap(msCount => {
+            if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
+              OneRowPattern((_: Event) => msCount)
+            } else {
+              FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
+            }
+          })
+          .asInstanceOf[AnyPhaseParser]
+      }
 
       case None => Assert(phase.asInstanceOf[AnyBooleanPhaseParser]).timed(w, w).asInstanceOf[AnyPhaseParser]
 
@@ -369,12 +371,26 @@ class SyntaxParser[Event](val input: ParserInput)(
           case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPhaseParser]
           case "sin" => Pattern.Functions.call1(Math.sin, "sin", arguments.head).asInstanceOf[AnyNumericPhaseParser]
           case "cos" => Pattern.Functions.call1(Math.cos, "cos", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "tan" | "tg" => Pattern.Functions.call1(Math.tan, "tan", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "cot" | "ctg" => Pattern.Functions.call1(1.0 / Math.tan(_), "cot", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "sind" => Pattern.Functions.call1((x: Double) => Math.sin(x * Math.PI / 180.0), "sind", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "cosd" => Pattern.Functions.call1((x: Double) => Math.cos(x * Math.PI / 180.0), "cosd", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "tand" | "tgd" => Pattern.Functions.call1((x: Double) => Math.tan(x * Math.PI / 180.0), "tand", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "cotd" | "ctgd" => Pattern.Functions.call1((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0), "cotd", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "tan" | "tg" =>
+            Pattern.Functions.call1(Math.tan, "tan", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "cot" | "ctg" =>
+            Pattern.Functions.call1(1.0 / Math.tan(_), "cot", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "sind" =>
+            Pattern.Functions
+              .call1((x: Double) => Math.sin(x * Math.PI / 180.0), "sind", arguments.head)
+              .asInstanceOf[AnyNumericPhaseParser]
+          case "cosd" =>
+            Pattern.Functions
+              .call1((x: Double) => Math.cos(x * Math.PI / 180.0), "cosd", arguments.head)
+              .asInstanceOf[AnyNumericPhaseParser]
+          case "tand" | "tgd" =>
+            Pattern.Functions
+              .call1((x: Double) => Math.tan(x * Math.PI / 180.0), "tand", arguments.head)
+              .asInstanceOf[AnyNumericPhaseParser]
+          case "cotd" | "ctgd" =>
+            Pattern.Functions
+              .call1((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0), "cotd", arguments.head)
+              .asInstanceOf[AnyNumericPhaseParser]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser],

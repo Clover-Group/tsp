@@ -19,6 +19,9 @@ object Utils {
     val file = Project.extract(st).get(releaseVersionFile)
     IO.writeLines(file, Seq(versionStr))
 
+    // Write release notes from temporary WIP changelog to regular one
+    writeWipToChangelog(versionStr)
+
     reapply(
       Seq(
         if (useGlobal) version in ThisBuild := selected
@@ -30,7 +33,7 @@ object Utils {
 
   def releaseNotes(tag: TagName): String = {
     val changelog: String = IO.read(file("./CHANGELOG"))
-    val pattern = s"(?s)(?:^|\\n)## $tag\\s*(.*?)(?:\\n## |$$)".r
+    val pattern = s"(?s)(?:^|\\n)## ${tag.stripPrefix("v")}\\s*(.*?)(?:\\n## |$$)".r
     pattern.findAllIn(changelog).group(1)
   }
 
