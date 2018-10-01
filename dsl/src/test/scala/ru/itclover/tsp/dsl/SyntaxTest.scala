@@ -28,7 +28,9 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
   val invalidRule = "1 = invalid rule"
   val multiAvgRule = "avg(x, 5 sec) + avg(x, 30 sec) + avg(x, 60 sec) > 300"
 
-  def equalParser[State1, State2, T](left: Pattern[TestEvent, State1, T], right: Pattern[TestEvent, State2, T]
+  def equalParser[State1, State2, T](
+    left: Pattern[TestEvent, State1, T],
+    right: Pattern[TestEvent, State2, T]
   ): ComparingParser[TestEvent, State1, State2, T] = ComparingParser(left, right)((a, b) => a equals b, "==")
 
   implicit val extractTime: TimeExtractor[TestEvent] = new TimeExtractor[TestEvent] {
@@ -91,7 +93,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         PushDownAccumInterval(
           Functions
             .truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000)),
-          TimeInterval(Window(0),Window(50000))
+          TimeInterval(Window(0), Window(50000))
         ).flatMap(
           msCount => ConstantPhases(msCount > 50000)
         )
@@ -104,11 +106,11 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
         Assert(equalParser('SpeedEngine.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
-          Functions.truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000))
-            .timed(Window(100000), Window(100000))
-            .flatMap(
-          x => ConstantPhases(x._1 > 50000)
-        )
+        Functions
+          .truthMillisCount('POilPumpOut.as[Double](numberExtractor) > ConstantPhases(0.1), Window(100000))
+          .flatMap(
+            msCount => ConstantPhases(msCount > 50000)
+          )
         andThen Skip(1, Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0.0)))
       )
     ),
@@ -121,16 +123,16 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
           and 'TOilInDiesel.as[Double](numberExtractor) > ConstantPhases(8.0)
         )
         togetherWith
-          PushDownAccumInterval(
+        PushDownAccumInterval(
           Functions
             .truthMillisCount(
               equalParser('ContactorOilPump.as[Double](numberExtractor), ConstantPhases[TestEvent, Double](1)),
               Window(420000)
             ),
-            TimeInterval(Window(0), Window(80000))
+          TimeInterval(Window(0), Window(80000))
         ).flatMap(
-            msCount => ConstantPhases(msCount < 80000)
-          )
+          msCount => ConstantPhases(msCount < 80000)
+        )
         andThen Skip(1, Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0.0)))
       )
     ),
@@ -173,14 +175,16 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     (
       "(PosKM > 4 for 120 min < 60 sec) and SpeedEngine > 0",
       ToSegments(
-        accums.PushDownAccumInterval(
-          Functions
-            .truthMillisCount(
-              'PosKM.as[Double](numberExtractor) > ConstantPhases[TestEvent, Double](4),
-              Window(7200000)
-            ),
-          TimeInterval(Window(0), Window(60000))
-        ).flatMap(
+        accums
+          .PushDownAccumInterval(
+            Functions
+              .truthMillisCount(
+                'PosKM.as[Double](numberExtractor) > ConstantPhases[TestEvent, Double](4),
+                Window(7200000)
+              ),
+            TimeInterval(Window(0), Window(60000))
+          )
+          .flatMap(
             msCount => ConstantPhases(msCount < 60000)
           )
         togetherWith Assert('SpeedEngine.as[Double](numberExtractor) > ConstantPhases(0))
