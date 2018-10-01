@@ -59,7 +59,7 @@ class SyntaxParser[Event](val input: ParserInput)(
     range: Option[Any]
   ): AnyPhaseParser = {
     range match {
-      case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[_]] => {
+      case Some(countInterval @NumericInterval(_, _)) => {
         val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
         (exactly.getOrElse(0) match {
           case 0 =>
@@ -324,8 +324,7 @@ class SyntaxParser[Event](val input: ParserInput)(
   def time: Rule1[Window] = rule {
     singleTime.+(ws) ~> (
       (ts: Seq[Window]) =>
-        Window(ts.foldLeft(0L) { (acc, t) =>
-          acc + t.toMillis
+        Window(ts.foldLeft(0L) { (acc, t) => acc + t.toMillis
         })
     )
   }
