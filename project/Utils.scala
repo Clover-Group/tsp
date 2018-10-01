@@ -1,9 +1,13 @@
 import sbt.Keys._
-import sbt._
+import sbt.{Def, _}
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease._
 import ReleaseTransformations._
+import ohnosequences.sbt.GithubRelease.DefTask
 import ohnosequences.sbt.GithubRelease.keys.TagName
+import ohnosequences.sbt.GithubRelease.defs.githubRelease
+import ohnosequences.sbt.SbtGithubReleasePlugin.tagNameArg
+import org.kohsuke.github.GHRelease
 
 object Utils {
 
@@ -56,7 +60,11 @@ object Utils {
     vcs(st).add(changelogFileName, changelogWipFileName)
     val sign = Project.extract(st).get(releaseVcsSign)
     val ver = Project.extract(st).get(version)
-    vcs(st).commit("updated CHANGELOGS for $ver", sign)
+    vcs(st).commit(s"updated CHANGELOGS for $ver", sign)
     st
+  }
+
+  def defaultGithubRelease: Def.Initialize[InputTask[GHRelease]] = Def.inputTaskDyn {
+    githubRelease(tagNameArg.parsed)
   }
 }

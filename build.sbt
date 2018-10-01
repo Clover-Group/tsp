@@ -21,7 +21,8 @@ lazy val commonSettings = Seq(
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
-  ghreleaseRepoName := "tsp"
+  ghreleaseRepoName := "tsp",
+  githubRelease := null // don't release subprojects
 )
 
 lazy val assemblySettings = Seq(
@@ -91,6 +92,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
+  .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
   .aggregate(core, config, http, flinkConnector, spark, dsl)
   .dependsOn(core, config, http, flinkConnector, spark, dsl)
 
@@ -189,7 +191,7 @@ releaseProcess := Seq[ReleaseStep](
   runTest,                                // : ReleaseStep
   setReleaseVersion,                      // : ReleaseStep (custom)
   commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-  commitChangelogs,
+  commitChangelogs,                       // : ReleaseStep (custom)
   tagRelease,                             // : ReleaseStep
   // TODO: Configure publishing on GitHub (if needed)
   // publishArtifacts,                    // : ReleaseStep, checks whether `publishTo` is properly set up
