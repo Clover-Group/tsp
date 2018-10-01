@@ -7,46 +7,50 @@ import scala.language.implicitConversions
 
 object ConstantPhases {
 
-  def apply[Event, T](value: T): OneRowPattern[Event, T] = new OneRowPattern[Event, T] {
-    override def extract(event: Event): T = value
-  }
+  def apply[Event, T](value: T): OneRowPattern[Event, T] = OneRowPattern[Event, T](_ => value)
 
-  trait OneRowPattern[Event, +T] extends Pattern[Event, NoState, T] {
-
-    override def apply(v1: Event, v2: NoState): (PatternResult[T], NoState) = {
-      val value = extract(v1)
-      (if (value != null && value != Double.NaN) Success(value) else Stay) -> NoState.instance
-    }
-
-    override def aggregate(event: Event, state: NoState): NoState = initialState
-
-    def extract(event: Event): T
-
+  trait OneRowMarker[Event, +T] {
     def fieldName: Option[String] = None
 
-    override def initialState: NoState = NoState.instance
-
-    override def format(event: Event, state: NoState) = if (fieldName.isDefined) {
-      s"${fieldName.get}=${extract(event)}"
-    } else {
-      s"${extract(event)}"
-    }
+    def extract(event: Event): T
   }
+
+  type OneRowPattern[Event, +T] = Pattern[Event, NoState, T] with OneRowMarker[Event, T]
 
   object OneRowPattern {
-    def apply[Event, T](f: Event => T, fieldNameOpt: Option[String] = None): OneRowPattern[Event, T] = new OneRowPattern[Event, T]() {
-      override val fieldName = fieldNameOpt
+    def construct[Event, T](extractF: Event => T,
+                            fieldName: => Option[String] = Option.empty)(
+                             formatF: (Event, NoState) => String = (event: Event, noState: NoState) => {
+                               if (fieldName.isDefined) {
+                                 s"${fieldName.get}=${extractF(event)}"
+                               } else {
+                                 s"${extractF(event)}"
+                               }
+                             }
+                           ): OneRowPattern[Event, T]
+    = new Pattern[Event, NoState, T] with OneRowMarker[Event, T] {
+      override def apply(v1: Event, v2: NoState): (PatternResult[T], NoState) = {
+        val value = extract(v1)
+        (if (value != null && value != Double.NaN) Success(value) else Stay) -> NoState.instance
+      }
 
-      override def extract(event: Event) = f(event)
+      override def aggregate(event: Event, state: NoState): NoState = initialState
+
+      override def fieldName: Option[String] = fieldName
+
+      override def initialState: NoState = NoState.instance
+
+      override def format(event: Event, state: NoState): String = formatF(event, state)
+
+      override def extract(event: Event): T = extractF(event)
     }
+
+    def apply[Event, T](f: Event => T, fieldNameOpt: Option[String] = Option.empty): OneRowPattern[Event, T] =
+      construct[Event, T](f, fieldNameOpt)()
   }
 
-  case class FailurePattern[Event](msg: String) extends OneRowPattern[Event, Nothing] {
-    override def apply(v1: Event, v2: NoState): (Failure, NoState) = Failure(msg) -> NoState.instance
-
-    override def extract(event: Event): Nothing = ???
-
-    override def format(event: Event, state: NoState) = s"Failure($msg)"
+  object FailurePattern {
+    def apply[Event](msg: String): OneRowPattern[Event, Nothing] = OneRowPattern.construct[Event, Nothing](???.asInstanceOf[Event => Nothing])((e: Event, n: NoState) => s"Failure($msg)")
   }
 
   trait LessPriorityImplicits {
