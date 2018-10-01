@@ -1,3 +1,5 @@
+## 0.12.2
+- added automatic committing of changelogs
 ## 0.12.1
 - Added automatic changelog updating mechanics.
 - Fixed improper `exactly` keyword handling.
