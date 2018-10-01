@@ -31,17 +31,32 @@ object Utils {
     )
   }
 
+  val changelogFileName: TagName = "./CHANGELOG"
+  val changelogWipFileName: TagName = "./CHANGELOG.wip"
+
   def releaseNotes(tag: TagName): String = {
-    val changelog: String = IO.read(file("./CHANGELOG"))
+    val changelog: String = IO.read(file(changelogFileName))
     val pattern = s"(?s)(?:^|\\n)## ${tag.stripPrefix("v")}\\s*(.*?)(?:\\n## |$$)".r
     pattern.findAllIn(changelog).group(1)
   }
 
   def writeWipToChangelog(tag: TagName): Unit = {
-    val changelogWip: String = IO.read(file("./CHANGELOG.wip"))
-    val changelog: String = IO.read(file("./CHANGELOG"))
+    val changelogWip: String = IO.read(file(changelogWipFileName))
+    val changelog: String = IO.read(file(changelogFileName))
     val newChangelog: String = s"## $tag\n$changelogWip\n$changelog"
-    IO.write(file("./CHANGELOG"), newChangelog)
-    IO.write(file("./CHANGELOG.wip"), "")
+    IO.write(file(changelogFileName), newChangelog)
+    IO.write(file(changelogWipFileName), "")
+  }
+
+  private def vcs(st: State): Vcs = {
+    Project.extract(st).get(releaseVcs).getOrElse(sys.error("Aborting release. Working directory is not a repository of a recognized VCS."))
+  }
+
+  def commitChangelogs: ReleaseStep = { st: State =>
+    vcs(st).add(changelogFileName, changelogWipFileName)
+    val sign = Project.extract(st).get(releaseVcsSign)
+    val ver = Project.extract(st).get(version)
+    vcs(st).commit("updated CHANGELOGS for $ver", sign)
+    st
   }
 }

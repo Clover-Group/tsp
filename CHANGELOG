@@ -1,3 +1,6 @@
+## 0.12.1
+- Added automatic changelog updating mechanics.
+- Fixed improper `exactly` keyword handling.
 ## 0.12.0
 ## 0.11.4
 ## 0.11.3

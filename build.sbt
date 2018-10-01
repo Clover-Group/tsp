@@ -177,6 +177,7 @@ import ReleaseTransformations.{setReleaseVersion => _, _}
 
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
+lazy val commitChangelogs: ReleaseStep = Utils.commitChangelogs
 
 releaseVersionFile := file("./VERSION")
 releaseUseGlobalVersion := false
@@ -188,6 +189,7 @@ releaseProcess := Seq[ReleaseStep](
   runTest,                                // : ReleaseStep
   setReleaseVersion,                      // : ReleaseStep (custom)
   commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
+  commitChangelogs,
   tagRelease,                             // : ReleaseStep
   // TODO: Configure publishing on GitHub (if needed)
   // publishArtifacts,                    // : ReleaseStep, checks whether `publishTo` is properly set up

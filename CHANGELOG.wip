@@ -1,2 +1,1 @@
-- Added automatic changelog updating mechanics.
-- Fixed improper `exactly` keyword handling.
+- added automatic committing of changelogs
