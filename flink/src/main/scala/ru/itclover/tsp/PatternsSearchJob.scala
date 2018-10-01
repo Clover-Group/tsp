@@ -68,7 +68,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     if (inputConf.parallelism.isDefined) streamEnv.setParallelism(inputConf.parallelism.get)
     for {
       _  <- findAndSavePatterns(phases)
-        .map(_.zipWithIndex.map { case (phase, ind) => phase.name(searchStageName(ind)) })
       result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
     } yield result
   }
@@ -96,6 +95,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
+          .name("Searching for incidents")
 
         // Aggregate contiguous incidents in one big pattern (if configured)
         val results = if (inputConf.defaultEventsGapMs > 0L) {
@@ -106,14 +106,17 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
               override def extract(element: Incident): Long = element.maxWindowMs
             }))
             .reduce { _ |+| _ }
+            .name("Uniting adjacent incidents")
             .map(resultMapper)
         } else {
           incidents.map(resultMapper)
         }
 
         results
+          .name("Mapping results")
           .writeUsingOutputFormat(outputConf.getOutputFormat)
           .setParallelism(outputConf.parallelism.getOrElse(1))
+          .name("Saving incidents")
       }
     }
   }
