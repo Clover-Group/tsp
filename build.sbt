@@ -4,6 +4,7 @@
 name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 maintainer in Docker := "Clover Group"
+dockerUsername in Docker := Some("clovergrp")
 
 //version in ThisBuild := IO.read(file("./VERSION"))
 scalaVersion in ThisBuild := "2.11.12"
@@ -168,9 +169,10 @@ val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 def nextVersion(v: String): String = Bump.Next.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
 
 git.gitTagToVersionNumber := {
-  case VersionRegex(v,"") => Some(v)
-  case VersionRegex(v,"SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
-  case VersionRegex(v,s) => Some(s"${nextVersion(v)}-$s")
+  case VersionRegex(v, "") => Some(v)
+  case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
+  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-$s")
+  case VersionRegex(v, s) => Some(s"$v-$s")
   case _ => None
 }
 
@@ -186,7 +188,7 @@ releaseUseGlobalVersion := false
 
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStep
+  inquireVersions,                        // : ReleaseStepdockerUsername
   runClean,                               // : ReleaseStep
   runTest,                                // : ReleaseStep
   setReleaseVersion,                      // : ReleaseStep (custom)
