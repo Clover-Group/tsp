@@ -5,3 +5,7 @@ tmp
 logs
 
 .github
+
+# Jekyll
+docs/_site
+docs/.bundle

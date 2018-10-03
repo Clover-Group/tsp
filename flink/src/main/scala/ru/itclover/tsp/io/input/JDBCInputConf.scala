@@ -16,7 +16,22 @@ import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 
 import scala.util.Try
 
-
+/**
+  * Source for anything that support JDBC connection
+  * @param sourceId mark to pass to sink
+  * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
+  * @param query SQL query
+  * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
+  * @param datetimeFiel
+  * @param eventsMaxGapMs maximum gap by which source data will be split, i.e. result incidents will be split by these gaps
+  * @param defaultEventsGapMs "typical" gap between events, used to unite nearby incidents in one (sessionization)
+  * @param partitionFields fields by which data will be split and paralleled physically
+  * @param userName for JDBC auth
+  * @param password for JDBC auth
+  * @param props extra configs to JDBC `DriverManager.getConnection(`
+  * @param parallelism basic parallelism of all computational nodes
+  * @param patternsParallelism number of parallel branch nodes after sink stage (node)
+  */
 case class JDBCInputConf(
   sourceId: Int,
   jdbcUrl: String,
