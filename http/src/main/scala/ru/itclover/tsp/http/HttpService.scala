@@ -60,7 +60,7 @@ trait HttpService extends RoutesProtocols {
     .newBuilder()
     .handleNotFound {
       extractUnmatchedPath { p =>
-        complete(NotFound, FailureResponse(404, s"Path not found: `$p`", Seq.empty))
+        complete(NotFound, FailureResponse(4004, s"Path not found: `$p`", Seq.empty))
       }
     }
     .handleAll[MalformedFormFieldRejection] { x =>

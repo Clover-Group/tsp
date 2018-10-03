@@ -32,3 +32,16 @@ source* | [Source](./model/sources.md) | Configs to specific type of source prov
 sink* | [Sink](./model/sinks.md) | Configs to specific type of sink provided in path param `sink`
 patterns* | List[[Pattern](./model/pattern.md)] | Patterns source-code to parse and run on source data
 
+
+__Response__: 
+- Success example: `{'response': {"execTimeSec": 100}}`
+- Failure: Generic error response
+
+
+__Error codes__:
+
+Code | Description
+---- | -----------
+*4001* | *Invalid patterns source code*
+{% include generic-api-errors.md %}
+
