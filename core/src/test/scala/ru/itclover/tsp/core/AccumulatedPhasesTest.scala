@@ -228,4 +228,14 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
       )
     }
   }
+
+  "LagParser" should {
+    "compute lag" in {
+      checkOnTestEvents_strict(
+        (p: TestPhase[Boolean]) => lag(p, 2.seconds),
+        fails map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
+        (0 until 10).map(_ => Failure("Test"))
+      )
+    }
+  }
 }
