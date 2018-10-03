@@ -391,6 +391,12 @@ class SyntaxParser[Event](val input: ParserInput)(
             Pattern.Functions
               .call1((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0), "cotd", arguments.head)
               .asInstanceOf[AnyNumericPhaseParser]
+          case "ln" =>
+            Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "log" =>
+            Pattern.Functions.call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1)).asInstanceOf[AnyNumericPhaseParser]
+          case "sigmoid" =>
+            Pattern.Functions.call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1)).asInstanceOf[AnyNumericPhaseParser]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser],
