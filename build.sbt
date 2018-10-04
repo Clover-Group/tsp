@@ -68,7 +68,7 @@ dockerCommands := Seq(
   Cmd("FROM", "openjdk:11"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java -XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler -jar /opt/tsp.jar {EXECUTION_TYPE}")
+  ExecCmd("CMD", "sh", "-c", "java -XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
 
