@@ -14,6 +14,23 @@ import ru.itclover.tsp.services.InfluxDBService
 import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, RightBiasedEither, TryOps}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 
+
+/**
+  * Source for InfluxDB
+  * @param sourceId simple mark to pass to sink
+  * @param dbName
+  * @param url to database, for example `http://localhost:8086`
+  * @param query Influx SQL query
+  * @param eventsMaxGapMs maximum gap by which source data will be split, i.e. result incidents will be split by these gaps
+  * @param defaultEventsGapMs "typical" gap between events, used to unite nearby incidents in one (sessionization)
+  * @param partitionFields fields by which data will be split and paralleled physically
+  * @param datetimeField
+  * @param userName for auth
+  * @param password for auth
+  * @param timeoutSec for DB connection
+  * @param parallelism basic parallelism of all computational nodes
+  * @param patternsParallelism number of parallel branch nodes after sink stage (node)
+  */
 case class InfluxDBInputConf(
   sourceId: Int,
   dbName: String,

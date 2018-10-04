@@ -1,16 +1,10 @@
-package ru.itclover.tsp.io.output
+# Sinks types
 
-import org.apache.flink.api.common.io.OutputFormat
-import org.apache.flink.types.Row
+> Note: {% include types-note.md %}
 
-trait OutputConf[Event] {
-  def forwardedFields: Seq[Symbol]
+- `jdbc` - anything that support JDBC connection  
 
-  def getOutputFormat: OutputFormat[Event]
-
-  def parallelism: Option[Int]
-}
-
+```scala
 /**
   * Sink for anything that support JDBC connection
   * @param tableName
@@ -31,8 +25,7 @@ case class JDBCOutputConf(
   batchInterval: Option[Int] = None,
   userName: Option[String] = None,
   parallelism: Option[Int] = Some(1)
-) extends OutputConf[Row] {
-  override def getOutputFormat = JDBCOutput.getOutputFormat(this)
+) extends OutputConf[Row] { ... }
+```
 
-  override def forwardedFields = rowSchema.forwardedFields
-}
+- `kafka` (beta) - TODO docs

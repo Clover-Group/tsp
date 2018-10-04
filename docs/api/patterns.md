@@ -1,64 +1,47 @@
 # Patterns search API
-API respond with [general response fromat](./index.md).
 
-### Types used in requests
-Translated to json directly
+{% include basic-api-format.md %}
 
-1. [@InputConf](flink/src/main/scala/ru/itclover/streammachine/io/input/InputConf.scala)
 
-2. [@OutputConf](flink/src/main/scala/ru/itclover/streammachine/io/output/OutputConf.scala)
+## Endpoints
 
-3. [@Pattern](flink/src/main/scala/ru/itclover/streammachine/io/input/RawPattern.scala)
+Note: params with '*' suffix are required.
 
-### Endpoints
+### POST `streamJob/from-{source}/to-{sink}/`
+Main method to run patterns search job.
 
-#### 1. POST "streamJob/from-jdbc/to-jdbc/"
+__Path parameters__:
 
-__GET Params:__
+Name | Type | Description
+---- | ---- | -----------
+source* | Enum | type of source to read data from, possible values: `jdbc`, `influxdb`
+sink* | Enum | type of sink to write incidents to, possible values: `jdbc`, `influxdb`, `kafka` (beta)
 
-__Request body:__
+__URL parameters__:
 
-```
-{
-    "uuid": String,
-    "source": @InputConf,
-    "sink": @OutputConf,
-    "patternsIdsAndCodes": [@Pattern]
-}
-```
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+run_async | Boolean | do send preserve connection (and send back all errors) during whole life of request? | `false`
 
-__Example request body__
+__Body parameters__:
 
-```
-{
-    "uuid": "test",
-    "source": {
-        "jdbcUrl": "jdbc:clickhouse://localhost:8123/default",
-        "query": "select date_time, id_tag, CurrentBattery from TEST_TABLE limit 0, 50000",
-        "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
-        "datetimeColname": "date_time",
-        "partitionColnames": ["id_tag"],
-        "eventsMaxGapMs": 60000,
-        "userName": "test",
-        "password": "test"
-    },
-    "sink": {
-        "jdbcUrl": "jdbc:clickhouse://localhost:8123/MwmTest",
-        "sinkSchema": {"tableName": "series765_data_res", "fromTimeField": "from", "fromTimeMillisField": "from_millis",
-            "toTimeField": "to", "toTimeMillisField": "to_millis", "patternIdField": "rule_id", "forwardedFields": ["id_tag"]},
-        "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
-        "batchInterval": 5000
-    },
-    "patternsIdsAndCodes": {"1": "CurrentBattery > 10"}
-}
-```
+Name | Type | Description
+---- | ---- | -----------
+uuid* | String | Unique ID of job for further use in monitoring API
+source* | [Source](./model/sources.md) | Configs to specific type of source provided in path param `source`
+sink* | [Sink](./model/sinks.md) | Configs to specific type of sink provided in path param `sink`
+patterns* | List[[Pattern](./model/pattern.md)] | Patterns source-code to parse and run on source data
 
-__Example response:__
-```
-{
-    "response": {
-        "execTimeSec": 1
-    },
-    "messages": []
-}
-```
+
+__Response__: 
+- Success example: `{'response': {"execTimeSec": 100}}`
+- Failure: Generic error response
+
+
+__Error codes__:
+
+Code | Description
+---- | -----------
+*4001* | *Invalid patterns source code*
+{% include generic-api-errors.md %}
+
