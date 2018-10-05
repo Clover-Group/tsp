@@ -7,7 +7,7 @@
 For patterns, TSP uses a special (domain-specific) language which
 specifies various conditions.
 
-#### Literals
+### Literals
 
 Integers, floating-point numbers and strings are written as usual
 (strings are in single quotes), for example:
@@ -17,7 +17,7 @@ Integers, floating-point numbers and strings are written as usual
 'this is a string'
 ```
 
-#### Time literals
+### Time literals
 They consist of a number (either integer or floating-point) and unit
 (full or abbreviated). Examples (and all supported units):
 ```
@@ -39,7 +39,7 @@ Time literals with different units can be combined, for example:
 2 hours 20 minutes 16 seconds 358 ms  (same as 8416358 ms, etc.)
 ```
 
-#### Database (source) columns
+### Database (source) columns
 
 They are written simply "as-is" if they are identifiers (thus beginning
 with a letter, and containing only alpha-numeric characters).
@@ -53,7 +53,7 @@ be escaped by double-quoting, like this:
 "this is an identifier"
 ```
 
-#### Operators
+### Operators
 
 The DSL supports following operators:
 - arithmetic: `+`, `-`, `*`, `/`, for example:
@@ -73,7 +73,7 @@ Speed >= 0 and (Voltage > 3400 or Voltage < 2700)
 
 In all cases, parentheses can be used to override the default priority.
 
-#### Conditions
+### Conditions
 
 _Simple condition_ consists only of a boolean expression, such as:
 ```
@@ -131,7 +131,33 @@ Column1 = 0 for 20 min andThen Column1 > 0 for 3 sec
 
 
 
-#### Functions
-TODO
+### Functions
+#### Mathematical functions
+- Trigonometric functions &#8212; `sin(x)`, `cos(x)`, `tan(x)`/`tg(x)`,
+ `cot(x)`/`ctg(x)` &#8212; return the value of the corresponding function
+ applied to the argument (expressed in radians)
+- Functions with the same names but with `d` suffix &#8212; e.g.
+ `sind(x)` &#8212; are applied to the argument in degrees.
+- `exp(x)` returns the exponential function _e<sup>x</sup>_.
+- `ln(x)` returns the natural logarithm of `x`.
+- `log(a, x)` returns the base-`a` logarithm of `x`
+(i.e. _log<sub>a</sub>x_).
+- `abs(x)` returns the absolute value of `x`.
+- `sigmoid(x, a)` returns the Fermi-Dirac sigmoid function, namely
+`1 / (1 + exp(-2 * x * a))`.
+#### Window functions (WIP)
+- `avg(x, time)` returns the value of `x` averaged over the period of
+`time`
+- `lag(x)` returns the previous value of `x`
+- `lag(x, time)` returns the value of `x` which was actual `time` ago
+#### Miscellaneous (WIP)
+- `avgOf(x1, ..., xn, cond)` compute the average value of `xi` which
+satisfy the `cond` condition (NaN's are discarded anyway).
+Conditions are written using single underscore (`_`) as a meta-variable.
+E.g. `avgOf(x1, x2, x3, _ > 0)` will return `(x1 + x2 + x3) / 3` if
+all of `x1`, `x2`, `x3` are positive, or `(x1 + x2) / 2` if only
+`x1` and `x2` are, etc.
+- `sumOf`, `countOf`, `minOf`, `maxOf` work analogously
+
 
 [^1]: all keywords are case insensitive
