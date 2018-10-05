@@ -1,11 +1,9 @@
 package ru.itclover.tsp.utils
 
 import org.scalatest.WordSpec
-import ru.itclover.tsp.core.Pattern.Functions._
-import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
-import ru.itclover.tsp.core.Time._
+import org.scalatest.Matchers
 
-class BucketizerTest extends WordSpec with ParserMatchers {
+class BucketizerTest extends WordSpec with Matchers {
   import Bucketizer._
 
   "Bucketizer" should {

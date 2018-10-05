@@ -234,7 +234,6 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
       checkOnTestEvents_strict(
         (p: TestPhase[Boolean]) => lag(p, 2.seconds),
         staySuccesses map (t => TestEvent(t.result.map(_ > 1.0), t.time)),
-        // TODO@trolley813: Is this result correct?
         Seq(Success(false), Success(false), Success(true), Success(true), Failure("Test"), Failure("Test"), Failure("Test"))
       )
     }
