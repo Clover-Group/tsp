@@ -9,3 +9,7 @@ logs
 # Jekyll
 docs/_site
 docs/.bundle
+docs/Gemfile
+docs/Gemfile.lock
+docs/vendor
+docs/vendor/**
