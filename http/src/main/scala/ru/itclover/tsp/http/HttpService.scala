@@ -22,6 +22,7 @@ import ru.itclover.tsp.utils.Exceptions
 import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
+import scala.util.Properties
 
 trait HttpService extends RoutesProtocols {
   implicit val system: ActorSystem
@@ -32,9 +33,9 @@ trait HttpService extends RoutesProtocols {
   private val configs = ConfigFactory.load()
   val isDebug = true
   val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
-  val flinkMonitoringHost: String = configs.getString("flink.monitoring.host")
-  val flinkMonitoringPort: Int = configs.getInt("flink.monitoring.port")
-  def monitoringUri: Uri = "http://" + flinkMonitoringHost + ":" + flinkMonitoringPort
+  val flinkMonitoringHost: String = getEnvVarOrConfig("FLINK_MONITORING_HOST", "flink.monitoring.host")
+  val flinkMonitoringPort: Int = getEnvVarOrConfig("FLINK_MONITORING_PORT", "flink.monitoring.port").toInt
+  val monitoringUri: Uri = "http://" + flinkMonitoringHost + ":" + flinkMonitoringPort
 
   private val log = Logger[HttpService]
 
@@ -113,4 +114,8 @@ trait HttpService extends RoutesProtocols {
       )
   }
 
+
+  def getEnvVarOrConfig(envVarName: String, configPath: String): String = {
+    Properties.envOrNone(envVarName).getOrElse(configs.getString(configPath))
+  }
 }
