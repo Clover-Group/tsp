@@ -200,6 +200,6 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
 )
 
-ghreleaseAssets := Seq(file(s"./mainRunner/target/TSP_v${version.value}.jar"))
+ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.11/TSP_v${version.value}.jar"))
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated

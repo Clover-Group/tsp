@@ -57,10 +57,14 @@ object Utils {
   }
 
   def commitChangelogs: ReleaseStep = { st: State =>
-    vcs(st).add(changelogFileName, changelogWipFileName)
+    if(vcs(st).add(changelogFileName, changelogWipFileName).! > 0) {
+      sys.error("Aborting release due to adding changelogs failed.")
+    }
     val sign = Project.extract(st).get(releaseVcsSign)
     val ver = Project.extract(st).get(version)
-    vcs(st).commit(s"updated CHANGELOGS for $ver", sign)
+    if(vcs(st).commit(s"updated CHANGELOGS for $ver", sign).! > 0) {
+      sys.error("Aborting release due to committing changelogs failed.")
+    }
     st
   }
 
