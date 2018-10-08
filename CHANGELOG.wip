@@ -1,5 +1,0 @@
-- New `lag(x, t sec)` pattern added to get value back `t sec` ago
-- More mathematical functions added
-- Updates of API docs
-- Changelogs mechanism implemented 
-- Internal tests

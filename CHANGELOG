@@ -1,3 +1,10 @@
+## 0.12.4
+- New `lag(x, t sec)` pattern added to get value back `t sec` ago
+- More mathematical functions added
+- Updates of API docs
+- Changelogs mechanism implemented 
+- Internal tests
+
 ## 0.12.3-test
 - Testing of Github release
 - Env vars for monitoring connection
