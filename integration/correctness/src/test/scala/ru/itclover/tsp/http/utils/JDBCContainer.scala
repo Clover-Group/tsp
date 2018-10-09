@@ -4,7 +4,7 @@ import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.dimafeng.testcontainers.SingleContainer
 import org.junit.runner.Description
-import org.testcontainers.containers.wait.WaitStrategy
+import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 
 import collection.JavaConverters._
