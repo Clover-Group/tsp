@@ -24,7 +24,10 @@ lazy val commonSettings = Seq(
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-  githubRelease := null // don't release subprojects
+  
+  // don't release subprojects
+  githubRelease := null,
+  skip in publish := true
 )
 
 lazy val assemblySettings = Seq(
@@ -70,7 +73,7 @@ dockerCommands := Seq(
   Cmd("FROM", "openjdk:11-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
+  ExecCmd("CMD", "sh", "-c", "java --add-modules=java.xml.bind ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
 
@@ -87,6 +90,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
         module
       }
     },
+    skip in publish := false,
     mainClass := Some(launcher),
     inTask(assembly)(assemblySettings)
   )
