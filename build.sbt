@@ -10,6 +10,7 @@ dockerUsername in Docker := Some("clovergrp")
 scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
+javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
 
@@ -27,7 +28,8 @@ lazy val commonSettings = Seq(
 )
 
 lazy val assemblySettings = Seq(
-  assemblyJarName := s"TSP_v${version.value}.jar"
+  assemblyJarName := s"TSP_v${version.value}.jar",
+  javaOptions += "--add-modules=java.xml.bind"
 )
 
 // make run command include the provided dependencies (for sbt run)
@@ -68,7 +70,7 @@ dockerCommands := Seq(
   Cmd("FROM", "openjdk:11"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java -XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler -jar /opt/tsp.jar $EXECUTION_TYPE")
+  ExecCmd("CMD", "sh", "-c", "java -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
 
