@@ -15,6 +15,8 @@ __Via Sbt:__
 __Via Docker:__
 1. Pull the image - `docker pull clovergrp/tsp:<tag>`, where `<tag>` is the desired 
 version number without the `v` prefix (e.g. `0.12.3`).
+The Docker Hub page for TSP can be found
+ [here](https://hub.docker.com/r/clovergrp/tsp/).
 2. Start the image - `docker run -p 8664:8080 -e EXECUTION_TYPE=<etype> tsp:<tag>`,
 where `<etype>` is currently `flink-local` or `flink-cluster` (it specifies Flink
 running mode), and `8664` is the port of the host machine which will be mapped to the
