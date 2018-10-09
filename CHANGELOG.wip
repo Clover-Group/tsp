@@ -1,1 +1,17 @@
-- Fix monitoring env vars for laucher
+- Fix monitoring env vars for launcher
+- Replaced Joda Time with built-in `java.time`
+- Updated libraries:
+    - scala-logging 3.7.2 => 3.9.0
+    - config 1.3.2 => 1.3.3
+    - influxdb-java 2.10 => 2.13
+    - clickhouse-jdbc 0.1.34 => 0.1.42
+    - flink 1.6.0 => 1.6.1
+    - akka-streams 2.5.16 => 2.5.17
+    - akka-http 10.1.4 => 10.1.5
+    - cats 1.2.0 => 1.4.0
+    - scalatest 3.0.4 => 3.0.5
+    - testcontainers 0.17.0 => 0.20.0
+    - postgresql 42.2.2 => 42.2.5
+    - jackson 2.9.4 => 2.9.7
+    - spark 2.2.1 => 2.3.2
+    - parboiled 2.1.4 => 2.1.5
