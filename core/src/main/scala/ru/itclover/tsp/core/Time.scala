@@ -2,19 +2,21 @@ package ru.itclover.tsp.core
 
 import java.math.BigInteger
 import java.sql.Timestamp
-import java.time.{Duration, Instant}
+import java.time.{Duration, Instant, ZoneId, ZonedDateTime}
 import java.util.Date
+
 import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
+
 import scala.math.Ordering.Long
-import org.joda.time.DateTime
 import java.text.SimpleDateFormat
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import java.time.format.DateTimeFormatter
+
 import scala.language.implicitConversions
 
 case class Time(toMillis: Long) extends Serializable {
   def plus(window: Window): Time = Time(toMillis + window.toMillis)
 
-  override def toString: String = Time.DATE_TIME_FORMAT.print(toMillis)
+  override def toString: String = Time.DATE_TIME_FORMAT.format(Instant.ofEpochMilli(toMillis))
 
 }
 
@@ -28,7 +30,7 @@ object Time {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
   }
 
-  val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS")
+  val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
   implicit def durationWindow(duration: Duration): Window = Window(toMillis = duration.toMillis)
 
@@ -54,7 +56,7 @@ object Time {
 
   implicit def javaDateTimeLike(t: Date): Time = Time(toMillis = t.getTime)
 
-  implicit def jodaDateTimeLike(t: DateTime): Time = Time(toMillis = t.getMillis)
+  implicit def jodaDateTimeLike(t: ZonedDateTime): Time = Time(toMillis = t.toInstant.toEpochMilli)
 
   implicit def javaSqlTimestampLike(t: Timestamp): Time = Time(toMillis = t.getTime)
 

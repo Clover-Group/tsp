@@ -3,43 +3,39 @@ import sbt._
 
 object Version {
   val logback = "1.2.3"
-  val scalaLogging = "3.7.2"
+  val scalaLogging = "3.9.0"
 
-  val config = "1.3.2"
+  val config = "1.3.3"
 
-  val influx = "2.10"
+  val influx = "2.13"
   val influxCli = "0.6.0"
   val influxFlink = "1.0"
 
-  val clickhouse = "0.1.34"
-  val flink = "1.6.0"
+  val clickhouse = "0.1.42"
+  val flink = "1.6.1"
 
-  val akka = "2.5.16"
-  val akkaHttp = "10.1.4"
+  val akka = "2.5.17"
+  val akkaHttp = "10.1.5"
 
-  val cats = "1.2.0"
+  val cats = "1.4.0"
 
-  val jodaTime = "2.9.9"
   val twitterUtilVersion = "6.43.0"
 
-  val scalaTest = "3.0.4"
+  val scalaTest = "3.0.5"
   val scalaCheck = "1.14.0"
-  val testContainers = "0.17.0"
-  val postgre = "42.2.2"
+  val testContainers = "0.20.0"
+  val postgres = "42.2.5"
 
-  val jackson = "2.9.4"
+  val jackson = "2.9.7"
 
-  val spark = "2.2.1"
+  val spark = "2.3.2"
 
   val avro = "1.8.2"
 
-  val parseback = "0.3"
-
-  val parboiled = "2.1.4"
+  val parboiled = "2.1.5"
 
   val shapeless = "2.3.3"
 }
-
 
 object Library {
 
@@ -56,7 +52,7 @@ object Library {
     "org.influxdb" % "influxdb-java" % Version.influx
   )
   val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
-  val postgre = Seq("org.postgresql" % "postgresql" % Version.postgre)
+  val postgre = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers = influx ++ clickhouse ++ postgre
 
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
@@ -86,8 +82,6 @@ object Library {
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
 
-  val jodaTime = Seq("joda-time" % "joda-time" % Version.jodaTime)
-
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
@@ -116,12 +110,7 @@ object Library {
     "org.apache.avro" % "avro" % Version.avro
   )
 
-  val parseback = Seq(
-    "com.codecommit" %% "parseback-core" % Version.parseback,
-    "com.codecommit" %% "parseback-cats" % Version.parseback
-  )
-
-  val parboiled = Seq (
+  val parboiled = Seq(
     "org.parboiled" %% "parboiled" % Version.parboiled
   )
 

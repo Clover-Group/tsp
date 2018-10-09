@@ -1,6 +1,6 @@
 package ru.itclover.tsp
 
-import org.joda.time.{DateTime, Instant}
+import java.time.{ZonedDateTime, Instant}
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.Time.TimeExtractor
@@ -10,7 +10,7 @@ import ru.itclover.tsp.phases.NumericPhases.{NumericPhaseParser, SymbolNumberExt
 
 package object core {
 
-  case class TestEvent[T](result: PatternResult[T], time: DateTime = DateTime.now())
+  case class TestEvent[T](result: PatternResult[T], time: ZonedDateTime = ZonedDateTime.now())
 
   case class TestPhase[T]() extends Pattern[TestEvent[T], NoState, T] {
     override def initialState: NoState = NoState.instance
@@ -41,10 +41,11 @@ package object core {
   val alwaysFailure: Pattern[TestEvent[Int], Unit, Int] = new ConstResult(Failure("failed"))
   val alwaysStay: Pattern[TestEvent[Int], Unit, Int] = new ConstResult(Stay)
 
-  val t = DateTime.now()
-  val times = t.minusMillis(11000) :: t.minusMillis(10000) :: t.minusMillis(9000) :: t.minusMillis(8000) ::
-    t.minusMillis(7000) :: t.minusMillis(6000) :: t.minusMillis(5000) :: t.minusMillis(4000) :: t.minusMillis(3000) ::
-    t.minusMillis(2000) :: t.minusMillis(1000) :: t :: Nil
+  val t = ZonedDateTime.now()
+  val times = t.minusNanos(11000000000L) :: t.minusNanos(10000000000L) ::
+    t.minusNanos(9000000000L) :: t.minusNanos(8000000000L) :: t.minusNanos(7000000000L) ::
+    t.minusNanos(6000000000L) :: t.minusNanos(5000000000L) :: t.minusNanos(4000000000L) ::
+    t.minusNanos(3000000000L) :: t.minusNanos(2000000000L) :: t.minusNanos(1000000000L) :: t :: Nil
 
   private val staySuccessRes = Seq(Stay, Success(1.0), Stay, Success(2.0), Success(1.0), Success(3.0), Failure("Test"), Success(4.0))
   val staySuccesses = for((t, res) <- times.take(staySuccessRes.length).zip(staySuccessRes)) yield TestEvent(res, t)
