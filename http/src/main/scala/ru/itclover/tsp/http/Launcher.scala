@@ -22,15 +22,6 @@ object Launcher extends App with HttpService {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  override val flinkMonitoringHost = Properties
-    .propOrElse("FLINK_MONITORING_HOST", configs.getString("flink.monitoring.host"))
-  override val flinkMonitoringPort = Either.catchNonFatal(
-    Properties.propOrElse("FLINK_MONITORING_PORT", configs.getString("flink.monitoring.port")).toInt
-  ).fold(
-    ex => throw new RuntimeException(s"Cannot parse FLINK_MONITORING_PORT: ${ex.getMessage}"),
-    port => port
-  )
-
   val streamEnvOrError = if (args(0) == "flink-cluster-test") {
     val (host, port) = getClusterHostPort match {
       case Right(hostAndPort) => hostAndPort
@@ -76,17 +67,16 @@ object Launcher extends App with HttpService {
       log.info("Terminated... Bye!")
     }
   }
-
-  def getClusterHostPort: Either[String, (String, Int)] = for {
-    clusterPort <- Properties
-      .propOrNone("FLINK_JOBMGR_PORT")
-      .map(p => Either.catchNonFatal(p.toInt).left.map { ex: Throwable =>
-        s"Cannot parse FLINK_JOBMGR_PORT ($p): ${ex.getMessage}"
-      })
-      .getOrElse(Right(configs.getInt("flink.job-manager.port")))
-    clusterHost = Properties.envOrElse("FLINK_JOBMGR_HOST", configs.getString("flink.job-manager.host"))
-  } yield (clusterHost, clusterPort)
-
+  
+  def getClusterHostPort: Either[String, (String, Int)] = {
+    val host = getEnvVarOrConfig("FLINK_JOBMGR_HOST", "flink.job-manager.host")
+    val portStr = getEnvVarOrConfig("FLINK_JOBMGR_PORT", "flink.job-manager.port")
+    val port = Either.catchNonFatal(portStr.toInt).left.map {
+      ex: Throwable => s"Cannot parse FLINK_JOBMGR_PORT ($portStr): ${ex.getMessage}"
+    }
+    port.map(p => (host, p))
+  }
+  
   def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort flatMap {
     case (clusterHost, clusterPort) =>
       log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
