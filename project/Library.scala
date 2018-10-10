@@ -2,6 +2,8 @@ import sbt.Keys._
 import sbt._
 
 object Version {
+  val jaxbApi = "2.3.0"
+  
   val logback = "1.2.3"
   val scalaLogging = "3.9.0"
 
@@ -38,6 +40,10 @@ object Version {
 }
 
 object Library {
+  
+  val javaCore = Seq(
+    "javax.xml.bind" % "jaxb-api" % Version.jaxbApi
+  )
 
   val logging = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
