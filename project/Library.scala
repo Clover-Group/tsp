@@ -37,6 +37,9 @@ object Version {
   val parboiled = "2.1.5"
 
   val shapeless = "2.3.3"
+
+  val jaxb = "2.3.0"
+  val activation = "1.2.0"
 }
 
 object Library {
@@ -100,7 +103,11 @@ object Library {
 
   val jackson = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
-    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
+    "javax.xml.bind" % "jaxb-api" % Version.jaxb,
+    "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
+    "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
+    "com.sun.activation" % "javax.activation" % Version.activation,
   )
 
   val sparkStreaming = Seq(
