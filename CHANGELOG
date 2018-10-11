@@ -1,3 +1,9 @@
+## 0.12.6-testfix3
+
+## 0.12.6-testfix2
+
+## 0.12.6-testfix1
+
 ## 0.12.5
 - Fix monitoring env vars for launcher
 - Replaced Joda Time with built-in `java.time`

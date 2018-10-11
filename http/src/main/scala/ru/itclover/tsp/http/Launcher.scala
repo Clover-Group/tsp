@@ -22,7 +22,7 @@ object Launcher extends App with HttpService {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val streamEnvOrError = if (args(0) == "flink-cluster-test") {
+  val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
     val (host, port) = getClusterHostPort match {
       case Right(hostAndPort) => hostAndPort
       case Left(err) => throw new RuntimeException(err)

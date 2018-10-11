@@ -10,6 +10,7 @@ dockerUsername in Docker := Some("clovergrp")
 scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
+javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
 
@@ -23,11 +24,15 @@ lazy val commonSettings = Seq(
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-  githubRelease := null // don't release subprojects
+  
+  // don't release subprojects
+  githubRelease := null,
+  skip in publish := true
 )
 
 lazy val assemblySettings = Seq(
-  assemblyJarName := s"TSP_v${version.value}.jar"
+  assemblyJarName := s"TSP_v${version.value}.jar",
+  javaOptions += "--add-modules=java.xml.bind"
 )
 
 // make run command include the provided dependencies (for sbt run)
@@ -65,10 +70,10 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:11"),
+  Cmd("FROM", "openjdk:11-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java -XX:+UnlockExperimentalVMOptions -XX:+UseJVMCICompiler -jar /opt/tsp.jar $EXECUTION_TYPE")
+  ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
 
@@ -85,6 +90,7 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
         module
       }
     },
+    skip in publish := false,
     mainClass := Some(launcher),
     inTask(assembly)(assemblySettings)
   )
