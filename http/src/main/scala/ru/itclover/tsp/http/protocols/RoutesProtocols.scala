@@ -1,9 +1,10 @@
 package ru.itclover.tsp.http.protocols
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
 import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, OutputConf, RowSchema}
 import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsNumber, JsString, JsValue, JsonFormat}
 

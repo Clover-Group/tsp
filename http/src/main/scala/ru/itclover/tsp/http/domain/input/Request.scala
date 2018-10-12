@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http.domain.input
 
-import ru.itclover.tsp.io.input.{InputConf, RawPattern}
+import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.io.input.InputConf
 import ru.itclover.tsp.io.output.OutputConf
 
 trait Request
