@@ -6,7 +6,6 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 
-//version in ThisBuild := IO.read(file("./VERSION"))
 scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
@@ -194,7 +193,7 @@ releaseUseGlobalVersion := false
 
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStepdockerUsername
+  inquireVersions,                        // : ReleaseStep
   runClean,                               // : ReleaseStep
   runTest,                                // : ReleaseStep
   setReleaseVersion,                      // : ReleaseStep (custom)
