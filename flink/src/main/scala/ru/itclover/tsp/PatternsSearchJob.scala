@@ -22,6 +22,7 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
+import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 
@@ -46,6 +47,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   val streamSrc = implicitly[StreamSource[InEvent]]
   def searchStageName(bucketNum: Int) = s"Patterns search and save stage in Bucket#${bucketNum}"
   def maxPartitionsParallelism = 8192
+  val log = Logger("PatternsSearchJob")
 
   def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
     Traverse[List]
@@ -79,7 +81,15 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       _          <- checkConfigs
     } yield {
       if (inputConf.parallelism.isDefined) stream.setParallelism(inputConf.parallelism.get)
-      val patternsBuckets = Bucketizer.bucketizeByWeight(phases, inputConf.patternsParallelism.getOrElse(1))
+      val patternsThreadsNum = inputConf.patternsParallelism.getOrElse(1)
+      val patternsBuckets = if (patternsThreadsNum > phases.length) {
+        log.warn(s"Patterns parallelism conf ($patternsThreadsNum) is higher than amount of " +
+          s"phases - ${phases.length}, setting patternsParallelism to amount of phases.")
+        Bucketizer.bucketizeByWeight(phases, phases.length)
+      } else {
+        Bucketizer.bucketizeByWeight(phases, patternsThreadsNum)
+      }
+      log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(

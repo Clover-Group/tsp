@@ -20,6 +20,12 @@ object Bucketizer {
       }
     }
   }
+  
+  def bucketsToString[T](buckets: Seq[Bucket[T]]) =
+    buckets.map(b => {
+      val itemsStr = b.items.mkString("`", "`, `", "`")
+      s"Bucket weight: ${b.totalWeight}, Bucket items: $itemsStr"
+    }).mkString("\n\n")
 
 
   trait WeightExtractor[T] extends (T => Long)
