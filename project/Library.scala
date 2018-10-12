@@ -1,7 +1,7 @@
 import sbt.Keys._
 import sbt._
 
-object Version {
+object Version {  
   val logback = "1.2.3"
   val scalaLogging = "3.9.0"
 
@@ -26,8 +26,6 @@ object Version {
   val testContainers = "0.20.0"
   val postgres = "42.2.5"
 
-  val jackson = "2.9.7"
-
   val spark = "2.3.2"
 
   val avro = "1.8.2"
@@ -36,11 +34,21 @@ object Version {
 
   val shapeless = "2.3.3"
 
+  val jackson = "2.9.7"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
 }
 
 object Library {
+  
+  val jackson = Seq(
+    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
+    "javax.xml.bind" % "jaxb-api" % Version.jaxb,
+    "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
+    "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
+    "com.sun.activation" % "javax.activation" % Version.activation,
+  )
 
   val logging = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
@@ -93,15 +101,6 @@ object Library {
 
   val testContainers = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
-  )
-
-  val jackson = Seq(
-    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
-    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
-    "javax.xml.bind" % "jaxb-api" % Version.jaxb,
-    "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
-    "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
-    "com.sun.activation" % "javax.activation" % Version.activation,
   )
 
   val sparkStreaming = Seq(

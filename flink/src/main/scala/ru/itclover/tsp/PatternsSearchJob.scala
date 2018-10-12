@@ -42,9 +42,10 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 ) {
 
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
-
+  
   val streamSrc = implicitly[StreamSource[InEvent]]
   def searchStageName(bucketNum: Int) = s"Patterns search and save stage in Bucket#${bucketNum}"
+  def maxPartitionsParallelism = 8192
 
   def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
     Traverse[List]
@@ -65,7 +66,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     implicit streamEnv: StreamExecutionEnvironment
   ): Either[Throwable, JobExecutionResult] = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-    if (inputConf.parallelism.isDefined) streamEnv.setParallelism(inputConf.parallelism.get)
     for {
       _  <- findAndSavePatterns(phases)
       result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
@@ -78,6 +78,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       isTerminal <- streamSrc.getTerminalCheck
       _          <- checkConfigs
     } yield {
+      if (inputConf.parallelism.isDefined) stream.setParallelism(inputConf.parallelism.get)
       val patternsBuckets = Bucketizer.bucketizeByWeight(phases, inputConf.patternsParallelism.getOrElse(1))
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
@@ -95,6 +96,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
+          .setMaxParallelism(maxPartitionsParallelism)
           .name("Searching for incidents")
 
         // Aggregate contiguous incidents in one big pattern (if configured)
@@ -115,7 +117,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         results
           .name("Mapping results")
           .writeUsingOutputFormat(outputConf.getOutputFormat)
-          .setParallelism(outputConf.parallelism.getOrElse(1))
           .name("Saving incidents")
       }
     }
