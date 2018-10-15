@@ -18,7 +18,6 @@ lazy val commonSettings = Seq(
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation"           // warn about use of deprecated APIs
-    // "-Xlint"                 // enable handy linter warnings
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
@@ -78,7 +77,7 @@ dockerCommands := Seq(
 
 /*** Projects configuration ***/
 
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http, integrationCorrectness)
   .settings(commonSettings)
   .settings(
     // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
