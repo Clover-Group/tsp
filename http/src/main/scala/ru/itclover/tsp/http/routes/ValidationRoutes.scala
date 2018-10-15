@@ -15,7 +15,7 @@ import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.ExecutionContextExecutor
 
 object ValidationRoutes {
 
@@ -24,10 +24,6 @@ object ValidationRoutes {
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
     Reader { execContext =>
       new ValidationRoutes {
-        //implicit override val executionContext = execContext
-        //implicit override val actors = as
-        //implicit override val materializer = am
-        //override val uri = monitoringUri
       }.route
     }
 }
