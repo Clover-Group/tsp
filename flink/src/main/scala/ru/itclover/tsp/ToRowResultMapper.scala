@@ -3,12 +3,13 @@ package ru.itclover.tsp
 import java.time._
 import java.sql.Timestamp
 import java.time.DateTimeException
+
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.RawPattern
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.output.RowSchema
 
 

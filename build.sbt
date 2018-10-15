@@ -6,7 +6,6 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 
-//version in ThisBuild := IO.read(file("./VERSION"))
 scalaVersion in ThisBuild := "2.11.12"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
@@ -193,17 +192,15 @@ releaseVersionFile := file("./VERSION")
 releaseUseGlobalVersion := false
 
 releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,              // : ReleaseStep
-  inquireVersions,                        // : ReleaseStepdockerUsername
-  runClean,                               // : ReleaseStep
-  runTest,                                // : ReleaseStep
-  setReleaseVersion,                      // : ReleaseStep (custom)
-  commitReleaseVersion,                   // : ReleaseStep, performs the initial git checks
-  commitChangelogs,                       // : ReleaseStep (custom)
-  tagRelease,                             // : ReleaseStep
-  // TODO: Configure publishing on GitHub (if needed)
-  // publishArtifacts,                    // : ReleaseStep, checks whether `publishTo` is properly set up
-  pushChanges                             // : ReleaseStep, also checks that an upstream branch is properly configured
+  checkSnapshotDependencies,              // prevents the release if any dependencies are SNAPSHOT
+  inquireVersions,                        // ask the user for version tag to be released
+  runClean,                               // performs cleaning task
+  runTest,                                // runs all tests in the project
+  setReleaseVersion,                      // sets the version and transfers notes to CHANGELOG
+  commitReleaseVersion,                   // performs the initial git checks
+  commitChangelogs,                       // commits the changes in CHANGELOG files
+  tagRelease,                             // tags the prepared release
+  pushChanges                             // pushes into upstream, also checks that an upstream branch is properly configured
 )
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.11/TSP_v${version.value}.jar"))

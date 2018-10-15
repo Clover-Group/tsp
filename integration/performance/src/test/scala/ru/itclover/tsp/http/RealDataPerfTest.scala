@@ -6,15 +6,18 @@ import akka.http.scaladsl.model.StatusCodes
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{FlatSpec, FunSuite, Matchers, WordSpec}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.io.input.{JDBCInputConf, RawPattern}
+import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.output.FinishedJobResponse
-import ru.itclover.tsp.http.utils.{JDBCContainer, RangeMatchers, HttpServiceMathers}
+import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer, RangeMatchers}
 import ru.itclover.tsp.utils.Files
+
 import scala.util.Success
 
 class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {

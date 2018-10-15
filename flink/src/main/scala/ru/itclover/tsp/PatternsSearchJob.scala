@@ -12,7 +12,7 @@ import cats.Traverse
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.{InputConf, RawPattern}
+import ru.itclover.tsp.io.input.InputConf
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
@@ -23,6 +23,7 @@ import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
 import com.typesafe.scalalogging.Logger
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 
