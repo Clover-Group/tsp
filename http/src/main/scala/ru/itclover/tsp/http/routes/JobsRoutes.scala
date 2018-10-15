@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
@@ -12,10 +13,11 @@ import org.apache.flink.streaming.api.scala._
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
 import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import org.apache.flink.api.common.JobExecutionResult
@@ -23,9 +25,11 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.types.Row
 import ru.itclover.tsp.{PatternsSearchJob, PatternsToRowMapper, ResultMapper}
 import ru.itclover.tsp.core.Pattern
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
+
 import scala.util.Success
 
 object JobsRoutes {

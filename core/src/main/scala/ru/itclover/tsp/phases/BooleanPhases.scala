@@ -111,47 +111,7 @@ object BooleanPhases {
     override def format(event: Event, state: (S1, S2)): String = {
       left.format(event, state._1) + s" ${compareFnName} " + right.format(event, state._2)
     }
-
-//    def copy(left: Pattern[Event, S1, T] = this.left, right: Pattern[Event, S2, T] = this.right)(
-//      compare: (T, T) => Boolean = this.compare,
-//      compareFnName: String = this.compareFnName
-//    ): ComparingParser[Event, S1, S2, T] = {
-//      val original = this
-//      new ComparingParser[Event, S1, S2, T](left, right)(compare, compareFnName) {
-//        override def apply(e: Event, state: (S1, S2)): (PatternResult[Boolean], (S1, S2)) =
-//          original.apply(e, state)
-//        override def aggregate(event: Event, state: (S1, S2)): (S1, S2) = original.aggregate(event, state)
-//        override def initialState: (S1, S2) = original.initialState
-//        override def format(event: Event, state: (S1, S2)): String = original.format(event, state)
-//      }
-//    }
   }
-
-//  case class GreaterParser[Event, State1, State2, T](left: Pattern[Event, State1, T], right: Pattern[Event, State2, T])(
-//    implicit ord: Ordering[T]
-//  ) extends ComparingParser(left, right)((a, b) => ord.gt(a, b), ">")
-//
-//  case class GreaterOrEqualParser[Event, State1, State2, T](
-//    left: Pattern[Event, State1, T],
-//    right: Pattern[Event, State2, T]
-//  )(implicit ord: Ordering[T])
-//      extends ComparingParser(left, right)((a, b) => ord.gteq(a, b), ">=")
-//
-//  case class LessParser[Event, State1, State2, T](left: Pattern[Event, State1, T], right: Pattern[Event, State2, T])(
-//    implicit ord: Ordering[T]
-//  ) extends ComparingParser(left, right)((a, b) => ord.lt(a, b), "<")
-//
-//  case class LessOrEqualParser[Event, State1, State2, T](
-//    left: Pattern[Event, State1, T],
-//    right: Pattern[Event, State2, T]
-//  )(implicit ord: Ordering[T])
-//      extends ComparingParser(left, right)((a, b) => ord.lteq(a, b), "<=")
-//
-//  case class EqualParser[Event, State1, State2, T](left: Pattern[Event, State1, T], right: Pattern[Event, State2, T])
-//      extends ComparingParser(left, right)((a, b) => a equals b, "==")
-//
-//  case class NonEqualParser[Event, State1, State2, T](left: Pattern[Event, State1, T], right: Pattern[Event, State2, T])
-//      extends ComparingParser(left, right)((a, b) => !(a equals b), "!=")
 
   case class NotParser[Event, State](inner: BooleanPhaseParser[Event, State]) extends BooleanPhaseParser[Event, State] {
 
@@ -171,21 +131,6 @@ object BooleanPhases {
 
     override def format(event: Event, state: State) = s"not ${inner.format(event, state)}"
   }
-
-//  case class AndParser[Event, State1, State2](
-//    left: BooleanPhaseParser[Event, State1],
-//    right: BooleanPhaseParser[Event, State2]
-//  ) extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a & b, "and")
-//
-//  case class OrParser[Event, State1, State2](
-//    left: BooleanPhaseParser[Event, State1],
-//    right: BooleanPhaseParser[Event, State2]
-//  ) extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a | b, "or")
-//
-//  case class XorParser[Event, State1, State2](
-//    left: BooleanPhaseParser[Event, State1],
-//    right: BooleanPhaseParser[Event, State2]
-//  ) extends ComparingParser[Event, State1, State2, Boolean](left, right)((a, b) => a ^ b, "xor")
 
   case class InParser[Event, State, T](parser: Pattern[Event, State, T], set: Set[T])
       extends MapParserLike(parser)(set.apply)

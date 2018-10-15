@@ -6,11 +6,13 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, RangeMatchers, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, RawPattern}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 

@@ -5,7 +5,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.core.io.InputSplit
 import collection.JavaConversions._
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RawPattern}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.types.Row

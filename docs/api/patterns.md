@@ -45,3 +45,28 @@ Code | Description
 *4001* | *Invalid patterns source code*
 {% include generic-api-errors.md %}
 
+### POST `patterns/validate`
+Endpoint for validation of the patterns syntax without actually being run.
+
+__Body parameters__:
+
+Name | Type | Description
+---- | ---- | -----------
+patterns* | List[[Pattern](./model/pattern.md)] | Patterns source-code to parse
+
+__Response__:
+
+On success returns a list of objects which have the following structure:
+
+Name | Type | Description
+---- | ---- | -----------
+pattern | Pattern | A pattern which was checked
+success | Boolean | True if the pattern syntax is correct, false otherwise
+context | String | Internal representation of a pattern builder if the pattern is correct, error description otherwise
+
+__Error codes__:
+
+Code | Description
+---- | -----------
+*4001* | *Invalid patterns source code*
+{% include generic-api-errors.md %}

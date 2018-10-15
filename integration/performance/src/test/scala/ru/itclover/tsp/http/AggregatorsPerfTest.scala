@@ -6,8 +6,9 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
-import ru.itclover.tsp.http.utils.{JDBCContainer, HttpServiceMathers}
-import ru.itclover.tsp.io.input.{JDBCInputConf, RawPattern}
+import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
+import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
