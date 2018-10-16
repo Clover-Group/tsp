@@ -18,7 +18,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
-    "-featue"                // warn about feature warnings 
+    "-feature"               // warn about feature warnings 
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
