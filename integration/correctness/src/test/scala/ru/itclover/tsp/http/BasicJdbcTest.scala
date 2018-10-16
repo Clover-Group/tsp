@@ -127,10 +127,4 @@ class BasicJdbcTest
       )
     }
   }
-
-  override def beforeStop(): Unit = {
-    super.beforeStop()
-    if (!container.connection.isClosed) container.connection.close() else ()
-    container.dockerClient.close()
-  }
 }

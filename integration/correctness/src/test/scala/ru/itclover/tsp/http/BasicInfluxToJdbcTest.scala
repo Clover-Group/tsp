@@ -35,7 +35,7 @@ class BasicInfluxToJdbcTest
   val influxContainer =
     new InfluxDBContainer("influxdb:1.5", influxPort -> 8086 :: Nil, s"http://localhost:$influxPort", "Test", "default")
 
-  val jdbcPort = 8156
+  val jdbcPort = 8157
   implicit val jdbcContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     jdbcPort -> 8123 :: 9072 -> 9000 :: Nil,
@@ -68,7 +68,6 @@ class BasicInfluxToJdbcTest
 
   val basicAssertions = Seq(
     RawPattern("1", "speed < 15"),
-    /*RawPattern("2", """"speed(1)(2)" > 10"""),*/
     RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
@@ -95,12 +94,6 @@ class BasicInfluxToJdbcTest
         "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
-
-      /*checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'")
-      checkByQuery(1 :: Nil, "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65002'")*/
-
       checkByQuery(
         1 :: Nil,
         "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 and " +

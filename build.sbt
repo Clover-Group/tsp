@@ -17,7 +17,8 @@ lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation"           // warn about use of deprecated APIs
+    "-deprecation",          // warn about use of deprecated APIs
+    "-featue"                // warn about feature warnings 
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
@@ -77,7 +78,7 @@ dockerCommands := Seq(
 
 /*** Projects configuration ***/
 
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http, integrationCorrectness)
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
   .settings(commonSettings)
   .settings(
     // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
@@ -98,8 +99,8 @@ lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flinkConnector, spark, dsl)
-  .dependsOn(core, config, http, flinkConnector, spark, dsl)
+  .aggregate(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
+  .dependsOn(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)

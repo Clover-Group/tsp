@@ -66,7 +66,7 @@ class RealDataTest
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val (timeRangeSec, assertions) = (1 to 30) -> Seq(
+  val (timeRangeSec, assertions) = (1 to 50) -> Seq(
     RawPattern("6", "HI__wagon_id__6 < 0.5"),
     RawPattern("4", "HI__wagon_id__4 < 0.5")
   )
