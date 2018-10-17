@@ -40,20 +40,13 @@ class FlinkCompilingPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   override val initialState = (Seq.empty, emptyEvent)
   var phaseParser: Pattern[Event, PhaseState, PhaseOut] = _
 
-  @transient
-  var currentEvent: Event = emptyEvent
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     phaseParser = compilePhaseParser(getRuntimeContext.getUserCodeClassLoader)
-    getRuntimeContext.getMetricGroup
-      .gauge[Long, Gauge[Long]](FlinkCompilingPatternMapper.currentEventTsMetric, new Gauge[Long] {
-        override def getValue = timeExtractor(currentEvent).toMillis
-      })
   }
 
   override def apply(event: Event, stateAndPrevEvent: (Seq[PhaseState], Event)) = {
-    currentEvent = event
     val prevEvent = stateAndPrevEvent._2
     val (results, newStates) = if (doProcessOldState(event, prevEvent)) {
       process(event, stateAndPrevEvent._1)
