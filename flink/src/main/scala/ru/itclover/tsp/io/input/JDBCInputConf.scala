@@ -2,18 +2,20 @@ package ru.itclover.tsp.io.input
 
 import java.sql.DriverManager
 import java.util.Properties
-
+import scala.language.existentials
+import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
+import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-
+import ru.itclover.tsp.JDBCInputFormatProps
 import scala.util.Try
 
 /**
@@ -49,14 +51,14 @@ case class JDBCInputConf(
 ) extends InputConf[Row] {
 
   import InputConf.getRowFieldOrThrow
+  val properties = new Properties()
+  props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
 
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
-    val classTry = Try(Class.forName(driverName))
-    val properties: Properties = new Properties()
+    val classTry: Try[Class[_]] = Try(Class.forName(driverName))
     properties.put("user", userName.getOrElse(""))
     properties.put("password", password.getOrElse(""))
-    props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
-
+    
     val connectionTry = Try(DriverManager.getConnection(jdbcUrl, properties))
     (for {
       _          <- classTry
@@ -73,8 +75,10 @@ case class JDBCInputConf(
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
-    JDBCInputFormat
+    setDefaultTimeouts() // .. run all tests, fix aborted tests, deploy to Loco
+    JDBCInputFormatProps
       .buildJDBCInputFormat()
+      .addProperties(properties)
       .setDrivername(driverName)
       .setDBUrl(jdbcUrl)
       .setUsername(userName.getOrElse(""))
@@ -108,5 +112,12 @@ case class JDBCInputConf(
 
   implicit lazy val anyExtractor = errOrFieldsIdxMap.map { fieldsIdxMap => (event: Row, name: Symbol) =>
     getRowFieldOrThrow(event, fieldsIdxMap, name)
+  }
+  
+  // TODO Rm, Temporary timeouts
+  def setDefaultTimeouts() = {
+    if (properties.getProperty("socket_timeout") == null) properties.setProperty("socket_timeout", "150000")
+    if (properties.getProperty("dataTransferTimeout") == null) properties.setProperty("dataTransferTimeout", "100000") 
+    if (properties.getProperty("keepAliveTimeout") == null) properties.setProperty("keepAliveTimeout", "150000")
   }
 }
