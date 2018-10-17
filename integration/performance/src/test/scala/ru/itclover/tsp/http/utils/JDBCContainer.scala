@@ -1,7 +1,7 @@
 package ru.itclover.tsp.http.utils
 
 import java.sql.{Connection, DriverManager, ResultSet}
-
+import scala.language.existentials
 import com.dimafeng.testcontainers.SingleContainer
 import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
