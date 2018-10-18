@@ -44,6 +44,7 @@ case class InfluxDBInputConf(
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
   parallelism: Option[Int] = None,
+  numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 

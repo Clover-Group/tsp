@@ -47,6 +47,7 @@ case class JDBCInputConf(
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
   parallelism: Option[Int] = None,
+  numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 
@@ -75,7 +76,7 @@ case class JDBCInputConf(
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
-    setDefaultTimeouts() // .. run all tests, fix aborted tests, deploy to Loco
+    setDefaultTimeouts()
     JDBCInputFormatProps
       .buildJDBCInputFormat()
       .addProperties(properties)

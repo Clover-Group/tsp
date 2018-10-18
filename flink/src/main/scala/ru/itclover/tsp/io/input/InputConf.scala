@@ -17,8 +17,10 @@ trait InputConf[Event] extends Serializable {
   def partitionFields: Seq[Symbol]
   def fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]]
 
-  def parallelism: Option[Int]
-  def patternsParallelism: Option[Int]
+  def parallelism: Option[Int]          // Parallelism per each source
+  def numParallelSources: Option[Int]   // Number on parallel (separate) sources to be created
+  def patternsParallelism: Option[Int]  // Number of parallel branches after source step
+
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
 
