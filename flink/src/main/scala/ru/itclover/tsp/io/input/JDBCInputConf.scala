@@ -22,13 +22,14 @@ import scala.util.Try
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
   * @param query SQL query
   * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
-  * @param datetimeFiel
+  * @param datetimeField
   * @param eventsMaxGapMs maximum gap by which source data will be split, i.e. result incidents will be split by these gaps
   * @param defaultEventsGapMs "typical" gap between events, used to unite nearby incidents in one (sessionization)
   * @param partitionFields fields by which data will be split and paralleled physically
   * @param userName for JDBC auth
   * @param password for JDBC auth
-  * @param props extra configs to JDBC `DriverManager.getConnection(`
+  * @param props extra configs to JDBC `DriverManager.getConnection()`
+  * @param sparseRows handling sparse data, e.g. {"key": "sensor", "value": "value"}
   * @param parallelism basic parallelism of all computational nodes
   * @param patternsParallelism number of parallel branch nodes after sink stage (node)
   */
@@ -44,6 +45,7 @@ case class JDBCInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
+  sparseRows: Option[Map[String, AnyRef]] = None,
   parallelism: Option[Int] = None,
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
