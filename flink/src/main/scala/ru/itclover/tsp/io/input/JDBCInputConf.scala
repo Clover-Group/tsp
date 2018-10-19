@@ -1,6 +1,6 @@
 package ru.itclover.tsp.io.input
 
-import java.sql.DriverManager
+import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
 
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
@@ -45,7 +45,7 @@ case class JDBCInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
-  sparseRows: Option[Map[String, AnyRef]] = None,
+  sourceDataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {

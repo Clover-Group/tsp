@@ -11,7 +11,7 @@ import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.EvalUtils
 import ru.itclover.tsp.core.{Pattern, Time}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.JDBCInputConf
+import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
 
 import scala.collection.mutable
 
@@ -64,22 +64,27 @@ case class SparseRowsDataAccumulator[Event, Value](fieldsKeysTimeoutsMs: Map[Sym
 
 object SparseRowsDataAccumulator {
 
-  def apply[Event, Value](sourceInfo: JDBCSourceInfo, inputConf: JDBCInputConf)(
+  def apply[Event, Value](inputConf: JDBCInputConf)(
     implicit timeExtractor: TimeExtractor[Event],
     extractKeyVal: Event => (Symbol, Value),
     extractAny: (Event, Symbol) => Any,
     rowTypeInfo: TypeInformation[Row]
   ): SparseRowsDataAccumulator[Event, Value] = {
-    val sparseRowsConf = inputConf.sparseRows.getOrElse(Map.empty)
-    val extraFields = sourceInfo.fieldsIndexesMap
+    val sparseRowsConf = inputConf.sourceDataTransformation.map({
+      case ndu: NarrowDataUnfolding => ndu
+    }).getOrElse(sys.error("Invalid config type"))
+    val fim = inputConf.errOrFieldsIdxMap match {
+      case Right(m) => m
+      case Left(e) => sys.error(e.toString)
+    }
+    val extraFields = fim
       .filterNot(
         nameAndInd =>
-          nameAndInd._1 == sparseRowsConf.getOrElse("key", "key") || nameAndInd._1 == sparseRowsConf
-            .getOrElse("value", "value")
+          nameAndInd._1 == sparseRowsConf.key || nameAndInd._1 == sparseRowsConf.value
       )
       .keys
       .toSeq
-    SparseRowsDataAccumulator(sparseRowsConf.getOrElse("fieldsTimeouts", Map.empty[Symbol, Long]), extraFields)(
+    SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeouts, extraFields)(
       timeExtractor,
       extractKeyVal,
       extractAny
