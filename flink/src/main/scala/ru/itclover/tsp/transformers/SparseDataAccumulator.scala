@@ -11,7 +11,7 @@ import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.EvalUtils
 import ru.itclover.tsp.core.{Pattern, Time}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding}
 
 import scala.collection.mutable
 
@@ -64,7 +64,7 @@ case class SparseRowsDataAccumulator[Event, Value](fieldsKeysTimeoutsMs: Map[Sym
 
 object SparseRowsDataAccumulator {
 
-  def apply[Event, Value](inputConf: JDBCInputConf)(
+  def apply[Event, Value](inputConf: InputConf[Event])(
     implicit timeExtractor: TimeExtractor[Event],
     extractKeyVal: Event => (Symbol, Value),
     extractAny: (Event, Symbol) => Any,

@@ -22,6 +22,9 @@ trait InputConf[Event] extends Serializable {
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
 
+  def sourceDataTransformation: Option[SourceDataTransformation]
+  def errOrFieldsIdxMap: Either[Throwable, Map[Symbol, Int]]
+
   // TODO to StreamSource
   implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
   implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]
