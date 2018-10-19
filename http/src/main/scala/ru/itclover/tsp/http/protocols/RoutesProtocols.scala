@@ -67,7 +67,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "userName",
     "password",
     "props",
-    "sourceDataTransformation",
+    "dataTransformation",
     "parallelism",
     "patternsParallelism"
   )
@@ -84,7 +84,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "userName",
     "password",
     "timeoutSec",
-    "sourceDataTransformation",
+    "dataTransformation",
     "parallelism",
     "patternsParallelism"
   )

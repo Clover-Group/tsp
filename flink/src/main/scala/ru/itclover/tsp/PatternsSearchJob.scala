@@ -17,7 +17,7 @@ import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.phases.Phases.AnyExtractor
-import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, StreamSource}
+import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator, StreamSource}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -106,6 +106,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
+          //.flatMap(SparseRowsDataAccumulator(inputConf))
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)
           .name("Searching for incidents")

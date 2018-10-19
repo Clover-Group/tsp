@@ -45,7 +45,7 @@ case class JDBCInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
-  sourceDataTransformation: Option[SourceDataTransformation] = None,
+  dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {

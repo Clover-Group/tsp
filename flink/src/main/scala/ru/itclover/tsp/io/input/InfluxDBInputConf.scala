@@ -43,7 +43,7 @@ case class InfluxDBInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
-  sourceDataTransformation: Option[SourceDataTransformation] = None,
+  dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
