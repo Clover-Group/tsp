@@ -50,7 +50,7 @@ case class JDBCInputConf(
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 
-  import InputConf.getRowFieldOrThrow
+  import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
 
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry = Try(Class.forName(driverName))
@@ -110,5 +110,16 @@ case class JDBCInputConf(
 
   implicit lazy val anyExtractor = errOrFieldsIdxMap.map { fieldsIdxMap => (event: Row, name: Symbol) =>
     getRowFieldOrThrow(event, fieldsIdxMap, name)
+  }
+
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+    fieldsIdxMap => (event: Row) =>
+      val keyAndValueCols = dataTransformation match {
+        case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
+        case _ => sys.error("Unsuitable data transformation instance")
+      }
+      val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
+      val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
+      getKVFieldOrThrow(event, keyColInd, valueColInd)
   }
 }
