@@ -1,7 +1,7 @@
 package ru.itclover.tsp.io
 import org.apache.flink.types.Row
 
-trait EventCreator[Event] {
+trait EventCreator[Event] extends Serializable {
   def create(kv: Seq[(Symbol, AnyRef)]): Event
 }
 

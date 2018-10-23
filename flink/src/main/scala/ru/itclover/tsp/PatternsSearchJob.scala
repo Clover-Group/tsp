@@ -94,6 +94,7 @@ case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, O
         Bucketizer.bucketizeByWeight(phases, patternsThreadsNum)
       }
       log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
+      log.info(s"Source data transformation is ${inputConf.dataTransformation}")
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
@@ -111,6 +112,7 @@ case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, O
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapIf(
             inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]), SparseRowsDataAccumulator(inputConf))
+          .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)
           .name("Searching for incidents")
