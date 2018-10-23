@@ -1,3 +1,8 @@
+## 0.12.7-unfold-test1
+- added experimental support for "narrow" data (storing key and value
+in columns, instead of setting a separate column for each key)
+## 0.12.7-test
+
 ## 0.12.6
 
 ## 0.12.6-testfix3
