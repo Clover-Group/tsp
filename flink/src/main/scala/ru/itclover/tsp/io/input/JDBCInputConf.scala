@@ -1,6 +1,6 @@
 package ru.itclover.tsp.io.input
 
-import java.sql.DriverManager
+import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
 import scala.language.existentials
 import com.typesafe.config.ConfigFactory
@@ -24,7 +24,7 @@ import scala.util.Try
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
   * @param query SQL query
   * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
-  * @param datetimeFiel
+  * @param datetimeField
   * @param eventsMaxGapMs maximum gap by which source data will be split, i.e. result incidents will be split by these gaps
   * @param defaultEventsGapMs "typical" gap between events, used to unite nearby incidents in one (sessionization)
   * @param partitionFields fields by which data will be split and paralleled physically
@@ -46,12 +46,13 @@ case class JDBCInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   props: Option[Map[String, AnyRef]] = None,
+  dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 
-  import InputConf.getRowFieldOrThrow
+  import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
   val properties = new Properties()
   props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
 
@@ -59,7 +60,7 @@ case class JDBCInputConf(
     val classTry: Try[Class[_]] = Try(Class.forName(driverName))
     properties.put("user", userName.getOrElse(""))
     properties.put("password", password.getOrElse(""))
-    
+
     val connectionTry = Try(DriverManager.getConnection(jdbcUrl, properties))
     (for {
       _          <- classTry
@@ -114,11 +115,22 @@ case class JDBCInputConf(
   implicit lazy val anyExtractor = errOrFieldsIdxMap.map { fieldsIdxMap => (event: Row, name: Symbol) =>
     getRowFieldOrThrow(event, fieldsIdxMap, name)
   }
-  
+
   // TODO Rm, Temporary timeouts
   def setDefaultTimeouts() = {
     if (properties.getProperty("socket_timeout") == null) properties.setProperty("socket_timeout", "150000")
-    if (properties.getProperty("dataTransferTimeout") == null) properties.setProperty("dataTransferTimeout", "100000") 
+    if (properties.getProperty("dataTransferTimeout") == null) properties.setProperty("dataTransferTimeout", "100000")
     if (properties.getProperty("keepAliveTimeout") == null) properties.setProperty("keepAliveTimeout", "150000")
+  }
+
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+    fieldsIdxMap => (event: Row) =>
+      val keyAndValueCols = dataTransformation match {
+        case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
+        case _ => sys.error("Unsuitable data transformation instance")
+      }
+      val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
+      val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
+      getKVFieldOrThrow(event, keyColInd, valueColInd)
   }
 }

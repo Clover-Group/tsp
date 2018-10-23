@@ -1,7 +1,9 @@
 package ru.itclover.tsp.io.input
 
 import java.time.Instant
+
 import org.apache.flink.api.common.io.RichInputFormat
+
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -9,6 +11,7 @@ import org.apache.flink.types.Row
 import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
 import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.io.input.InputConf.getKVFieldOrThrow
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.services.InfluxDBService
 import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, RightBiasedEither, TryOps}
@@ -43,6 +46,7 @@ case class InfluxDBInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
+  dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
@@ -101,6 +105,17 @@ case class InfluxDBInputConf(
 
   implicit lazy val anyExtractor =
     errOrFieldsIdxMap.map(fieldsIdxMap => (event: Row, name: Symbol) => getRowFieldOrThrow(event, fieldsIdxMap, name))
+
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+    fieldsIdxMap => (event: Row) =>
+      val keyAndValueCols = dataTransformation match {
+        case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
+        case _ => sys.error("Unsuitable data transformation instance")
+      }
+      val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
+      val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
+      getKVFieldOrThrow(event, keyColInd, valueColInd)
+  }
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
     InfluxDBInputFormat

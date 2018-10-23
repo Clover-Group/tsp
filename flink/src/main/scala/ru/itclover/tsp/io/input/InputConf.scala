@@ -24,10 +24,14 @@ trait InputConf[Event] extends Serializable {
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
 
+  def dataTransformation: Option[SourceDataTransformation]
+  def errOrFieldsIdxMap: Either[Throwable, Map[Symbol, Int]]
+
   // TODO to StreamSource
   implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
   implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]
   implicit def anyExtractor: ThrowableOr[AnyExtractor[Event]]
+  implicit def keyValExtractor: ThrowableOr[Row => (Symbol, AnyRef)]
 }
 
 object InputConf {
@@ -39,5 +43,18 @@ object InputConf {
       throw Exceptions.InvalidRequest(s"There is no sensor `${field.toString.tail}` only `$available`")
     }
     event.getField(ind)
+  }
+
+//  def getFirstDefinedRowFieldOrThrow(event: Row, fieldsIdxMap: Map[Symbol, Int]): (Symbol, AnyRef) = {
+//    fieldsIdxMap.foreach {
+//      (name: Symbol, ind: Int) =>
+//      val value = event.getField(ind)
+//      if (value != null)
+//        return (name, value)
+//    }
+//    throw Exceptions.InvalidRequest("All fields in the row are undefined")
+//  }
+  def getKVFieldOrThrow(event: Row, keyColumnIndex: Int, valueColumnIndex: Int): (Symbol, AnyRef) = {
+    (Symbol(event.getField(keyColumnIndex).toString), event.getField(valueColumnIndex))
   }
 }

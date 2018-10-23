@@ -12,18 +12,19 @@ import cats.Traverse
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, Window}
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.InputConf
+import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.phases.Phases.AnyExtractor
-import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, StreamSource}
+import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator, StreamSource}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.io.EventCreator
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 
@@ -33,14 +34,16 @@ object PatternsSearchJob {
   type ValidatedPhases[InEvent] = Either[Throwable, Phases[InEvent]]
 }
 
-case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInformation](
+case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, OutEvent: TypeInformation](
   inputConf: InputConf[InEvent],
   outputConf: OutputConf[OutEvent],
   resultMapper: RichMapFunction[Incident, OutEvent]
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractNumber: SymbolNumberExtractor[InEvent],
-  extractAny: AnyExtractor[InEvent]
+  extractAny: AnyExtractor[InEvent],
+  extractKeyVal: InEvent => (Symbol, AnyRef),
+  eventCreator: EventCreator[InEvent]
 ) {
 
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
@@ -100,6 +103,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         Bucketizer.bucketizeByWeight(phases, patternsThreadsNum)
       }
       log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
+      log.info(s"Source data transformation is ${inputConf.dataTransformation}")
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
@@ -114,6 +118,9 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       for { mappers <- patternMappersBuckets } yield {
         val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
         val incidents = stream
+          .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
+          .flatMapIf(
+            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]), SparseRowsDataAccumulator(inputConf))
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)
