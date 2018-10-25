@@ -113,9 +113,9 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
             .asInstanceOf[RichStatefulFlatMapper[InEvent, Any, Incident]]
       })
       for { mappers <- patternMappersBuckets } yield {
-        val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
+        val (serExtractAny, serExtractAnyNonTransformed, serPartitionFields) = (extractAny, extractAnyNonTransformed, inputConf.partitionFields) // made job code serializable
         val incidents = stream
-          //.keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
+          .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString)
           .flatMapIf(
             inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]),
           SparseRowsDataAccumulator(inputConf))
