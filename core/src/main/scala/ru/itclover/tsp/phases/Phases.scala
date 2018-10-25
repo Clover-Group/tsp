@@ -10,7 +10,8 @@ object Phases {
 
   type Phase[Event] = Pattern[Event, _, _]
 
-  type AnyExtractor[Event] = ((Event, Symbol) => Any)
+  trait AnyExtractor[Event] extends ((Event, Symbol) => Any) with Serializable
+  trait AnyNonTransformedExtractor[Event] extends ((Event, Symbol) => Any) with Serializable
 
   // TODO Rm
   /**

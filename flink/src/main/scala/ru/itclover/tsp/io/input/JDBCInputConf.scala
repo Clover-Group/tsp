@@ -3,6 +3,11 @@ package ru.itclover.tsp.io.input
 import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
 
+<<<<<<< HEAD
+=======
+import scala.language.existentials
+import com.typesafe.config.ConfigFactory
+>>>>>>> d867104... (PLTB-1412) works for narrow table
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
@@ -13,6 +18,12 @@ import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
+<<<<<<< HEAD
+=======
+import ru.itclover.tsp.JDBCInputFormatProps
+import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+>>>>>>> d867104... (PLTB-1412) works for narrow table
 
 import scala.util.Try
 
@@ -88,14 +99,24 @@ case class JDBCInputConf(
 
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
-  implicit lazy val timeExtractor = errOrFieldsIdxMap map { fieldsIdxMap =>
+  lazy val errOrTransformedFieldsIdxMap = dataTransformation match {
+    case Some(NarrowDataUnfolding(_, _, _)) =>
+      try {
+        Right(SparseRowsDataAccumulator.fieldsIndexesMap(this))
+      } catch {
+        case t: Throwable => Left(t)
+      }
+    case _ => errOrFieldsIdxMap
+  }
+
+  implicit lazy val timeExtractor = errOrTransformedFieldsIdxMap map { fieldsIdxMap =>
     new TimeExtractor[Row] {
       override def apply(event: Row) =
         getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
     }
   }
 
-  implicit lazy val symbolNumberExtractor = errOrFieldsIdxMap.map(
+  implicit lazy val symbolNumberExtractor = errOrTransformedFieldsIdxMap.map(
     fieldsIdxMap =>
       new SymbolNumberExtractor[Row] {
         override def extract(event: Row, name: Symbol): Double =
@@ -108,18 +129,29 @@ case class JDBCInputConf(
     }
   )
 
-  implicit lazy val anyExtractor = errOrFieldsIdxMap.map { fieldsIdxMap => (event: Row, name: Symbol) =>
-    getRowFieldOrThrow(event, fieldsIdxMap, name)
-  }
+  implicit lazy val anyExtractor =
+    errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>
+      new AnyExtractor[Row] {
+        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
+      }
+    )
 
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+  implicit lazy val anyNonTransformedExtractor =
+    errOrFieldsIdxMap.map(fieldsIdxMap =>
+      new AnyNonTransformedExtractor[Row] {
+        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
+      })
+  
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
         case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
-        case _ => sys.error("Unsuitable data transformation instance")
+        case _                                        => sys.error("Unsuitable data transformation instance")
       }
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
       val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      getKVFieldOrThrow(event, keyColInd, valueColInd)
+      val kv = getKVFieldOrThrow(event, keyColInd, valueColInd)
+      (kv._1, kv._2, getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double])
+
   }
 }
