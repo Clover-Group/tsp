@@ -13,7 +13,9 @@ import org.influxdb.dto.{Query, QueryResult}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.io.input.InputConf.getKVFieldOrThrow
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.services.InfluxDBService
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, RightBiasedEither, TryOps}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 
@@ -80,7 +82,17 @@ case class InfluxDBInputConf(
 
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
-  implicit lazy val timeExtractor = errOrFieldsIdxMap.map { fieldsIdxMap =>
+  lazy val errOrTransformedFieldsIdxMap = dataTransformation match {
+    case Some(NarrowDataUnfolding(_, _, _)) =>
+      try {
+        Right(SparseRowsDataAccumulator.fieldsIndexesMap(this))
+      } catch {
+        case t: Throwable => Left(t)
+      }
+    case _ => errOrFieldsIdxMap
+  }
+
+  implicit lazy val timeExtractor = errOrTransformedFieldsIdxMap.map { fieldsIdxMap =>
     val dtField = datetimeField
     new TimeExtractor[Row] {
       override def apply(event: Row) = {
@@ -90,7 +102,7 @@ case class InfluxDBInputConf(
     }
   }
 
-  implicit lazy val symbolNumberExtractor = errOrFieldsIdxMap.map(
+  implicit lazy val symbolNumberExtractor = errOrTransformedFieldsIdxMap.map(
     fieldsIdxMap =>
       new SymbolNumberExtractor[Row] {
         override def extract(event: Row, name: Symbol): Double = {
@@ -104,9 +116,19 @@ case class InfluxDBInputConf(
   )
 
   implicit lazy val anyExtractor =
-    errOrFieldsIdxMap.map(fieldsIdxMap => (event: Row, name: Symbol) => getRowFieldOrThrow(event, fieldsIdxMap, name))
+    errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>
+      new AnyExtractor[Row] {
+        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
+      }
+    )
 
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+  implicit lazy val anyNonTransformedExtractor =
+    errOrFieldsIdxMap.map(fieldsIdxMap =>
+      new AnyNonTransformedExtractor[Row] {
+        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
+      })
+
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
         case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
@@ -114,8 +136,8 @@ case class InfluxDBInputConf(
       }
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
       val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      getKVFieldOrThrow(event, keyColInd, valueColInd)
-  }
+      val kv = getKVFieldOrThrow(event, keyColInd, valueColInd)
+      (kv._1, kv._2, getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double])  }
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
     InfluxDBInputFormat

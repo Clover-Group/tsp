@@ -16,7 +16,7 @@ import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
-import ru.itclover.tsp.phases.Phases.AnyExtractor
+import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator, StreamSource}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
@@ -34,7 +34,7 @@ object PatternsSearchJob {
   type ValidatedPhases[InEvent] = Either[Throwable, Phases[InEvent]]
 }
 
-case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, OutEvent: TypeInformation](
+case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInformation](
   inputConf: InputConf[InEvent],
   outputConf: OutputConf[OutEvent],
   resultMapper: RichMapFunction[Incident, OutEvent]
@@ -42,8 +42,10 @@ case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, O
   implicit extractTime: TimeExtractor[InEvent],
   extractNumber: SymbolNumberExtractor[InEvent],
   extractAny: AnyExtractor[InEvent],
-  extractKeyVal: InEvent => (Symbol, AnyRef),
-  eventCreator: EventCreator[InEvent]
+  extractAnyNonTransformed: AnyNonTransformedExtractor[InEvent],
+  extractKeyVal: InEvent => (Symbol, AnyRef, Double),
+  eventCreator: EventCreator[InEvent],
+  eventTypeInfo: TypeInformation[InEvent]
 ) {
 
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
@@ -104,6 +106,10 @@ case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, O
       }
       log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
       log.info(s"Source data transformation is ${inputConf.dataTransformation}")
+      val emptyEvent = inputConf.dataTransformation match {
+        case Some(NarrowDataUnfolding(_, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
+        case _ => streamSrc.emptyEvent
+      }
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
@@ -112,15 +118,16 @@ case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, O
             outputConf.forwardedFields ++ raw.forwardedFields,
             inputConf.partitionFields
           ).asInstanceOf[ResultMapper[InEvent, Any, Incident]]
-          new FlinkPatternMapper(phase, incidentsRM, inputConf.eventsMaxGapMs, streamSrc.emptyEvent, isTerminal)
+          new FlinkPatternMapper(phase, incidentsRM, inputConf.eventsMaxGapMs, emptyEvent, isTerminal)
             .asInstanceOf[RichStatefulFlatMapper[InEvent, Any, Incident]]
       })
       for { mappers <- patternMappersBuckets } yield {
         val (serExtractAny, serPartitionFields) = (extractAny, inputConf.partitionFields) // made job code serializable
         val incidents = stream
-          .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
+          //.keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapIf(
-            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]), SparseRowsDataAccumulator(inputConf))
+            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]),
+          SparseRowsDataAccumulator(inputConf))
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)

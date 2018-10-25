@@ -11,6 +11,7 @@ import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.phases.Phases.AnyExtractor
 
 
 // .. TODO Set into flat mapper
@@ -19,7 +20,7 @@ class ToIncidentsResultMapper[Event](
   maxWindowMs: Long,
   forwardedFields: Seq[Symbol],
   partitionFields: Seq[Symbol]
-)(implicit timeExtractor: TimeExtractor[Event], extractAny: (Event, Symbol) => Any)
+)(implicit timeExtractor: TimeExtractor[Event], extractAny: AnyExtractor[Event])
     extends ResultMapper[Event, Segment, Incident] {
 
   override def apply(event: Event, results: Seq[TerminalResult[Segment]]) =

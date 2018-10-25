@@ -66,7 +66,7 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
         implicit val src = JdbcSource(request.source)
-        implicit val (timeExtr, numExtr, anyExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
+        implicit val (timeExtr, numExtr, anyExtr, anyNTExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
         val job = new PatternsSearchJob[Row, Any, Row](
           request.source,
           request.sink,
@@ -78,7 +78,7 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-influxdb" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
         implicit val src = InfluxDBSource(request.source)
-        implicit val (timeExtr, numExtr, anyExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
+        implicit val (timeExtr, numExtr, anyExtr, anyNTExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
         val job = new PatternsSearchJob[Row, Any, Row](
           request.source,
           request.sink,
@@ -95,8 +95,9 @@ trait JobsRoutes extends RoutesProtocols {
       te <- inputConf.timeExtractor
       ne <- inputConf.symbolNumberExtractor
       ae <- inputConf.anyExtractor
+      ante <- inputConf.anyNonTransformedExtractor
       kve <- inputConf.keyValExtractor
-    } yield (te, ne, ae, kve)
+    } yield (te, ne, ae, ante, kve)
     extractors match {
       case Right(ext) => ext
       case Left(err) => throw err // complete(InternalServerError, FailureResponse(5001, "Cannot access extractors", err))
