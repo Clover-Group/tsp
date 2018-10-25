@@ -4,9 +4,9 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
 import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.output.{JDBCOutputConf, OutputConf, RowSchema}
-import spray.json.{DefaultJsonProtocol, JsArray, JsBoolean, JsNumber, JsString, JsValue, JsonFormat}
+import spray.json._
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
@@ -30,6 +30,29 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val finishedJobResponseFmt = jsonFormat2(FinishedJobResponse.apply)
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
+  implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeouts")
+  implicit val sdtFormat = new RootJsonFormat[SourceDataTransformation] {
+    override def read(json: JsValue): SourceDataTransformation = json match {
+      case obj: JsObject =>
+        val tp = obj.fields.getOrElse("type", sys.error("Source data transformation: missing type"))
+        val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
+        tp match {
+          case JsString("NarrowDataUnfolding") => nduFormat.read(cfg)
+          case _ => sys.error(s"Source data transformation: unknown type $tp")
+        }
+      case _ => sys.error(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
+    }
+    override def write(obj: SourceDataTransformation): JsValue = {
+      val c = obj.config match {
+        case ndu: NarrowDataUnfolding => ndu.toJson
+        case _                        => sys.error("Unknown source data transformation")
+      }
+      JsObject(
+        "type"   -> obj.`type`.toJson,
+        "config" -> c
+      )
+    }
+  }
 
   implicit val jdbcInpConfFmt = jsonFormat(
     JDBCInputConf.apply,
@@ -44,6 +67,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "userName",
     "password",
     "props",
+    "dataTransformation",
     "parallelism",
     "numParallelSources",
     "patternsParallelism"
@@ -61,6 +85,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "userName",
     "password",
     "timeoutSec",
+    "dataTransformation",
     "parallelism",
     "numParallelSources",
     "patternsParallelism"
