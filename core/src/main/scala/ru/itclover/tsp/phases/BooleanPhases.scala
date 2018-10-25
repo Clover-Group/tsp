@@ -70,12 +70,8 @@ object BooleanPhases {
     */
   case class Assert[Event, State](predicate: BooleanPhaseParser[Event, State]) extends BooleanPhaseParser[Event, State] {
     override def apply(event: Event, s: State): (PatternResult[Boolean], State) = {
-
       val (res, out) = predicate(event, s)
-      (res match {
-        case Success(false) => Failure(s"Assert not match") // TODO make us of Writer of predicate here
-        case x              => x
-      }) -> out
+      res.flatMap(r => if (r) Success(true) else Failure("Assert not match")) -> out
     }
 
     override def initialState: State = predicate.initialState
