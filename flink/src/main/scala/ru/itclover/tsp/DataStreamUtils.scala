@@ -31,8 +31,9 @@ object DataStreamUtils {
       dataStream.flatMap(new FlatMappersCombinator[Event, Any, Out](flatMappers))
     }
 
-    def flatMapIf(cond: Boolean, mapper: FlatMapFunction[Event, Event]): DataStream[Event] = {
-      if (cond) { dataStream.flatMap(mapper) } else { dataStream }
+    def flatMapIf(cond: Boolean, mapper: => FlatMapFunction[Event, Event]): DataStream[Event] = {
+      lazy val m = mapper // don't create mapper if the condition is false
+      if (cond) { dataStream.flatMap(m) } else { dataStream }
     }
 
     def foreach(fn: Event => Unit): DataStream[Unit] = dataStream.map[Unit](fn)(new UnitTypeInfo)

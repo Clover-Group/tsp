@@ -117,8 +117,8 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString)
           .flatMapIf(
-            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]),
-          SparseRowsDataAccumulator(inputConf))
+            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]), SparseRowsDataAccumulator(inputConf)
+          )
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)

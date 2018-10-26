@@ -81,7 +81,7 @@ object SparseRowsDataAccumulator {
       .map({
         case ndu: NarrowDataUnfolding => ndu
       })
-      .getOrElse(sys.error("Invalid config type"))
+      .getOrElse(sys.error(s"Invalid config type: expected NarrowDataUnfolding, got ${inputConf.dataTransformation} instead"))
     val fim = inputConf.errOrFieldsIdxMap match {
       case Right(m) => m
       case Left(e)  => sys.error(e.toString)
@@ -92,7 +92,7 @@ object SparseRowsDataAccumulator {
       )
       .keys
       .toSeq
-    SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeouts, extraFields)(
+    SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields)(
       timeExtractor,
       extractKeyVal,
       extractAny,
@@ -116,7 +116,7 @@ object SparseRowsDataAccumulator {
       )
       .keys
       .toSeq
-    val targetKeySet: Set[Symbol] = sparseRowsConf.fieldsTimeouts.keySet
+    val targetKeySet: Set[Symbol] = sparseRowsConf.fieldsTimeoutsMs.keySet
     val keysIndexesMap: Map[Symbol, Int] = targetKeySet.zip(0 until targetKeySet.size).toMap
 
     val extraFieldsIndexesMap: Map[Symbol, Int] = extraFields
