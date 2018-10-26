@@ -113,7 +113,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
-            raw.id,
+            raw,
             if (metadata.maxWindowMs > 0L) metadata.maxWindowMs else inputConf.defaultEventsGapMs,
             outputConf.forwardedFields ++ raw.forwardedFields,
             inputConf.partitionFields

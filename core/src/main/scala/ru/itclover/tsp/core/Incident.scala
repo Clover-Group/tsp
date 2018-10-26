@@ -17,10 +17,10 @@ case class Incident(
   maxWindowMs: Long,
   segment: Segment,
   forwardedFields: Map[Symbol, Any],
+  patternPayload: Map[String, String],
   partitionFields: Map[Symbol, Any]
 ) extends Product
     with Serializable
-
 
 
 object IncidentInstances {
@@ -34,10 +34,11 @@ object IncidentInstances {
         if (a.segment.to.toMillis > b.segment.to.toMillis) a.segment.to
         else b.segment.to
       Incident(
-        a.id,
-        a.maxWindowMs,
+        b.id,
+        b.maxWindowMs,
         Segment(from, to),
         b.forwardedFields,
+        b.patternPayload,
         b.partitionFields
       )
     }
