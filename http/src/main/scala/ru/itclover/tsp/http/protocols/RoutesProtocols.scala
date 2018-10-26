@@ -30,7 +30,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val finishedJobResponseFmt = jsonFormat2(FinishedJobResponse.apply)
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
-  implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeouts")
+  implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeoutsMs")
+  implicit val wdfFormat = jsonFormat(WideDataFilling, "fieldsTimeoutsMs")
   implicit val sdtFormat = new RootJsonFormat[SourceDataTransformation] {
     override def read(json: JsValue): SourceDataTransformation = json match {
       case obj: JsObject =>
@@ -38,13 +39,15 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
         val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
         tp match {
           case JsString("NarrowDataUnfolding") => nduFormat.read(cfg)
-          case _ => sys.error(s"Source data transformation: unknown type $tp")
+          case JsString("WideDataFilling")   => wdfFormat.read(cfg)
+          case _                               => sys.error(s"Source data transformation: unknown type $tp")
         }
       case _ => sys.error(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
     }
     override def write(obj: SourceDataTransformation): JsValue = {
       val c = obj.config match {
         case ndu: NarrowDataUnfolding => ndu.toJson
+        case wdf: WideDataFilling     => wdf.toJson
         case _                        => sys.error("Unknown source data transformation")
       }
       JsObject(

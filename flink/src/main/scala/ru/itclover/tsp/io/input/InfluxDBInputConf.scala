@@ -57,7 +57,7 @@ case class InfluxDBInputConf(
   import InputConf.getRowFieldOrThrow
 
   val defaultTimeoutSec = 200L
-  lazy val dbConnect =
+  def dbConnect =
     InfluxDBService.connectDb(url, dbName, userName, password, timeoutSec.getOrElse(defaultTimeoutSec))
 
   private val dummyResult: Class[QueryResult.Result] =
@@ -151,7 +151,7 @@ case class InfluxDBInputConf(
       .buildIt()
   }
 
-  lazy val firstSeries = {
+  def firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)
     for {
       db     <- dbConnect

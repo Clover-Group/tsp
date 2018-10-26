@@ -12,7 +12,7 @@ import ru.itclover.tsp.EvalUtils
 import ru.itclover.tsp.core.{Pattern, Time}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 
 import scala.collection.mutable
@@ -26,7 +26,8 @@ trait SparseDataAccumulator
   */
 case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[Symbol, Long],
-  extraFieldNames: Seq[Symbol]
+  extraFieldNames: Seq[Symbol],
+  useUnfolding: Boolean
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (Symbol, Value, Double),
@@ -49,9 +50,18 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
   override def flatMap(item: InEvent, out: Collector[OutEvent]): Unit = {
-    val (key, value, time) = extractKeyAndVal(item)
-    event(key) = (value, time)
-    dropExpiredKeys(event, time)
+    if (useUnfolding) {
+      val (key, value, time) = extractKeyAndVal(item)
+      event(key) = (value, time)
+      dropExpiredKeys(event, time)
+    } else {
+      val time = extractTime(item)
+      fieldsIndexesMap.keySet.foreach { key =>
+        val newValue = try { extractAny(item, key) } catch { case _: Throwable => null }
+        if (newValue != null) event(key) = (newValue.asInstanceOf[Value], time)
+        dropExpiredKeys(event, time)
+      }
+    }
     if (targetKeySet subsetOf event.keySet) {
       val list = mutable.ListBuffer.fill[(Symbol, AnyRef)](arity)(null)
       event.foreach { case (k, (v, _)) => list(keysIndexesMap(k)) = (k, v.asInstanceOf[AnyRef]) }
@@ -77,27 +87,43 @@ object SparseRowsDataAccumulator {
     rowTypeInfo: TypeInformation[OutEvent],
     eventCreator: EventCreator[OutEvent]
   ): SparseRowsDataAccumulator[InEvent, Value, OutEvent] = {
-    val sparseRowsConf = inputConf.dataTransformation
+    inputConf.dataTransformation
       .map({
-        case ndu: NarrowDataUnfolding => ndu
+        case ndu: NarrowDataUnfolding =>
+          val sparseRowsConf = ndu
+          val fim = inputConf.errOrFieldsIdxMap match {
+            case Right(m) => m
+            case Left(e)  => sys.error(e.toString)
+          }
+          val extraFields = fim
+            .filterNot(
+              nameAndInd => nameAndInd._1 == sparseRowsConf.key || nameAndInd._1 == sparseRowsConf.value
+            )
+            .keys
+            .toSeq
+          SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields, useUnfolding = true)(
+            timeExtractor,
+            extractKeyVal,
+            extractAny,
+            eventCreator
+          )
+        case wdf: WideDataFilling =>
+          val sparseRowsConf = wdf
+          val _ = inputConf.errOrFieldsIdxMap match {
+            case Right(m) => m
+            case Left(e)  => sys.error(e.toString)
+          }
+          val extraFields = Seq.empty[Symbol] // TODO: no extra fields here?
+          SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields, useUnfolding = false)(
+            timeExtractor,
+            extractKeyVal,
+            extractAny,
+            eventCreator
+          )
+        case _ =>
+          sys.error(s"Invalid config type: expected NarrowDataUnfolding or WideDataFilling, got ${inputConf.dataTransformation} instead")
       })
-      .getOrElse(sys.error(s"Invalid config type: expected NarrowDataUnfolding, got ${inputConf.dataTransformation} instead"))
-    val fim = inputConf.errOrFieldsIdxMap match {
-      case Right(m) => m
-      case Left(e)  => sys.error(e.toString)
-    }
-    val extraFields = fim
-      .filterNot(
-        nameAndInd => nameAndInd._1 == sparseRowsConf.key || nameAndInd._1 == sparseRowsConf.value
-      )
-      .keys
-      .toSeq
-    SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields)(
-      timeExtractor,
-      extractKeyVal,
-      extractAny,
-      eventCreator
-    )
+      .getOrElse(sys.error("No data transformation config specified"))
   }
 
   def fieldsIndexesMap[InEvent](inputConf: InputConf[InEvent]): Map[Symbol, Int] = {
@@ -122,7 +148,7 @@ object SparseRowsDataAccumulator {
     val extraFieldsIndexesMap: Map[Symbol, Int] = extraFields
       .zip(
         targetKeySet.size until
-          targetKeySet.size + extraFields.size
+        targetKeySet.size + extraFields.size
       )
       .toMap
     val fieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap

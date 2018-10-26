@@ -13,6 +13,6 @@ case class NarrowDataUnfolding(key: Symbol, value: Symbol, fieldsTimeoutsMs: Map
 }
 
 case class WideDataFilling(fieldsTimeoutsMs: Map[Symbol, Long])
-  extends SourceDataTransformation("NarrowDataUnfolding") with SourceDataTransformationConf {
+  extends SourceDataTransformation("WideDataFilling") with SourceDataTransformationConf {
   override val config: SourceDataTransformationConf = this
 }

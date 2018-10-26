@@ -14,19 +14,6 @@ object DataStreamUtils {
 
   implicit class DataStreamOps[Event: TypeInformation](val dataStream: DataStream[Event]) {
 
-    /*def accumulateKeyValues(sourceInfo: JDBCSourceInfo, inputConf: JDBCNarrowInputConf)
-                           (implicit timeExtractor: TimeExtractor[Event],
-                                extractKeyVal: Event => (Symbol, Double),
-                                extractAny: (Event, Symbol) => Any,
-                                rowTypeInfo: TypeInformation[Row]): DataStream[Row] = {
-      val extraFields = sourceInfo.fieldsIndexesMap.filterNot(nameAndInd =>
-        nameAndInd._1 == inputConf.keyColname || nameAndInd._1 == inputConf.valColname
-      ).keys.toSeq
-      val dataAccumulator = SparseRowsDataAccumulator(inputConf.fieldsTimeoutsMs, extraFields)
-                                                     (timeExtractor, extractKeyVal, extractAny)
-      dataStream.flatMap(dataAccumulator)
-    }*/
-
     def flatMapAll[Out: TypeInformation](flatMappers: Seq[RichStatefulFlatMapper[Event, Any, Out]]): DataStream[Out] = {
       dataStream.flatMap(new FlatMappersCombinator[Event, Any, Out](flatMappers))
     }

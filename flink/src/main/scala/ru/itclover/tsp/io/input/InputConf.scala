@@ -44,15 +44,6 @@ object InputConf {
     event.getField(ind)
   }
 
-//  def getFirstDefinedRowFieldOrThrow(event: Row, fieldsIdxMap: Map[Symbol, Int]): (Symbol, AnyRef) = {
-//    fieldsIdxMap.foreach {
-//      (name: Symbol, ind: Int) =>
-//      val value = event.getField(ind)
-//      if (value != null)
-//        return (name, value)
-//    }
-//    throw Exceptions.InvalidRequest("All fields in the row are undefined")
-//  }
   def getKVFieldOrThrow(event: Row, keyColumnIndex: Int, valueColumnIndex: Int): (Symbol, AnyRef) = {
     (Symbol(event.getField(keyColumnIndex).toString), event.getField(valueColumnIndex))
   }
