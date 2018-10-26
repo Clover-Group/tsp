@@ -2,12 +2,8 @@ package ru.itclover.tsp.io.input
 
 import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
-
-<<<<<<< HEAD
-=======
 import scala.language.existentials
 import com.typesafe.config.ConfigFactory
->>>>>>> d867104... (PLTB-1412) works for narrow table
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
@@ -18,12 +14,8 @@ import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-<<<<<<< HEAD
-=======
-import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
->>>>>>> d867104... (PLTB-1412) works for narrow table
 
 import scala.util.Try
 
@@ -141,7 +133,7 @@ case class JDBCInputConf(
       new AnyNonTransformedExtractor[Row] {
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
-  
+
   implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
