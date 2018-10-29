@@ -66,7 +66,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "partitionFields",
     "userName",
     "password",
-    "props",
     "dataTransformation",
     "parallelism",
     "numParallelSources",

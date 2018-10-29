@@ -31,7 +31,7 @@ object DataStreamUtils {
       dataStream.flatMap(new FlatMappersCombinator[Event, Any, Out](flatMappers))
     }
 
-    def flatMapIf(cond: Boolean, mapper: FlatMapFunction[Event, Event]): DataStream[Event] = {
+    def flatMapIf(cond: Boolean, mapper: => FlatMapFunction[Event, Event]): DataStream[Event] = {
       if (cond) { dataStream.flatMap(mapper) } else { dataStream }
     }
 

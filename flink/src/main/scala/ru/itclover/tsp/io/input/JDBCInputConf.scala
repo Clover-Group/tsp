@@ -49,7 +49,6 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  props: Option[Map[String, AnyRef]] = None,
   dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
@@ -57,15 +56,11 @@ case class JDBCInputConf(
 ) extends InputConf[Row] {
 
   import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
-  val properties = new Properties()
-  props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
-
+  
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry: Try[Class[_]] = Try(Class.forName(driverName))
-    properties.put("user", userName.getOrElse(""))
-    properties.put("password", password.getOrElse(""))
-
-    val connectionTry = Try(DriverManager.getConnection(jdbcUrl, properties))
+  
+    val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
     (for {
       _          <- classTry
       connection <- connectionTry
@@ -81,10 +76,8 @@ case class JDBCInputConf(
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
-    setDefaultTimeouts()
     JDBCInputFormatProps
       .buildJDBCInputFormat()
-      .addProperties(properties)
       .setDrivername(driverName)
       .setDBUrl(jdbcUrl)
       .setUsername(userName.getOrElse(""))
@@ -138,13 +131,6 @@ case class JDBCInputConf(
       new AnyNonTransformedExtractor[Row] {
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
-
-  // TODO Rm, Temporary timeouts
-  def setDefaultTimeouts() = {
-    if (properties.getProperty("socket_timeout") == null) properties.setProperty("socket_timeout", "150000")
-    if (properties.getProperty("dataTransferTimeout") == null) properties.setProperty("dataTransferTimeout", "100000")
-    if (properties.getProperty("keepAliveTimeout") == null) properties.setProperty("keepAliveTimeout", "150000")
-  }
 
   implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
