@@ -122,7 +122,7 @@ class SyntaxParser[Event](val input: ParserInput)(
 
   def booleanTerm: Rule1[AnyBooleanPhaseParser] = rule {
     booleanFactor ~ zeroOrMore(
-      ignoreCase("and") ~ ws ~ booleanFactor ~>
+      ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
       ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a & b, "and").asInstanceOf[AnyBooleanPhaseParser])
     )
   }
