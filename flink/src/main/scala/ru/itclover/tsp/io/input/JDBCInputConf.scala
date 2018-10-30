@@ -37,7 +37,6 @@ import scala.util.Try
   * @param partitionFields fields by which data will be split and paralleled physically
   * @param userName for JDBC auth
   * @param password for JDBC auth
-  * @param props extra configs to JDBC `DriverManager.getConnection(`
   * @param parallelism basic parallelism of all computational nodes
   * @param patternsParallelism number of parallel branch nodes after sink stage (node)
   */
@@ -52,7 +51,6 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  props: Option[Map[String, AnyRef]] = None,
   dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
@@ -143,13 +141,7 @@ case class JDBCInputConf(
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
 
-  implicit lazy val anyNonTransformedExtractor =
-    errOrFieldsIdxMap.map(fieldsIdxMap =>
-      new AnyNonTransformedExtractor[Row] {
-        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
-      })
-
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
         case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
