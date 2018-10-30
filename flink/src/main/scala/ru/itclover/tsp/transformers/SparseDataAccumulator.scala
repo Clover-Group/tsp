@@ -73,12 +73,8 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
       }
       extraFieldNames.foreach { name =>
         list(extraFieldsIndexesMap(name)) = (name, extractAny(item, name).asInstanceOf[AnyRef])
-        log.info(
-          s"Extra field = $name, index = ${extraFieldsIndexesMap(name)}, value = ${list(extraFieldsIndexesMap(name))}"
-        )
       }
       val outEvent = eventCreator.create(list)
-      log.info(s"Out event = $outEvent")
       out.collect(outEvent)
     }
   }

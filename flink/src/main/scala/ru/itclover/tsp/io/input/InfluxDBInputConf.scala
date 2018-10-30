@@ -97,7 +97,6 @@ case class InfluxDBInputConf(
     new TimeExtractor[Row] {
       override def apply(event: Row) = {
         val isoTime = getRowFieldOrThrow(event, fieldsIdxMap, dtField).asInstanceOf[String]
-        println(s"TIME = $isoTime")
         if (isoTime == null) sys.error(s"Time was null (tried field $dtField with " +
             s"index ${fieldsIdxMap.getOrElse(dtField, -1)}) in event: $event; Fields indexes map was $fieldsIdxMap")
         Instant.parse(isoTime).toEpochMilli / 1000.0
@@ -110,7 +109,6 @@ case class InfluxDBInputConf(
     new TimeNonTransformedExtractor[Row] {
       override def apply(event: Row) = {
         val isoTime = getRowFieldOrThrow(event, fieldsIdxMap, dtField).asInstanceOf[String]
-        println(s"TIME = $isoTime")
         if (isoTime == null) sys.error(s"Time was null (tried field $dtField with " +
           s"index ${fieldsIdxMap.getOrElse(dtField, -1)}) in event: $event; Fields indexes map was $fieldsIdxMap")
         Instant.parse(isoTime).toEpochMilli / 1000.0
