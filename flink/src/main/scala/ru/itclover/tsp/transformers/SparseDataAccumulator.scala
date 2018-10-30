@@ -1,5 +1,6 @@
 package ru.itclover.tsp.transformers
 
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -10,12 +11,13 @@ import org.apache.flink.util.Collector
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.EvalUtils
 import ru.itclover.tsp.core.{Pattern, Time}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
 import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 
 import scala.collection.mutable
+import scala.util.control.NonFatal
 
 trait SparseDataAccumulator
 
@@ -29,8 +31,8 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   extraFieldNames: Seq[Symbol],
   useUnfolding: Boolean
 )(
-  implicit extractTime: TimeExtractor[InEvent],
-  extractKeyAndVal: InEvent => (Symbol, Value, Double),
+  implicit extractTime: TimeNonTransformedExtractor[InEvent],
+  extractKeyAndVal: InEvent => (Symbol, Value),
   extractAny: AnyNonTransformedExtractor[InEvent],
   eventCreator: EventCreator[OutEvent]
 ) extends RichFlatMapFunction[InEvent, OutEvent]
@@ -49,40 +51,48 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   val fieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
+  val log = Logger("SparseDataAccumulator")
+
   override def flatMap(item: InEvent, out: Collector[OutEvent]): Unit = {
+    val time = extractTime(item)
     if (useUnfolding) {
-      val (key, value, time) = extractKeyAndVal(item)
+      val (key, value) = extractKeyAndVal(item)
       event(key) = (value, time)
-      dropExpiredKeys(event, time)
     } else {
-      val time = extractTime(item)
       fieldsIndexesMap.keySet.foreach { key =>
-        val newValue = try { extractAny(item, key) } catch { case _: Throwable => null }
-        if (newValue != null) event(key) = (newValue.asInstanceOf[Value], time)
-        dropExpiredKeys(event, time)
+        val newValue = try { extractAny(item, key) } catch { case NonFatal(_) => null }
+        if (newValue != null || !event.contains(key)) event(key) = (newValue.asInstanceOf[Value], time)
       }
     }
+    dropExpiredKeys(event, time)
     if (targetKeySet subsetOf event.keySet) {
       val list = mutable.ListBuffer.fill[(Symbol, AnyRef)](arity)(null)
-      event.foreach { case (k, (v, _)) => list(keysIndexesMap(k)) = (k, v.asInstanceOf[AnyRef]) }
+      event.foreach {
+        case (k, (v, _)) if keysIndexesMap.contains(k) => list(keysIndexesMap(k)) = (k, v.asInstanceOf[AnyRef])
+        case _                                         =>
+      }
       extraFieldNames.foreach { name =>
         list(extraFieldsIndexesMap(name)) = (name, extractAny(item, name).asInstanceOf[AnyRef])
+        log.info(
+          s"Extra field = $name, index = ${extraFieldsIndexesMap(name)}, value = ${list(extraFieldsIndexesMap(name))}"
+        )
       }
       val outEvent = eventCreator.create(list)
+      log.info(s"Out event = $outEvent")
       out.collect(outEvent)
     }
   }
 
   private def dropExpiredKeys(event: mutable.Map[Symbol, (Value, Time)], currentRowTime: Time): Unit = {
-    event.retain((k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs(k))
+    event.retain((k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, Long.MaxValue))
   }
 }
 
 object SparseRowsDataAccumulator {
 
   def apply[InEvent, Value, OutEvent](inputConf: InputConf[InEvent])(
-    implicit timeExtractor: TimeExtractor[InEvent],
-    extractKeyVal: InEvent => (Symbol, Value, Double),
+    implicit timeExtractor: TimeNonTransformedExtractor[InEvent],
+    extractKeyVal: InEvent => (Symbol, Value),
     extractAny: AnyNonTransformedExtractor[InEvent],
     rowTypeInfo: TypeInformation[OutEvent],
     eventCreator: EventCreator[OutEvent]
@@ -109,11 +119,12 @@ object SparseRowsDataAccumulator {
           )
         case wdf: WideDataFilling =>
           val sparseRowsConf = wdf
-          val _ = inputConf.errOrFieldsIdxMap match {
+          val fim = inputConf.errOrFieldsIdxMap match {
             case Right(m) => m
             case Left(e)  => sys.error(e.toString)
           }
-          val extraFields = Seq.empty[Symbol] // TODO: no extra fields here?
+          val extraFields =
+            fim.filterNot(nameAndInd => sparseRowsConf.fieldsTimeoutsMs.contains(nameAndInd._1)).keys.toSeq
           SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields, useUnfolding = false)(
             timeExtractor,
             extractKeyVal,
@@ -121,28 +132,44 @@ object SparseRowsDataAccumulator {
             eventCreator
           )
         case _ =>
-          sys.error(s"Invalid config type: expected NarrowDataUnfolding or WideDataFilling, got ${inputConf.dataTransformation} instead")
+          sys.error(
+            s"Invalid config type: expected NarrowDataUnfolding or WideDataFilling, got ${inputConf.dataTransformation} instead"
+          )
       })
       .getOrElse(sys.error("No data transformation config specified"))
   }
 
   def fieldsIndexesMap[InEvent](inputConf: InputConf[InEvent]): Map[Symbol, Int] = {
-    val sparseRowsConf = inputConf.dataTransformation
-      .map({
-        case ndu: NarrowDataUnfolding => ndu
-      })
-      .getOrElse(sys.error("Invalid config type"))
     val fim = inputConf.errOrFieldsIdxMap match {
       case Right(m) => m
       case Left(e)  => sys.error(e.toString)
     }
-    val extraFields = fim
-      .filterNot(
-        nameAndInd => nameAndInd._1 == sparseRowsConf.key || nameAndInd._1 == sparseRowsConf.value
-      )
-      .keys
-      .toSeq
-    val targetKeySet: Set[Symbol] = sparseRowsConf.fieldsTimeoutsMs.keySet
+    val (extraFields, targetKeySet, useUnfolding) = inputConf.dataTransformation
+      .map({
+        case ndu: NarrowDataUnfolding =>
+          (
+            fim
+              .filterNot(
+                nameAndInd => nameAndInd._1 == ndu.key || nameAndInd._1 == ndu.value
+              )
+              .keys
+              .toSeq,
+            ndu.fieldsTimeoutsMs.keySet,
+            true
+          )
+        case wdf: WideDataFilling =>
+          (
+            fim
+              .filterNot(
+                nameAndInd => wdf.fieldsTimeoutsMs.contains(nameAndInd._1)
+              )
+              .keys
+              .toSeq,
+            wdf.fieldsTimeoutsMs.keySet,
+            false
+          )
+      })
+      .getOrElse(sys.error("Invalid config type"))
     val keysIndexesMap: Map[Symbol, Int] = targetKeySet.zip(0 until targetKeySet.size).toMap
 
     val extraFieldsIndexesMap: Map[Symbol, Int] = extraFields
@@ -151,6 +178,7 @@ object SparseRowsDataAccumulator {
         targetKeySet.size + extraFields.size
       )
       .toMap
+    // TODO: Replace that ugly workaround
     val fieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap
     fieldsIndexesMap
   }

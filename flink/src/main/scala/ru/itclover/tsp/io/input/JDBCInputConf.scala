@@ -2,6 +2,7 @@ package ru.itclover.tsp.io.input
 
 import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
+
 import scala.language.existentials
 import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
@@ -10,7 +11,7 @@ import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
@@ -108,6 +109,13 @@ case class JDBCInputConf(
     }
   }
 
+  implicit lazy val timeNonTransformedExtractor = errOrFieldsIdxMap map { fieldsIdxMap =>
+    new TimeNonTransformedExtractor[Row] {
+      override def apply(event: Row) =
+        getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
+    }
+  }
+
   implicit lazy val symbolNumberExtractor = errOrTransformedFieldsIdxMap.map(
     fieldsIdxMap =>
       new SymbolNumberExtractor[Row] {
@@ -134,7 +142,7 @@ case class JDBCInputConf(
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
 
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
         case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
@@ -143,7 +151,7 @@ case class JDBCInputConf(
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
       val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
       val kv = getKVFieldOrThrow(event, keyColInd, valueColInd)
-      (kv._1, kv._2, getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double])
+      (kv._1, kv._2)
 
   }
 }

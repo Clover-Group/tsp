@@ -4,7 +4,7 @@ import org.apache.flink.api.common.io.{GenericInputFormat, InputFormat, RichInpu
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
@@ -27,10 +27,11 @@ trait InputConf[Event] extends Serializable {
 
   // TODO to StreamSource
   implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
+  implicit def timeNonTransformedExtractor: ThrowableOr[TimeNonTransformedExtractor[Event]]
   implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]
   implicit def anyExtractor: ThrowableOr[AnyExtractor[Event]]
   implicit def anyNonTransformedExtractor: ThrowableOr[AnyNonTransformedExtractor[Event]]
-  implicit def keyValExtractor: ThrowableOr[Row => (Symbol, AnyRef, Double)]
+  implicit def keyValExtractor: ThrowableOr[Row => (Symbol, AnyRef)]
 }
 
 object InputConf {

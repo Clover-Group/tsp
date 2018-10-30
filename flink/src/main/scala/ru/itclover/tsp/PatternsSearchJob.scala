@@ -11,7 +11,7 @@ import cats.data.Validated
 import cats.Traverse
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, Window}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
@@ -40,10 +40,11 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   resultMapper: RichMapFunction[Incident, OutEvent]
 )(
   implicit extractTime: TimeExtractor[InEvent],
+  extractTimeNonTransformed: TimeNonTransformedExtractor[InEvent],
   extractNumber: SymbolNumberExtractor[InEvent],
   extractAny: AnyExtractor[InEvent],
   extractAnyNonTransformed: AnyNonTransformedExtractor[InEvent],
-  extractKeyVal: InEvent => (Symbol, AnyRef, Double),
+  extractKeyVal: InEvent => (Symbol, AnyRef),
   eventCreator: EventCreator[InEvent],
   eventTypeInfo: TypeInformation[InEvent]
 ) {

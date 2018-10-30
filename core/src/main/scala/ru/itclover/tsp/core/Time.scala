@@ -25,6 +25,7 @@ case class Window(toMillis: Long) extends Serializable
 object Time {
 
   trait TimeExtractor[Event] extends (Event => Time) with Serializable
+  trait TimeNonTransformedExtractor[Event] extends (Event => Time) with Serializable
 
   implicit val timeOrdering: Ordering[Time] = new Ordering[Time] {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)

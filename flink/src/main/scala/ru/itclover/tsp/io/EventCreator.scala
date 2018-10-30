@@ -11,7 +11,7 @@ object EventCreatorInstances {
     override def create(kv: Seq[(Symbol, AnyRef)]): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>
-        row.setField(kvWithIndex._2, kvWithIndex._1._2)
+        if (kvWithIndex._1 != null) { row.setField(kvWithIndex._2, kvWithIndex._1._2) }
       }
       row
     }
