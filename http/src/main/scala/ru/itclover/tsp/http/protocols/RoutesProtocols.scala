@@ -69,9 +69,9 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "partitionFields",
     "userName",
     "password",
-    "props",
     "dataTransformation",
     "parallelism",
+    "numParallelSources",
     "patternsParallelism"
   )
   implicit val influxInpConfFmt = jsonFormat(
@@ -89,6 +89,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timeoutSec",
     "dataTransformation",
     "parallelism",
+    "numParallelSources",
     "patternsParallelism"
   )
 

@@ -17,7 +17,8 @@ lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation"           // warn about use of deprecated APIs
+    "-deprecation",          // warn about use of deprecated APIs
+    "-feature"               // warn about feature warnings 
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
@@ -77,7 +78,7 @@ dockerCommands := Seq(
 
 /*** Projects configuration ***/
 
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http, integrationCorrectness)
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
   .settings(commonSettings)
   .settings(
     // we set all provided dependencies to none, so that they are included in the classpath of mainRunner

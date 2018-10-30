@@ -22,5 +22,12 @@ object EventCreatorInstances {
       }
       row
     }
+    override def emptyEvent(fieldsIndexesMap: Map[Symbol, Int]): Row = {
+      val row = new Row(fieldsIndexesMap.keySet.toSeq.length)
+      fieldsIndexesMap.foreach { fi =>
+        row.setField(fi._2, 0)
+      }
+      row
+    }
   }
 }

@@ -12,9 +12,14 @@ import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
+import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
+import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
+import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
@@ -32,8 +37,7 @@ import scala.util.Try
   * @param partitionFields fields by which data will be split and paralleled physically
   * @param userName for JDBC auth
   * @param password for JDBC auth
-  * @param props extra configs to JDBC `DriverManager.getConnection()`
-  * @param sparseRows handling sparse data, e.g. {"key": "sensor", "value": "value"}
+  * @param props extra configs to JDBC `DriverManager.getConnection(`
   * @param parallelism basic parallelism of all computational nodes
   * @param patternsParallelism number of parallel branch nodes after sink stage (node)
   */
@@ -51,19 +55,16 @@ case class JDBCInputConf(
   props: Option[Map[String, AnyRef]] = None,
   dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
+  numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] {
 
   import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
 
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
-    val classTry = Try(Class.forName(driverName))
-    val properties: Properties = new Properties()
-    properties.put("user", userName.getOrElse(""))
-    properties.put("password", password.getOrElse(""))
-    props.getOrElse(Map.empty).foreach(x => properties.put(x._1, x._2))
+    val classTry: Try[Class[_]] = Try(Class.forName(driverName))
 
-    val connectionTry = Try(DriverManager.getConnection(jdbcUrl, properties))
+    val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
     (for {
       _          <- classTry
       connection <- connectionTry
@@ -79,7 +80,7 @@ case class JDBCInputConf(
 
   def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
     val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
-    JDBCInputFormat
+    JDBCInputFormatProps
       .buildJDBCInputFormat()
       .setDrivername(driverName)
       .setDBUrl(jdbcUrl)
@@ -142,7 +143,13 @@ case class JDBCInputConf(
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
 
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
+  implicit lazy val anyNonTransformedExtractor =
+    errOrFieldsIdxMap.map(fieldsIdxMap =>
+      new AnyNonTransformedExtractor[Row] {
+        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
+      })
+
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
         case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)

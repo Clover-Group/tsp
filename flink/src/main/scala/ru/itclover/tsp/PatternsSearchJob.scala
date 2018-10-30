@@ -76,10 +76,19 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     implicit streamEnv: StreamExecutionEnvironment
   ): Either[Throwable, JobExecutionResult] = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-    for {
-      _      <- findAndSavePatterns(phases)
-      result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
-    } yield result
+
+    val sourcesNum = inputConf.numParallelSources.getOrElse(1)
+    val sourcesBuckets = if (sourcesNum > phases.length) {
+      log.warn(s"Num. of parallel source branches conf ($sourcesNum) is higher than amount of " +
+        s"phases - ${phases.length}, setting numParallelSources to amount of phases.")
+      Bucketizer.bucketizeByWeight(phases, phases.length)
+    } else {
+      Bucketizer.bucketizeByWeight(phases, sourcesNum)
+    }
+    sourcesBuckets foreach { bucket =>
+      findAndSavePatterns(bucket.items)
+    }
+    Either.catchNonFatal(streamEnv.execute(jobUuid))
   }
 
   def findAndSavePatterns(phases: Phases[InEvent]): Either[Throwable, Seq[DataStreamSink[OutEvent]]] = {
@@ -91,10 +100,8 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       if (inputConf.parallelism.isDefined) stream.setParallelism(inputConf.parallelism.get)
       val patternsThreadsNum = inputConf.patternsParallelism.getOrElse(1)
       val patternsBuckets = if (patternsThreadsNum > phases.length) {
-        log.warn(
-          s"Patterns parallelism conf ($patternsThreadsNum) is higher than amount of " +
-          s"phases - ${phases.length}, setting patternsParallelism to amount of phases."
-        )
+        log.warn(s"Patterns parallelism conf ($patternsThreadsNum) is higher than amount of " +
+          s"phases - ${phases.length}, setting patternsParallelism to amount of phases.")
         Bucketizer.bucketizeByWeight(phases, phases.length)
       } else {
         Bucketizer.bucketizeByWeight(phases, patternsThreadsNum)
@@ -103,12 +110,12 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       log.info(s"Source data transformation is ${inputConf.dataTransformation}")
       val emptyEvent = inputConf.dataTransformation match {
         case Some(NarrowDataUnfolding(_, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
-        case _                                  => streamSrc.emptyEvent
+        case _ => streamSrc.emptyEvent
       }
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
         case ((phase, metadata), raw) =>
           val incidentsRM = new ToIncidentsResultMapper(
-            raw.id,
+            raw,
             if (metadata.maxWindowMs > 0L) metadata.maxWindowMs else inputConf.defaultEventsGapMs,
             outputConf.forwardedFields ++ raw.forwardedFields,
             inputConf.partitionFields
@@ -117,8 +124,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
             .asInstanceOf[RichStatefulFlatMapper[InEvent, Any, Incident]]
       })
       for { mappers <- patternMappersBuckets } yield {
-        val (serExtractAny, serExtractAnyNonTransformed, serPartitionFields) =
-          (extractAny, extractAnyNonTransformed, inputConf.partitionFields) // made job code serializable
+        val (serExtractAny, serExtractAnyNonTransformed, serPartitionFields) = (extractAny, extractAnyNonTransformed, inputConf.partitionFields) // made job code serializable
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString)
           .flatMapIf(
@@ -133,7 +139,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
           .name("Searching for incidents")
 
         // Aggregate contiguous incidents in one big pattern (if configured)
-        val results = if (inputConf.defaultEventsGapMs > 0L) {
+        val results = if (inputConf.defaultEventsGapMs > 0L) { // todo configure via request & move it somewhere else
           incidents
             .assignAscendingTimestamps(p => p.segment.from.toMillis)
             .keyBy(e => e.id + e.partitionFields.values.mkString)
