@@ -92,7 +92,7 @@ case class JDBCInputConf(
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
   lazy val errOrTransformedFieldsIdxMap = dataTransformation match {
-    case Some(NarrowDataUnfolding(_, _, _)) =>
+    case Some(NarrowDataUnfolding(_, _, _, _)) =>
       try {
         Right(SparseRowsDataAccumulator.fieldsIndexesMap(this))
       } catch {
@@ -144,7 +144,7 @@ case class JDBCInputConf(
   implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
-        case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
+        case Some(ndu @ NarrowDataUnfolding(_, _, _, _)) => (ndu.key, ndu.value)
         case _                                        => sys.error("Unsuitable data transformation instance")
       }
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)

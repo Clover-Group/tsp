@@ -29,7 +29,8 @@ trait SparseDataAccumulator
 case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[Symbol, Long],
   extraFieldNames: Seq[Symbol],
-  useUnfolding: Boolean
+  useUnfolding: Boolean,
+  defaultTimeout: Option[Long]
 )(
   implicit extractTime: TimeNonTransformedExtractor[InEvent],
   extractKeyAndVal: InEvent => (Symbol, Value),
@@ -65,14 +66,18 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
       }
     }
     dropExpiredKeys(event, time)
-    if (targetKeySet subsetOf event.keySet) {
+    if (!useUnfolding || (targetKeySet subsetOf event.keySet)) {
       val list = mutable.ListBuffer.fill[(Symbol, AnyRef)](arity)(null)
+      val indexesMap = if (defaultTimeout.isDefined) fieldsIndexesMap else keysIndexesMap
       event.foreach {
-        case (k, (v, _)) if keysIndexesMap.contains(k) => list(keysIndexesMap(k)) = (k, v.asInstanceOf[AnyRef])
-        case _                                         =>
+        case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
+        case _                                     =>
       }
-      extraFieldNames.foreach { name =>
-        list(extraFieldsIndexesMap(name)) = (name, extractAny(item, name).asInstanceOf[AnyRef])
+      if (defaultTimeout.isEmpty) {
+        extraFieldNames.foreach { name =>
+          val value = extractAny(item, name)
+          if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+        }
       }
       val outEvent = eventCreator.create(list)
       out.collect(outEvent)
@@ -80,7 +85,9 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
   }
 
   private def dropExpiredKeys(event: mutable.Map[Symbol, (Value, Time)], currentRowTime: Time): Unit = {
-    event.retain((k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, Long.MaxValue))
+    event.retain(
+      (k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
+    )
   }
 }
 
@@ -107,7 +114,12 @@ object SparseRowsDataAccumulator {
             )
             .keys
             .toSeq
-          SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields, useUnfolding = true)(
+          SparseRowsDataAccumulator(
+            sparseRowsConf.fieldsTimeoutsMs,
+            extraFields,
+            useUnfolding = true,
+            defaultTimeout = ndu.defaultTimeout
+          )(
             timeExtractor,
             extractKeyVal,
             extractAny,
@@ -121,7 +133,12 @@ object SparseRowsDataAccumulator {
           }
           val extraFields =
             fim.filterNot(nameAndInd => sparseRowsConf.fieldsTimeoutsMs.contains(nameAndInd._1)).keys.toSeq
-          SparseRowsDataAccumulator(sparseRowsConf.fieldsTimeoutsMs, extraFields, useUnfolding = false)(
+          SparseRowsDataAccumulator(
+            sparseRowsConf.fieldsTimeoutsMs,
+            extraFields,
+            useUnfolding = false,
+            defaultTimeout = wdf.defaultTimeout
+          )(
             timeExtractor,
             extractKeyVal,
             extractAny,

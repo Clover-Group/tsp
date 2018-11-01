@@ -109,7 +109,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
       log.info(s"Source data transformation is ${inputConf.dataTransformation}")
       val emptyEvent = inputConf.dataTransformation match {
-        case Some(NarrowDataUnfolding(_, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
+        case Some(NarrowDataUnfolding(_, _, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
         case _ => streamSrc.emptyEvent
       }
       val patternMappersBuckets = patternsBuckets.map(_.items.map {

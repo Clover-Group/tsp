@@ -30,8 +30,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val finishedJobResponseFmt = jsonFormat2(FinishedJobResponse.apply)
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
-  implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeoutsMs")
-  implicit val wdfFormat = jsonFormat(WideDataFilling, "fieldsTimeoutsMs")
+  implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeoutsMs", "defaultTimeout")
+  implicit val wdfFormat = jsonFormat(WideDataFilling, "fieldsTimeoutsMs", "defaultTimeout")
   implicit val sdtFormat = new RootJsonFormat[SourceDataTransformation] {
     override def read(json: JsValue): SourceDataTransformation = json match {
       case obj: JsObject =>

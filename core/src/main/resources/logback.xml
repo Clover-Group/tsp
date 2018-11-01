@@ -9,13 +9,15 @@
         <file>logs/logFile.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>logs/logFile.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>logs/logFile.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <timeBasedFileNamingAndTriggeringPolicy
                     class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
                 <maxFileSize>200MB</maxFileSize>
             </timeBasedFileNamingAndTriggeringPolicy>
             <!-- days' of history -->
             <maxHistory>10</maxHistory>
+            <!-- total size of all logs -->
+            <totalSizeCap>4GB</totalSizeCap>
         </rollingPolicy>
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <charset>UTF-8</charset>
