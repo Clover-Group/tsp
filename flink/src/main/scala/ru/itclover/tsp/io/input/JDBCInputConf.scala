@@ -149,8 +149,7 @@ case class JDBCInputConf(
       }
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
       val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      val kv = getKVFieldOrThrow(event, keyColInd, valueColInd)
-      (kv._1, kv._2)
+      getKVFieldOrThrow(event, keyColInd, valueColInd)
 
   }
 }

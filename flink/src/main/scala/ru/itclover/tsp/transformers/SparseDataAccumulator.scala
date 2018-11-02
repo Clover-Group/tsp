@@ -49,7 +49,7 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
       targetKeySet.size + extraFieldNames.size
     )
     .toMap
-  val fieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap
+  val allFieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
   val log = Logger("SparseDataAccumulator")
@@ -60,15 +60,15 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
       val (key, value) = extractKeyAndVal(item)
       event(key) = (value, time)
     } else {
-      fieldsIndexesMap.keySet.foreach { key =>
+      allFieldsIndexesMap.keySet.foreach { key =>
         val newValue = try { extractAny(item, key) } catch { case NonFatal(_) => null }
         if (newValue != null || !event.contains(key)) event(key) = (newValue.asInstanceOf[Value], time)
       }
     }
     dropExpiredKeys(event, time)
     if (!useUnfolding || (targetKeySet subsetOf event.keySet)) {
-      val list = mutable.ListBuffer.fill[(Symbol, AnyRef)](arity)(null)
-      val indexesMap = if (defaultTimeout.isDefined) fieldsIndexesMap else keysIndexesMap
+      val list = mutable.ListBuffer.tabulate[(Symbol, AnyRef)](arity)(x => (Symbol(s"empty_$x"), null))
+      val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
       event.foreach {
         case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
         case _                                     =>
