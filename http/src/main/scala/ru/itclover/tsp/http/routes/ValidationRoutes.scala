@@ -13,8 +13,7 @@ import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
-
+import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import scala.concurrent.ExecutionContextExecutor
 
 object ValidationRoutes {
@@ -35,7 +34,7 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
       val patterns: Seq[RawPattern] = request.patterns
       val res = PatternsValidator.validate[Nothing](patterns)(
         new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
-        new SymbolNumberExtractor[Nothing] { override def extract(event: Nothing, symbol: Symbol): Double = 0.0 }
+        new IndexNumberExtractor[Nothing] { override def extract(event: Nothing, index: Int): Double = 0.0 }
       )
       val result = res.map { x =>
         x._2 match {

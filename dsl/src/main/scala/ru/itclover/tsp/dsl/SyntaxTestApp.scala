@@ -4,7 +4,7 @@ import java.time.Instant
 import org.parboiled2.{ErrorFormatter, ParseError}
 import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.NumericPhases.IndexNumberExtractor
 import ru.itclover.tsp.TestApp.TestEvent
 import scala.io.StdIn
 import scala.util.{Failure, Success}
@@ -15,8 +15,8 @@ object SyntaxTestApp extends App {
     override def apply(v1: TestEvent) = v1.time
   }
 
-  implicit val numberExtractor: SymbolNumberExtractor[TestEvent] = new SymbolNumberExtractor[TestEvent] {
-    override def extract(event: TestEvent, symbol: Symbol): Double = Double.NaN
+  implicit val numberExtractor: IndexNumberExtractor[TestEvent] = new IndexNumberExtractor[TestEvent] {
+    override def extract(event: TestEvent, index: Int) = Double.NaN
   }
 
   val rule = if (args.length < 1) {
@@ -25,7 +25,7 @@ object SyntaxTestApp extends App {
     args(0)
   }
   val formatter = new ErrorFormatter(showTraces = true)
-  val result = PhaseBuilder.build(rule)
+  val result = PhaseBuilder.build(rule, SyntaxParser.testFieldsIdxMap)
   result match {
     case Right((x: Pattern[TestEvent, _, _], m: PhaseMetadata)) =>
       println(x.format(TestEvent(1, Instant.now)))

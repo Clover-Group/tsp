@@ -125,22 +125,31 @@ object NumericPhases {
 
   type NumericPhaseParser[Event, S] = Pattern[Event, S, Double]
 
-  trait SymbolNumberExtractor[Event] extends SymbolExtractor[Event, Double] {
-    def extract(event: Event, symbol: Symbol): Double
-  }
-
   trait SymbolExtractor[Event, T] extends Serializable {
     def extract(event: Event, symbol: Symbol): T
   }
 
-  implicit class SymbolNumberParser(val symbol: Symbol) extends AnyVal with Serializable {
+  trait SymbolNumberExtractor[Event] extends SymbolExtractor[Event, Double]
 
-    def field[Event: SymbolNumberExtractor]: NumericPhaseParser[Event, NoState] =
-      OneRowPattern(e => implicitly[SymbolNumberExtractor[Event]].extract(e, symbol), Some(symbol.toString))
+  trait IndexExtractor[Event, T] extends Serializable {
+    def extract(event: Event, index: Int): T
+  }
+  
+  trait IndexNumberExtractor[Event] extends IndexExtractor[Event, Double]
+  
+  implicit class IndexParser[Event](val index: Int) extends AnyVal with Serializable {
+    def asDouble(implicit ev: IndexExtractor[Event, Double]): NumericPhaseParser[Event, NoState] =
+      OneRowPattern(e => ev.extract(e, index)) 
+
+    def as[T](implicit ev: IndexExtractor[Event, T]): ConstantPhaseParser[Event, T] =
+      OneRowPattern[Event, T](e => ev.extract(e, index))
   }
 
   implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal with Serializable {
-
+    
+    def asDouble(implicit ev: SymbolNumberExtractor[Event]): NumericPhaseParser[Event, NoState] =
+      OneRowPattern(e => ev.extract(e, symbol), Some(symbol.toString))
+    
     def as[T](implicit ev: SymbolExtractor[Event, T]): ConstantPhaseParser[Event, T] =
       OneRowPattern[Event, T](e => ev.extract(e, symbol), Some(symbol.toString))
   }
@@ -200,26 +209,5 @@ object NumericPhases {
       s"$functionName(${ innerPhase1.format(event, state._1)}, ${ innerPhase2.format(event, state._2)})"
   }
 
-//  case class FunctionNPhase[Event, States <: HList, Phases <: HList](
-//    function: Seq[Double] => Double,
-//    functionName: String,
-//    innerPhases: Phases
-//  )(implicit ev: Mapped.Aux[States, ({ type T[State] = NumericPhaseParser[Event, State] })#T, Phases])
-//      extends Pattern[Event, States, Double] {
-//
-//    private val initialStateGetter = new (({ type U[State] = NumericPhaseParser[Event, State] })#U ~> Id) {
-//      override def apply[T](f: NumericPhaseParser[Event, T]): Id[T] = f.initialState
-//    }
-//
-//    override def initialState: States = innerPhases.map(initialStateGetter)
-//    override def apply(event: Event, state: States): (PatternResult[Double], States) = ???
-//    {
-//      val allPhasesTogether =
-//        innerPhases.foldLeft((f: NumericPhaseParser[Event, _], g: NumericPhaseParser[Event, _]) => f togetherWith g)
-//      val (results, newState) = allPhasesTogether(event, state)
-//      // FIXME@trolley813: it's pseudocode, won't work
-//      results.map { case x => function(x.toSeq) } -> newState
-//
-//    }
-//  }
+  // TODO FunctionNPhase: https://gist.github.com/kell18/05261e56504da16d5db8384a4ad65733 
 }

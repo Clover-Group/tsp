@@ -2,7 +2,6 @@ package ru.itclover.tsp.io.input
 
 import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
-
 import scala.language.existentials
 import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
@@ -15,14 +14,13 @@ import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-
 import scala.util.Try
 
 /**
@@ -127,6 +125,16 @@ case class JDBCInputConf(
           }
     }
   )
+
+  implicit lazy val indexNumberExtractor = new IndexNumberExtractor[Row] {
+    override def extract(event: Row, index: Int): Double =
+      getRowFieldOrThrow(event, index) match {
+        case d: java.lang.Double => d
+        case f: java.lang.Float  => f.doubleValue()
+        case some =>
+          Try(some.toString.toDouble).getOrElse(throw new ClassCastException(s"Cannot cast value $some to double."))
+      }
+  }
 
   implicit lazy val anyExtractor =
     errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>

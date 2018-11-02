@@ -48,7 +48,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   eventCreator: EventCreator[InEvent],
   eventTypeInfo: TypeInformation[InEvent]
 ) {
-
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
 
   val streamSrc = implicitly[StreamSource[InEvent]]
@@ -56,12 +55,16 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   def maxPartitionsParallelism = 8192
   val log = Logger("PatternsSearchJob")
 
-  def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
-    Traverse[List]
+  def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = for {
+    timeExtractor   <- inputConf.timeExtractor
+    fieldsIdxMap    <- inputConf.errOrFieldsIdxMap
+    idxNumExtractor = inputConf.indexNumberExtractor
+
+    phases <- Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(PhaseBuilder.build[InEvent](p.sourceCode))
+            .fromEither(PhaseBuilder.build[InEvent](p.sourceCode, fieldsIdxMap.apply)(timeExtractor, idxNumExtractor))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
       )
       .bimap(
@@ -69,8 +72,8 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         patterns => patterns.zip(rawPatterns)
       )
       .toEither
+  } yield phases
 
-  }
 
   def executeFindAndSave(phases: Phases[InEvent], jobUuid: String)(
     implicit streamEnv: StreamExecutionEnvironment
