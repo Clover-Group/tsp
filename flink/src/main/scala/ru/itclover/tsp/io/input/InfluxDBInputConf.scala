@@ -1,9 +1,7 @@
 package ru.itclover.tsp.io.input
 
 import java.time.Instant
-
 import org.apache.flink.api.common.io.RichInputFormat
-
 import scala.util.{Failure, Success, Try}
 import collection.JavaConversions._
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -13,7 +11,7 @@ import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
 import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import ru.itclover.tsp.io.input.InputConf.getKVFieldOrThrow
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.services.InfluxDBService
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
@@ -129,6 +127,16 @@ case class InfluxDBInputConf(
         }
     }
   )
+  
+  implicit lazy val indexNumberExtractor = new IndexNumberExtractor[Row] {
+    override def extract(event: Row, index: Int): Double = {
+      getRowFieldOrThrow(event, index) match {
+        case d: java.lang.Double => d
+        case f: java.lang.Float  => f.floatValue().toDouble
+        case some                => Try(some.toString.toDouble).getOrElse(Double.NaN)
+      }
+    }
+  }
 
   implicit lazy val anyExtractor =
     errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>

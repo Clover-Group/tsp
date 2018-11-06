@@ -9,20 +9,19 @@ import ru.itclover.tsp.phases.BooleanPhases.{Assert, BooleanPhaseParser, Compari
 import ru.itclover.tsp.phases.CombiningPhases.{AndThenParser, EitherParser, TogetherParser}
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.MonadPhases.{FlatMapParser, MapParser}
-import ru.itclover.tsp.phases.NumericPhases.{BinaryNumericParser, Reduce, SymbolNumberExtractor}
+import ru.itclover.tsp.phases.NumericPhases.{BinaryNumericParser, IndexNumberExtractor, Reduce, SymbolNumberExtractor}
 import ru.itclover.tsp.phases.TimePhases.Timed
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
-
 import scala.math.Numeric.DoubleIsFractional
 
 object PhaseBuilder {
 
-  def build[Event](input: String, formatter: ErrorFormatter = new ErrorFormatter())(
+  def build[Event](input: String, fieldsIndexesMap: Symbol => Int, formatter: ErrorFormatter = new ErrorFormatter())(
     implicit timeExtractor: TimeExtractor[Event],
-    symbolNumberExtractor: SymbolNumberExtractor[Event]
+    byIndexExtractor: IndexNumberExtractor[Event]
   ): Either[String, (Pattern[Event, _, _], PhaseMetadata)] = {
-    val parser = new SyntaxParser[Event](input)
+    val parser = new SyntaxParser[Event](input, fieldsIndexesMap)
     val rawPhase = parser.start.run()
     rawPhase
       .map { p =>
@@ -37,8 +36,7 @@ object PhaseBuilder {
   }
 
   def postProcess[Event](parser: Pattern[Event, _, _], maxPhase: Long, asContinuous: Boolean = false)(
-    implicit timeExtractor: TimeExtractor[Event],
-    symbolNumberExtractor: SymbolNumberExtractor[Event]
+    implicit timeExtractor: TimeExtractor[Event]
   ): Pattern[Event, _, _] = {
     parser match {
       case ep: EitherParser[Event, _, _, _, _] =>

@@ -63,7 +63,7 @@ class RulesTest extends WordSpec with Matchers {
   "Combine And & Assert parsers" should {
     "work correctly" in {
       import ru.itclover.tsp.phases.NumericPhases._
-      val phase: Phase[Row] = Assert('speed.field > 10.0) and Assert('speed.field < 20.0)
+      val phase: Phase[Row] = Assert('speed.asDouble > 10.0) and Assert('speed.asDouble < 20.0)
 
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
@@ -178,7 +178,7 @@ class RulesTest extends WordSpec with Matchers {
     }
 
     "work on not segmented output" in {
-      val phase: Phase[Row] = Assert('speed.field > 35.0)
+      val phase: Phase[Row] = Assert('speed.asDouble > 35.0)
       val rows = (
         for (time <- TimerGenerator(from = Instant.now());
              speed <- Constant(50.0).timed(1.seconds)
