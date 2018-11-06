@@ -79,7 +79,7 @@ class BasicInfluxToJdbcTest
     super.afterStart()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
     Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
-    Files.readResource("/sql/wide/infl-source-inserts.sql").mkString.split(";").foreach(influxContainer.executeUpdate)
+    Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
   }
 
