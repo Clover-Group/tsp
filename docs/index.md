@@ -54,3 +54,7 @@ event and some previous state into some result and new state
 - [Basic format](./api/index.md)
 - [Patters search](./api/patterns.md)
 - [Monitoring](./api/monitoring.md)
+
+### Presentations
+- [Patterns in Data with Tsp (Slides)](https://docs.google.com/presentation/d/1VN0aJS_XxwRhAiQ2sis6z_5tD1xp5cZVp8rjVJH8JX8/edit#slide=id.p) - 
+motivation, visual documentation, performance questions.
