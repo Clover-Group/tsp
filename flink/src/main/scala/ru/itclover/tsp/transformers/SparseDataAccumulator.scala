@@ -17,6 +17,7 @@ import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding, 
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 
 import scala.collection.mutable
+import scala.util.{Success, Try}
 import scala.util.control.NonFatal
 
 trait SparseDataAccumulator
@@ -61,8 +62,10 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
       event(key) = (value, time)
     } else {
       allFieldsIndexesMap.keySet.foreach { key =>
-        val newValue = try { extractAny(item, key) } catch { case NonFatal(_) => null }
-        if (newValue != null || !event.contains(key)) event(key) = (newValue.asInstanceOf[Value], time)
+        val newValue = Try(extractAny(item, key))
+        newValue match {
+          case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
+        }
       }
     }
     dropExpiredKeys(event, time)

@@ -12,14 +12,11 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
 import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
-import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.JDBCInputFormatProps
-import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import scala.util.Try
 
