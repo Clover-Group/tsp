@@ -73,3 +73,5 @@ case class InfluxDBInputConf(
   patternsParallelism: Option[Int] = Some(2)
 ) extends InputConf[Row] { ... }
 ```
+
+For supported data transformations, see [Data Transformation](./data-transformation.md).

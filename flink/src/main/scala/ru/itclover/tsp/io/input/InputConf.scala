@@ -4,8 +4,8 @@ import org.apache.flink.api.common.io.{GenericInputFormat, InputFormat, RichInpu
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
+import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.io.Exceptions
@@ -29,10 +29,12 @@ trait InputConf[Event] extends Serializable {
 
   // TODO to StreamSource
   implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
+  implicit def timeNonTransformedExtractor: ThrowableOr[TimeNonTransformedExtractor[Event]]
   implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]
+  implicit def indexNumberExtractor: IndexNumberExtractor[Event]
   implicit def anyExtractor: ThrowableOr[AnyExtractor[Event]]
   implicit def anyNonTransformedExtractor: ThrowableOr[AnyNonTransformedExtractor[Event]]
-  implicit def keyValExtractor: ThrowableOr[Row => (Symbol, AnyRef, Double)]
+  implicit def keyValExtractor: ThrowableOr[Row => (Symbol, AnyRef)]
 }
 
 object InputConf {
@@ -45,16 +47,14 @@ object InputConf {
     }
     event.getField(ind)
   }
+  
+  def getRowFieldOrThrow(event: Row, index: Int): AnyRef = {
+    if (index >= event.getArity) {
+      throw Exceptions.InvalidRequest(s"There is no sensorId $index, max index `${event.getArity}`. Event was `$event`")
+    }
+    event.getField(index)
+  }
 
-//  def getFirstDefinedRowFieldOrThrow(event: Row, fieldsIdxMap: Map[Symbol, Int]): (Symbol, AnyRef) = {
-//    fieldsIdxMap.foreach {
-//      (name: Symbol, ind: Int) =>
-//      val value = event.getField(ind)
-//      if (value != null)
-//        return (name, value)
-//    }
-//    throw Exceptions.InvalidRequest("All fields in the row are undefined")
-//  }
   def getKVFieldOrThrow(event: Row, keyColumnIndex: Int, valueColumnIndex: Int): (Symbol, AnyRef) = {
     (Symbol(event.getField(keyColumnIndex).toString), event.getField(valueColumnIndex))
   }

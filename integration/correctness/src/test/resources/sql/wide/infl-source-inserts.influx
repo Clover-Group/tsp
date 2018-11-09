@@ -12,4 +12,13 @@ SM_typeCasting_wide,series_id=series1,mechanism_id=65001 speed=15i,speed64=15.0 
 SM_typeCasting_wide,series_id=series1,mechanism_id=65001 speed=20i,speed64=20.0 1410127759000000000;
 SM_typeCasting_wide,series_id=series1,mechanism_id=65002 speed=20i,speed64=20.0 1410127760000000000;
 SM_typeCasting_wide,series_id=series1,mechanism_id=65002 speed=20i,speed64=20.0 1410127761000000000;
-SM_typeCasting_wide,series_id=series1,mechanism_id=65002 speed=0i,speed64=0.0 1410127762000000000
+SM_typeCasting_wide,series_id=series1,mechanism_id=65002 speed=0i,speed64=0.0 1410127762000000000;
+
+SM_sparse_wide,series_id=series1,mechanism_id=65001 pos=0.0 1410127755000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 speed=5.0 1410127756000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 pos=10.0 1410127757000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 pos=15.0 1410127758000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 speed=20.0 1410127759000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 speed=20.0 1410127760000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 speed=20.0 1410127761000000000;
+SM_sparse_wide,series_id=series1,mechanism_id=65001 pos=0.0 1410127762000000000

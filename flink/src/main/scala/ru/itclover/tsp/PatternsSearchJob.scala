@@ -11,8 +11,8 @@ import cats.data.Validated
 import cats.Traverse
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, Window}
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
+import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
@@ -40,41 +40,46 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
   resultMapper: RichMapFunction[Incident, OutEvent]
 )(
   implicit extractTime: TimeExtractor[InEvent],
+  extractTimeNonTransformed: TimeNonTransformedExtractor[InEvent],
   extractNumber: SymbolNumberExtractor[InEvent],
   extractAny: AnyExtractor[InEvent],
   extractAnyNonTransformed: AnyNonTransformedExtractor[InEvent],
-  extractKeyVal: InEvent => (Symbol, AnyRef, Double),
+  extractKeyVal: InEvent => (Symbol, AnyRef),
   eventCreator: EventCreator[InEvent],
   eventTypeInfo: TypeInformation[InEvent]
 ) {
-
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
-  
+
   val streamSrc = implicitly[StreamSource[InEvent]]
   def searchStageName(bucketNum: Int) = s"Patterns search and save stage in Bucket#${bucketNum}"
   def maxPartitionsParallelism = 8192
   val log = Logger("PatternsSearchJob")
 
-  def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = {
-    Traverse[List]
-      .traverse(rawPatterns.toList)(p =>
-        Validated
-          .fromEither(PhaseBuilder.build[InEvent](p.sourceCode))
-          .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
+  def preparePhases(rawPatterns: Seq[RawPattern]): ValidatedPhases[InEvent] = for {
+    timeExtractor   <- inputConf.timeExtractor
+    fieldsIdxMap    <- inputConf.errOrFieldsIdxMap
+    idxNumExtractor = inputConf.indexNumberExtractor
+
+    phases <- Traverse[List]
+      .traverse(rawPatterns.toList)(
+        p =>
+          Validated
+            .fromEither(PhaseBuilder.build[InEvent](p.sourceCode, fieldsIdxMap.apply)(timeExtractor, idxNumExtractor))
+            .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
       )
       .bimap(
         errs => ParseException(errs),
         patterns => patterns.zip(rawPatterns)
       )
       .toEither
+  } yield phases
 
-  }
 
   def executeFindAndSave(phases: Phases[InEvent], jobUuid: String)(
     implicit streamEnv: StreamExecutionEnvironment
   ): Either[Throwable, JobExecutionResult] = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-    
+
     val sourcesNum = inputConf.numParallelSources.getOrElse(1)
     val sourcesBuckets = if (sourcesNum > phases.length) {
       log.warn(s"Num. of parallel source branches conf ($sourcesNum) is higher than amount of " +
@@ -83,9 +88,9 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     } else {
       Bucketizer.bucketizeByWeight(phases, sourcesNum)
     }
-    sourcesBuckets foreach { bucket => 
+    sourcesBuckets foreach { bucket =>
       findAndSavePatterns(bucket.items)
-    }    
+    }
     Either.catchNonFatal(streamEnv.execute(jobUuid))
   }
 
@@ -107,7 +112,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
       log.info(s"Source data transformation is ${inputConf.dataTransformation}")
       val emptyEvent = inputConf.dataTransformation match {
-        case Some(NarrowDataUnfolding(_, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
+        case Some(NarrowDataUnfolding(_, _, _, _)) => SparseRowsDataAccumulator.emptyEvent(inputConf)
         case _ => streamSrc.emptyEvent
       }
       val patternMappersBuckets = patternsBuckets.map(_.items.map {
@@ -126,8 +131,11 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
         val incidents = stream
           .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString)
           .flatMapIf(
-            inputConf.dataTransformation.exists(_.isInstanceOf[NarrowDataUnfolding]),
-          SparseRowsDataAccumulator(inputConf))
+            inputConf.dataTransformation.exists(
+              x => x.isInstanceOf[NarrowDataUnfolding] || x.isInstanceOf[WideDataFilling]
+            ),
+            SparseRowsDataAccumulator(inputConf)
+          )
           .keyBy(e => serPartitionFields.map(serExtractAny(e, _)).mkString)
           .flatMapAll(mappers)
           .setMaxParallelism(maxPartitionsParallelism)
@@ -158,19 +166,19 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 
   def checkConfigs: Either[Throwable, Unit] = for {
     _ <- Either.cond(
-        inputConf.parallelism.getOrElse(1) > 0,
-        Unit,
-        InvalidRequest(s"Input conf parallelism cannot be lower than 1.") // .. Specific exception
-      )
+      inputConf.parallelism.getOrElse(1) > 0,
+      Unit,
+      InvalidRequest(s"Input conf parallelism cannot be lower than 1.") // .. Specific exception
+    )
     _ <- Either.cond(
-        inputConf.patternsParallelism.getOrElse(1) > 0,
-        Unit,
-        InvalidRequest(s"Input conf patternsParallelism cannot be lower than 1.")
-      )
+      inputConf.patternsParallelism.getOrElse(1) > 0,
+      Unit,
+      InvalidRequest(s"Input conf patternsParallelism cannot be lower than 1.")
+    )
     _ <- Either.cond(
-        outputConf.parallelism.getOrElse(1) > 0,
-        Unit,
-        InvalidRequest(s"Output conf parallelism cannot be lower than 1.")
-      )
+      outputConf.parallelism.getOrElse(1) > 0,
+      Unit,
+      InvalidRequest(s"Output conf parallelism cannot be lower than 1.")
+    )
   } yield Unit
 }

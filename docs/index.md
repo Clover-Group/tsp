@@ -46,6 +46,7 @@ event and some previous state into some result and new state
 - [Writing patterns](./writing-patterns.md)
 - [Debugging guidelines](./debugging-guidelines.md)
 - [Installation](./installation.md)
+- [Deployment](./deployment.md)
 - [Contribution guide](./contribution-guide.md)
     - [Coding guidelines](./coding-guidelines.md)
 

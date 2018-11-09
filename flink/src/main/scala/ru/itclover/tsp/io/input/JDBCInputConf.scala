@@ -2,7 +2,6 @@ package ru.itclover.tsp.io.input
 
 import java.sql.{DriverManager, ResultSetMetaData}
 import java.util.Properties
-
 import scala.language.existentials
 import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.io.{GenericInputFormat, RichInputFormat}
@@ -11,15 +10,14 @@ import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
+import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
 import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
+import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-
 import scala.util.Try
 
 /**
@@ -34,7 +32,6 @@ import scala.util.Try
   * @param partitionFields fields by which data will be split and paralleled physically
   * @param userName for JDBC auth
   * @param password for JDBC auth
-  * @param props extra configs to JDBC `DriverManager.getConnection(`
   * @param parallelism basic parallelism of all computational nodes
   * @param patternsParallelism number of parallel branch nodes after sink stage (node)
   */
@@ -56,10 +53,10 @@ case class JDBCInputConf(
 ) extends InputConf[Row] {
 
   import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
-  
+
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry: Try[Class[_]] = Try(Class.forName(driverName))
-  
+
     val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
     (for {
       _          <- classTry
@@ -90,7 +87,7 @@ case class JDBCInputConf(
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
   lazy val errOrTransformedFieldsIdxMap = dataTransformation match {
-    case Some(NarrowDataUnfolding(_, _, _)) =>
+    case Some(NarrowDataUnfolding(_, _, _, _)) =>
       try {
         Right(SparseRowsDataAccumulator.fieldsIndexesMap(this))
       } catch {
@@ -101,6 +98,13 @@ case class JDBCInputConf(
 
   implicit lazy val timeExtractor = errOrTransformedFieldsIdxMap map { fieldsIdxMap =>
     new TimeExtractor[Row] {
+      override def apply(event: Row) =
+        getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
+    }
+  }
+
+  implicit lazy val timeNonTransformedExtractor = errOrFieldsIdxMap map { fieldsIdxMap =>
+    new TimeNonTransformedExtractor[Row] {
       override def apply(event: Row) =
         getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
     }
@@ -119,6 +123,16 @@ case class JDBCInputConf(
     }
   )
 
+  implicit lazy val indexNumberExtractor = new IndexNumberExtractor[Row] {
+    override def extract(event: Row, index: Int): Double =
+      getRowFieldOrThrow(event, index) match {
+        case d: java.lang.Double => d
+        case f: java.lang.Float  => f.doubleValue()
+        case some =>
+          Try(some.toString.toDouble).getOrElse(throw new ClassCastException(s"Cannot cast value $some to double."))
+      }
+  }
+
   implicit lazy val anyExtractor =
     errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>
       new AnyExtractor[Row] {
@@ -132,16 +146,15 @@ case class JDBCInputConf(
         def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
       })
 
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef, Double)] = errOrFieldsIdxMap.map {
+  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
     fieldsIdxMap => (event: Row) =>
       val keyAndValueCols = dataTransformation match {
-        case Some(ndu @ NarrowDataUnfolding(_, _, _)) => (ndu.key, ndu.value)
+        case Some(ndu @ NarrowDataUnfolding(_, _, _, _)) => (ndu.key, ndu.value)
         case _                                        => sys.error("Unsuitable data transformation instance")
       }
       val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
       val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      val kv = getKVFieldOrThrow(event, keyColInd, valueColInd)
-      (kv._1, kv._2, getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double])
+      getKVFieldOrThrow(event, keyColInd, valueColInd)
 
   }
 }

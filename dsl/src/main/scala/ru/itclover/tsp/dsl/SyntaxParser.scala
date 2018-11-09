@@ -14,53 +14,57 @@ import ru.itclover.tsp.phases.ConstantPhases
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.NumericPhases._
 
-class SyntaxParser[Event](val input: ParserInput)(
+object SyntaxParser {
+  def testFieldsIdxMap(anySymbol: Symbol) = 0
+}
+
+class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => Int)(
   implicit val timeExtractor: TimeExtractor[Event],
-  symbolNumberExtractor: SymbolNumberExtractor[Event]
+  byIndexExtractor: IndexExtractor[Event, Double]
 ) extends Parser {
 
-  type AnyPhaseParser = Pattern[Event, Any, Any]
-  type AnyBooleanPhaseParser = BooleanPhaseParser[Event, Any]
-  type AnyNumericPhaseParser = NumericPhaseParser[Event, Any]
+  type AnyPattern = Pattern[Event, Any, Any]
+  type AnyBooleanPattern = BooleanPhaseParser[Event, Any]
+  type AnyNumericPattern = NumericPhaseParser[Event, Any]
 
   val nullEvent: Event = null.asInstanceOf[Event]
 
-  def start: Rule1[AnyPhaseParser] = rule {
-    trileanExpr ~ EOI ~> ((e: AnyPhaseParser) => ToSegments(e)(timeExtractor).asInstanceOf[AnyPhaseParser])
+  def start: Rule1[AnyPattern] = rule {
+    trileanExpr ~ EOI ~> ((e: AnyPattern) => ToSegments(e)(timeExtractor).asInstanceOf[AnyPattern])
   }
 
-  def trileanExpr: Rule1[AnyPhaseParser] = rule {
+  def trileanExpr: Rule1[AnyPattern] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-      ((e: AnyPhaseParser, f: AnyPhaseParser) => (e andThen Skip(1, f)).asInstanceOf[AnyPhaseParser])
+      ((e: AnyPattern, f: AnyPattern) => (e andThen Skip(1, f)).asInstanceOf[AnyPattern])
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AnyPhaseParser, f: AnyPhaseParser) => (e togetherWith f).asInstanceOf[AnyPhaseParser])
+      ((e: AnyPattern, f: AnyPattern) => (e togetherWith f).asInstanceOf[AnyPattern])
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AnyPhaseParser, f: AnyPhaseParser) => (e either f).asInstanceOf[AnyPhaseParser])
+      ((e: AnyPattern, f: AnyPattern) => (e either f).asInstanceOf[AnyPattern])
     )
   }
 
-  def trileanTerm: Rule1[AnyPhaseParser] = rule {
+  def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
     optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
-    ((c: AnyPhaseParser, b: AnyBooleanPhaseParser, r: Option[Any]) => {
-      (c.timed(MaxWindow).asInstanceOf[AnyBooleanPhaseParser] and
-      Assert(NotParser(b)).asInstanceOf[AnyBooleanPhaseParser]).asInstanceOf[AnyPhaseParser]
+    ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
+      (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
+      Assert(NotParser(b)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern]
     })
     | trileanFactor)
   }
 
   protected def buildForExpr(
-    phase: AnyPhaseParser,
+    phase: AnyPattern,
     exactly: Option[Int],
     w: Window,
     range: Option[Any]
-  ): AnyPhaseParser = {
+  ): AnyPattern = {
     range match {
       case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[_]] => {
-        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
+        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
         (exactly.getOrElse(0) match {
           case 0 =>
             PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
@@ -73,12 +77,12 @@ class SyntaxParser[Event](val input: ParserInput)(
               FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
             }
           })
-          .asInstanceOf[AnyPhaseParser]
+          .asInstanceOf[AnyPattern]
       }
 
       case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
         val accum = Pattern.Functions
-          .truthMillisCount(phase.asInstanceOf[AnyBooleanPhaseParser], w)
+          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], w)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
         (exactly.getOrElse(0) match {
           case 0 =>
@@ -92,10 +96,10 @@ class SyntaxParser[Event](val input: ParserInput)(
               FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
             }
           })
-          .asInstanceOf[AnyPhaseParser]
+          .asInstanceOf[AnyPattern]
       }
 
-      case None => Assert(phase.asInstanceOf[AnyBooleanPhaseParser]).timed(w, w).asInstanceOf[AnyPhaseParser]
+      case None => Assert(phase.asInstanceOf[AnyBooleanPattern]).timed(w, w).asInstanceOf[AnyPattern]
 
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
@@ -103,114 +107,114 @@ class SyntaxParser[Event](val input: ParserInput)(
 
   // format: off
 
-  def nonFatalTrileanFactor: Rule1[AnyPhaseParser] = rule {
-    booleanExpr ~> { b: AnyBooleanPhaseParser => b } | '(' ~ trileanExpr ~ ')' ~ ws
+  def nonFatalTrileanFactor: Rule1[AnyPattern] = rule {
+    booleanExpr ~> { b: AnyBooleanPattern => b } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def trileanFactor: Rule1[AnyPhaseParser] = rule {
-    booleanExpr ~> { b: AnyBooleanPhaseParser => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
+  def trileanFactor: Rule1[AnyPattern] = rule {
+    booleanExpr ~> { b: AnyBooleanPattern => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def booleanExpr: Rule1[AnyBooleanPhaseParser] = rule {
+  def booleanExpr: Rule1[AnyBooleanPattern] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a | b, "or").asInstanceOf[AnyBooleanPhaseParser])
+      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => ComparingParser(e, f)((a, b) => a | b, "or").asInstanceOf[AnyBooleanPattern])
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a ^ b, "xor").asInstanceOf[AnyBooleanPhaseParser])
+        ((e: AnyBooleanPattern, f: AnyBooleanPattern) => ComparingParser(e, f)((a, b) => a ^ b, "xor").asInstanceOf[AnyBooleanPattern])
     )
   }
 
-  def booleanTerm: Rule1[AnyBooleanPhaseParser] = rule {
+  def booleanTerm: Rule1[AnyBooleanPattern] = rule {
     booleanFactor ~ zeroOrMore(
-      ignoreCase("and") ~ ws ~ booleanFactor ~>
-      ((e: AnyBooleanPhaseParser, f: AnyBooleanPhaseParser) => ComparingParser(e, f)((a, b) => a & b, "and").asInstanceOf[AnyBooleanPhaseParser])
+      ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
+      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => ComparingParser(e, f)((a, b) => a & b, "and").asInstanceOf[AnyBooleanPattern])
     )
   }
 
-  def booleanFactor: Rule1[AnyBooleanPhaseParser] = rule {
+  def booleanFactor: Rule1[AnyBooleanPattern] = rule {
     comparison |
-      boolean ~> ((b: OneRowPattern[Event, Boolean]) => b.asInstanceOf[AnyBooleanPhaseParser]) |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AnyBooleanPhaseParser) => NotParser(b))
+      boolean ~> ((b: OneRowPattern[Event, Boolean]) => b.asInstanceOf[AnyBooleanPattern]) |
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AnyBooleanPattern) => NotParser(b))
   }
 
-  def comparison: Rule1[AnyBooleanPhaseParser] = rule {
+  def comparison: Rule1[AnyBooleanPattern] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 < d2, "<")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 <= d2, "<=")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 > d2, ">")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 >= d2, ">")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 == d2, "==")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AnyNumericPhaseParser, e2: AnyNumericPhaseParser) =>
+        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
           ComparingParser[Event, Any, Any, Double](e1, e2)((d1, d2) => d1 != d2, "!=")
-            .asInstanceOf[AnyBooleanPhaseParser]
+            .asInstanceOf[AnyBooleanPattern]
       )
     )
   }
   // format: on
 
-  def expr: Rule1[AnyNumericPhaseParser] = rule {
+  def expr: Rule1[AnyNumericPattern] = rule {
     term ~ zeroOrMore(
       '+' ~ ws ~ term ~> (
         (
-          e: AnyNumericPhaseParser,
-          f: AnyNumericPhaseParser
-        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ + _, "+").asInstanceOf[AnyNumericPhaseParser]
+          e: AnyNumericPattern,
+          f: AnyNumericPattern
+        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ + _, "+").asInstanceOf[AnyNumericPattern]
       )
       | '-' ~ ws ~ term ~> (
         (
-          e: AnyNumericPhaseParser,
-          f: AnyNumericPhaseParser
-        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ - _, "-").asInstanceOf[AnyNumericPhaseParser]
+          e: AnyNumericPattern,
+          f: AnyNumericPattern
+        ) => new BinaryNumericParser[Event, Any, Any, Double](e, f, _ - _, "-").asInstanceOf[AnyNumericPattern]
       )
     )
   }
 
-  def term: Rule1[AnyNumericPhaseParser] = rule {
+  def term: Rule1[AnyNumericPattern] = rule {
     factor ~
     zeroOrMore(
       '*' ~ ws ~ factor ~> (
         (
-          e: AnyNumericPhaseParser,
-          f: AnyNumericPhaseParser
-        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ * _, "*").asInstanceOf[AnyNumericPhaseParser]
+          e: AnyNumericPattern,
+          f: AnyNumericPattern
+        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ * _, "*").asInstanceOf[AnyNumericPattern]
       )
       | '/' ~ ws ~ factor ~> (
         (
-          e: AnyNumericPhaseParser,
-          f: AnyNumericPhaseParser
-        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ / _, "/").asInstanceOf[AnyNumericPhaseParser]
+          e: AnyNumericPattern,
+          f: AnyNumericPattern
+        ) => BinaryNumericParser[Event, Any, Any, Double](e, f, _ / _, "/").asInstanceOf[AnyNumericPattern]
       )
     )
   }
 
-  def factor: Rule1[AnyNumericPhaseParser] = rule {
+  def factor: Rule1[AnyNumericPattern] = rule {
     (
-      real ~> (_.asInstanceOf[AnyNumericPhaseParser])
-      | integer ~> (_.asInstanceOf[AnyNumericPhaseParser])
+      real ~> (_.asInstanceOf[AnyNumericPattern])
+      | integer ~> (_.asInstanceOf[AnyNumericPattern])
       | functionCall
-      | identifier ~> (_.as[Double].asInstanceOf[AnyNumericPhaseParser])
+      | identifier ~> (_.asDouble.asInstanceOf[AnyNumericPattern])
       | '(' ~ expr ~ ')' ~ ws
     )
   }
@@ -360,100 +364,100 @@ class SyntaxParser[Event](val input: ParserInput)(
     ~> ((s: Int, i: String) => ConstantPhases[Event, Long](s * i.toLong)))
   }
 
-  def functionCall: Rule1[AnyNumericPhaseParser] = rule {
+  def functionCall: Rule1[AnyNumericPattern] = rule {
     (
-      identifier ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
-      ((id: SymbolParser[Event], arguments: Seq[AnyNumericPhaseParser], constraint: Option[Double => Boolean]) => {
-        val function = id.symbol.toString.tail.toLowerCase
+      anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
+      ((function: String, arguments: Seq[AnyNumericPattern], constraint: Option[Double => Boolean]) => {
         val ifCondition: Double => Boolean = constraint.getOrElse(_ => true)
         function match {
-          case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "sin" => Pattern.Functions.call1(Math.sin, "sin", arguments.head).asInstanceOf[AnyNumericPhaseParser]
-          case "cos" => Pattern.Functions.call1(Math.cos, "cos", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+          case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPattern]
+          case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPattern]
+          case "sin" => Pattern.Functions.call1(Math.sin, "sin", arguments.head).asInstanceOf[AnyNumericPattern]
+          case "cos" => Pattern.Functions.call1(Math.cos, "cos", arguments.head).asInstanceOf[AnyNumericPattern]
           case "tan" | "tg" =>
-            Pattern.Functions.call1(Math.tan, "tan", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call1(Math.tan, "tan", arguments.head).asInstanceOf[AnyNumericPattern]
           case "cot" | "ctg" =>
-            Pattern.Functions.call1(1.0 / Math.tan(_), "cot", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call1(1.0 / Math.tan(_), "cot", arguments.head).asInstanceOf[AnyNumericPattern]
           case "sind" =>
             Pattern.Functions
               .call1((x: Double) => Math.sin(x * Math.PI / 180.0), "sind", arguments.head)
-              .asInstanceOf[AnyNumericPhaseParser]
+              .asInstanceOf[AnyNumericPattern]
           case "cosd" =>
             Pattern.Functions
               .call1((x: Double) => Math.cos(x * Math.PI / 180.0), "cosd", arguments.head)
-              .asInstanceOf[AnyNumericPhaseParser]
+              .asInstanceOf[AnyNumericPattern]
           case "tand" | "tgd" =>
             Pattern.Functions
               .call1((x: Double) => Math.tan(x * Math.PI / 180.0), "tand", arguments.head)
-              .asInstanceOf[AnyNumericPhaseParser]
+              .asInstanceOf[AnyNumericPattern]
           case "cotd" | "ctgd" =>
             Pattern.Functions
               .call1((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0), "cotd", arguments.head)
-              .asInstanceOf[AnyNumericPhaseParser]
+              .asInstanceOf[AnyNumericPattern]
           case "exp" =>
-            Pattern.Functions.call1(Math.exp, "exp", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call1(Math.exp, "exp", arguments.head).asInstanceOf[AnyNumericPattern]
           case "ln" =>
-            Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPattern]
           case "log" =>
-            Pattern.Functions.call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1)).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
           case "sigmoid" =>
-            Pattern.Functions.call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1)).asInstanceOf[AnyNumericPhaseParser]
+            Pattern.Functions.call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
-              OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPhaseParser],
+              OneRowPattern[Event, Double](_ => Double.MaxValue).asInstanceOf[AnyNumericPattern],
               arguments: _*
-            ).asInstanceOf[AnyNumericPhaseParser]
+            ).asInstanceOf[AnyNumericPattern]
           case "maxof" =>
             Reduce[Event, Any](TestFunctions.max(_, _, ifCondition))(
-              OneRowPattern[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser],
+              OneRowPattern[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPattern],
               arguments: _*
-            ).asInstanceOf[AnyNumericPhaseParser]
+            ).asInstanceOf[AnyNumericPattern]
           case "avgof" =>
             (Reduce[Event, Any](TestFunctions.plus(_, _, ifCondition))(
-              OneRowPattern[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser],
+              OneRowPattern[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPattern],
               arguments: _*
             ) div
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              OneRowPattern[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPhaseParser],
+              OneRowPattern[Event, Double](_ => 0.0).asInstanceOf[AnyNumericPattern],
               arguments: _*
-            )).asInstanceOf[AnyNumericPhaseParser]
+            )).asInstanceOf[AnyNumericPattern]
           case "countof" =>
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              OneRowPattern[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPhaseParser],
+              OneRowPattern[Event, Double](_ => Double.MinValue).asInstanceOf[AnyNumericPattern],
               arguments: _*
-            ).asInstanceOf[AnyNumericPhaseParser]
+            ).asInstanceOf[AnyNumericPattern]
           case _ => throw new RuntimeException(s"Unknown function `$function`")
         }
       })
-      | identifier ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
+      | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
       (
         (
-          id: SymbolParser[Event],
-          arg: AnyNumericPhaseParser,
+          function: String,
+          arg: AnyNumericPattern,
           win: Window
         ) => {
-          val function = id.symbol.toString.tail
           function match {
-            case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPhaseParser]
-            case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPhaseParser]
-            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPhaseParser]
+            case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPattern]
+            case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPattern]
+            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPattern]
           }
         }
       )
     )
   }
-
-  def identifier: Rule1[SymbolParser[Event]] = rule {
-    (capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws ~>
-    ((id: String) => SymbolParser[Event](Symbol(id)))
-    | '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws ~>
-    ((id: String) => SymbolParser[Event](Symbol(id.replace("\"\"", "\"")))))
+  
+  def anyWord: Rule1[String] = rule {
+    capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws
+  }
+  
+  def anyWordInDblQuotes: Rule1[String] = rule {
+    '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws
   }
 
-  def string: Rule1[OneRowPattern[Event, String]] = rule {
-    "'" ~ capture(oneOrMore(noneOf("'") | "''")) ~ "'" ~ ws ~>
-    ((str: String) => ConstantPhases[Event, String](str.replace("''", "'")))
+  def identifier: Rule1[IndexParser[Event]] = rule {
+    (anyWord ~> ((id: String) => IndexParser[Event](fieldsIndexesMap(Symbol(id))))
+    | anyWordInDblQuotes ~> 
+      ((id: String) => IndexParser[Event](fieldsIndexesMap(Symbol(id.replace("\"\"", "\""))))))
   }
 
   def boolean: Rule1[OneRowPattern[Event, Boolean]] = rule {

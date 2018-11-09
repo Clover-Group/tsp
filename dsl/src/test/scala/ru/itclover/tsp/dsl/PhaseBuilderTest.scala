@@ -5,7 +5,7 @@ import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.TestApp.TestEvent
 import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
+import ru.itclover.tsp.phases.NumericPhases.{IndexExtractor, SymbolNumberExtractor}
 import scala.util.{Failure, Success}
 
 class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
@@ -22,14 +22,14 @@ class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
     override def apply(v1: TestEvent) = v1.time
   }
 
-  implicit val numberExtractor: SymbolNumberExtractor[TestEvent] = new SymbolNumberExtractor[TestEvent] {
-    override def extract(event: TestEvent, symbol: Symbol): Double = 0.0
+  implicit val numberExtractor: IndexExtractor[TestEvent, Double] = new IndexExtractor[TestEvent, Double] {
+    override def extract(event: TestEvent, index: Int): Double = 0.0
   }
 
   "Phase builder" should "correctly parse used sensors for rules with windows" in {
     timedRulesAndSensors.foreach {
       case (rule, sensors) => {
-        (new SyntaxParser(rule)).start.run() match {
+        new SyntaxParser(rule, SyntaxParser.testFieldsIdxMap).start.run() match {
           case Success(phase) => PhaseBuilder.findFields(phase) shouldBe sensors
           case Failure(ex)    => fail(ex)
         }
@@ -38,7 +38,7 @@ class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
   }
 
   "Phase builder" should "correctly determine max time phase" in {
-    val p = new SyntaxParser(multiAvgRule)
+    val p = new SyntaxParser(multiAvgRule, SyntaxParser.testFieldsIdxMap)
     p.start.run() match {
       case Success(phase) => PhaseBuilder.maxPhaseWindowMs(phase) shouldBe 60000
       case Failure(ex)    => fail(ex)

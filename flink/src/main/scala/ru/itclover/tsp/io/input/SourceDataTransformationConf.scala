@@ -7,7 +7,12 @@ abstract class SourceDataTransformation(val `type`: String) extends Serializable
 }
 
 
-case class NarrowDataUnfolding(key: Symbol, value: Symbol, fieldsTimeouts: Map[Symbol, Long])
+case class NarrowDataUnfolding(key: Symbol, value: Symbol, fieldsTimeoutsMs: Map[Symbol, Long], defaultTimeout: Option[Long] = None)
    extends SourceDataTransformation("NarrowDataUnfolding") with SourceDataTransformationConf {
+  override val config: SourceDataTransformationConf = this
+}
+
+case class WideDataFilling(fieldsTimeoutsMs: Map[Symbol, Long], defaultTimeout: Option[Long] = None)
+  extends SourceDataTransformation("WideDataFilling") with SourceDataTransformationConf {
   override val config: SourceDataTransformationConf = this
 }

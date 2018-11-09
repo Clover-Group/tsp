@@ -77,15 +77,15 @@ object TestApp extends App {
 
     type Phase[Event] = Pattern[Event, _, _]
 
-    val phase2: Phase[TestEvent] = avg('speed.field[TestEvent], window) > avg('pump.field, window)
+    val phase2: Phase[TestEvent] = avg('speed.asDouble, window) > avg('pump.asDouble, window)
 
-    val phase3 = avg('speed.field, 5.seconds) >= 5.0 andThen avg('pump.field, 3.seconds) > 0
+    val phase3 = avg('speed.asDouble, 5.seconds) >= 5.0 andThen avg('pump.asDouble, 3.seconds) > 0
 
-    val phase4: Phase[TestEvent] = avg('speed.field, 5.seconds) >= value(5.0)
+    val phase4: Phase[TestEvent] = avg('speed.asDouble, 5.seconds) >= value(5.0)
 
-    val phase5: Phase[TestEvent] = ('speed.field > 4 & 'pump.field > 100).timed(more(10.seconds))
+    val phase5: Phase[TestEvent] = ('speed.asDouble > 4 & 'pump.asDouble > 100).timed(more(10.seconds))
 
-    val t: Phase[TestEvent] = 'speed.field >= 100
+    val t: Phase[TestEvent] = 'speed.asDouble >= 100
 
     val phase7: Phase[Appevent] =
       ('eventType.as[String] === "TableJoin")

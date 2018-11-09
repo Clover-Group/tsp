@@ -9,7 +9,7 @@ import org.scalatest.FlatSpec
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, RangeMatchers, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
@@ -56,6 +56,8 @@ class BasicInfluxToJdbcTest
     userName = Some("default")
   )
   val typeCastingInputConf = inputConf.copy(query = """select *, speed as "speed(1)(2)" from SM_typeCasting_wide""")
+  val fillingInputConf = inputConf.copy(query = """select * from SM_sparse_wide""",
+    dataTransformation = Some(WideDataFilling(Map('pos -> 2000, 'speed -> 2000), None)))
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
@@ -71,12 +73,13 @@ class BasicInfluxToJdbcTest
     RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
+  val filling = Seq(RawPattern("20", "speed = 20 and pos = 15"))
 
   override def afterStart(): Unit = {
     super.afterStart()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
     Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
-    Files.readResource("/sql/wide/infl-source-inserts.sql").mkString.split(";").foreach(influxContainer.executeUpdate)
+    Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
   }
 
@@ -119,6 +122,23 @@ class BasicInfluxToJdbcTest
         2 :: Nil,
         "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
+      )
+    }
+  }
+
+  "Data filling" should "work for wide sparse table" in {
+
+    Post(
+      "/streamJob/from-influxdb/to-jdbc/?run_async=0",
+      FindPatternsRequest("3", fillingInputConf, outputConf, filling)
+    ) ~>
+      route ~> check {
+      status shouldEqual StatusCodes.OK
+
+      checkByQuery(
+        0.0 :: Nil,
+        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 20 AND " +
+          "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
     }
   }
