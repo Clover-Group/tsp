@@ -369,7 +369,7 @@ class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => In
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
       ((function: String, arguments: Seq[AnyNumericPattern], constraint: Option[Double => Boolean]) => {
         val ifCondition: Double => Boolean = constraint.getOrElse(_ => true)
-        function match {
+        function.toLowerCase match {
           case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPattern]
           case "abs" => Pattern.Functions.call1(Math.abs, "abs", arguments.head).asInstanceOf[AnyNumericPattern]
           case "sin" => Pattern.Functions.call1(Math.sin, "sin", arguments.head).asInstanceOf[AnyNumericPattern]
