@@ -57,7 +57,7 @@ case class JDBCInputConf(
   lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
     val classTry: Try[Class[_]] = Try(Class.forName(driverName))
 
-    val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
+    val connectionTry = Try(DriverManager.getConnection(jdbcUrl, userName.getOrElse("default"), password.getOrElse("default")))
     (for {
       _          <- classTry
       connection <- connectionTry
