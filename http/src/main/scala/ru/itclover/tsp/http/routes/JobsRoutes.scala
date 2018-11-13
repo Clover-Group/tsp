@@ -119,8 +119,8 @@ trait JobsRoutes extends RoutesProtocols {
         complete(InternalServerError, FailureResponse(ex))
 
       case Right(patterns) =>
-        //val strPatterns = patterns.map(_._1._1.format(nullEvent))
-        //log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
+        val strPatterns = patterns.map(_._1._1.format(nullEvent))
+        log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
         if (runAsync) {
           Future { job.executeFindAndSave(patterns, uuid) }
           complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
