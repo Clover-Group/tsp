@@ -17,6 +17,8 @@ import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberE
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.JDBCInputFormatProps
+import ru.itclover.tsp.transformers.{SparseRowsDataAccumulator, StreamSource}
+import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import scala.util.Try
 
@@ -56,36 +58,8 @@ case class JDBCInputConf(
 ) extends InputConf[Row] {
 
   import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
-
-  lazy val fieldsTypesInfo: ThrowableOr[Seq[(Symbol, TypeInformation[_])]] = {
-    val classTry: Try[Class[_]] = Try(Class.forName(driverName))
-
-    val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
-    (for {
-      _          <- classTry
-      connection <- connectionTry
-      resultSet  <- Try(connection.createStatement().executeQuery(s"SELECT * FROM (${query}) as mainQ LIMIT 1"))
-      metaData   <- Try(resultSet.getMetaData)
-    } yield {
-      (1 to metaData.getColumnCount) map { i: Int =>
-        val className = metaData.getColumnClassName(i)
-        (metaData.getColumnName(i), TypeInformation.of(Class.forName(className)))
-      }
-    }).toEither map (_ map { case (name, ti) => Symbol(name) -> ti })
-  }
-
-  def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]): RichInputFormat[Row, InputSplit] = {
-    val rowTypesInfo = new RowTypeInfo(fieldTypesInfo.map(_._2), fieldTypesInfo.map(_._1.toString.tail))
-    JDBCInputFormatProps
-      .buildJDBCInputFormat()
-      .setDrivername(driverName)
-      .setDBUrl(jdbcUrl)
-      .setUsername(userName.getOrElse(""))
-      .setPassword(password.getOrElse(""))
-      .setQuery(query)
-      .setRowTypeInfo(rowTypesInfo)
-      .finish()
-  }
+  
+  override def createStreamSource: ThrowableOr[StreamSource[Row]] = ??? // TODO: To Typeclass (InputConf is ADT)
 
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 
@@ -97,67 +71,5 @@ case class JDBCInputConf(
         case t: Throwable => Left(t)
       }
     case _ => errOrFieldsIdxMap
-  }
-
-  implicit lazy val timeExtractor = errOrTransformedFieldsIdxMap map { fieldsIdxMap =>
-    new TimeExtractor[Row] {
-      override def apply(event: Row) =
-        getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
-    }
-  }
-
-  implicit lazy val timeNonTransformedExtractor = errOrFieldsIdxMap map { fieldsIdxMap =>
-    new TimeNonTransformedExtractor[Row] {
-      override def apply(event: Row) =
-        getRowFieldOrThrow(event, fieldsIdxMap, datetimeField).asInstanceOf[Double]
-    }
-  }
-
-  implicit lazy val symbolNumberExtractor = errOrTransformedFieldsIdxMap.map(
-    fieldsIdxMap =>
-      new SymbolNumberExtractor[Row] {
-        override def extract(event: Row, name: Symbol): Double =
-          getRowFieldOrThrow(event, fieldsIdxMap, name) match {
-            case d: java.lang.Double => d
-            case f: java.lang.Float  => f.doubleValue()
-            case some =>
-              Try(some.toString.toDouble).getOrElse(throw new ClassCastException(s"Cannot cast value $some to double."))
-          }
-    }
-  )
-
-  implicit lazy val indexNumberExtractor = new IndexNumberExtractor[Row] {
-    override def extract(event: Row, index: Int): Double =
-      getRowFieldOrThrow(event, index) match {
-        case d: java.lang.Double => d
-        case f: java.lang.Float  => f.doubleValue()
-        case some =>
-          Try(some.toString.toDouble).getOrElse(throw new ClassCastException(s"Cannot cast value $some to double."))
-      }
-  }
-
-  implicit lazy val anyExtractor =
-    errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>
-      new AnyExtractor[Row] {
-        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
-      }
-    )
-
-  implicit lazy val anyNonTransformedExtractor =
-    errOrFieldsIdxMap.map(fieldsIdxMap =>
-      new AnyNonTransformedExtractor[Row] {
-        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
-      })
-
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
-    fieldsIdxMap => (event: Row) =>
-      val keyAndValueCols = dataTransformation match {
-        case Some(ndu @ NarrowDataUnfolding(_, _, _, _)) => (ndu.key, ndu.value)
-        case _                                        => sys.error("Unsuitable data transformation instance")
-      }
-      val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
-      val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      getKVFieldOrThrow(event, keyColInd, valueColInd)
-
   }
 }

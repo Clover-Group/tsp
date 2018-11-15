@@ -165,18 +165,6 @@ case class InfluxDBInputConf(
       getKVFieldOrThrow(event, keyColInd, valueColInd)
   }
 
-  def getInputFormat(fieldTypesInfo: Array[(Symbol, TypeInformation[_])]) = {
-    InfluxDBInputFormat
-      .create()
-      .url(url)
-      .timeoutSec(timeoutSec.getOrElse(defaultTimeoutSec))
-      .username(userName.getOrElse(""))
-      .password(password.getOrElse(""))
-      .database(dbName)
-      .query(query)
-      .and()
-      .buildIt()
-  }
 
   def firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)

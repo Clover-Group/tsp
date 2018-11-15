@@ -9,6 +9,7 @@ import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberE
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.io.Exceptions
+import ru.itclover.tsp.transformers.StreamSource
 
 trait InputConf[Event] extends Serializable {
   def sourceId: Int
@@ -25,9 +26,13 @@ trait InputConf[Event] extends Serializable {
   def defaultEventsGapMs: Long
 
   def dataTransformation: Option[SourceDataTransformation]
-  def errOrFieldsIdxMap: Either[Throwable, Map[Symbol, Int]]
 
+  def createStreamSource: ThrowableOr[StreamSource[Event]]
+  
+  
   // TODO to StreamSource
+  def errOrFieldsIdxMap: ThrowableOr[Map[Symbol, Int]]
+  
   implicit def timeExtractor: ThrowableOr[TimeExtractor[Event]]
   implicit def timeNonTransformedExtractor: ThrowableOr[TimeNonTransformedExtractor[Event]]
   implicit def symbolNumberExtractor: ThrowableOr[SymbolNumberExtractor[Event]]

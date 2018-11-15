@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindows, SessionWindowTimeGapExtractor}
 import cats.data.Validated
-import cats.Traverse
+import cats.{Monad, Traverse}
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, Window}
 import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
@@ -27,6 +27,48 @@ import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.EventCreator
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
+import scala.language.higherKinds
+
+
+trait StreamAlg[S[_], KeyedS[_], InEvent] {
+  
+  def createStream: S[InEvent]
+  
+  
+  def keyBy[E](stream: S[E]): KeyedS[E]
+  
+  def flatMapWithState[InE, OutE, State](stream: S[InE])(f: (InE, State) => Seq[OutE]): S[OutE]
+  
+  def mapWithState[InE, OutE, State](stream: S[InE])(f: (InE, State) => Seq[OutE]): S[OutE]
+  
+  def flatMapAllWithState // .. Spark, Spark and Flink at the same time
+  
+  def uniteNearbyIncidents(separate: S[Incident]): S[Incident]
+  
+  
+  def save: S[Unit]
+  
+}
+
+
+class FlinkStreamInterpreter[InEvent](inputConf: InputConf[InEvent]) 
+  extends StreamAlg[DataStream, KeyedStream[_, String], InEvent] {
+  
+}
+
+class SparkStreamInterpreter[InEvent](inputConf: InputConf[InEvent]) 
+  extends StreamAlg[DataStream, KeyedStream[_, String], InEvent] {
+  
+}
+
+class PatternsSearchJob[S[_], KeyedS[_], InEvent](streamAlg: StreamAlg[S, KeyedS, InEvent]) {
+  def findPatterns = {
+    
+  }
+}
+
+// .. Mb make Algebra for patterns validation and bucketization
+
 
 object PatternsSearchJob {
   type PatternWithMeta[InEvent] = ((Pattern[InEvent, _, _], PhaseMetadata), RawPattern)
@@ -34,19 +76,17 @@ object PatternsSearchJob {
   type ValidatedPhases[InEvent] = Either[Throwable, Phases[InEvent]]
 }
 
-case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInformation](
+case class PatternsSearchJob[InEvent: StreamSource: TypeInformation, PhaseOut, OutEvent: TypeInformation](
   inputConf: InputConf[InEvent],
   outputConf: OutputConf[OutEvent],
   resultMapper: RichMapFunction[Incident, OutEvent]
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractTimeNonTransformed: TimeNonTransformedExtractor[InEvent],
-  extractNumber: SymbolNumberExtractor[InEvent],
   extractAny: AnyExtractor[InEvent],
   extractAnyNonTransformed: AnyNonTransformedExtractor[InEvent],
   extractKeyVal: InEvent => (Symbol, AnyRef),
-  eventCreator: EventCreator[InEvent],
-  eventTypeInfo: TypeInformation[InEvent]
+  eventCreator: EventCreator[InEvent]
 ) {
   import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
 
@@ -129,7 +169,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       for { mappers <- patternMappersBuckets } yield {
         val (serExtractAny, serExtractAnyNonTransformed, serPartitionFields) = (extractAny, extractAnyNonTransformed, inputConf.partitionFields) // made job code serializable
         val incidents = stream
-          .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString)
+          .keyBy(e => serPartitionFields.map(serExtractAnyNonTransformed(e, _)).mkString) // TODO .. Rm duplication
           .flatMapIf(
             inputConf.dataTransformation.exists(
               x => x.isInstanceOf[NarrowDataUnfolding] || x.isInstanceOf[WideDataFilling]
@@ -168,7 +208,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     _ <- Either.cond(
       inputConf.parallelism.getOrElse(1) > 0,
       Unit,
-      InvalidRequest(s"Input conf parallelism cannot be lower than 1.") // .. Specific exception
+      InvalidRequest(s"Input conf parallelism cannot be lower than 1.")
     )
     _ <- Either.cond(
       inputConf.patternsParallelism.getOrElse(1) > 0,
