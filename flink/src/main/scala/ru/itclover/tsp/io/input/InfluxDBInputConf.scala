@@ -165,7 +165,6 @@ case class InfluxDBInputConf(
       getKVFieldOrThrow(event, keyColInd, valueColInd)
   }
 
-
   def firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)
     for {

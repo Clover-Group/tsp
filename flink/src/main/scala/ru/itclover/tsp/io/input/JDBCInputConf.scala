@@ -18,6 +18,7 @@ import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.JDBCInputFormatProps
 import ru.itclover.tsp.transformers.{SparseRowsDataAccumulator, StreamSource}
+import ru.itclover.tsp.transformers.{SparseRowsDataAccumulator, StreamSource}
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import scala.util.Try
@@ -60,6 +61,8 @@ case class JDBCInputConf(
   import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
   
   override def createStreamSource: ThrowableOr[StreamSource[Row]] = ??? // TODO: To Typeclass (InputConf is ADT)
+  
+  override def createStreamSource: ThrowableOr[StreamSource[Row]] = ???
 
   lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
 

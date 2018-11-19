@@ -22,6 +22,7 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import PatternsSearchJob._
+import cats.kernel.Semigroup
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.EventCreator
@@ -41,13 +42,12 @@ trait StreamAlg[S[_], KeyedS[_], InEvent] {
   
   def mapWithState[InE, OutE, State](stream: S[InE])(f: (InE, State) => Seq[OutE]): S[OutE]
   
-  def flatMapAllWithState // .. Spark, Spark and Flink at the same time
+  def flatMapAllWithState[InE, OutE, State](stream: S[InE])(mappers: (InE, State) => Seq[OutE]): S[OutE]
   
-  def uniteNearbyIncidents(separate: S[Incident]): S[Incident]
+  def uniteNearby[Event: Semigroup: TimeExtractor](stream: S[Event], keys: Seq[Symbol]): S[Event]
   
   
   def save: S[Unit]
-  
 }
 
 
@@ -61,7 +61,7 @@ class SparkStreamInterpreter[InEvent](inputConf: InputConf[InEvent])
   
 }
 
-class PatternsSearchJob[S[_], KeyedS[_], InEvent](streamAlg: StreamAlg[S, KeyedS, InEvent]) {
+class PatternsSearchJobTF[S[_], KeyedS[_], InEvent](streamAlg: StreamAlg[S, KeyedS, InEvent]) {
   def findPatterns = {
     
   }
