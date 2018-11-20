@@ -96,7 +96,6 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
       }
       result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
     } yield result
-    
   }
 
   def findAndSavePatterns(phases: Phases[InEvent]): Either[Throwable, Seq[DataStreamSink[OutEvent]]] = {
