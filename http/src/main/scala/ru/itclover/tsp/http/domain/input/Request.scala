@@ -6,9 +6,17 @@ import ru.itclover.tsp.io.output.OutputConf
 
 trait Request
 
-
 final case class FindPatternsRequest[IN <: InputConf[_], OUT <: OutputConf[_]](
-  uuid: String, source: IN, sink: OUT, patterns: Seq[RawPattern]
+  uuid: String,
+  source: IN,
+  sink: OUT,
+  patterns: Seq[RawPattern]
+) extends Request
+
+final case class SinklessFindPatternsRequest[IN <: InputConf[_]](
+  uuid: String,
+  source: IN,
+  patterns: Seq[RawPattern]
 ) extends Request
 
 final case class DSLPatternRequest(pattern: String) extends Request

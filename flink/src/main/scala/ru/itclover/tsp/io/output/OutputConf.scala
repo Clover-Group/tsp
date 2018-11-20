@@ -36,3 +36,12 @@ case class JDBCOutputConf(
 
   override def forwardedFields = rowSchema.forwardedFields
 }
+
+/**
+  * "Empty" sink (for example, used if one need only to report timings)
+  */
+case class EmptyOutputConf() extends OutputConf[Row] {
+  override def forwardedFields: Seq[Symbol] = Seq()
+  override def getOutputFormat: OutputFormat[Row] = ???
+  override def parallelism: Option[Int] = Some(1)
+}

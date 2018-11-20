@@ -5,6 +5,7 @@ import java.sql.Timestamp
 import java.time.DateTimeException
 
 import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
@@ -12,7 +13,9 @@ import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.output.RowSchema
 import ru.itclover.tsp.phases.Phases.AnyExtractor
+import collection.JavaConversions._
 
+import scala.util.Try
 
 class ToIncidentsResultMapper[Event](
   pattern: RawPattern,
@@ -43,6 +46,15 @@ class ToIncidentsResultMapper[Event](
   * Packer of found incident into [[org.apache.flink.types.Row]]
   */
 case class PatternsToRowMapper(sourceId: Int, schema: RowSchema) extends RichMapFunction[Incident, Row] {
+  var extraMetrics: Map[String, Option[Long]] = Map.empty
+
+  override def close(): Unit = {
+    extraMetrics = getRuntimeContext.getMetricGroup.getAllVariables.toMap
+      .map { kv =>
+        kv._1 -> Try(kv._2.toLong).toOption
+      }
+      //.filter(_._1.startsWith("Extra"))
+  }
 
   override def map(incident: Incident) = {
     val resultRow = new Row(schema.fieldsCount)

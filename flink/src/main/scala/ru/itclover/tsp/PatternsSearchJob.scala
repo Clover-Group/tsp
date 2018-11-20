@@ -26,6 +26,7 @@ import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.EventCreator
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
+import ru.itclover.tsp.utils.TimeMeasurementPhases.TimeMeasurementPattern
 import ru.itclover.tsp.utils.Bucketizer
 
 object PatternsSearchJob {
@@ -66,6 +67,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
           Validated
             .fromEither(PhaseBuilder.build[InEvent](p.sourceCode, fieldsIdxMap.apply)(timeExtractor, idxNumExtractor))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
+            .map(pat => (TimeMeasurementPattern(pat._1, resultMapper, p.sourceCode), pat._2))
       )
       .bimap(
         errs => ParseException(errs),

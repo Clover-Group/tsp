@@ -31,7 +31,7 @@ import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 
-import scala.util.Success
+import scala.util.{Success, Try}
 
 object JobsRoutes {
 
@@ -53,7 +53,7 @@ object JobsRoutes {
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
-  implicit def streamEnv: StreamExecutionEnvironment
+  implicit val streamEnv: StreamExecutionEnvironment
   implicit val actorSystem: ActorSystem
   implicit val materializer: ActorMaterializer
 
@@ -128,15 +128,16 @@ trait JobsRoutes extends RoutesProtocols {
           job.executeFindAndSave(patterns, uuid) match {
             case Right(result) => {
               val execTime = result.getNetRuntime(TimeUnit.SECONDS)
+              val extraMetrics = job.resultMapper.asInstanceOf[PatternsToRowMapper].extraMetrics
               // TODO after standalone Flink cluster test work
               onComplete(monitoring.queryJobInfo(uuid)) {
                 case Success(Some(details)) =>
                   complete(
                     FinishedJobResponse(
-                      ExecInfo(execTime, Map.empty)
+                      ExecInfo(execTime, extraMetrics)
                     )
                   )
-                case _ => complete(FinishedJobResponse(ExecInfo(execTime, Map.empty)))
+                case _ => complete(FinishedJobResponse(ExecInfo(execTime, extraMetrics)))
               }
             }
             case Left(err) => complete(InternalServerError, FailureResponse(5005, err))

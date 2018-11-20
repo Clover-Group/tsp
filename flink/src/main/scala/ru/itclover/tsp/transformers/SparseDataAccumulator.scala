@@ -65,6 +65,7 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
         val newValue = Try(extractAny(item, key))
         newValue match {
           case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
+          case _ => ()
         }
       }
     }
