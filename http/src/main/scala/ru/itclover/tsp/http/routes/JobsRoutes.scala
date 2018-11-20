@@ -53,7 +53,7 @@ object JobsRoutes {
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
-  implicit def streamEnv: StreamExecutionEnvironment
+  implicit val streamEnv: StreamExecutionEnvironment
   implicit val actorSystem: ActorSystem
   implicit val materializer: ActorMaterializer
 

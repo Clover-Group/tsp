@@ -88,10 +88,13 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
     } else {
       Bucketizer.bucketizeByWeight(phases, sourcesNum)
     }
-    sourcesBuckets foreach { bucket =>
-      findAndSavePatterns(bucket.items)
-    }
-    Either.catchNonFatal(streamEnv.execute(jobUuid))
+    for {
+      _      <- Traverse[Vector].traverse(sourcesBuckets) { bucket => 
+        findAndSavePatterns(bucket.items)
+      }
+      result <- Either.catchNonFatal(streamEnv.execute(jobUuid))
+    } yield result
+    
   }
 
   def findAndSavePatterns(phases: Phases[InEvent]): Either[Throwable, Seq[DataStreamSink[OutEvent]]] = {
@@ -166,19 +169,19 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
 
   def checkConfigs: Either[Throwable, Unit] = for {
     _ <- Either.cond(
-      inputConf.parallelism.getOrElse(1) > 0,
+      inputConf.parallelism.getOrElse(-1) > -2,
       Unit,
-      InvalidRequest(s"Input conf parallelism cannot be lower than 1.") // .. Specific exception
+      InvalidRequest(s"Input conf parallelism cannot be lower than -1.")
     )
     _ <- Either.cond(
-      inputConf.patternsParallelism.getOrElse(1) > 0,
+      inputConf.patternsParallelism.getOrElse(-1) > -2,
       Unit,
-      InvalidRequest(s"Input conf patternsParallelism cannot be lower than 1.")
+      InvalidRequest(s"Input conf patternsParallelism cannot be lower than -1.")
     )
     _ <- Either.cond(
-      outputConf.parallelism.getOrElse(1) > 0,
+      outputConf.parallelism.getOrElse(-1) > -2,
       Unit,
-      InvalidRequest(s"Output conf parallelism cannot be lower than 1.")
+      InvalidRequest(s"Output conf parallelism cannot be lower than -1.")
     )
   } yield Unit
 }
