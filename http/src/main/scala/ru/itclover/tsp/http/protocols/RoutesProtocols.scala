@@ -72,9 +72,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "dataTransformation",
     "parallelism",
     "numParallelSources",
-    "patternsParallelism"
+    "patternsParallelism",
+    "timestampMultiplier"
   )
-  implicit val influxInpConfFmt = jsonFormat(
+  /*implicit val influxInpConfFmt = jsonFormat(
     InfluxDBInputConf.apply,
     "sourceId",
     "dbName",
@@ -91,7 +92,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism",
     "numParallelSources",
     "patternsParallelism"
-  )
+  )*/
 
   implicit val rowSchemaFmt = jsonFormat(
     RowSchema.apply,
@@ -108,7 +109,9 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
-  implicit def patternsRequestFmt[IN <: InputConf[_]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
-    jsonFormat4(FindPatternsRequest.apply[IN, OUT])
+  
+  // .. todo toString-like implicit bound
+  implicit def patternsRequestFmt[EKey <: String, IN <: InputConf[_]: JsonFormat, OUT <: OutputConf[_, EKey]: JsonFormat] =
+    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 }

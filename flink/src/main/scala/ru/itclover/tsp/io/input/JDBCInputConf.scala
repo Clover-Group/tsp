@@ -10,17 +10,9 @@ import org.apache.flink.api.java.io.jdbc.JDBCInputFormat
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
-import org.apache.flink.api.java.tuple.{Tuple2 => JavaTuple2}
-import ru.itclover.tsp.utils.CollectionsOps.{RightBiasedEither, TryOps}
-import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
+import cats.syntax.either._
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
-import ru.itclover.tsp.JDBCInputFormatProps
-import ru.itclover.tsp.transformers.{SparseRowsDataAccumulator, StreamSource}
-import ru.itclover.tsp.transformers.{SparseRowsDataAccumulator, StreamSource}
-import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
-import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.transformers.StreamSource
 import scala.util.Try
 
 /**
@@ -46,33 +38,15 @@ case class JDBCInputConf(
   jdbcUrl: String,
   query: String,
   driverName: String,
-  datetimeField: Symbol,
+  datetimeField: String,
   eventsMaxGapMs: Long,
   defaultEventsGapMs: Long,
-  partitionFields: Seq[Symbol],
+  partitionFields: Seq[String],
   userName: Option[String] = None,
   password: Option[String] = None,
   dataTransformation: Option[SourceDataTransformation] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
-  patternsParallelism: Option[Int] = Some(2)
-) extends InputConf[Row] {
-
-  import InputConf.{getRowFieldOrThrow, getKVFieldOrThrow}
-  
-  override def createStreamSource: ThrowableOr[StreamSource[Row]] = ??? // TODO: To Typeclass (InputConf is ADT)
-  
-  override def createStreamSource: ThrowableOr[StreamSource[Row]] = ???
-
-  lazy val errOrFieldsIdxMap = fieldsTypesInfo.map(_.map(_._1).zipWithIndex.toMap)
-
-  lazy val errOrTransformedFieldsIdxMap = dataTransformation match {
-    case Some(NarrowDataUnfolding(_, _, _, _)) =>
-      try {
-        Right(SparseRowsDataAccumulator.fieldsIndexesMap(this))
-      } catch {
-        case t: Throwable => Left(t)
-      }
-    case _ => errOrFieldsIdxMap
-  }
-}
+  patternsParallelism: Option[Int] = Some(2),
+  timestampMultiplier: Option[Double] = Some(1000.0)
+) extends InputConf[Row]

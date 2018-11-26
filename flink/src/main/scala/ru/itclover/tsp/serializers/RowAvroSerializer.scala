@@ -9,7 +9,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import scala.concurrent.duration._
-import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
+import cats.syntax.either._
 
 
 case class RowAvroSerializer(fieldsIndexesMap: Map[Symbol, Int], schema: Schema)

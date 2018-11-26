@@ -10,6 +10,7 @@ import ru.itclover.tsp.phases.NumericPhases.NumericPhaseParser
 import ru.itclover.tsp._
 import ru.itclover.tsp.aggregators.accums._
 import ru.itclover.tsp.aggregators.accums.OneTimeStates._
+import ru.itclover.tsp.io.TimeExtractor
 
 
 trait AggregatorPhases[Event, S, T] extends Pattern[Event, S, T]

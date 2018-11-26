@@ -1,13 +1,11 @@
 package ru.itclover.tsp
 
-import org.apache.flink.api.common.functions.{FlatMapFunction, RichFlatMapFunction}
+import org.apache.flink.api.common.functions.FlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.typeutils.UnitTypeInfo
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.transformers.{FlatMappersCombinator, FlinkCompilingPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator}
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
+import ru.itclover.tsp.transformers.{FlatMappersCombinator, RichStatefulFlatMapper}
 
 
 object DataStreamUtils {

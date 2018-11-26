@@ -2,6 +2,7 @@ package ru.itclover.tsp.phases
 
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.{Pattern, PatternResult}
+import ru.itclover.tsp.io.{Decoder, Extractor}
 import ru.itclover.tsp.phases.NumericPhases.NumericPhaseParser
 import scala.language.implicitConversions
 
@@ -38,6 +39,19 @@ object ConstantPhases {
       override val fieldName = fieldNameOpt
 
       override def extract(event: Event) = f(event)
+    }
+  }
+  
+  case class ExtractingPattern[Event, EKey, EItem, T](key: EKey)(
+    implicit extract: Extractor[Event, EKey, EItem],
+    decoder: Decoder[EItem, T]
+  ) extends Pattern[Event, NoState, T] {
+    
+    override def initialState = NoState.instance
+    
+    override def apply(e: Event, s: NoState) = {
+      val x = extract(e, key)
+      (if (x != null && x != Double.NaN) Success(x) else Stay) -> NoState.instance
     }
   }
 

@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.dsl
 
 import java.time.Instant
@@ -36,3 +37,4 @@ object SyntaxTestApp extends App {
       println(z)
   }
 }
+*/

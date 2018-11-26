@@ -2,7 +2,6 @@ package ru.itclover.tsp.http.utils
 
 import java.sql.{Connection, DriverManager, ResultSet}
 import java.util.concurrent.TimeUnit
-
 import com.dimafeng.testcontainers.SingleContainer
 import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
@@ -11,6 +10,7 @@ import ru.itclover.tsp.services.InfluxDBService
 import org.influxdb.{BatchOptions, InfluxDB, InfluxDBFactory}
 import org.influxdb.dto.{Query, QueryResult}
 import scala.collection.JavaConverters._
+import scala.language.existentials
 import scala.util.{Failure, Success}
 
 

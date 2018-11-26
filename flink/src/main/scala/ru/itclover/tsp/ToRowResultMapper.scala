@@ -1,28 +1,23 @@
 package ru.itclover.tsp
 
-import java.time._
-import java.sql.Timestamp
-import java.time.DateTimeException
-
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.output.RowSchema
-import ru.itclover.tsp.phases.Phases.AnyExtractor
+import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
 
-class ToIncidentsResultMapper[Event](
+class ToIncidentsResultMapper[E, EKey, EItem](
   pattern: RawPattern,
   maxWindowMs: Long,
-  forwardedFields: Seq[Symbol],
-  partitionFields: Seq[Symbol]
-)(implicit timeExtractor: TimeExtractor[Event], extractAny: AnyExtractor[Event])
-    extends ResultMapper[Event, Segment, Incident] {
+  forwardedFields: Seq[EKey],
+  partitionFields: Seq[EKey]
+)(implicit timeExtractor: TimeExtractor[E], extractor: Extractor[E, EKey, EItem], decoder: Decoder[EItem, Any])
+    extends ResultMapper[E, Segment, Incident] {
 
-  override def apply(event: Event, results: Seq[TerminalResult[Segment]]) =
+  override def apply(event: E, results: Seq[TerminalResult[Segment]]) =
     results map {
       case Success(segment) =>
         Success(
@@ -30,9 +25,9 @@ class ToIncidentsResultMapper[Event](
             pattern.id,
             maxWindowMs,
             segment,
-            forwardedFields.map(f => f -> extractAny(event, f)).toMap,
+            forwardedFields.map(f => f.toString -> extractor[Any](event, f)).toMap,
             pattern.payload,
-            partitionFields.map(f => f -> extractAny(event, f)).toMap
+            partitionFields.map(f => f.toString -> extractor[Any](event, f)).toMap
           )
         )
       case f: Failure => f
@@ -74,3 +69,4 @@ case class PatternsToRowMapper(sourceId: Int, schema: RowSchema) extends RichMap
     } mkString ("{", ",", "}")
   }
 }
+/**/

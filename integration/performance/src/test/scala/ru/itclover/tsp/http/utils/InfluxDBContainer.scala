@@ -8,6 +8,7 @@ import ru.itclover.tsp.services.InfluxDBService
 import org.influxdb.{BatchOptions, InfluxDB, InfluxDBFactory}
 import org.influxdb.dto.{Query, QueryResult}
 import scala.collection.JavaConverters._
+import scala.language.existentials
 import scala.util.{Failure, Success}
 
 

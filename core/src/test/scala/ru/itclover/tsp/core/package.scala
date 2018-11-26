@@ -3,9 +3,9 @@ package ru.itclover.tsp
 import java.time.{ZonedDateTime, Instant}
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.phases.NoState
-import ru.itclover.tsp.phases.NumericPhases.{NumericPhaseParser, SymbolNumberExtractor}
+import ru.itclover.tsp.phases.NumericPhases.NumericPhaseParser
 
 
 package object core {
@@ -28,11 +28,11 @@ package object core {
 
 
   implicit val doubleTestEvent = new TimeExtractor[TestEvent[Double]] {
-    override def apply(event: TestEvent[Double]) = event.time
+    override def apply(event: TestEvent[Double]) = Time(event.time.toInstant.toEpochMilli)
   }
 
   implicit val boolTestEvent = new TimeExtractor[TestEvent[Boolean]] {
-    override def apply(event: TestEvent[Boolean]) = event.time
+    override def apply(event: TestEvent[Boolean]) = Time(event.time.toInstant.toEpochMilli)
   }
 
   val probe = TestEvent(Success(1))

@@ -2,8 +2,7 @@ package ru.itclover.tsp
 
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.PatternResult._
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.core.{Pattern, PatternResult}
+import ru.itclover.tsp.core.Pattern
 
 import scala.collection.mutable
 

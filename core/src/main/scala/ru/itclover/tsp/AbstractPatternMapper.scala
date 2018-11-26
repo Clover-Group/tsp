@@ -1,11 +1,8 @@
 package ru.itclover.tsp
 
-import java.time.Instant
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.core.Time.timeOrdering
-import ru.itclover.tsp.core.{Pattern, PatternResult, Time}
+import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.core.PatternResult.{TerminalResult, _}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import com.typesafe.config._
 
 

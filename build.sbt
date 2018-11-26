@@ -163,6 +163,15 @@ lazy val integrationPerformance = project.in(file("integration/performance"))
   )
   .dependsOn(integrationCorrectness)
 
+
+/*** Other settings ***/
+
+// Kind projector 
+resolvers += Resolver.sonatypeRepo("releases")
+addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
+
+
+
 // Git-specific settings
 import sbtrelease.Version.Bump
 import sbtrelease.{versionFormatError, Version => ReleaseVersion}

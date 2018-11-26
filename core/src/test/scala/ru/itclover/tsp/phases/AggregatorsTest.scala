@@ -7,7 +7,6 @@ import ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Functions._
 import ru.itclover.tsp.core.{PatternResult, TestPhase, Time, _}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import java.time.Instant
 import ru.itclover.tsp.aggregators.AggregatorPhases._
 import ru.itclover.tsp.core.Time._

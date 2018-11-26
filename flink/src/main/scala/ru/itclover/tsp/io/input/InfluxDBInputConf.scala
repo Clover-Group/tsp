@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.io.input
 
 import java.time.Instant
@@ -9,13 +10,11 @@ import org.apache.flink.runtime.util.clock.SystemClock
 import org.apache.flink.types.Row
 import org.influxdb.InfluxDBException
 import org.influxdb.dto.{Query, QueryResult}
-import ru.itclover.tsp.core.Time.{TimeExtractor, TimeNonTransformedExtractor}
+import cats.syntax.either._
 import ru.itclover.tsp.io.input.InputConf.getKVFieldOrThrow
-import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
-import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.services.InfluxDBService
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, RightBiasedEither, TryOps}
+import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, TryOps}
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 
 
@@ -180,3 +179,4 @@ case class InfluxDBInputConf(
     } yield firstSeries
   }
 }
+*/
