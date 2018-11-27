@@ -195,7 +195,6 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,              // prevents the release if any dependencies are SNAPSHOT
   inquireVersions,                        // ask the user for version tag to be released
   runClean,                               // performs cleaning task
-  runTest,                                // runs all tests in the project
   setReleaseVersion,                      // sets the version and transfers notes to CHANGELOG
   commitReleaseVersion,                   // performs the initial git checks
   commitChangelogs,                       // commits the changes in CHANGELOG files
