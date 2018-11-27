@@ -4,6 +4,9 @@ sealed trait SourceDataTransformationConf
 
 abstract class SourceDataTransformation(val `type`: String) extends Serializable {
   val config: SourceDataTransformationConf
+  // TODO
+  // def extractors[Event]: Extractors[???]
+  // def kvExtractors[Event]: KVExtractors[???]
 }
 
 

@@ -1,5 +1,6 @@
 package ru.itclover.tsp.transformers
 
+import akka.event.slf4j.Logger
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.metrics.{Counter, Gauge}
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time}
@@ -7,6 +8,33 @@ import ru.itclover.tsp.core.PatternResult.{Failure, Success}
 import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.{AbstractPatternMapper, ResultMapper}
 import ru.itclover.tsp.core.PatternResult.heartbeat
+import ru.itclover.tsp.phases.PatternStats
+import ru.itclover.tsp.phases.TimeMeasurementPhases.TimeMeasurementPattern
+
+class FlinkStatsPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
+                                                                  phase: TimeMeasurementPattern[Event, PhaseState, PhaseOut],
+                                                                  resultsMapper: ResultMapper[Event, PhaseOut, MapperOut],
+                                                                  eventsMaxGapMs: Long,
+                                                                  emptyEvent: Event,
+                                                                  isTerminalEvent: Event => Boolean
+                                                                )(implicit timeExtractor: TimeExtractor[Event])
+  extends FlinkCompilingPatternMapper[Event, (PhaseState, PatternStats), PhaseOut, MapperOut](
+    ((_: ClassLoader) => phase.asInstanceOf[Pattern[Event, (PhaseState, PatternStats), PhaseOut]]),
+    resultsMapper,
+    eventsMaxGapMs,
+    emptyEvent,
+    isTerminalEvent
+  ) {
+  val logger = Logger("StatsMapper")
+
+  override def apply(
+    event: Event,
+    stateAndPrevEvent: (scala.Seq[ (PhaseState, PatternStats)], Event)
+  ): (scala.List[MapperOut], (_root_.scala.collection.Seq[ (PhaseState, PatternStats)], Event)) = {
+    logger.info(s"${stateAndPrevEvent._1.last._2}")
+    super.apply(event, stateAndPrevEvent)
+  }
+}
 
 // .. TODO: Fix inheritance
 class FlinkPatternMapper[Event, PhaseState, PhaseOut, MapperOut](

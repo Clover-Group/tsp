@@ -17,7 +17,7 @@ import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.phases.NumericPhases.SymbolNumberExtractor
 import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
-import ru.itclover.tsp.transformers.{FlinkPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator, StreamSource}
+import ru.itclover.tsp.transformers.{FlinkStatsPatternMapper, RichStatefulFlatMapper, SparseRowsDataAccumulator, StreamSource}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -26,7 +26,7 @@ import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.EventCreator
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
-import ru.itclover.tsp.utils.TimeMeasurementPhases.TimeMeasurementPattern
+import ru.itclover.tsp.phases.TimeMeasurementPhases.TimeMeasurementPattern
 import ru.itclover.tsp.utils.Bucketizer
 
 object PatternsSearchJob {
@@ -67,7 +67,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
           Validated
             .fromEither(PhaseBuilder.build[InEvent](p.sourceCode, fieldsIdxMap.apply)(timeExtractor, idxNumExtractor))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
-            .map(pat => (TimeMeasurementPattern(pat._1, resultMapper, p.sourceCode), pat._2))
+            .map(pat => (TimeMeasurementPattern(pat._1, p.sourceCode), pat._2))
       )
       .bimap(
         errs => ParseException(errs),
@@ -127,7 +127,7 @@ case class PatternsSearchJob[InEvent: StreamSource, PhaseOut, OutEvent: TypeInfo
             outputConf.forwardedFields ++ raw.forwardedFields,
             inputConf.partitionFields
           ).asInstanceOf[ResultMapper[InEvent, Any, Incident]]
-          new FlinkPatternMapper(phase, incidentsRM, inputConf.eventsMaxGapMs, emptyEvent, isTerminal)
+          new FlinkStatsPatternMapper(phase.asInstanceOf[TimeMeasurementPattern[InEvent, _, Any]], incidentsRM, inputConf.eventsMaxGapMs, emptyEvent, isTerminal)
             .asInstanceOf[RichStatefulFlatMapper[InEvent, Any, Incident]]
       })
       for { mappers <- patternMappersBuckets } yield {
