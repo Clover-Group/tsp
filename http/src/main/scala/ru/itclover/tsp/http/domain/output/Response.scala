@@ -31,12 +31,12 @@ object FailureResponse {
   def apply(ex: Throwable): FailureResponse = apply(5000, ex)
 
   def apply(err: ConfigErr): FailureResponse = {
-    val msg = "Configuration error: " + err.getClass.getName
+    val msg = makeConfigErrMsg(err.getClass.getName)
     FailureResponse(err.errorCode, msg, Seq(err.error))
   }
 
   def apply(errs: Seq[ConfigErr]): FailureResponse = {
-    val msg = "Configuration error: " + errs.map(_.getClass.getName).mkString(", ")
+    val msg = makeConfigErrMsg(errs.map(_.getClass.getName).mkString(", "))
     FailureResponse(4000, msg, errs.map(_.error))
   }
 
@@ -44,4 +44,6 @@ object FailureResponse {
     val msg = "Runtime error: " + err.getClass.getName
     FailureResponse(err.errorCode, msg, Seq(err.error))
   }
+
+  def makeConfigErrMsg(error: String) = s"Configuration error: $error. Note: no data has been written to the Sink."
 }

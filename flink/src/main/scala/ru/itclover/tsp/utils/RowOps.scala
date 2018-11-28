@@ -16,25 +16,25 @@ object RowOps {
     def mkString: String = mkString(", ")
   }
 
-  case class RowTsTimeExtractor(timeIndex: Int, tsMultiplier: Double, field: String) extends TimeExtractor[Row] {
+  case class RowTsTimeExtractor(timeIndex: Int, tsMultiplier: Double, fieldId: Symbol) extends TimeExtractor[Row] {
     def apply(r: Row) = {
       val millis = r.getField(timeIndex) match {
         case d: java.lang.Double => (d * tsMultiplier).toLong
         case f: java.lang.Float  => (f * tsMultiplier).toLong
         case n: java.lang.Number => (n.doubleValue() * tsMultiplier).toLong
         // .. todo typeOfTime parameter in conf
-        case x => sys.error(s"Cannot parse time `$x` from field $field, should be number of millis since 1.1.1970")
+        case x => sys.error(s"Cannot parse time `$x` from field $fieldId, should be number of millis since 1.1.1970")
       }
       CoreTime(toMillis=millis)
     }
   }
 
-  case class RowIsoTimeExtractor(timeIndex: Int, field: String)  extends TimeExtractor[Row] {
+  case class RowIsoTimeExtractor(timeIndex: Int, fieldId: Symbol)  extends TimeExtractor[Row] {
     def apply(r: Row) = {
       val isoTime = r.getField(timeIndex).toString
       if (isoTime == null || isoTime == "")
         sys.error(
-          sys.error(s"Cannot parse time `$isoTime` from field $field, should be in ISO 8601 format")
+          sys.error(s"Cannot parse time `$isoTime` from field $fieldId, should be in ISO 8601 format")
         )
       CoreTime(toMillis=Instant.parse(isoTime).toEpochMilli)
     }

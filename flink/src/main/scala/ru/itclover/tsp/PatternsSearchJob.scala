@@ -16,15 +16,13 @@ import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
 import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-// import ru.itclover.tsp.DataStreamUtils.DataStreamOps
-import ru.itclover.tsp.DataStreamUtils.KeyedStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import cats.kernel.Semigroup
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.types.Row
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io._
-import ru.itclover.tsp.io.Exceptions.InvalidRequest
+import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}

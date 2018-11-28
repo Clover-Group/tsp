@@ -7,9 +7,9 @@ import scala.util.{Failure, Success, Try}
 
 
 object CollectionsOps {
-  implicit class TryOps[T](val t: Try[T]) extends AnyVal {    
+  implicit class TryOps[T](val t: Try[T]) extends AnyVal {
     def eventually[Ignore](effect: => Ignore): Try[T] = t.transform(_ => { effect; t }, _ => { effect; t })
-    
+
     def toEither: Either[Throwable, T] = t match {
       case Success(some) => Right(some)
       case Failure(err) => Left(err)
@@ -33,9 +33,9 @@ object CollectionsOps {
       case None => Future.failed(whenNone)
     }
 
-    def toTry(whenFail: => Throwable): Try[T] = o match {
+    def toTry(whenNone: => Throwable): Try[T] = o match {
       case Some(s) => Success(s)
-      case None => Failure(whenFail)
+      case None => Failure(whenNone)
     }
   }
 

@@ -12,7 +12,7 @@ import ru.itclover.tsp.http.protocols.RoutesProtocols
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
-import ru.itclover.tsp.BuildInfo
+// import ru.itclover.tsp.BuildInfo
 import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.transformers.FlinkCompilingPatternMapper
@@ -89,8 +89,9 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
       case Success(resp) => complete(resp)
       case Failure(err)  => complete(InternalServerError, FailureResponse(5005, err))
     }
-  } ~
-  path("metainfo" / "getVersion") {
-    complete(SuccessfulResponse(BuildInfo.version))
   }
+  // TODO ..
+  /*~ path("metainfo" / "getVersion") {
+    complete(SuccessfulResponse(BuildInfo.version))
+  }*/
 }

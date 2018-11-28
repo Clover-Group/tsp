@@ -20,7 +20,7 @@ import org.apache.flink.runtime.client.JobExecutionException
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.utils.Exceptions
 import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
-import ru.itclover.tsp.io.Exceptions.InvalidRequest
+import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 import scala.util.Properties
 

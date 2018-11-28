@@ -75,7 +75,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "patternsParallelism",
     "timestampMultiplier"
   )
-  /*implicit val influxInpConfFmt = jsonFormat(
+  implicit val influxInpConfFmt = jsonFormat(
     InfluxDBInputConf.apply,
     "sourceId",
     "dbName",
@@ -92,7 +92,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism",
     "numParallelSources",
     "patternsParallelism"
-  )*/
+  )
 
   implicit val rowSchemaFmt = jsonFormat(
     RowSchema.apply,
