@@ -32,9 +32,9 @@ import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
   * @param password for auth
   * @param timeoutSec for DB connection
   * @param parallelism of source task (not recommended to chagne)
-  * @param numParallelSources number of absolutely separate sources to create. Patterns also will be separated by 
-  *                           equal (as much as possible) buckets by the max window in pattern (TBD by sum window size) 
-  * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also 
+  * @param numParallelSources number of absolutely separate sources to create. Patterns also will be separated by
+  *                           equal (as much as possible) buckets by the max window in pattern (TBD by sum window size)
+  * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
 case class InfluxDBInputConf(
@@ -93,77 +93,6 @@ case class InfluxDBInputConf(
     case _ => errOrFieldsIdxMap
   }
 
-  implicit lazy val timeExtractor = errOrTransformedFieldsIdxMap.map { fieldsIdxMap =>
-    val dtField = datetimeField
-    new TimeExtractor[Row] {
-      override def apply(event: Row) = {
-        val isoTime = getRowFieldOrThrow(event, fieldsIdxMap, dtField).asInstanceOf[String]
-        if (isoTime == null) sys.error(s"Time was null (tried field $dtField with " +
-            s"index ${fieldsIdxMap.getOrElse(dtField, -1)}) in event: $event; Fields indexes map was $fieldsIdxMap")
-        Instant.parse(isoTime).toEpochMilli / 1000.0
-      }
-    }
-  }
-
-  implicit lazy val timeNonTransformedExtractor = errOrFieldsIdxMap.map { fieldsIdxMap =>
-    val dtField = datetimeField
-    new TimeNonTransformedExtractor[Row] {
-      override def apply(event: Row) = {
-        val isoTime = getRowFieldOrThrow(event, fieldsIdxMap, dtField).asInstanceOf[String]
-        if (isoTime == null) sys.error(s"Time was null (tried field $dtField with " +
-          s"index ${fieldsIdxMap.getOrElse(dtField, -1)}) in event: $event; Fields indexes map was $fieldsIdxMap")
-        Instant.parse(isoTime).toEpochMilli / 1000.0
-      }
-    }
-  }
-
-  implicit lazy val symbolNumberExtractor = errOrTransformedFieldsIdxMap.map(
-    fieldsIdxMap =>
-      new SymbolNumberExtractor[Row] {
-        override def extract(event: Row, name: Symbol): Double = {
-          getRowFieldOrThrow(event, fieldsIdxMap, name) match {
-            case d: java.lang.Double => d
-            case f: java.lang.Float  => f.floatValue().toDouble
-            case some                => Try(some.toString.toDouble).getOrElse(Double.NaN)
-          }
-        }
-    }
-  )
-  
-  implicit lazy val indexNumberExtractor = new IndexNumberExtractor[Row] {
-    override def extract(event: Row, index: Int): Double = {
-      getRowFieldOrThrow(event, index) match {
-        case d: java.lang.Double => d
-        case f: java.lang.Float  => f.floatValue().toDouble
-        case some                => Try(some.toString.toDouble).getOrElse(Double.NaN)
-      }
-    }
-  }
-
-  implicit lazy val anyExtractor =
-    errOrTransformedFieldsIdxMap.map(fieldsIdxMap =>
-      new AnyExtractor[Row] {
-        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
-      }
-    )
-
-  implicit lazy val anyNonTransformedExtractor =
-    errOrFieldsIdxMap.map(fieldsIdxMap =>
-      new AnyNonTransformedExtractor[Row] {
-        def apply(event: Row, name: Symbol): AnyRef = getRowFieldOrThrow(event, fieldsIdxMap, name)
-      })
-
-  implicit lazy val keyValExtractor: Either[Throwable, Row => (Symbol, AnyRef)] = errOrFieldsIdxMap.map {
-    fieldsIdxMap => (event: Row) =>
-      val keyAndValueCols = dataTransformation match {
-        case Some(ndu @ NarrowDataUnfolding(_, _, _, _)) => (ndu.key, ndu.value)
-        case _ => sys.error("Unsuitable data transformation instance")
-      }
-      val keyColInd = fieldsIdxMap.getOrElse(keyAndValueCols._1, Int.MaxValue)
-      val valueColInd = fieldsIdxMap.getOrElse(keyAndValueCols._2, Int.MaxValue)
-      getKVFieldOrThrow(event, keyColInd, valueColInd)
-  }
-
   def firstSeries = {
     val influxQuery = new Query(InfluxDBService.makeLimit1Query(query), dbName)
     for {
@@ -179,4 +108,5 @@ case class InfluxDBInputConf(
     } yield firstSeries
   }
 }
+
 */

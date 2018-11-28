@@ -10,7 +10,7 @@ import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala._
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
@@ -25,11 +25,12 @@ import org.apache.flink.types.Row
 import ru.itclover.tsp.{PatternsSearchJob, PatternsToRowMapper, ResultMapper}
 import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import cats.syntax.either._
 import ru.itclover.tsp.io.DecoderInstances
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
+import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, GenericRuntimeErr, RuntimeErr}
 import scala.util.Success
 
 
@@ -66,30 +67,28 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
         import request._
-        val streamsOrErr = for {
+        val resultOrErr = for {
           source <- JdbcSource.create(inputConf)
+          // sink <- JDBCSink.create(outConf) // todo parallel validation of source and sink
           searcher = PatternsSearchJob(source, DecoderInstances)
-          sinks <- searcher.findAndSaveMappedIncidents(
+          _ <- searcher.patternsSearchStream(
             patterns,
             outConf,
             PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
           )
-          execResult <- if (isAsync) Right(None) else Either.catchNonFatal(Some(streamEnv.execute(uuid)))
+          execResult <- runStream(uuid, isAsync)
         } yield execResult
 
-        streamsOrErr match {
+        resultOrErr match {
+          case Left(err: ConfigErr) => complete(BadRequest, FailureResponse(err))
+          case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
           case Right(Some(execResult)) => {
-            // .. todo prepared patterns printing
+            // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
             val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
-            // todo onComplete(monitoring.queryJobInfo(request.uuid)) {
-            complete(
-              FinishedJobResponse(ExecInfo(execTime, Map.empty))
-            )
+            complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
           }
-          case Right(None) => {
-            Future { streamEnv.execute(uuid) } // TODO: possible deadlock! Custom thread pool needed
-            complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
-          }
+          case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
+
         }
       }
     } /*~
@@ -106,6 +105,13 @@ trait JobsRoutes extends RoutesProtocols {
       }
     }*/
   }
-  // TODO: Kafka outputConf
+
+  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] =
+    if (isAsync) {
+      Future { streamEnv.execute(uuid) } // TODO: possible deadlock for huge jobs number! Custom thread pool or something
+      Right(None)
+    } else {
+      Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
+    }
 
 }

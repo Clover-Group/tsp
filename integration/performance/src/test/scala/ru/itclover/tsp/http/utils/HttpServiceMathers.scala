@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{Matchers, Suite}
 import ru.itclover.tsp.http.HttpService
-import ru.itclover.tsp.http.domain.output.FinishedJobResponse
+import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.Success
 import scala.concurrent.duration.DurationInt

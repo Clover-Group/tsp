@@ -19,7 +19,7 @@ object PhaseBuilder {
 
   def build[Event, EKey, EItem](
     input: String,
-    idToEKey: String => EKey,
+    idToEKey: Symbol => EKey,
     formatter: ErrorFormatter = new ErrorFormatter()
   )(
     implicit timeExtractor: TimeExtractor[Event],

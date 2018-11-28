@@ -3,8 +3,8 @@ package ru.itclover.tsp.io.output
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.types.Row
 
-trait OutputConf[Event, EKey] {
-  def forwardedFields: Seq[EKey]
+trait OutputConf[Event] {
+  def forwardedFieldsIds: Seq[Symbol]
 
   def getOutputFormat: OutputFormat[Event]
 
@@ -13,7 +13,6 @@ trait OutputConf[Event, EKey] {
 
 /**
   * Sink for anything that support JDBC connection
-  * @param tableName
   * @param rowSchema schema of writing rows, __will be replaced soon__
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
   * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
@@ -31,8 +30,8 @@ case class JDBCOutputConf(
   batchInterval: Option[Int] = None,
   userName: Option[String] = None,
   parallelism: Option[Int] = Some(1)
-) extends OutputConf[Row, Symbol] {
+) extends OutputConf[Row] {
   override def getOutputFormat = JDBCOutput.getOutputFormat(this)
 
-  override def forwardedFields = rowSchema.forwardedFields
+  override def forwardedFieldsIds = rowSchema.forwardedFields
 }

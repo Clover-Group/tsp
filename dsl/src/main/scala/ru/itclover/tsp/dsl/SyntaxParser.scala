@@ -20,7 +20,7 @@ object SyntaxParser {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: String => EKey)(
+class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey)(
   implicit timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   decodeDouble: Decoder[EItem, Double]
@@ -458,9 +458,9 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: String 
   }
 
   def fieldValue: Rule1[ExtractingPattern[Event, EKey, EItem, Double]] = rule {
-    (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(id)))
+    (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(Symbol(id))))
     | anyWordInDblQuotes ~> 
-      ((id: String) => ExtractingPattern(idToEKey(id.replace("\"\"", "\"")))))
+      ((id: String) => ExtractingPattern(idToEKey(Symbol(id.replace("\"\"", "\""))))))
   }
 
   def boolean: Rule1[OneRowPattern[Event, Boolean]] = rule {

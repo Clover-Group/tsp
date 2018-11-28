@@ -4,19 +4,16 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.configuration.{ConfigConstants, Configuration}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output.FinishedJobResponse
+import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import scala.util.Success

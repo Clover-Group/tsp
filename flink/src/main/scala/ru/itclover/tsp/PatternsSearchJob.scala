@@ -14,9 +14,10 @@ import ru.itclover.tsp.core.{Incident, Pattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
-import ru.itclover.tsp.transformers.{FlinkPatternMapper, JdbcSource, RichStatefulFlatMapper, StreamSource}
+import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.DataStreamUtils.DataStreamOps
+// import ru.itclover.tsp.DataStreamUtils.DataStreamOps
+import ru.itclover.tsp.DataStreamUtils.KeyedStreamOps
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import cats.kernel.Semigroup
 import com.typesafe.scalalogging.Logger
@@ -26,7 +27,7 @@ import ru.itclover.tsp.io._
 import ru.itclover.tsp.io.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
-import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidSourceCode}
+import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import scala.language.higherKinds
 
 
@@ -34,37 +35,36 @@ case class PatternsSearchJob[In, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
-  
+
   import source.{timeExtractor, extractor}
   import decoders._
   import PatternsSearchJob._
-  
-  def findAndSaveMappedIncidents[OutE: TypeInformation, OutKey](
+
+  def patternsSearchStream[OutE: TypeInformation, OutKey](
     patterns: Seq[RawPattern],
-    outputConf: OutputConf[OutE, InKey],
+    outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, Vector[DataStreamSink[OutE]]] = for {
-    incidents <- createIncidentsStream(patterns, source, outputConf.forwardedFields)
+    incidents <- cleanIncidentsFromRawPatterns(patterns, outputConf.forwardedFieldsIds.map(source.fieldToEKey))
     mapped = incidents.map(_.map(resultMapper))
   } yield mapped.map(m => saveStream(m, outputConf))
-  
 
-  def createIncidentsStream(
+
+  def cleanIncidentsFromRawPatterns(
     patterns: Seq[RawPattern],
-    source: StreamSource[In, InKey, InItem],
     forwardedFields: Seq[InKey]
-  ): Either[ConfigErr, Vector[DataStream[Incident]]] = 
+  ): Either[ConfigErr, Vector[DataStream[Incident]]] =
     preparePatterns(patterns, source.fieldToEKey) map { richPatterns =>
       for {
         sourceBuckets   <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
         patternsBuckets <- bucketizePatterns(sourceBuckets.items, source.conf.patternsParallelism.getOrElse(1))
       } yield
         reduceIncidents(
-          findPatterns(source.createStream, patternsBuckets.items, forwardedFields)
+          incidentsFromPatterns(source.createStream, patternsBuckets.items, forwardedFields)
         )
     }
-  
-  def findPatterns(
+
+  def incidentsFromPatterns(
     stream: DataStream[In],
     patterns: Seq[RichPattern[In]],
     forwardedFields: Seq[InKey]
@@ -81,19 +81,19 @@ case class PatternsSearchJob[In, InKey, InItem](
           .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
     }
     //noinspection ConvertibleToMethodValue (Inellij fix)
-    stream.keyBy(source.partitioner(_)).flatMapAll(mappers)
+    stream.keyBy(source.partitioner(_)).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
   }
 }
 
 object PatternsSearchJob {
   type RichPattern[E] = ((Pattern[E, _, _], PhaseMetadata), RawPattern)
-  
+
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
-  
+
   def preparePatterns[E: TimeExtractor, EKey, EItem](
     rawPatterns: Seq[RawPattern],
-    fieldsIdxMap: String => EKey
+    fieldsIdxMap: Symbol => EKey
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     dDecoder: Decoder[EItem, Double]
@@ -105,11 +105,11 @@ object PatternsSearchJob {
             .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
       )
-      .leftMap[ConfigErr](InvalidSourceCode)
+      .leftMap[ConfigErr](InvalidPatternsCode)
       .map(_.zip(rawPatterns))
       .toEither
   }
-  
+
   def bucketizePatterns[E](patterns: Seq[RichPattern[E]], parallelism: Int): Vector[Bucket[RichPattern[E]]] = {
     import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
     val patternsBuckets = if (parallelism > patterns.length) {
@@ -124,7 +124,7 @@ object PatternsSearchJob {
     log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
     patternsBuckets
   }
-  
+
   def reduceIncidents(incidents: DataStream[Incident]) = {
     incidents
       .assignAscendingTimestamps(p => p.segment.from.toMillis)
@@ -135,9 +135,9 @@ object PatternsSearchJob {
       .reduce { _ |+| _ }
       .name("Uniting adjacent incidents")
   }
-  
+
   // todo .. StrSink here?
-  def saveStream[E, EKey](stream: DataStream[E], outputConf: OutputConf[E, EKey]) = {
+  def saveStream[E, EKey](stream: DataStream[E], outputConf: OutputConf[E]) = {
     stream.writeUsingOutputFormat(outputConf.getOutputFormat)
   }
 }
