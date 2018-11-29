@@ -1,7 +1,7 @@
 package ru.itclover
 
 import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.phases.CombiningPhases.And
+import ru.itclover.tsp.patterns.Combining.And
 
 
 package object tsp {

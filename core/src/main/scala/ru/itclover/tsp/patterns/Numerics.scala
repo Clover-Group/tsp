@@ -1,21 +1,14 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
-import shapeless.PolyDefns.{~>, ~>>}
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
-import shapeless.{HList, Id, Poly, Poly1}
-import shapeless.ops.hlist.Mapped
-import shapeless.Poly._
-import shapeless.HList._
-import shapeless.ops.hlist.Mapper
 
-object NumericPhases {
+object Numerics {
 
   trait NumericPatternsSyntax[Event, S, T] {
     this: WithPattern[Event, S, T] =>
@@ -120,10 +113,8 @@ object NumericPhases {
     override def format(e: E, st: (S1, S2)) = left.format(e, st._1) + s" $operationSign " + right.format(e, st._2)
   }
 
-  type ConstantPhaseParser[Event, +T] = OneRowPattern[Event, T]
-
   type NumericPhaseParser[Event, S] = Pattern[Event, S, Double]
-  
+
 
   // TODO@trolley813: replace with a generic function
   case class AbsPhase[Event, State](numeric: NumericPhaseParser[Event, State]) extends NumericPhaseParser[Event, State] {
@@ -180,5 +171,5 @@ object NumericPhases {
       s"$functionName(${ innerPhase1.format(event, state._1)}, ${ innerPhase2.format(event, state._2)})"
   }
 
-  // TODO FunctionNPhase: https://gist.github.com/kell18/05261e56504da16d5db8384a4ad65733 
+  // TODO FunctionNPhase: https://gist.github.com/kell18/05261e56504da16d5db8384a4ad65733
 }
