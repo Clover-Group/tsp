@@ -27,7 +27,7 @@ import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.io.DecoderInstances
+import ru.itclover.tsp.io.AnyDecodersInstances
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
@@ -68,15 +68,14 @@ trait JobsRoutes extends RoutesProtocols {
         import request._
 
         val resultOrErr = for {
-          source <- JdbcSource.create(inputConf)
-          // sink <- JDBCSink.create(outConf) // todo parallel validation of source and sink
-          searcher = PatternsSearchJob(source, DecoderInstances)
-          _ <- searcher.patternsSearchStream(
+          source   <- JdbcSource.create(inputConf)
+          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
+          _        <- searcher.patternsSearchStream(
             patterns,
             outConf,
             PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
           )
-          result <- runStream(uuid, isAsync)
+          result   <- runStream(uuid, isAsync)
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
@@ -87,20 +86,28 @@ trait JobsRoutes extends RoutesProtocols {
         import request._
 
         val resultOrErr = for {
-          source <- InfluxDBSource.create(inputConf)
-          searcher = PatternsSearchJob(source, DecoderInstances)
-          _ <- searcher.patternsSearchStream(
+          source   <- InfluxDBSource.create(inputConf)
+          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
+          _        <- searcher.patternsSearchStream(
             patterns,
             outConf,
             PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
           )
-          result <- runStream(uuid, isAsync)
+          result   <- runStream(uuid, isAsync)
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
       }
     }
   }
+
+  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] =
+    if (isAsync) { // Just detach job thread in case of async run
+      Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
+      Right(None)
+    } else {       // Wait for the execution finish
+      Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
+    }
 
   def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): StandardRoute =
     result match {
@@ -114,14 +121,6 @@ trait JobsRoutes extends RoutesProtocols {
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
         complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
       }
-    }
-
-  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] =
-    if (isAsync) {  // Just detach job thread in case of async run
-      Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
-      Right(None)
-    } else {        // Wait for the execution finish
-      Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
 
 }
