@@ -26,13 +26,21 @@ class FlinkStatsPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
     isTerminalEvent
   ) {
   val logger = Logger("StatsMapper")
+  var stats = PatternStats(0L, 0L)
 
   override def apply(
     event: Event,
     stateAndPrevEvent: (scala.Seq[ (PhaseState, PatternStats)], Event)
   ): (scala.List[MapperOut], (_root_.scala.collection.Seq[ (PhaseState, PatternStats)], Event)) = {
-    logger.info(s"${stateAndPrevEvent._1.last._2}")
+    if (stateAndPrevEvent._1.nonEmpty) {
+      stats = stateAndPrevEvent._1.map(x => x._2).foldLeft(stats)(_ + _)
+    }
     super.apply(event, stateAndPrevEvent)
+  }
+
+  override def close(): Unit = {
+    logger.info(s"${phase.patternName} xxx $stats")
+    super.close()
   }
 }
 

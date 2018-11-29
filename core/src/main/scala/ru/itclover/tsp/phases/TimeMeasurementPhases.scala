@@ -3,7 +3,9 @@ package ru.itclover.tsp.phases
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 import com.typesafe.scalalogging.Logger
 
-case class PatternStats(time: Long, calls: Long)
+case class PatternStats(time: Long, calls: Long) {
+  def + (other: PatternStats): PatternStats = PatternStats(time + other.time, calls + other.calls)
+}
 
 object TimeMeasurementPhases {
   case class TimeMeasurementPattern[Event, State, T](
