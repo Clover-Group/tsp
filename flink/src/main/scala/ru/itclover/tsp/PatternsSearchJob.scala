@@ -103,7 +103,7 @@ object PatternsSearchJob {
             .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
       )
-      .leftMap[ConfigErr](InvalidPatternsCode)
+      .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
       .toEither
   }
