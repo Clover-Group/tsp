@@ -3,7 +3,8 @@ package ru.itclover.tsp
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.PatternResult
 import ru.itclover.tsp.core.PatternResult.{Success, TerminalResult}
-import ru.itclover.tsp.core.Time.{TimeExtractor, timeOrdering}
+import ru.itclover.tsp.core.Time.timeOrdering
+import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.phases.PatternStats
 
 /**
@@ -40,6 +41,7 @@ case class AndThenResultsMapper[Event, PhaseOut, Mapper1Out, Mapper2Out](first: 
 }
 
 
+// TODO update rules tests which use it and remove
 /** Stateful. Accumulate segments in one. */
 case class SegmentResultsMapper[Event, PhaseOut](implicit val extractTime: TimeExtractor[Event])
   extends ResultMapper[Event, PhaseOut, Segment]

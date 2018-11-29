@@ -1,5 +1,5 @@
 package ru.itclover.tsp.utils
-import ru.itclover.tsp.PatternsSearchJob.PatternWithMeta
+import ru.itclover.tsp.PatternsSearchJob.RichPattern
 import scala.collection.immutable
 
 object Bucketizer {
@@ -36,8 +36,8 @@ object Bucketizer {
       override def apply(v1: T) = 1L
     }
 
-    implicit def phasesWeightExtrator[Event] = new WeightExtractor[PatternWithMeta[Event]] {
-      override def apply(item: PatternWithMeta[Event]) = item._1._2.maxWindowMs
+    implicit def phasesWeightExtrator[Event] = new WeightExtractor[RichPattern[Event]] {
+      override def apply(item: RichPattern[Event]) = item._1._2.maxWindowMs
     }
   }
 

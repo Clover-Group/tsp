@@ -10,9 +10,6 @@ object Phases {
 
   type Phase[Event] = Pattern[Event, _, _]
 
-  trait AnyExtractor[Event] extends ((Event, Symbol) => Any) with Serializable
-  trait AnyNonTransformedExtractor[Event] extends ((Event, Symbol) => Any) with Serializable
-
   // TODO Rm
   /**
     * Expect decreasing of value. If value has entered to range between from and to, it must monotonically decrease to `to` for success.

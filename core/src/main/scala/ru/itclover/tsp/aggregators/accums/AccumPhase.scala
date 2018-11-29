@@ -3,7 +3,7 @@ package ru.itclover.tsp.aggregators.accums
 import ru.itclover.tsp.aggregators.AggregatorPhases
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time, Window}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.io.TimeExtractor
 
 import scala.Ordering.Implicits._
 

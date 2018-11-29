@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.transformers
 
 import com.typesafe.scalalogging.Logger
@@ -204,3 +205,4 @@ object SparseRowsDataAccumulator {
     eventCreator.emptyEvent(fieldsIndexesMap(inputConf))
   }
 }
+*/

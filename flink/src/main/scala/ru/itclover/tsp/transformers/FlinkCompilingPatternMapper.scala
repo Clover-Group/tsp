@@ -5,7 +5,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.metrics.{Counter, Gauge}
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time}
 import ru.itclover.tsp.core.PatternResult.{Failure, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.{AbstractPatternMapper, ResultMapper}
 import ru.itclover.tsp.core.PatternResult.heartbeat
 import ru.itclover.tsp.phases.PatternStats

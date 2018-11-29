@@ -2,11 +2,10 @@ package ru.itclover.tsp.phases
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import shapeless.PolyDefns.{~>, ~>>}
-
 import scala.Numeric.Implicits._
 import scala.Fractional.Implicits._
 import scala.Predef.{any2stringadd => _, _}
@@ -124,35 +123,7 @@ object NumericPhases {
   type ConstantPhaseParser[Event, +T] = OneRowPattern[Event, T]
 
   type NumericPhaseParser[Event, S] = Pattern[Event, S, Double]
-
-  trait SymbolExtractor[Event, T] extends Serializable {
-    def extract(event: Event, symbol: Symbol): T
-  }
-
-  trait SymbolNumberExtractor[Event] extends SymbolExtractor[Event, Double]
-
-  trait IndexExtractor[Event, T] extends Serializable {
-    def extract(event: Event, index: Int): T
-  }
   
-  trait IndexNumberExtractor[Event] extends IndexExtractor[Event, Double]
-  
-  implicit class IndexParser[Event](val index: Int) extends AnyVal with Serializable {
-    def asDouble(implicit ev: IndexExtractor[Event, Double]): NumericPhaseParser[Event, NoState] =
-      OneRowPattern(e => ev.extract(e, index)) 
-
-    def as[T](implicit ev: IndexExtractor[Event, T]): ConstantPhaseParser[Event, T] =
-      OneRowPattern[Event, T](e => ev.extract(e, index))
-  }
-
-  implicit class SymbolParser[Event](val symbol: Symbol) extends AnyVal with Serializable {
-    
-    def asDouble(implicit ev: SymbolNumberExtractor[Event]): NumericPhaseParser[Event, NoState] =
-      OneRowPattern(e => ev.extract(e, symbol), Some(symbol.toString))
-    
-    def as[T](implicit ev: SymbolExtractor[Event, T]): ConstantPhaseParser[Event, T] =
-      OneRowPattern[Event, T](e => ev.extract(e, symbol), Some(symbol.toString))
-  }
 
   // TODO@trolley813: replace with a generic function
   case class AbsPhase[Event, State](numeric: NumericPhaseParser[Event, State]) extends NumericPhaseParser[Event, State] {

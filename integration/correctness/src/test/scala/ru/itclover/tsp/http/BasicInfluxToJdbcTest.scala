@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
@@ -143,3 +144,4 @@ class BasicInfluxToJdbcTest
     }
   }
 }
+*/

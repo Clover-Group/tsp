@@ -3,7 +3,8 @@ package ru.itclover.tsp.http.protocols
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
-import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.output.{JDBCOutputConf, OutputConf, RowSchema}
 import spray.json._
@@ -25,9 +26,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     }
   }
 
-  implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
   implicit val execTimeFmt = jsonFormat2(ExecInfo.apply)
-  implicit val finishedJobResponseFmt = jsonFormat2(FinishedJobResponse.apply)
+  implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
   implicit val nduFormat = jsonFormat(NarrowDataUnfolding.apply, "key", "value", "fieldsTimeoutsMs", "defaultTimeout")
@@ -72,7 +72,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "dataTransformation",
     "parallelism",
     "numParallelSources",
-    "patternsParallelism"
+    "patternsParallelism",
+    "timestampMultiplier"
   )
   implicit val influxInpConfFmt = jsonFormat(
     InfluxDBInputConf.apply,
@@ -108,7 +109,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
+
   implicit def patternsRequestFmt[IN <: InputConf[_]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
-    jsonFormat4(FindPatternsRequest.apply[IN, OUT])
+    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 }

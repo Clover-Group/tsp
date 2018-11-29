@@ -1,27 +1,32 @@
 package ru.itclover.tsp.dsl
 
 import org.parboiled2.{ErrorFormatter, ParseError}
+import cats.syntax.either._
 import ru.itclover.tsp.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import ru.itclover.tsp.core.{Pattern, Window}
+import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.phases.BooleanPhases.{Assert, BooleanPhaseParser, ComparingParser}
 import ru.itclover.tsp.phases.CombiningPhases.{AndThenParser, EitherParser, TogetherParser}
 import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.MonadPhases.{FlatMapParser, MapParser}
-import ru.itclover.tsp.phases.NumericPhases.{BinaryNumericParser, IndexNumberExtractor, Reduce, SymbolNumberExtractor}
+import ru.itclover.tsp.phases.NumericPhases.{BinaryNumericParser, Reduce}
 import ru.itclover.tsp.phases.TimePhases.Timed
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
-import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
 import scala.math.Numeric.DoubleIsFractional
 
 object PhaseBuilder {
 
-  def build[Event](input: String, fieldsIndexesMap: Symbol => Int, formatter: ErrorFormatter = new ErrorFormatter())(
+  def build[Event, EKey, EItem](
+    input: String,
+    idToEKey: Symbol => EKey,
+    formatter: ErrorFormatter = new ErrorFormatter()
+  )(
     implicit timeExtractor: TimeExtractor[Event],
-    byIndexExtractor: IndexNumberExtractor[Event]
+    extractor: Extractor[Event, EKey, EItem],
+    decodeDouble: Decoder[EItem, Double]
   ): Either[String, (Pattern[Event, _, _], PhaseMetadata)] = {
-    val parser = new SyntaxParser[Event](input, fieldsIndexesMap)
+    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey)
     val rawPhase = parser.start.run()
     rawPhase
       .map { p =>
@@ -29,7 +34,7 @@ object PhaseBuilder {
         (postProcess(p, maxWindowMs), PhaseMetadata(findFields(p).toSet, maxWindowMs))
       }
       .toEither
-      .transformLeft {
+      .leftMap {
         case ex: ParseError => formatter.format(ex, input)
         case ex             => throw ex // Unknown exceptional case
       }
@@ -47,8 +52,8 @@ object PhaseBuilder {
         tp.copy(leftParser = postProcess(tp.leftParser, maxPhase), rightParser = postProcess(tp.rightParser, maxPhase))
       case cp: ComparingParser[Event, _, _, _] =>
         cp.copy(
-          left=postProcess(cp.left, maxPhase),
-          right=postProcess(cp.right, maxPhase)
+          left = postProcess(cp.left, maxPhase),
+          right = postProcess(cp.right, maxPhase)
         )(cp.comparingFunction.asInstanceOf[(Any, Any) => Boolean], cp.comparingFunctionName)
       case bnp: BinaryNumericParser[Event, _, _, Double] @unchecked =>
         bnp.copy(

@@ -37,6 +37,8 @@ object Version {
   val jackson = "2.9.7"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
+  
+  val kindProjector = "0.9.8"
 }
 
 object Library {

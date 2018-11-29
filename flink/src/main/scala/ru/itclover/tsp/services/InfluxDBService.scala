@@ -2,15 +2,53 @@ package ru.itclover.tsp.services
 
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
+import collection.JavaConversions._
 import okhttp3.OkHttpClient
-import org.influxdb.InfluxDBFactory
-import scala.util.Try
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import cats.syntax.either._
+import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
+import org.influxdb.dto.Query
+import scala.util.{Failure, Success, Try}
 import ru.itclover.tsp.utils.CollectionsOps.StringOps
+import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, TryOps}
 
 
 object InfluxDBService {
-  def connectDb(url: String, dbName: String, userName: Option[String] = None, password: Option[String] = None,
-                timeoutSec: Long = 200L) = {
+  case class InfluxConf(
+    url: String,
+    dbName: String,
+    userName: Option[String] = None,
+    password: Option[String] = None,
+    timeoutSec: Long
+  )
+
+  def fetchFieldsTypesInfo(query: String, conf: InfluxConf): Try[Seq[(Symbol, Class[_])]] = for {
+    db <- connectDb(conf)
+    series <- fetchFirstSeries(db, query, conf.dbName)
+    values <- series.getValues.headOption.toTry(whenNone = emptyValuesException(query))
+    tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
+  } yield {
+    val fields = tags.map(_._1) ++ series.getColumns.toSeq
+    val classes = tags.map(_ => classOf[String]) ++ values.map(v => if (v != null) v.getClass else classOf[Double])
+    fields.map(Symbol(_)).zip(classes)
+  }
+
+  def fetchFirstSeries(db: InfluxDB, query: String, dbName: String) = {
+    val influxQuery = new Query(makeLimit1Query(query), dbName)
+    for {
+      result <- Try(db.query(influxQuery))
+      _ <- if (result.hasError) Failure(new InfluxDBException(result.getError))
+      else if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))
+      else Success(())
+      // Safely get first series
+      firstSeries <- result.getResults.headOption
+        .flatMap(r => Option(r.getSeries).flatMap(_.headOption))
+        .toTry(whenNone = new InfluxDBException(s"Empty results in query - `$query`."))
+    } yield firstSeries
+  }
+
+  def connectDb(conf: InfluxConf) = {
+    import conf._
     val extraConf = new OkHttpClient.Builder()
       .readTimeout(timeoutSec, TimeUnit.SECONDS)
       .writeTimeout(timeoutSec, TimeUnit.SECONDS)
@@ -24,4 +62,6 @@ object InfluxDBService {
   def makeLimit1Query(query: String) = {
     query.replaceLast("""LIMIT \d+""", "", Pattern.CASE_INSENSITIVE) + " LIMIT 1"
   }
+
+  def emptyValuesException(query: String) = new InfluxDBException(s"Empty/Null values or tags in query - `$query`.")
 }

@@ -2,14 +2,15 @@ package ru.itclover.tsp.dsl
 
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
-import ru.itclover.tsp.TestApp.TestEvent
-import ru.itclover.tsp.core.Pattern
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.NumericPhases.{IndexExtractor, SymbolNumberExtractor}
+import ru.itclover.tsp.core.{TestEvent, Time}
+import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import scala.util.{Failure, Success}
+
+
 
 class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
 
+  
   val timedRulesAndSensors = Seq(
     ("rule1s >= 8 for 10 min > 9 min", Seq("rule1s")),
     ("rule2s1 = 100 andThen rule2s2 >= 8 for 10 min > 9 min", Seq("rule2s1", "rule2s2")),
@@ -18,12 +19,21 @@ class PhaseBuilderTest extends FlatSpec with Matchers with PropertyChecks {
   )
   val multiAvgRule = "avg(x, 5 sec) + avg(x, 30 sec) + avg(x, 60 sec) > 300"
 
-  implicit val extractTime: TimeExtractor[TestEvent] = new TimeExtractor[TestEvent] {
-    override def apply(v1: TestEvent) = v1.time
+  implicit val extractTime: TimeExtractor[TestEvent[Int]] = new TimeExtractor[TestEvent[Int]] {
+    override def apply(v1: TestEvent[Int]) = Time(0L)
+  }
+  
+  implicit val iToIDecoder = new Decoder[Int, Int] {
+    override def apply(x: Int) = x
+  }
+  
+  implicit val iToDDecoder = new Decoder[Int, Double] {
+    override def apply(x: Int) = x.toDouble
   }
 
-  implicit val numberExtractor: IndexExtractor[TestEvent, Double] = new IndexExtractor[TestEvent, Double] {
-    override def extract(event: TestEvent, index: Int): Double = 0.0
+  implicit val numberExtractor: Extractor[TestEvent[Int], Int, Int] = new Extractor[TestEvent[Int], Int, Int] {
+    
+    override def apply[T](e: TestEvent[Int], k: Int)(implicit d: Decoder[Int, T]) = k.asInstanceOf[T]
   }
 
   "Phase builder" should "correctly parse used sensors for rules with windows" in {

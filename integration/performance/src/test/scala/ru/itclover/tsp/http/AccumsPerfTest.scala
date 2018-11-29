@@ -87,7 +87,6 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
     Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
-  // .. Increase windows in rules and numbers, check sbt task, make start script
   "Time window (truthMillis)" should "compute in time" in {
     Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, timeWindowPattern)) ~> route ~> check {
       val execTimeS = checkAndGetExecTimeSec()

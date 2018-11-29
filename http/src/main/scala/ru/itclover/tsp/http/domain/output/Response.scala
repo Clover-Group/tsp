@@ -1,16 +1,20 @@
 package ru.itclover.tsp.http.domain.output
 
 import akka.http.scaladsl.model.StatusCodes.ServerError
+import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, RuntimeErr}
 import ru.itclover.tsp.utils.Exceptions
 
 
-trait Response[T] extends Product with Serializable
+sealed  trait Response[T] extends Product with Serializable
 
 
 final case class SuccessfulResponse[T](response: T, messages: Seq[String]=Seq.empty) extends Response[T]
 
-case class ExecInfo(execTimeSec: Long, extraMetrics: Map[String, Option[Long]])
-final case class FinishedJobResponse(response: ExecInfo, messages: Seq[String]=Seq.empty) extends Response[ExecInfo]
+object SuccessfulResponse {
+  case class ExecInfo(execTimeSec: Long, extraMetrics: Map[String, Option[Long]])
+
+  type FinishedJobResponse = SuccessfulResponse[ExecInfo]
+}
 
 
 final case class FailureResponse(errorCode: Int, message: String, errors: Seq[String]) extends Response[Unit]
@@ -25,4 +29,21 @@ object FailureResponse {
   }
 
   def apply(ex: Throwable): FailureResponse = apply(5000, ex)
+
+  def apply(err: ConfigErr): FailureResponse = {
+    val msg = makeConfigErrMsg(err.getClass.getName)
+    FailureResponse(err.errorCode, msg, Seq(err.error))
+  }
+
+  def apply(errs: Seq[ConfigErr]): FailureResponse = {
+    val msg = makeConfigErrMsg(errs.map(_.getClass.getName).mkString(", "))
+    FailureResponse(4000, msg, errs.map(_.error))
+  }
+
+  def apply(err: RuntimeErr): FailureResponse = {
+    val msg = "Runtime error: " + err.getClass.getName
+    FailureResponse(err.errorCode, msg, Seq(err.error))
+  }
+
+  def makeConfigErrMsg(error: String) = s"Configuration error: $error. Note: no data has been written to the Sink."
 }

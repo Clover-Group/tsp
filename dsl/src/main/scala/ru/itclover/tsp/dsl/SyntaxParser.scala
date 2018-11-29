@@ -3,24 +3,27 @@ package ru.itclover.tsp.dsl
 import org.parboiled2._
 import ru.itclover.tsp.aggregators.AggregatorPhases.{PreviousValue, Skip, ToSegments}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
-import ru.itclover.tsp.core.Time.{MaxWindow, TimeExtractor}
+import ru.itclover.tsp.core.Time.MaxWindow
 import ru.itclover.tsp.core.{Pattern, Time, Window}
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
+import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.phases.BooleanPhases.{BooleanPhaseParser, NotParser}
-import ru.itclover.tsp.phases.ConstantPhases.FailurePattern
+import ru.itclover.tsp.phases.ConstantPhases.{ExtractingPattern, FailurePattern, OneRowPattern}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.phases.BooleanPhases.{Assert, ComparingParser}
 import ru.itclover.tsp.phases.ConstantPhases
-import ru.itclover.tsp.phases.ConstantPhases.OneRowPattern
 import ru.itclover.tsp.phases.NumericPhases._
 
 object SyntaxParser {
+  // Used for testing purposes
   def testFieldsIdxMap(anySymbol: Symbol) = 0
+  def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => Int)(
-  implicit val timeExtractor: TimeExtractor[Event],
-  byIndexExtractor: IndexExtractor[Event, Double]
+class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey)(
+  implicit timeExtractor: TimeExtractor[Event],
+  extractor: Extractor[Event, EKey, EItem],
+  decodeDouble: Decoder[EItem, Double]
 ) extends Parser {
 
   type AnyPattern = Pattern[Event, Any, Any]
@@ -30,7 +33,7 @@ class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => In
   val nullEvent: Event = null.asInstanceOf[Event]
 
   def start: Rule1[AnyPattern] = rule {
-    trileanExpr ~ EOI ~> ((e: AnyPattern) => ToSegments(e)(timeExtractor).asInstanceOf[AnyPattern])
+    trileanExpr ~ EOI ~> ((e: AnyPattern) => ToSegments(e).asInstanceOf[AnyPattern])
   }
 
   def trileanExpr: Rule1[AnyPattern] = rule {
@@ -214,7 +217,7 @@ class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => In
       real ~> (_.asInstanceOf[AnyNumericPattern])
       | integer ~> (_.asInstanceOf[AnyNumericPattern])
       | functionCall
-      | identifier ~> (_.asDouble.asInstanceOf[AnyNumericPattern])
+      | fieldValue ~> (_.asInstanceOf[AnyNumericPattern])
       | '(' ~ expr ~ ')' ~ ws
     )
   }
@@ -454,10 +457,10 @@ class SyntaxParser[Event](val input: ParserInput, fieldsIndexesMap: Symbol => In
     '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws
   }
 
-  def identifier: Rule1[IndexParser[Event]] = rule {
-    (anyWord ~> ((id: String) => IndexParser[Event](fieldsIndexesMap(Symbol(id))))
+  def fieldValue: Rule1[ExtractingPattern[Event, EKey, EItem, Double]] = rule {
+    (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(Symbol(id))))
     | anyWordInDblQuotes ~> 
-      ((id: String) => IndexParser[Event](fieldsIndexesMap(Symbol(id.replace("\"\"", "\""))))))
+      ((id: String) => ExtractingPattern(idToEKey(Symbol(id.replace("\"\"", "\""))))))
   }
 
   def boolean: Rule1[OneRowPattern[Event, Boolean]] = rule {
