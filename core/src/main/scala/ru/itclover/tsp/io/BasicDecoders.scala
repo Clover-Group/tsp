@@ -43,7 +43,7 @@ object DoubleDecoderInstances extends BasicDecoders[Double] {
   override implicit def decodeToAny = Decoder { d: Double => d }
 }
 
-// Hack for  String.toInt implicit method
+// Hack for String.toInt implicit method
 object Helper {
   def strToInt(s: String) = s.toInt
 }

@@ -78,8 +78,7 @@ case class PatternsSearchJob[In, InKey, InItem](
         new FlinkPatternMapper(phase, incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
           .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
     }
-    //noinspection ConvertibleToMethodValue (Inellij fix)
-    stream.keyBy(source.partitioner(_)).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
+    stream.keyBy(source.partitioner).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
   }
 }
 

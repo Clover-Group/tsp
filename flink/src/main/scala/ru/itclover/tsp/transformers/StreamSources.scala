@@ -34,13 +34,13 @@ sealed trait StreamSource[Event, EKey, EItem] extends Product with Serializable 
 
   def emptyEvent: Event
 
-  def isEventTerminal(e: Event): Boolean
-
   def fieldsClasses: Seq[(Symbol, Class[_])]
 
-  def fieldToEKey(field: Symbol): EKey
+  def isEventTerminal: Event => Boolean
 
-  def partitioner(event: Event): String
+  def fieldToEKey: Symbol => EKey
+
+  def partitioner: Event => String
 
   implicit def timeExtractor: TimeExtractor[Event]
 
@@ -109,20 +109,25 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     }
   }
 
-  override def isEventTerminal(event: Row) = {
-    val nullInd = fieldsIdxMap(nullFieldId)
-    event.getArity > nullInd && event.getField(nullInd) == null
-  }
-
   def nullEvent = {
     val r = new Row(fieldsIdxMap.size)
     fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, 0) }
     r
   }
 
-  override def fieldToEKey(fieldId: Symbol) = fieldsIdxMap(fieldId)
+  override def isEventTerminal = {
+    val nullInd = fieldsIdxMap(nullFieldId)
+    event: Row => event.getArity > nullInd && event.getField(nullInd) == null
+  }
 
-  override def partitioner(event: Row) = partitionsIdx.map(event.getField).mkString
+  override def fieldToEKey = {
+    fieldId: Symbol => fieldsIdxMap(fieldId)
+  }
+
+  override def partitioner = {
+    val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
 
   val tsMultiplier = timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
@@ -190,6 +195,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   }
 
   override def createStream = {
+    val serFieldsIdxMap = fieldsIdxMap // for task serialization
     val stream = streamEnv
       .createInput(inputFormat)(queryResultTypeInfo)
       .flatMap(queryResult => {
@@ -206,7 +212,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
             val row = new Row(tags.size() + valueSet.size())
             val fieldsAndValues = tags ++ series.getColumns.toSeq.zip(valueSet)
             fieldsAndValues.foreach {
-              case (field, value) => row.setField(fieldsIdxMap(Symbol(field)), value)
+              case (field, value) => row.setField(serFieldsIdxMap(Symbol(field)), value)
             }
             row
           }
@@ -218,13 +224,17 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
     }
   }
 
-  override def isEventTerminal(event: Row) = {
+  override def isEventTerminal = {
     val nullInd = fieldsIdxMap(nullFieldId)
-    event.getArity > nullInd && event.getField(nullInd) == null
+    event: Row => event.getArity > nullInd && event.getField(nullInd) == null
   }
 
-  override def fieldToEKey(fieldId: Symbol) = fieldsIdxMap(fieldId)
-  override def partitioner(event: Row) = partitionsIdx.map(event.getField).mkString
+  override def fieldToEKey = (fieldId: Symbol) => fieldsIdxMap(fieldId)
+
+  override def partitioner = {
+    val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
   override def extractor = RowIdxExtractor()

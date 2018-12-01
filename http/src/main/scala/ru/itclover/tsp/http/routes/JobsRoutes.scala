@@ -113,9 +113,9 @@ trait JobsRoutes extends RoutesProtocols {
     result match {
       case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
       case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
-      // Async job - respond with message about successful start
+      // Async job - response with message about successful start
       case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
-      // Sync job - respond with message about successful ending
+      // Sync job - response with message about successful ending
       case Right(Some(execResult)) => {
         // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
