@@ -22,10 +22,12 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.types.Row
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io._
+import ru.itclover.tsp.phases.TimeMeasurementPhases.TimeMeasurementPattern
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+
 import scala.language.higherKinds
 
 
