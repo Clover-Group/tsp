@@ -77,7 +77,7 @@ case class PatternsSearchJob[In, InKey, InItem](
             forwardedFields ++ raw.forwardedFields.map(source.fieldToEKey),
             source.conf.partitionFields.map(source.fieldToEKey)
           ).asInstanceOf[ResultMapper[In, Any, Incident]]
-        new FlinkPatternMapper(phase, incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
+        new FlinkStatsPatternMapper(phase.asInstanceOf[TimeMeasurementPattern[In, _, Any]], incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
           .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
     }
     stream.keyBy(source.partitioner).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))

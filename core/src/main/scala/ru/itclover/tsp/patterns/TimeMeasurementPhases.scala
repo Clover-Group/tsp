@@ -3,7 +3,7 @@ package ru.itclover.tsp.phases
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 import com.typesafe.scalalogging.Logger
 
-case class PatternStats(time: Long, calls: Long) {
+case class PatternStats(time: Long = 0, calls: Long = 0) {
   def + (other: PatternStats): PatternStats = PatternStats(time + other.time, calls + other.calls)
 }
 
@@ -17,13 +17,16 @@ object TimeMeasurementPhases {
     def timePerCall: Double = 0.0 //time / calls.toDouble
 
     val logger = Logger(s"TimeMeasurement-[$patternName]")
+    var patternStats = PatternStats()
 
     override def apply(v1: Event, v2: (State, PatternStats)): (PatternResult[T], (State, PatternStats)) = {
       val start = System.nanoTime
       val result = innerPattern.apply(v1, v2._1)
       val end = System.nanoTime
-      val (time, calls) = (v2._2.time + (end - start), v2._2.calls + 1)
-      (result._1, (result._2, PatternStats(time, calls)))
+      //val (time, calls) = (v2._2.time + (end - start), v2._2.calls + 1)
+      //(result._1, (result._2, PatternStats(time, calls)))
+      patternStats += PatternStats(end - start, 1)
+      (result._1, (result._2, patternStats))
     }
 
     override def format(event: Event): String = s"TimeMeasurement(${innerPattern.format(event)})"

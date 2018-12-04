@@ -33,7 +33,8 @@ class FlinkStatsPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
     stateAndPrevEvent: (scala.Seq[ (PhaseState, PatternStats)], Event)
   ): (scala.List[MapperOut], (_root_.scala.collection.Seq[ (PhaseState, PatternStats)], Event)) = {
     if (stateAndPrevEvent._1.nonEmpty) {
-      stats = stateAndPrevEvent._1.map(x => x._2).foldLeft(stats)(_ + _)
+      //stats = stateAndPrevEvent._1.map(x => x._2).foldLeft(stats)(_ + _)
+      stats = stateAndPrevEvent._1.last._2
     }
     super.apply(event, stateAndPrevEvent)
   }
