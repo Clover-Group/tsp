@@ -1,4 +1,4 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 /**
   * I know it's awkward. But don't change it. It has written the way how it is written

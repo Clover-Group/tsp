@@ -4,7 +4,7 @@ import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.types.Row
 
 trait OutputConf[Event] {
-  def forwardedFields: Seq[Symbol]
+  def forwardedFieldsIds: Seq[Symbol]
 
   def getOutputFormat: OutputFormat[Event]
 
@@ -13,7 +13,6 @@ trait OutputConf[Event] {
 
 /**
   * Sink for anything that support JDBC connection
-  * @param tableName
   * @param rowSchema schema of writing rows, __will be replaced soon__
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
   * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
@@ -34,5 +33,5 @@ case class JDBCOutputConf(
 ) extends OutputConf[Row] {
   override def getOutputFormat = JDBCOutput.getOutputFormat(this)
 
-  override def forwardedFields = rowSchema.forwardedFields
+  override def forwardedFieldsIds = rowSchema.forwardedFields
 }

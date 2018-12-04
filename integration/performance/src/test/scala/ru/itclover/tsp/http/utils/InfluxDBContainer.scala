@@ -8,6 +8,7 @@ import ru.itclover.tsp.services.InfluxDBService
 import org.influxdb.{BatchOptions, InfluxDB, InfluxDBFactory}
 import org.influxdb.dto.{Query, QueryResult}
 import scala.collection.JavaConverters._
+import scala.language.existentials
 import scala.util.{Failure, Success}
 
 
@@ -41,7 +42,8 @@ class InfluxDBContainer(imageName: String,
 
   override def starting()(implicit description: Description): Unit = {
     super.starting()
-    db = InfluxDBService.connectDb(url, dbName, Some(userName), Some(password)) match {
+    val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L)
+    db = InfluxDBService.connectDb(conf) match {
       case Success(database) => database
       case Failure(exception) => throw exception
     }

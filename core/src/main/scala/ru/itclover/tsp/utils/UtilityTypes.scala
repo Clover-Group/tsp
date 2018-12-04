@@ -3,6 +3,8 @@ package ru.itclover.tsp.utils
 object UtilityTypes {
   final case class Url private(value: String) extends AnyVal
 
+  
+  // TODO .. Rename to exception
   type ThrowableOr[T] = Either[Throwable, T]
 
   case class ParseException(errs: Seq[String]) extends Throwable

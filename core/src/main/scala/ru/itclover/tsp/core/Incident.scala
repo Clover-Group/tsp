@@ -16,9 +16,9 @@ case class Incident(
   id: String,
   maxWindowMs: Long,
   segment: Segment,
-  forwardedFields: Map[Symbol, Any],
+  forwardedFields: Map[String, Any],
   patternPayload: Map[String, String],
-  partitionFields: Map[Symbol, Any]
+  partitionFields: Map[String, Any]
 ) extends Product
     with Serializable
 

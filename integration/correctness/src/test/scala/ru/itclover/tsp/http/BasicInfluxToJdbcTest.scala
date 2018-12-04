@@ -12,7 +12,6 @@ import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, RangeMatche
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 

@@ -1,10 +1,10 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 
-object MonadPhases {
+object Monads {
 
   trait MonadPatternsSyntax[Event, State, T] {
     this: WithPattern[Event, State, T] =>

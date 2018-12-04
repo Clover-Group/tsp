@@ -3,14 +3,16 @@ package ru.itclover.tsp
 import java.time.{ZonedDateTime, Instant}
 import ru.itclover.tsp.core.{Pattern, PatternResult}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.phases.NoState
-import ru.itclover.tsp.phases.NumericPhases.{NumericPhaseParser, SymbolNumberExtractor}
+import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.patterns.NoState
+import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 
 
 package object core {
 
   case class TestEvent[T](result: PatternResult[T], time: ZonedDateTime = ZonedDateTime.now())
+
+  type DblTestEvent = TestEvent[Double]
 
   case class TestPhase[T]() extends Pattern[TestEvent[T], NoState, T] {
     override def initialState: NoState = NoState.instance
@@ -27,13 +29,13 @@ package object core {
   }
 
 
-  implicit val doubleTestEvent = new TimeExtractor[TestEvent[Double]] {
-    override def apply(event: TestEvent[Double]) = event.time
+  implicit def testTimeExtr[T] = new TimeExtractor[TestEvent[T]] {
+    override def apply(event: TestEvent[T]) = Time(event.time.toInstant.toEpochMilli)
   }
 
-  implicit val boolTestEvent = new TimeExtractor[TestEvent[Boolean]] {
-    override def apply(event: TestEvent[Boolean]) = event.time
-  }
+  /*implicit val boolTestTimeExtr = new TimeExtractor[TestEvent[Boolean]] {
+    override def apply(event: TestEvent[Boolean]) = Time(event.time.toInstant.toEpochMilli)
+  }*/
 
   val probe = TestEvent(Success(1))
 

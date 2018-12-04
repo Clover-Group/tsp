@@ -24,9 +24,6 @@ case class Window(toMillis: Long) extends Serializable
 
 object Time {
 
-  trait TimeExtractor[Event] extends (Event => Time) with Serializable
-  trait TimeNonTransformedExtractor[Event] extends (Event => Time) with Serializable
-
   implicit val timeOrdering: Ordering[Time] = new Ordering[Time] {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
   }
@@ -44,22 +41,6 @@ object Time {
   implicit def bigIntWindow(d: BigInteger): Window = Window(toMillis = d.longValue())
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
-
-  implicit def BigIntTimeLike(t: BigInteger): Time = Time(toMillis = t.longValue())
-
-  implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t * 1000.0))
-
-  implicit def FloatTimeLike(t: Float): Time = Time(toMillis = Math.round(t * 1000.0))
-
-  implicit def LongTimeLike(t: Long): Time = Time(toMillis = t)
-
-  implicit def InstantTimeLike(t: Instant): Time = Time(toMillis = t.toEpochMilli)
-
-  implicit def javaDateTimeLike(t: Date): Time = Time(toMillis = t.getTime)
-
-  implicit def jodaDateTimeLike(t: ZonedDateTime): Time = Time(toMillis = t.toInstant.toEpochMilli)
-
-  implicit def javaSqlTimestampLike(t: Timestamp): Time = Time(toMillis = t.getTime)
 
   object MinWindow extends Window(toMillis = 0l)
 

@@ -1,4 +1,4 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import java.time.{ZonedDateTime, Instant}
 import java.time.format.DateTimeFormatter
@@ -7,13 +7,12 @@ import ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Functions._
 import ru.itclover.tsp.core.{PatternResult, TestPhase, Time, _}
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.TimeExtractor
 import java.time.Instant
 import ru.itclover.tsp.aggregators.AggregatorPhases._
 import ru.itclover.tsp.core.Time._
-import ru.itclover.tsp.phases.CombiningPhases.{And, TogetherParser}
-import ru.itclover.tsp.phases.NumericPhases._
-import ru.itclover.tsp.phases.TimePhases.Timer
+import ru.itclover.tsp.patterns.Combining.{And, TogetherParser}
+import ru.itclover.tsp.patterns.Numerics._
+import ru.itclover.tsp.patterns.TimePhases.Timer
 import ru.itclover.tsp.utils.ParserMatchers
 
 import scala.concurrent.duration._

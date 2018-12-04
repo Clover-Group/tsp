@@ -1,36 +1,36 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.http.scaladsl.server.{ExceptionHandler, Route, StandardRoute}
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala._
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output.{ExecInfo, FailureResponse, FinishedJobResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
 import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
-
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
+import cats.implicits._
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.types.Row
 import ru.itclover.tsp.{PatternsSearchJob, PatternsToRowMapper, ResultMapper}
 import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.utils.CollectionsOps.RightBiasedEither
+import ru.itclover.tsp.io.AnyDecodersInstances
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
-
+import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 import scala.util.Success
 
 object JobsRoutes {
@@ -65,84 +65,62 @@ trait JobsRoutes extends RoutesProtocols {
   val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
-        implicit val src = JdbcSource(request.source)
-        implicit val (timeExtr, timeNTextr, numExtr, anyExtr, anyNTExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
-        val job = new PatternsSearchJob[Row, Any, Row](
-          request.source,
-          request.sink,
-          PatternsToRowMapper(request.source.sourceId, request.sink.rowSchema)
-        )
-        runJob(job, src.emptyEvent, request.patterns, request.uuid, isAsync)
+        import request._
+
+        val resultOrErr = for {
+          source   <- JdbcSource.create(inputConf)
+          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
+          _        <- searcher.patternsSearchStream(
+            patterns,
+            outConf,
+            PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+          )
+          result   <- runStream(uuid, isAsync)
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
       }
     } ~
     path("streamJob" / "from-influxdb" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
-        implicit val src = InfluxDBSource(request.source)
-        implicit val (timeExtr, timeNTExtr, numExtr, anyExtr, anyNTExtr, kvExtr) = getExtractorsOrThrow[Row](request.source)
-        val job = new PatternsSearchJob[Row, Any, Row](
-          request.source,
-          request.sink,
-          PatternsToRowMapper(request.source.sourceId, request.sink.rowSchema)
-        )
-        runJob(job, src.emptyEvent, request.patterns, request.uuid, isAsync)
+        import request._
+
+        val resultOrErr = for {
+          source   <- InfluxDBSource.create(inputConf)
+          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
+          _        <- searcher.patternsSearchStream(
+            patterns,
+            outConf,
+            PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+          )
+          result   <- runStream(uuid, isAsync)
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
       }
     }
   }
-  // TODO: Kafka outputConf
 
-  def getExtractorsOrThrow[E](inputConf: InputConf[E]) = {
-    val extractors = for {
-      te <- inputConf.timeExtractor
-      tnte <- inputConf.timeNonTransformedExtractor
-      ne <- inputConf.symbolNumberExtractor
-      ae <- inputConf.anyExtractor
-      ante <- inputConf.anyNonTransformedExtractor
-      kve <- inputConf.keyValExtractor
-    } yield (te, tnte, ne, ae, ante, kve)
-    extractors match {
-      case Right(ext) => ext
-      case Left(err) => throw err // complete(InternalServerError, FailureResponse(5001, "Cannot access extractors", err))
-    }
-  }
-
-  def runJob[InEvent](
-    job: PatternsSearchJob[InEvent, _, _],
-    nullEvent: InEvent,
-    rawPatterns: Seq[RawPattern],
-    uuid: String,
-    runAsync: Boolean = true
-  ) = {
-    job.preparePhases(rawPatterns) match {
-      case Left(ParseException(errs)) =>
-        complete(BadRequest, FailureResponse(4001, "Invalid patterns source code", errs))
-      case Left(ex) =>
-        complete(InternalServerError, FailureResponse(ex))
-
-      case Right(patterns) =>
-        //val strPatterns = patterns.map(_._1._1.format(nullEvent))
-        //log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
-        if (runAsync) {
-          Future { job.executeFindAndSave(patterns, uuid) }
-          complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
-        } else {
-          job.executeFindAndSave(patterns, uuid) match {
-            case Right(result) => {
-              val execTime = result.getNetRuntime(TimeUnit.SECONDS)
-              // TODO after standalone Flink cluster test work
-              onComplete(monitoring.queryJobInfo(uuid)) {
-                case Success(Some(details)) =>
-                  complete(
-                    FinishedJobResponse(
-                      ExecInfo(execTime, Map.empty)
-                    )
-                  )
-                case _ => complete(FinishedJobResponse(ExecInfo(execTime, Map.empty)))
-              }
-            }
-            case Left(err) => complete(InternalServerError, FailureResponse(5005, err))
-          }
-        }
+  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] =
+    if (isAsync) { // Just detach job thread in case of async run
+      Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
+      Right(None)
+    } else {       // Wait for the execution finish
+      Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
 
-  }
+  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): StandardRoute =
+    result match {
+      case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
+      case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
+      // Async job - response with message about successful start
+      case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
+      // Sync job - response with message about successful ending
+      case Right(Some(execResult)) => {
+        // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
+        val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
+        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
+      }
+    }
+
 }

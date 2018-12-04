@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.http.routes
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling
@@ -48,3 +49,4 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
     }
   }
 }
+*/

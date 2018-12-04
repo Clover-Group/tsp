@@ -1,11 +1,12 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
-import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow, TimeExtractor}
+import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.Intervals.TimeInterval
-import ru.itclover.tsp.phases.CombiningPhases.TogetherParserLike
+import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.patterns.Combining.TogetherParserLike
 import scala.Ordered._
 
 object TimePhases {
@@ -45,8 +46,8 @@ object TimePhases {
         case Some(startTime) =>
           val lowerBound = startTime.toMillis + timeInterval.min
           val upperBound = startTime.toMillis + timeInterval.max
-          val result = if (eventTime < lowerBound) Stay
-          else if (eventTime <= upperBound) Success(startTime -> eventTime)
+          val result = if (eventTime.toMillis < lowerBound) Stay
+          else if (eventTime.toMillis <= upperBound) Success(startTime -> eventTime)
           else Failure(s"Timeout expired at $eventTime")
 
           result -> state
@@ -69,4 +70,23 @@ object TimePhases {
         state._2.map(t => s"=$t").getOrElse("")
   }
 
+}
+
+
+object TimePhasesInstances {
+    /*implicit def BigIntTimeLike(t: BigInteger): Time = Time(toMillis = t.longValue())
+
+  implicit def DoubleTimeLike(t: Double): Time = Time(toMillis = Math.round(t * 1000.0))
+
+  implicit def FloatTimeLike(t: Float): Time = Time(toMillis = Math.round(t * 1000.0))
+
+  implicit def LongTimeLike(t: Long): Time = Time(toMillis = t)
+
+  implicit def InstantTimeLike(t: Instant): Time = Time(toMillis = t.toEpochMilli)
+
+  implicit def javaDateTimeLike(t: Date): Time = Time(toMillis = t.getTime)
+
+  implicit def jodaDateTimeLike(t: ZonedDateTime): Time = Time(toMillis = t.toInstant.toEpochMilli)
+
+  implicit def javaSqlTimestampLike(t: Timestamp): Time = Time(toMillis = t.getTime)*/
 }

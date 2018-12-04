@@ -2,7 +2,7 @@ package ru.itclover.tsp.aggregators.accums
 
 import ru.itclover.tsp.aggregators.AggregatorPhases.PreviousValue
 import ru.itclover.tsp.core.{Pattern, Window}
-import ru.itclover.tsp.core.Time.TimeExtractor
+import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.aggregators.accums.{ContinuousStates => Qs, OneTimeStates => Ots}
 
 /**

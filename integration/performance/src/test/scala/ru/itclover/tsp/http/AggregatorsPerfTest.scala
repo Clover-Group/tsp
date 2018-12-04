@@ -12,7 +12,6 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-// .. TODO pick ranges, add rules, correctness check, test in correctness folder
 class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
 
   val port = 8136
