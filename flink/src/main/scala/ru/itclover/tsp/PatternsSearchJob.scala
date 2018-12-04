@@ -80,8 +80,7 @@ case class PatternsSearchJob[In, InKey, InItem](
         new FlinkPatternMapper(phase, incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
           .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
     }
-    //noinspection ConvertibleToMethodValue (Inellij fix)
-    stream.keyBy(source.partitioner(_)).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
+    stream.keyBy(source.partitioner).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
   }
 }
 
@@ -106,7 +105,7 @@ object PatternsSearchJob {
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
             .map(pat => (TimeMeasurementPattern(pat._1, p.sourceCode), pat._2))
       )
-      .leftMap[ConfigErr](InvalidPatternsCode)
+      .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
       .toEither
   }

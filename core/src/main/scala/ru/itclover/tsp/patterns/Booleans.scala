@@ -1,54 +1,54 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.phases.CombiningPhases.And
-import ru.itclover.tsp.phases.MonadPhases.MapParserLike
+import ru.itclover.tsp.patterns.Combining.And
+import ru.itclover.tsp.patterns.Monads.MapParserLike
 
-object BooleanPhases {
+object Booleans {
 
-  trait BooleanPatternsSyntax[Event, S, T] {
+  trait BooleanSyntax[Event, S, T] {
     this: WithPattern[Event, S, T] =>
 
     def >[S2](right: Pattern[Event, S2, T])(implicit ord: Ordering[T]) =
-      ComparingParser(this.parser, right)((a, b) => ord.gt(a, b), ">")
+      ComparingPattern(this.parser, right)((a, b) => ord.gt(a, b), ">")
 
     def >=[S2](right: Pattern[Event, S2, T])(implicit ord: Ordering[T]) =
-      ComparingParser(this.parser, right)((a, b) => ord.gteq(a, b), ">=")
+      ComparingPattern(this.parser, right)((a, b) => ord.gteq(a, b), ">=")
 
     def <[S2](right: Pattern[Event, S2, T])(implicit ord: Ordering[T]) =
-      ComparingParser(this.parser, right)((a, b) => ord.lt(a, b), "<")
+      ComparingPattern(this.parser, right)((a, b) => ord.lt(a, b), "<")
 
     def <=[S2](right: Pattern[Event, S2, T])(implicit ord: Ordering[T]) =
-      ComparingParser(this.parser, right)((a, b) => ord.lteq(a, b), "<=")
+      ComparingPattern(this.parser, right)((a, b) => ord.lteq(a, b), "<=")
 
     def and[S2](right: BooleanPhaseParser[Event, S2])(implicit ev: T =:= Boolean) =
-      ComparingParser(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a & b, "and")
+      ComparingPattern(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a & b, "and")
 
     def or[S2](right: BooleanPhaseParser[Event, S2])(implicit ev: T =:= Boolean) =
-      ComparingParser(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a | b, "or")
+      ComparingPattern(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a | b, "or")
 
     def xor[S2](right: BooleanPhaseParser[Event, S2])(implicit ev: T =:= Boolean) =
-      ComparingParser(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a ^ b, "xor")
+      ComparingPattern(this.parser.asInstanceOf[BooleanPhaseParser[Event, S]], right)((a, b) => a ^ b, "xor")
 
     /**
       * Alias for `and`
       */
     def &[RightState](rightParser: BooleanPhaseParser[Event, RightState])(
       implicit ev: T =:= Boolean
-    ): ComparingParser[Event, S, RightState, Boolean] = and(rightParser)
+    ): ComparingPattern[Event, S, RightState, Boolean] = and(rightParser)
 
     /**
       * Alias for `or`
       */
     def |[RightState](rightParser: BooleanPhaseParser[Event, RightState])(
       implicit ev: T =:= Boolean
-    ): ComparingParser[Event, S, RightState, Boolean] = or(rightParser)
+    ): ComparingPattern[Event, S, RightState, Boolean] = or(rightParser)
 
-    def ===[S2](right: Pattern[Event, S2, T]) = ComparingParser(this.parser, right)((a, b) => a equals b, "==")
+    def ===[S2](right: Pattern[Event, S2, T]) = ComparingPattern(this.parser, right)((a, b) => a equals b, "==")
 
-    def =!=[S2](right: Pattern[Event, S2, T]) = ComparingParser(this.parser, right)((a, b) => !(a equals b), "!=")
+    def =!=[S2](right: Pattern[Event, S2, T]) = ComparingPattern(this.parser, right)((a, b) => !(a equals b), "!=")
 
     //todo should it be re-written to accept Pattern[?, ?, Set[?]] ?
     def in(set: Set[T]) = InParser(this.parser, set)
@@ -81,7 +81,7 @@ object BooleanPhases {
     }
   }
 
-  case class ComparingParser[Event, S1, S2, T](left: Pattern[Event, S1, T], right: Pattern[Event, S2, T])(
+  case class ComparingPattern[Event, S1, S2, T](left: Pattern[Event, S1, T], right: Pattern[Event, S2, T])(
     compare: (T, T) => Boolean,
     compareFnName: String
   ) extends BooleanPhaseParser[Event, S1 And S2] {

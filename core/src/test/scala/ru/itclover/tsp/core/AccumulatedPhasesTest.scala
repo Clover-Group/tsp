@@ -8,7 +8,8 @@ import ru.itclover.tsp.aggregators.accums.{AccumPhase, ContinuousStates, PushDow
 import ru.itclover.tsp.core.Intervals.NumericInterval
 import scala.concurrent.duration._
 import ru.itclover.tsp.core.Time._
-import ru.itclover.tsp.phases.{ConstantPhases, NoState}
+import ru.itclover.tsp.patterns.{Constants, NoState}
+import ru.itclover.tsp.patterns.Constants.ConstPattern
 import ru.itclover.tsp.utils.ParserMatchers
 import scala.language.{higherKinds, implicitConversions}
 
@@ -205,7 +206,7 @@ class AccumulatedPhasesTest extends WordSpec with ParserMatchers with Matchers {
 
   "truthMillisCount phase" should {
     "work on staySuccesses" in {
-      implicit def longToPhase(num: Long) = ConstantPhases[TestPhase[Boolean], Long](num)
+      implicit def longToPhase(num: Long) = ConstPattern(num)
       val phase = (p: TestPhase[Boolean]) => truthMillisCount(p, 2.seconds)
       checkOnTestEvents_strict(
         phase,

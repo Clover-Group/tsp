@@ -1,4 +1,4 @@
-package ru.itclover.tsp.phases
+package ru.itclover.tsp.patterns
 
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
@@ -6,7 +6,7 @@ import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.phases.CombiningPhases.TogetherParserLike
+import ru.itclover.tsp.patterns.Combining.TogetherParserLike
 import scala.Ordered._
 
 object TimePhases {

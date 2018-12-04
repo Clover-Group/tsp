@@ -4,9 +4,9 @@ import scala.Ordering.Implicits._
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time, Window}
-import ru.itclover.tsp.phases.BooleanPhases.BooleanPhaseParser
-import ru.itclover.tsp.phases.CombiningPhases.And
-import ru.itclover.tsp.phases.NumericPhases.NumericPhaseParser
+import ru.itclover.tsp.patterns.Booleans.BooleanPhaseParser
+import ru.itclover.tsp.patterns.Combining.And
+import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 import ru.itclover.tsp._
 import ru.itclover.tsp.aggregators.accums._
 import ru.itclover.tsp.aggregators.accums.OneTimeStates._

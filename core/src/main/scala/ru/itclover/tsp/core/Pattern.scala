@@ -1,13 +1,12 @@
 package ru.itclover.tsp.core
 
 import ru.itclover.tsp.aggregators.AggregatorPhases.AggregatorFunctions
-import ru.itclover.tsp.phases.BooleanPhases.{BooleanFunctions, BooleanPatternsSyntax}
-import ru.itclover.tsp.phases.CombiningPhases.CombiningPatternsSyntax
-import ru.itclover.tsp.phases.ConstantPhases.ConstantFunctions
-import ru.itclover.tsp.phases.MonadPhases.MonadPatternsSyntax
-import ru.itclover.tsp.phases.NumericPhases.{NumericFunctions, NumericPatternsSyntax}
-import ru.itclover.tsp.phases.TimePhases.TimePatternsSyntax
-
+import ru.itclover.tsp.patterns.Booleans.{BooleanFunctions, BooleanSyntax}
+import ru.itclover.tsp.patterns.Combining.CombiningPatternsSyntax
+import ru.itclover.tsp.patterns.Monads.MonadPatternsSyntax
+import ru.itclover.tsp.patterns.NoState
+import ru.itclover.tsp.patterns.Numerics.{NumericFunctions, NumericPatternsSyntax}
+import ru.itclover.tsp.patterns.TimePhases.TimePatternsSyntax
 import scala.language.higherKinds
 
 
@@ -34,6 +33,12 @@ trait Pattern[Event, State, +T] extends ((Event, State) => (PatternResult[T], St
   def format(event: Event): String = format(event, initialState)
 }
 
+trait NoStatePattern[Event, +T] extends Pattern[Event, NoState, T] {
+  override def initialState = NoState.instance
+
+  override def aggregate(event: Event, state: NoState) = initialState
+}
+
 object Pattern {
 
   trait WithPattern[Event, State, T] {
@@ -43,7 +48,7 @@ object Pattern {
   implicit class PatternRich[Event, State, T](val parser: Pattern[Event, State, T])
     extends WithPattern[Event, State, T]
       with TimePatternsSyntax[Event, State, T]
-      with BooleanPatternsSyntax[Event, State, T]
+      with BooleanSyntax[Event, State, T]
       with NumericPatternsSyntax[Event, State, T]
       with CombiningPatternsSyntax[Event, State, T]
       with MonadPatternsSyntax[Event, State, T]
@@ -51,7 +56,6 @@ object Pattern {
   object Functions
     extends AggregatorFunctions
       with BooleanFunctions
-      with ConstantFunctions
       with NumericFunctions
 
 }

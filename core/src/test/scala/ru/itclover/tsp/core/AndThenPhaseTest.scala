@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.PatternResult.{Failure, Success}
-import ru.itclover.tsp.phases.CombiningPhases.AndThenParser
+import ru.itclover.tsp.patterns.Combining.AndThenParser
 
 class AndThenPhaseTest extends WordSpec with Matchers {
 
