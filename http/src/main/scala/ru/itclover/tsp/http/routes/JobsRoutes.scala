@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
@@ -16,6 +17,7 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
 import ru.itclover.tsp.transformers._
 import ru.itclover.tsp.DataStreamUtils.DataStreamOps
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import cats.implicits._
@@ -31,7 +33,8 @@ import ru.itclover.tsp.io.AnyDecodersInstances
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-import scala.util.Success
+
+import scala.util.{Success, Try}
 
 object JobsRoutes {
 
@@ -68,14 +71,14 @@ trait JobsRoutes extends RoutesProtocols {
         import request._
 
         val resultOrErr = for {
-          source   <- JdbcSource.create(inputConf)
-          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
-          _        <- searcher.patternsSearchStream(
+          source <- JdbcSource.create(inputConf)
+          searcher = PatternsSearchJob(source, AnyDecodersInstances)
+          _ <- searcher.patternsSearchStream(
             patterns,
             outConf,
             PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
           )
-          result   <- runStream(uuid, isAsync)
+          result <- runStream(uuid, isAsync)
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
@@ -86,14 +89,14 @@ trait JobsRoutes extends RoutesProtocols {
         import request._
 
         val resultOrErr = for {
-          source   <- InfluxDBSource.create(inputConf)
-          searcher =  PatternsSearchJob(source, AnyDecodersInstances)
-          _        <- searcher.patternsSearchStream(
+          source <- InfluxDBSource.create(inputConf)
+          searcher = PatternsSearchJob(source, AnyDecodersInstances)
+          _ <- searcher.patternsSearchStream(
             patterns,
             outConf,
             PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
           )
-          result   <- runStream(uuid, isAsync)
+          result <- runStream(uuid, isAsync)
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
@@ -105,11 +108,11 @@ trait JobsRoutes extends RoutesProtocols {
     if (isAsync) { // Just detach job thread in case of async run
       Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
       Right(None)
-    } else {       // Wait for the execution finish
+    } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
 
-  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): StandardRoute =
+  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route =
     result match {
       case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
       case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
@@ -119,7 +122,15 @@ trait JobsRoutes extends RoutesProtocols {
       case Right(Some(execResult)) => {
         // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
-        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
+        onSuccess(monitoring.queryJobAllMetrics(uuid)) {
+          case Right(metrics) =>
+            log.warn(metrics.mkString(";"))
+            val extraMetrics: Map[String, Option[Long]] = metrics
+              .map(kv => kv._1 -> Try(kv._2.toLong).toOption)
+              .filter(kv => kv._1.contains("PatternStats"))
+            complete(SuccessfulResponse(ExecInfo(execTime, extraMetrics)))
+          case Left(err) => complete(InternalServerError, FailureResponse(err))
+        }
       }
     }
 

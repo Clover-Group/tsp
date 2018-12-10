@@ -17,6 +17,8 @@ object MonitoringServiceModel {
 
   case class Metric(id: String, value: String)
 
+  case class MetricName(id: String)
+
   case class MetricInfo(vertexIndex: Int, id: String, name: String)
 
   object MetricInfo {
@@ -51,6 +53,7 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   implicit val jobExceptionsFormat = jsonFormat(JobExceptions.apply, "timestamp", "root-exception", "truncated")
   implicit val emptyFormat = jsonFormat0(EmptyResponse.apply)
   implicit val metricFormat = jsonFormat2(Metric.apply)
+  implicit val metricNameFormat = jsonFormat1(MetricName.apply)
   implicit val monitoringErrorFormat = jsonFormat1(MonitoringError.apply)
   implicit val vertexMetricsFormat = jsonFormat(
     VertexMetrics.apply, "read-records", "write-records", FlinkCompilingPatternMapper.currentEventTsMetric

@@ -10,13 +10,11 @@ case class PatternStats(time: Long = 0, calls: Long = 0) {
 object TimeMeasurementPhases {
   case class TimeMeasurementPattern[Event, State, T](
     innerPattern: Pattern[Event, State, T],
-    patternName: String
+    patternId: String,
+    patternName: String,
   ) extends Pattern[Event, (State, PatternStats), T] {
     override def initialState: (State, PatternStats) = (innerPattern.initialState, PatternStats(0L, 0L))
 
-    def timePerCall: Double = 0.0 //time / calls.toDouble
-
-    val logger = Logger(s"TimeMeasurement-[$patternName]")
     var patternStats = PatternStats()
 
     override def apply(v1: Event, v2: (State, PatternStats)): (PatternResult[T], (State, PatternStats)) = {

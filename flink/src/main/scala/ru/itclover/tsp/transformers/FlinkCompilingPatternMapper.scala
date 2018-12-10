@@ -26,7 +26,30 @@ class FlinkStatsPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
     isTerminalEvent
   ) {
   val logger = Logger("StatsMapper")
-  var stats = PatternStats(0L, 0L)
+  //var stats = PatternStats(0L, 0L)
+
+  var timeMetric: Option[Counter] = None
+  var callsMetric: Option[Counter] = None
+
+  private def setCounter(counter: Option[Counter], value: Long): Option[Unit] = {
+    counter match {
+      case Some(c) =>
+        c.dec(c.getCount)
+        c.inc(value)
+        //logger.info(s"$c set to $value")
+        Some(())
+      case None =>
+        sys.error("Counters not initialised!")
+    }
+  }
+
+  override def open(parameters: _root_.org.apache.flink.configuration.Configuration): Unit = {
+    super.open(parameters)
+    timeMetric = Some(getRuntimeContext.getMetricGroup//.addGroup("PatternStats")
+      .counter(s"PatternStats_${phase.patternId}_${Integer.toUnsignedLong(phase.patternName.hashCode)}_Time"))
+    callsMetric = Some(getRuntimeContext.getMetricGroup//.addGroup("PatternStats")
+      .counter(s"PatternStats_${phase.patternId}_${Integer.toUnsignedLong(phase.patternName.hashCode)}_Calls"))
+  }
 
   override def apply(
     event: Event,
@@ -34,13 +57,18 @@ class FlinkStatsPatternMapper[Event, PhaseState, PhaseOut, MapperOut](
   ): (scala.List[MapperOut], (_root_.scala.collection.Seq[ (PhaseState, PatternStats)], Event)) = {
     if (stateAndPrevEvent._1.nonEmpty) {
       //stats = stateAndPrevEvent._1.map(x => x._2).foldLeft(stats)(_ + _)
-      stats = stateAndPrevEvent._1.last._2
+      //stats = stateAndPrevEvent._1.last._2
+      val stats = stateAndPrevEvent._1.last._2
+      setCounter(timeMetric, stats.time)
+      setCounter(callsMetric, stats.calls)
     }
-    super.apply(event, stateAndPrevEvent)
+    val x = super.apply(event, stateAndPrevEvent)
+    val (mapperOut, (newStatesAndStats, newEvent)) = x
+    x
   }
 
   override def close(): Unit = {
-    logger.info(s"${phase.patternName} xxx $stats")
+    //logger.info(s"${phase.patternName} xxx $stats")
     super.close()
   }
 }
