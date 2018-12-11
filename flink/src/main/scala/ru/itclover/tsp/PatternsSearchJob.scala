@@ -22,10 +22,12 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.types.Row
 import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io._
+import ru.itclover.tsp.phases.TimeMeasurementPhases.TimeMeasurementPattern
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+
 import scala.language.higherKinds
 
 
@@ -75,7 +77,7 @@ case class PatternsSearchJob[In, InKey, InItem](
             forwardedFields ++ raw.forwardedFields.map(source.fieldToEKey),
             source.conf.partitionFields.map(source.fieldToEKey)
           ).asInstanceOf[ResultMapper[In, Any, Incident]]
-        new FlinkPatternMapper(phase, incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
+        new FlinkStatsPatternMapper(phase.asInstanceOf[TimeMeasurementPattern[In, _, Any]], incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
           .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
     }
     stream.keyBy(source.partitioner).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
@@ -101,6 +103,7 @@ object PatternsSearchJob {
           Validated
             .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
+            .map(pat => (TimeMeasurementPattern(pat._1, p.id, p.sourceCode), pat._2))
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))

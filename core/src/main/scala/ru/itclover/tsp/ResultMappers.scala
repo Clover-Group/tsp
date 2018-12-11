@@ -5,6 +5,7 @@ import ru.itclover.tsp.core.PatternResult
 import ru.itclover.tsp.core.PatternResult.{Success, TerminalResult}
 import ru.itclover.tsp.core.Time.timeOrdering
 import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.phases.PatternStats
 
 /**
   * Used for statefully process result inside of each [[PatternMapper.apply]] with Event.

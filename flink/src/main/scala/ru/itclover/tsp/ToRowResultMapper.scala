@@ -3,6 +3,7 @@ package ru.itclover.tsp
 import java.sql.Timestamp
 import java.time.{LocalDateTime, ZonedDateTime, ZoneId}
 import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
@@ -10,6 +11,7 @@ import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io.output.RowSchema
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
+import scala.util.Try
 
 class ToIncidentsResultMapper[E, EKey, EItem](
   pattern: RawPattern,
