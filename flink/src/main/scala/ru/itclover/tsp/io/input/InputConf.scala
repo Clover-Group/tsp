@@ -1,7 +1,7 @@
 package ru.itclover.tsp.io.input
 
 
-trait InputConf[Event] extends Serializable {
+trait InputConf[Event, EKey, EItem] extends Serializable {
   def sourceId: Int // todo .. Rm
 
   def datetimeField: Symbol
@@ -14,5 +14,5 @@ trait InputConf[Event] extends Serializable {
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
 
-  def dataTransformation: Option[SourceDataTransformation]
+  def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
 }

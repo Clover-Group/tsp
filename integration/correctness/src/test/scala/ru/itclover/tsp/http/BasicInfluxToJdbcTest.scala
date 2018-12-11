@@ -56,7 +56,7 @@ class BasicInfluxToJdbcTest
   )
   val typeCastingInputConf = inputConf.copy(query = """select *, speed as "speed(1)(2)" from SM_typeCasting_wide""")
   val fillingInputConf = inputConf.copy(query = """select * from SM_sparse_wide""",
-    dataTransformation = Some(WideDataFilling(Map('pos -> 2000, 'speed -> 2000), None)))
+    dataTransformation = Some(WideDataFilling(Map(0 -> 2000L, 1 -> 2000L), None)))
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 

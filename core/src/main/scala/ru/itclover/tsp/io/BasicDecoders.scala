@@ -17,6 +17,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] {
       case s: String => try { java.lang.Double.parseDouble(s)} catch {
         case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
       }
+      case null => Double.NaN
     }
   }
 
@@ -28,6 +29,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] {
         try { Helper.strToInt(s) } catch {
         case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
       }
+      case null => Int.MinValue
     }
   }
 

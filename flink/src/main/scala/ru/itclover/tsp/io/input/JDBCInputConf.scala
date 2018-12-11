@@ -44,9 +44,9 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  dataTransformation: Option[SourceDataTransformation] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2),
   timestampMultiplier: Option[Double] = Some(1000.0)
-) extends InputConf[Row]
+) extends InputConf[Row, Int, Any]

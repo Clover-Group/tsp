@@ -35,11 +35,11 @@ case class InfluxDBInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
-  dataTransformation: Option[SourceDataTransformation] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
-) extends InputConf[Row] {
+) extends InputConf[Row, Int, Any] {
 
   val influxConf = InfluxDBService.InfluxConf(url, dbName, userName, password, 200L)
 }
