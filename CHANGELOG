@@ -1,4 +1,6 @@
 ## 0.13.1-rc1
+
+## 0.13.1-rc1
 - Huge internal refactor for maintainability of the code
 - Add some docs about parallelisation
 - Migrated to Scala 2.12, Flink 1.7 and Spark 2.4
