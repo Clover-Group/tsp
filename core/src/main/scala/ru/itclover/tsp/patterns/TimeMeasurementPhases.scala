@@ -11,7 +11,7 @@ object TimeMeasurementPhases {
   case class TimeMeasurementPattern[Event, State, T](
     innerPattern: Pattern[Event, State, T],
     patternId: String,
-    patternName: String,
+    patternName: String
   ) extends Pattern[Event, (State, PatternStats), T] {
     override def initialState: (State, PatternStats) = (innerPattern.initialState, PatternStats(0L, 0L))
 

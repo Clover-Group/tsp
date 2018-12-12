@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.patterns.Combining.{And, EitherParser, Or}
+import ru.itclover.tsp.patterns.Combining.EitherParser
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 
 class OrPhaseTest extends WordSpec with Matchers {

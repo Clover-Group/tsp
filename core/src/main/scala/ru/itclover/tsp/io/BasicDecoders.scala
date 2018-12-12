@@ -29,7 +29,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] {
         try { Helper.strToInt(s) } catch {
         case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
       }
-      case null => Int.MinValue
+      case null => throw new RuntimeException(s"Cannot parse null to Int")
     }
   }
 

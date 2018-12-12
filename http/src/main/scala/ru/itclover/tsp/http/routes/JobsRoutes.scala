@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
@@ -13,28 +12,26 @@ import org.apache.flink.streaming.api.scala._
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
-import ru.itclover.tsp.transformers._
-import ru.itclover.tsp.DataStreamUtils.DataStreamOps
-
+import ru.itclover.tsp.mappers._
+import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import cats.implicits._
 import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.types.Row
-import ru.itclover.tsp.{PatternsSearchJob, PatternsToRowMapper, ResultMapper}
-import ru.itclover.tsp.core.Pattern
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp._
+import ru.itclover.tsp.core.{Pattern, RawPattern}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.io.AnyDecodersInstances
+import ru.itclover.tsp.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-
-import scala.util.{Success, Try}
+import scala.util.Try
 
 object JobsRoutes {
 
@@ -59,6 +56,7 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val streamEnv: StreamExecutionEnvironment
   implicit val actorSystem: ActorSystem
   implicit val materializer: ActorMaterializer
+  implicit val decoders = AnyDecodersInstances
 
   val monitoringUri: Uri
   lazy val monitoring = MonitoringService(monitoringUri)
@@ -72,11 +70,8 @@ trait JobsRoutes extends RoutesProtocols {
 
         val resultOrErr = for {
           source <- JdbcSource.create(inputConf)
-          searcher = PatternsSearchJob(source, AnyDecodersInstances)
-          _ <- searcher.patternsSearchStream(
-            patterns,
-            outConf,
-            PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+
+          _ <- createStream(patterns, inputConf, outConf, source
           )
           result <- runStream(uuid, isAsync)
         } yield result
@@ -90,17 +85,32 @@ trait JobsRoutes extends RoutesProtocols {
 
         val resultOrErr = for {
           source <- InfluxDBSource.create(inputConf)
-          searcher = PatternsSearchJob(source, AnyDecodersInstances)
-          _ <- searcher.patternsSearchStream(
-            patterns,
-            outConf,
-            PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
-          )
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
       }
+    }
+  }
+
+  def createStream[E, EKey, EItem](
+    patterns: Seq[RawPattern],
+    inputConf: InputConf[E, EKey, EItem],
+    outConf: JDBCOutputConf,
+    source: StreamSource[E, EKey, EItem]
+  )(implicit decoders: BasicDecoders[EItem]) = {
+    streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+    val searcher = PatternsSearchJob(source, decoders)
+    searcher.patternsSearchStream(
+      patterns,
+      outConf,
+      PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+    ) map {
+      case (parsedPatterns, stream) =>
+        val strPatterns = parsedPatterns.map { case ((p, meta), _) => p.format(source.emptyEvent) + s" ;; Meta=$meta" }
+        log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
+        stream
     }
   }
 

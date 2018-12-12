@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
 import collection.JavaConversions._
-import ru.itclover.tsp.DataStreamUtils.DataStreamOps
+import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import scala.collection.immutable
 
 object TestLauncher extends App with HttpService {

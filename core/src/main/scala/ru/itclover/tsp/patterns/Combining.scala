@@ -3,25 +3,9 @@ package ru.itclover.tsp.patterns
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.utils.UtilityTypes.{And, Or}
 
 object Combining {
-
-
-  /**
-    * Type alias to use in AndParser
-    *
-    * @tparam L
-    * @tparam R
-    */
-  type And[+L, +R] = (L, R)
-
-  /**
-    * Type alias to use in OrParser
-    *
-    * @tparam L
-    * @tparam R
-    */
-  type Or[L, R] = Either[L, R]
   /**
     * Type alias to use in AndThenParser
     *

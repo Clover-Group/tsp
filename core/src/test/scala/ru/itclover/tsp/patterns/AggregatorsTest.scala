@@ -10,7 +10,7 @@ import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import java.time.Instant
 import ru.itclover.tsp.aggregators.AggregatorPhases._
 import ru.itclover.tsp.core.Time._
-import ru.itclover.tsp.patterns.Combining.{And, TogetherParser}
+import ru.itclover.tsp.patterns.Combining.TogetherParser
 import ru.itclover.tsp.patterns.Numerics._
 import ru.itclover.tsp.patterns.TimePhases.Timer
 import ru.itclover.tsp.utils.ParserMatchers

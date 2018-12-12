@@ -1,7 +1,7 @@
 package ru.itclover.tsp.http.protocols
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo

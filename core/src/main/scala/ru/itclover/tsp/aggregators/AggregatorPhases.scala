@@ -4,13 +4,11 @@ import scala.Ordering.Implicits._
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.{Pattern, PatternResult, Time, Window}
-import ru.itclover.tsp.patterns.Booleans.BooleanPhaseParser
-import ru.itclover.tsp.patterns.Combining.And
 import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 import ru.itclover.tsp._
 import ru.itclover.tsp.aggregators.accums._
-import ru.itclover.tsp.aggregators.accums.OneTimeStates._
 import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.utils.UtilityTypes.And
 
 
 trait AggregatorPhases[Event, S, T] extends Pattern[Event, S, T]
@@ -202,23 +200,22 @@ object AggregatorPhases {
   /**
     * Accumulates Stay and consequent Success to a single Success [[Segment]]
     *
-    * @param innerPhase   - parser to wrap with gaps
+    * @param inner   - parser to wrap with gaps
     * @param timeExtractor - function returning time from Event
     * @tparam Event - events to process
     * @tparam State - type of state for innerParser
     */
-  case class ToSegments[Event, State, Out](innerPhase: Pattern[Event, State, Out])
-                                          (implicit timeExtractor: TimeExtractor[Event])
+  case class SegmentsPattern[Event, State, Out](inner: Pattern[Event, State, Out])
+                                               (implicit timeExtractor: TimeExtractor[Event])
     extends AggregatorPhases[Event, State And Option[Time], Segment] {
     // TODO Add max gap interval i.e. timeout, e.g. `maxGapInterval: TimeInterval`:
     // e.g. state(inner, start, prev) -> if curr - prev > maxGapInterval (start, prev) else (start, curr)
 
-    override def apply(event: Event, state: State And Option[Time]):
-    (PatternResult[Segment], State And Option[Time]) = {
+    override def apply(event: Event, state: State And Option[Time]): (PatternResult[Segment], (State, Option[Time])) = {
       val eventTime = timeExtractor(event)
       val (innerState, prevEventTimeOpt) = state
 
-      innerPhase(event, innerState) match {
+      inner(event, innerState) match {
         // Return accumulated Stay and resulting Success as single segment
         case (Success(_), newInnerState) =>
           Success(Segment(prevEventTimeOpt.getOrElse(eventTime), eventTime)) -> (newInnerState -> None)
@@ -230,9 +227,9 @@ object AggregatorPhases {
       }
     }
 
-    override def initialState: (State, Option[Time]) = (innerPhase.initialState, None)
+    override def initialState: (State, Option[Time]) = (inner.initialState, None)
 
-    override def format(event: Event, state: (State, Option[Time])) = s"${innerPhase.format(event, state._1)} asSegments"
+    override def format(event: Event, state: (State, Option[Time])) = s"${inner.format(event, state._1)} asSegments"
   }
 
 }

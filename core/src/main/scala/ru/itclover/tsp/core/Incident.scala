@@ -10,22 +10,21 @@ import ru.itclover.tsp.Segment
   * @param maxWindowMs maximum time-window (accum, aggregation) inside
   * @param segment bounds of incident
   * @param forwardedFields which fields need to push to sink
-  * @param partitionFields by which fields input stream was patiotioned
   */
 case class Incident(
   id: String,
+  patternId: String,
   maxWindowMs: Long,
   segment: Segment,
-  forwardedFields: Map[String, Any],
-  patternPayload: Map[String, String],
-  partitionFields: Map[String, Any]
+  forwardedFields: Seq[(String, Any)],
+  patternPayload: Seq[(String, Any)]
 ) extends Product
     with Serializable
 
 
 object IncidentInstances {
 
-  implicit val semigroup = new Semigroup[Incident] {
+  implicit def semigroup = new Semigroup[Incident] {
     override def combine(a: Incident, b: Incident) = {
       val from =
         if (a.segment.from.toMillis > b.segment.from.toMillis) b.segment.from
@@ -35,11 +34,11 @@ object IncidentInstances {
         else b.segment.to
       Incident(
         b.id,
+        b.patternId,
         b.maxWindowMs,
         Segment(from, to),
         b.forwardedFields,
-        b.patternPayload,
-        b.partitionFields
+        b.patternPayload
       )
     }
   }

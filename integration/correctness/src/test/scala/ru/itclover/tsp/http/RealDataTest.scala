@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.utils.Files
@@ -64,7 +64,7 @@ class RealDataTest
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val (timeRangeSec, assertions) = (1 to 50) -> Seq(
+  val (timeRangeSec, assertions) = (1 to 70) -> Seq(
     RawPattern("6", "HI__wagon_id__6 < 0.5"),
     RawPattern("4", "HI__wagon_id__4 < 0.5")
   )
