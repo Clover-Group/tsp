@@ -130,15 +130,7 @@ trait JobsRoutes extends RoutesProtocols {
       case Right(Some(execResult)) => {
         // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
-        onSuccess(monitoring.queryJobAllMetrics(uuid)) {
-          case Right(metrics) =>
-            log.warn(metrics.mkString(";"))
-            val extraMetrics: Map[String, Option[Long]] = metrics
-              .map(kv => kv._1 -> Try(kv._2.toLong).toOption)
-              .filter(kv => kv._1.contains("PatternStats"))
-            complete(SuccessfulResponse(ExecInfo(execTime, extraMetrics)))
-          case Left(err) => complete(InternalServerError, FailureResponse(err))
-        }
+        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
       }
     }
 
