@@ -13,8 +13,9 @@ import java.time.format.DateTimeFormatter
 
 import scala.language.implicitConversions
 
-case class Time(toMillis: Long) extends Serializable {
+case class Time(toMillis: Long) extends AnyVal with Serializable {
   def plus(window: Window): Time = Time(toMillis + window.toMillis)
+  def minus(window: Window): Time = Time(toMillis - window.toMillis)
 
   override def toString: String = Time.DATE_TIME_FORMAT.format(Instant.ofEpochMilli(toMillis))
 

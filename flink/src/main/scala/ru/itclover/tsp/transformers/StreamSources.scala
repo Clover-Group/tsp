@@ -17,7 +17,7 @@ import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
 import ru.itclover.tsp.JDBCInputFormatProps
-import ru.itclover.tsp.core.Time
+import ru.itclover.tsp.core.Idx
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.Decoder.AnyDecoder
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
