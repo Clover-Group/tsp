@@ -46,32 +46,36 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
-  implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] = jsonFormat(NarrowDataUnfolding[Event, EKey, EValue], "key", "value", "fieldsTimeoutsMs", "defaultTimeout")
-  implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] = jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
-  implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] = new RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] {
-    override def read(json: JsValue): SourceDataTransformation[Event, EKey, EValue] = json match {
-      case obj: JsObject =>
-        val tp = obj.fields.getOrElse("type", sys.error("Source data transformation: missing type"))
-        val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
-        tp match {
-          case JsString("NarrowDataUnfolding") => nduFormat[Event, EKey, EValue].read(cfg)
-          case JsString("WideDataFilling")   => wdfFormat[Event, EKey, EValue].read(cfg)
-          case _                               => sys.error(s"Source data transformation: unknown type $tp")
-        }
-      case _ => sys.error(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
-    }
-    override def write(obj: SourceDataTransformation[Event, EKey, EValue]): JsValue = {
-      val c = obj.config match {
-        case ndu: NarrowDataUnfolding[Event, EKey, EValue] => ndu.toJson
-        case wdf: WideDataFilling[Event, EKey, EValue]     => wdf.toJson
-        case _                        => sys.error("Unknown source data transformation")
+  implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    jsonFormat(NarrowDataUnfolding[Event, EKey, EValue], "key", "value", "fieldsTimeoutsMs", "defaultTimeout")
+  implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
+
+  implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    new RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] {
+      override def read(json: JsValue): SourceDataTransformation[Event, EKey, EValue] = json match {
+        case obj: JsObject =>
+          val tp = obj.fields.getOrElse("type", sys.error("Source data transformation: missing type"))
+          val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
+          tp match {
+            case JsString("NarrowDataUnfolding") => nduFormat[Event, EKey, EValue].read(cfg)
+            case JsString("WideDataFilling")     => wdfFormat[Event, EKey, EValue].read(cfg)
+            case _                               => sys.error(s"Source data transformation: unknown type $tp")
+          }
+        case _ => sys.error(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
       }
-      JsObject(
-        "type"   -> obj.`type`.toJson,
-        "config" -> c
-      )
+      override def write(obj: SourceDataTransformation[Event, EKey, EValue]): JsValue = {
+        val c = obj.config match {
+          case ndu: NarrowDataUnfolding[Event, EKey, EValue] => ndu.toJson
+          case wdf: WideDataFilling[Event, EKey, EValue]     => wdf.toJson
+          case _                                             => sys.error("Unknown source data transformation")
+        }
+        JsObject(
+          "type"   -> obj.`type`.toJson,
+          "config" -> c
+        )
+      }
     }
-  }
 
   implicit val jdbcInpConfFmt = jsonFormat(
     JDBCInputConf.apply,

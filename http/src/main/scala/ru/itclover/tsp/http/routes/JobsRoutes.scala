@@ -70,9 +70,7 @@ trait JobsRoutes extends RoutesProtocols {
 
         val resultOrErr = for {
           source <- JdbcSource.create(inputConf)
-
-          _ <- createStream(patterns, inputConf, outConf, source
-          )
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
