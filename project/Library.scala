@@ -1,7 +1,7 @@
 import sbt.Keys._
 import sbt._
 
-object Version {  
+object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.9.0"
 
@@ -37,12 +37,12 @@ object Version {
   val jackson = "2.9.7"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
-  
+
   val kindProjector = "0.9.8"
 }
 
 object Library {
-  
+
   val jackson = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
@@ -124,5 +124,9 @@ object Library {
 
   val shapeless = Seq(
     "com.chuusai" %% "shapeless" % Version.shapeless
+  )
+
+  val monix = Seq(
+    "io.monix" %% "monix" % "3.0.0-RC2"
   )
 }
