@@ -1,10 +1,13 @@
 package ru.itclover.tsp.benchmarking
+import monix.eval.Task
 import ru.itclover.tsp.core.{Pattern, Time, Window}
 import ru.itclover.tsp.dsl.PhaseBuilder
 import ru.itclover.tsp.io.{AnyDecodersInstances, Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 import ru.itclover.tsp.v2.Extract.{Idx, IdxExtractor}
 import ru.itclover.tsp.v2.{Patterns, StateMachine}
+
+import scala.concurrent.Await
 
 object Bench extends App {
 
@@ -22,9 +25,13 @@ object Bench extends App {
   val speedEngineCol = columnNames("SpeedEngine")
 
   val rows = (for (line <- lines) yield {
-    val cols = line.split(",").map(_.trim)
+    val cols = line.split(",")
     // do whatever you want with the columns here
-    Row(Time(cols(tsCol).replace(".", "").toLong), cols(PosKMCol).toInt, cols(speedEngineCol).toDouble)
+    Row(
+      Time((cols(tsCol).trim.toDouble * 1000).longValue()),
+      cols(PosKMCol).trim.toInt,
+      cols(speedEngineCol).trim.toDouble
+    )
   }).zipWithIndex.toVector
   bufferedSource.close
 
@@ -52,7 +59,7 @@ object Bench extends App {
       .get
       ._1 //.asInstanceOf[Pattern[Product with Serializable, _ , _]]
 
-  println(pattern.format(rows.head._1))
+//  println(pattern.format(rows.head._1))
 
 //  val results = ru.itclover.tsp.core.runRule(pattern, rows.map(_._1))
 
@@ -60,17 +67,32 @@ object Bench extends App {
   import cats.implicits._
   import ru.itclover.tsp.core.Time._
   import scala.concurrent.duration._
+  import monix.execution.Scheduler.Implicits.global
+
+  // A Future type that is also Cancelable
+  import monix.execution.CancelableFuture
+
+  // Task is in monix.eval
+  import monix.eval.Task
 
   implicit val timeExtractor2: TimeExtractor[RowWithIdx] = TimeExtractor.of[RowWithIdx](_.ts)
   implicit val idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of[RowWithIdx](_.idx)
   val newTypesHolder = new Patterns[RowWithIdx, cats.Id, List] {}
   import newTypesHolder._
 
-  val pattern2 = (field(_.posKM) === const(0)) andThen (field(_.speedEngine) > const(0.0) andThen
-  (truthMillis(
-    field(_.posKM) > const(4),
+  val pattern2 =
+  assert(field(_.posKM) === const(0)) andThen
+  timer(
+    assert(
+      (field(_.speedEngine) > const(0.0)) and
+      (truthMillis(
+        assert(field(_.posKM) > const(4)),
+        110.minutes
+      ) < const(60.seconds.toMillis))
+    ),
     110.minutes
-  ) < const(60.seconds.toMillis)))
+  )
+
   println(pattern2)
 
   val rowsWithIndex = rows.map {
@@ -79,8 +101,13 @@ object Bench extends App {
 
   val startRun = System.currentTimeMillis()
 
-  val q = StateMachine.run(pattern2, rowsWithIndex)
-  println(s"Result size is ${q.size}")
+  val q = StateMachine.run(pattern2, rowsWithIndex)// .runToFuture
 
-  println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
+//  q.foreach { q => {
+    println(s"Result size is ${q.size}")
+    println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
+//  }
+//  }
+//
+//  Await.result(q, Duration.Inf)
 }
