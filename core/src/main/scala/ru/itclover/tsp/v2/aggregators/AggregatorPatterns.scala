@@ -18,7 +18,7 @@ import ru.itclover.tsp.v2.Extract._
 import ru.itclover.tsp.v2.aggregators.accums.{AccumPattern, AccumState, AggregatorPState, TimerAccumState}
 
 import scala.language.higherKinds
-import scala.collection.immutable.Queue
+import scala.collection.{mutable => m}
 
 trait AggregatorPatterns[Event, T, S <: PState[T, S], F[_], Cont[_]] extends Pattern[Event, T, S, F, Cont]
 
@@ -78,7 +78,7 @@ object AggregatorPhases {
     override val window: Window
   ) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out], F, Cont] {
     override def initialState(): AggregatorPState[State, PreviousValueAccumState[Out], Out] =
-      AggregatorPState(innerPattern.initialState(), PreviousValueAccumState(None), Queue.empty, Queue.empty)
+      AggregatorPState(innerPattern.initialState(), PreviousValueAccumState(None), m.Queue.empty, m.Queue.empty)
   }
 //      with AggregatorPatterns[Event, Out, State And Option[Out], F, Cont]
 
@@ -86,13 +86,13 @@ object AggregatorPhases {
       extends AccumState[T, T, PreviousValueAccumState[T]] {
     override def updated(window: Window, idx: Idx, time: Time, value: Result[T]): (PreviousValueAccumState[T], QI[T]) = {
       value match {
-        case Fail => this -> Queue(IdxValue(idx, Result.fail))
+        case Fail => this -> m.Queue(IdxValue(idx, Result.fail))
         case Succ(newValue) =>
           PreviousValueAccumState(Some(time -> newValue)) ->
           this.lastTimeValue
             .filter(_._1.plus(window) >= time)
-            .map(ab => Queue(IdxValue(idx, Result.succ(ab._2))))
-            .getOrElse(Queue.empty)
+            .map(ab => m.Queue(IdxValue(idx, Result.succ(ab._2))))
+            .getOrElse(m.Queue.empty)
       }
     }
   }

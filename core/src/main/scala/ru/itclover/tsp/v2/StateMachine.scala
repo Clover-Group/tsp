@@ -18,10 +18,10 @@ object StateMachine {
 
     var counter = 0
     val initialState = pattern.initialState()
-    val finalstate = events.grouped(500).foldLeft(Monad[F].pure(initialState)) {
+    val finalstate = events.grouped(10000).foldLeft(Monad[F].pure(initialState)) {
       case (state, evs) => {
         log.debug(s"After $counter rows")
-        counter += 500
+        counter += 10000
         state.flatMap(s => pattern.apply(s, evs.toList))
       }
     }

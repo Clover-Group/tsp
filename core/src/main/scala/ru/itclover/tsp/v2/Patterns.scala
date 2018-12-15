@@ -4,7 +4,7 @@ import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Extract.{IdxExtractor, Result}
 import ru.itclover.tsp.v2.aggregators.AggregatorPhases.PreviousValue
-import ru.itclover.tsp.v2.aggregators.accums.WindowStatistic
+import ru.itclover.tsp.v2.aggregators.accums.{GroupPattern, TimerPattern, WindowStatistic}
 
 import scala.language.higherKinds
 
@@ -107,4 +107,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Fu
 
   def lag[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = PreviousValue(inner, w)
 
+  def timer[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = TimerPattern(inner, w)
+
+  def sum[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = GroupPattern(inner, w).map(_.sum)
 }
