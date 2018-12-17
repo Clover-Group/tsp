@@ -54,7 +54,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~
-      timeWithTolerance ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
+    timeWithTolerance ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -107,9 +107,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
           .asInstanceOf[AnyPattern]
       }
 
-      case None => Assert(phase.asInstanceOf[AnyBooleanPattern])
-        .timed(Window(Math.max(0, win.toMillis - tol.toMillis)), Window(win.toMillis + tol.toMillis))
-        .asInstanceOf[AnyPattern]
+      case None =>
+        Assert(phase.asInstanceOf[AnyBooleanPattern])
+          .timed(Window(Math.max(0, win.toMillis - tol.toMillis)), Window(win.toMillis + tol.toMillis))
+          .asInstanceOf[AnyPattern]
 
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
@@ -345,12 +346,14 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   }
 
   def timeWithTolerance: Rule1[(Window, Window)] = rule {
-    (time ~> ((win: Window) => (win, Window(win.toMillis / 10)))
-    | time ~ ws ~ "+-" ~ ws ~ time ~> ((win: Window, tol: Window) => (win, tol))
+    (time ~ ws ~ "+-" ~ ws ~ time ~> ((win: Window, tol: Window) => (win, tol))
     | time ~ ws ~ "+-" ~ ws ~ real ~ ws ~ "%" ~> (
-        (win: Window, tolPc: ConstPattern[Event, Double]) => (win, Window((tolPc.value * 0.01 * win.toMillis).toLong))
-      )
+      (
+        win: Window,
+        tolPc: ConstPattern[Event, Double]
+      ) => (win, Window((tolPc.value * 0.01 * win.toMillis).toLong))
     )
+    | time ~> ((win: Window) => (win, Window(win.toMillis / 10))))
   }
 
   def singleTime: Rule1[Window] = rule {
@@ -418,9 +421,13 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
           case "ln" =>
             Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPattern]
           case "log" =>
-            Pattern.Functions.call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
+            Pattern.Functions
+              .call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1))
+              .asInstanceOf[AnyNumericPattern]
           case "sigmoid" =>
-            Pattern.Functions.call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
+            Pattern.Functions
+              .call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1))
+              .asInstanceOf[AnyNumericPattern]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               const[Double](Double.MaxValue).asInstanceOf[AnyNumericPattern],
@@ -476,10 +483,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   def fieldValue: Rule1[ExtractingPattern[Event, EKey, EItem, Double]] = rule {
     (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(id.toSymbol), id.toSymbol))
     | anyWordInDblQuotes ~>
-      ((id: String) => {
-        val clean = id.replace("\"\"", "\"").toSymbol
-        ExtractingPattern(idToEKey(clean), clean)
-      }))
+    ((id: String) => {
+      val clean = id.replace("\"\"", "\"").toSymbol
+      ExtractingPattern(idToEKey(clean), clean)
+    }))
   }
 
   def boolean: Rule1[ConstPattern[Event, Boolean]] = rule {
