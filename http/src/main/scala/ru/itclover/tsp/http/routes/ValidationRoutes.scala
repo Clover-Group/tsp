@@ -1,4 +1,3 @@
-/*
 package ru.itclover.tsp.http.routes
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling
@@ -9,12 +8,11 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.util.FastFuture
 import akka.stream.ActorMaterializer
 import cats.data.Reader
-import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.core.Time.TimeExtractor
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.{RawPattern, Time}
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
-import ru.itclover.tsp.phases.NumericPhases.{IndexNumberExtractor, SymbolNumberExtractor}
+import ru.itclover.tsp.io.{TimeExtractor, Decoder, Extractor}
+
 import scala.concurrent.ExecutionContextExecutor
 
 object ValidationRoutes {
@@ -35,7 +33,12 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
       val patterns: Seq[RawPattern] = request.patterns
       val res = PatternsValidator.validate[Nothing](patterns)(
         new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
-        new IndexNumberExtractor[Nothing] { override def extract(event: Nothing, index: Int): Double = 0.0 }
+        new Extractor[Nothing, Int, Any] {
+          override def apply[T](e: Nothing, k: Int)(implicit d: Decoder[Any, T]): T = 0.0
+        },
+        new Decoder[Any, Double] {
+          override def apply(v1: Any): Double = 0.0
+        }
       )
       val result = res.map { x =>
         x._2 match {
@@ -49,4 +52,3 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
     }
   }
 }
-*/
