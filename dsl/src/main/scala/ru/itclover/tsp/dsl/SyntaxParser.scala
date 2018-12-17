@@ -53,8 +53,8 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
-    optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
+    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~
+      timeWithTolerance ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -66,12 +66,13 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   protected def buildForExpr(
     phase: AnyPattern,
     exactly: Option[Int],
-    w: Window,
+    w: (Window, Window),
     range: Option[Any]
   ): AnyPattern = {
+    val (win, tol) = w
     range match {
       case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[_]] => {
-        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
+        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], win)
         (exactly.getOrElse(0) match {
           case 0 =>
             PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
@@ -89,7 +90,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
       case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
         val accum = Pattern.Functions
-          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], w)
+          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], win)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
         (exactly.getOrElse(0) match {
           case 0 =>
@@ -106,7 +107,9 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
           .asInstanceOf[AnyPattern]
       }
 
-      case None => Assert(phase.asInstanceOf[AnyBooleanPattern]).timed(w, w).asInstanceOf[AnyPattern]
+      case None => Assert(phase.asInstanceOf[AnyBooleanPattern])
+        .timed(Window(Math.max(0, win.toMillis - tol.toMillis)), Window(win.toMillis + tol.toMillis))
+        .asInstanceOf[AnyPattern]
 
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
@@ -338,6 +341,15 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
         Window(ts.foldLeft(0L) { (acc, t) =>
           acc + t.toMillis
         })
+    )
+  }
+
+  def timeWithTolerance: Rule1[(Window, Window)] = rule {
+    (time ~> ((win: Window) => (win, Window(win.toMillis / 10)))
+    | time ~ ws ~ "+-" ~ ws ~ time ~> ((win: Window, tol: Window) => (win, tol))
+    | time ~ ws ~ "+-" ~ ws ~ real ~ ws ~ "%" ~> (
+        (win: Window, tolPc: ConstPattern[Event, Double]) => (win, Window((tolPc.value * 0.01 * win.toMillis).toLong))
+      )
     )
   }
 
