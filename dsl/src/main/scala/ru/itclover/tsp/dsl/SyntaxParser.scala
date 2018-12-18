@@ -54,7 +54,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~
-      (timeWithTolerance | timeRange) ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
+    (timeWithTolerance | timeBoundedRange) ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -306,7 +306,11 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     | "<=" ~ ws ~ time ~> ((t: Window) => Time.less(t))
     | ">" ~ ws ~ time ~> ((t: Window) => Time.more(t))
     | ">=" ~ ws ~ time ~> ((t: Window) => Time.more(t))
-    | time ~ ignoreCase("to") ~ ws ~ time ~>
+    | timeBoundedRange)
+  }
+
+  def timeBoundedRange: Rule1[TimeInterval] = rule {
+    (time ~ ignoreCase("to") ~ ws ~ time ~>
     ((t1: Window, t2: Window) => TimeInterval(t1, t2))
     | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~>
     (
