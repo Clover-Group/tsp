@@ -87,7 +87,7 @@ object Bench extends App {
       (field(_.speedEngine) > const(0.0)) and
       (truthMillis(
         assert(field(_.posKM) > const(4)),
-        110.minutes
+        210.minutes
       ) < const(60.seconds.toMillis))
     ),
     110.minutes

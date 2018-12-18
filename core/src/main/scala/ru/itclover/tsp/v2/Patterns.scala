@@ -110,4 +110,6 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Fu
   def timer[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = TimerPattern(inner, w)
 
   def sum[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = GroupPattern(inner, w).map(_.sum)
+
+//  abs(lag(x) - x) > 0 for 10m
 }
