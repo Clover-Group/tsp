@@ -53,8 +53,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~
-    (timeWithTolerance | timeBoundedRange) ~ optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
+    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
+    (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
+    | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -63,56 +65,39 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     | trileanFactor)
   }
 
-  protected def buildForExpr(
+  protected def buildForExpr(phase: AnyPattern, ti: TimeInterval): AnyPattern = {
+    Assert(phase.asInstanceOf[AnyBooleanPattern])
+      .timed(ti)
+      .asInstanceOf[AnyPattern]
+  }
+
+  protected def buildRangedForExpr(
     phase: AnyPattern,
-    exactly: Option[Int],
-    ti: TimeInterval,
-    range: Option[Any]
+    exactly: Option[Boolean],
+    w: Window,
+    range: Interval[Long]
   ): AnyPattern = {
-    range match {
-      case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[_]] => {
-        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], Window(ti.midpoint))
-        (exactly.getOrElse(0) match {
-          case 0 =>
-            PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
-          case 1 =>
-            accum
-        }).flatMap({ truthCount =>
-            if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
-              ConstPattern(truthCount)
-            } else {
-              FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
-            }
-          })
-          .asInstanceOf[AnyPattern]
-      }
-
-      case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
-        val accum = Pattern.Functions
-          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], Window(ti.midpoint))
+    val accum = range match {
+      case _: NumericInterval[Long] =>
+        Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
+      case _: TimeInterval =>
+        Pattern.Functions
+          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], w)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
-        (exactly.getOrElse(0) match {
-          case 0 =>
-            PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
-          case 1 =>
-            accum
-        }).flatMap(msCount => {
-            if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
-              ConstPattern(msCount)
-            } else {
-              FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
-            }
-          })
-          .asInstanceOf[AnyPattern]
-      }
-
-      case None =>
-        Assert(phase.asInstanceOf[AnyBooleanPattern])
-          .timed(ti)
-          .asInstanceOf[AnyPattern]
-
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
+
+    (exactly match {
+      case None => PushDownAccumInterval[Event, Any, Boolean, Long](accum, range)
+      case Some(_) => accum
+    }).flatMap(count => {
+        if (range.contains(count)) {
+          ConstPattern(count)
+        } else {
+          FailurePattern(s"Window ($range) not fully accumulated ($count)")
+        }
+      })
+      .asInstanceOf[AnyPattern]
   }
 
   // format: off
@@ -297,7 +282,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     )
   }
 
-  def range: Rule1[Any] = rule {
+  def range: Rule1[Interval[Long]] = rule {
     timeRange | repetitionRange
   }
 
