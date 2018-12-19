@@ -13,7 +13,7 @@ import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.{PatternMetadata, PhaseBuilder}
+import ru.itclover.tsp.dsl.{PatternMetadata, PatternBuilder}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -111,7 +111,7 @@ object PatternsSearchJob {
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
+            .fromEither(PatternBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
             .map(pat => (TimeMeasurementPattern(pat._1, p.id, p.sourceCode), pat._2))
       )

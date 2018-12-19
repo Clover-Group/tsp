@@ -16,7 +16,7 @@ import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.Segment
 import scala.math.Numeric.DoubleIsFractional
 
-object PhaseBuilder {
+object PatternBuilder {
 
   def build[Event, EKey, EItem](
     input: String,
@@ -110,7 +110,7 @@ object PhaseBuilder {
       case pusher: PushDownAccumInterval[Event, _, _, _] =>
         Math.max(pusher.accum.window.toMillis, maxPhaseWindowMs(pusher.accum.innerPhase))
       case timed: Timed[Event, _, _] =>
-        Math.max(timed.timeInterval.min, maxPhaseWindowMs(timed.inner))
+        Math.max(timed.timeInterval.max, maxPhaseWindowMs(timed.inner))
 
       case _ =>
         0L

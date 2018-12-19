@@ -12,6 +12,6 @@ object PatternsValidator {
     toNumberExtractor: Extractor[Event, Int, Any],
     doubleDecoder: Decoder[Any, Double]
   ): Seq[(RawPattern, Either[String, (Pattern[Event, _, _], PatternMetadata)])] = {
-    patterns.map(p => (p, PhaseBuilder.build(p.sourceCode, SyntaxParser.testFieldsIdxMap)))
+    patterns.map(p => (p, PatternBuilder.build(p.sourceCode, SyntaxParser.testFieldsIdxMap)))
   }
 }
