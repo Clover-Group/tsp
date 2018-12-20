@@ -13,15 +13,17 @@ object StateMachine {
 
   def run[Event, Out, S <: PState[Out, S], F[_]: Monad](
     pattern: Pattern[Event, Out, S, F, List],
-    events: Iterable[Event]
+    events: Iterable[Event],
+    groupSize: Int = 1000
   ): F[QI[Out]] = {
 
     var counter = 0
     val initialState = pattern.initialState()
-    val finalstate = events.grouped(10000).foldLeft(Monad[F].pure(initialState)) {
+
+    val finalstate = events.grouped(groupSize).foldLeft(Monad[F].pure(initialState)) {
       case (state, evs) => {
         log.debug(s"After $counter rows")
-        counter += 10000
+        counter += groupSize
         state.flatMap(s => pattern.apply(s, evs.toList))
       }
     }

@@ -1,17 +1,17 @@
-package ru.itclover.tsp.v2.aggregators.accums
+package ru.itclover.tsp.v2.aggregators
 
-import cats.{Functor, Group, Monad}
+import cats.{Foldable, Functor, Group, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Extract._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.v2.{AddToQueue, PState, Pattern, _}
+import ru.itclover.tsp.v2.{PState, Pattern, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group, F[_]: Monad, Cont[_]: Functor: AddToQueue](
+case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group, F[_]: Monad, Cont[_]: Functor: Foldable](
   override val innerPattern: Pattern[Event, T, S, F, Cont],
   override val window: Window
 ) extends AccumPattern[Event, S, T, GroupAccumResult[T], GroupAccumState[T], F, Cont] {
@@ -44,7 +44,9 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
 
         val finalNewLastValue = outputs.foldLeft(newLastValue) {
           case (cmr, elem) =>
-            cmr.map(lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1))
+            cmr.map(
+              lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1)
+            )
         }
 
         val finalWindowQueue = { updatedWindowQueue.enqueue(GroupAccumValue(idx, time, t)); updatedWindowQueue }

@@ -7,7 +7,7 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 //todo optimize Map(Simple) => Simple
-class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState], F[_]: Monad, Cont[_]: Functor: AddToQueue](
+class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState], F[_]: Monad, Cont[_]: Functor](
   inner: Pattern[Event, T1, InnerState, F, Cont]
 )(func: T1 => Result[T2])
     extends Pattern[Event, T2, MapPState[InnerState, T1, T2], F, Cont] {

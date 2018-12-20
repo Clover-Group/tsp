@@ -1,6 +1,6 @@
-package ru.itclover.tsp.v2.aggregators.accums
+package ru.itclover.tsp.v2.aggregators
 
-import cats.{Functor, Monad}
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Extract._
@@ -12,7 +12,7 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /* Timer */
-case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: AddToQueue](
+case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: Foldable](
   override val innerPattern: Pattern[Event, T, S, F, Cont],
   override val window: Window
 ) extends AccumPattern[Event, S, T, T, TimerAccumState[T], F, Cont] {
@@ -34,7 +34,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
         (TimerAccumState(updatedWindowQueue), newResults)
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
-        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue) { case (_, t) => t.plus(window) < time }
+        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue) { case (_, t) => t.plus(window) <= time }
 
         val windowQueueWithNewEvent = { updatedWindowQueue.enqueue((index, time)); updatedWindowQueue }
         val newResults: QI[T] = outputs.map { case (idx, _) => IdxValue(idx, value) }

@@ -59,10 +59,6 @@ object Bench extends App {
       .get
       ._1 //.asInstanceOf[Pattern[Product with Serializable, _ , _]]
 
-//  println(pattern.format(rows.head._1))
-
-//  val results = ru.itclover.tsp.core.runRule(pattern, rows.map(_._1))
-
   case class RowWithIdx(ts: Time, posKM: Int, speedEngine: Double, idx: Idx)
   import cats.implicits._
   import ru.itclover.tsp.core.Time._
@@ -77,6 +73,7 @@ object Bench extends App {
 
   implicit val timeExtractor2: TimeExtractor[RowWithIdx] = TimeExtractor.of[RowWithIdx](_.ts)
   implicit val idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of[RowWithIdx](_.idx)
+
   val newTypesHolder = new Patterns[RowWithIdx, cats.Id, List] {}
   import newTypesHolder._
 
@@ -84,11 +81,9 @@ object Bench extends App {
   assert(field(_.posKM) === const(0)) andThen
   timer(
     assert(
-      (field(_.speedEngine) > const(0.0)) and
-      (truthMillis(
-        assert(field(_.posKM) > const(4)),
-        210.minutes
-      ) < const(60.seconds.toMillis))
+      (field(_.speedEngine) > const(0.0))
+      and
+      (truthMillis(assert(field(_.posKM) > const(4)), 110.minutes) > const(1.minutes.toMillis))
     ),
     110.minutes
   )
@@ -101,11 +96,11 @@ object Bench extends App {
 
   val startRun = System.currentTimeMillis()
 
-  val q = StateMachine.run(pattern2, rowsWithIndex)// .runToFuture
+  val q = StateMachine.run(pattern2, rowsWithIndex, 1000) // .runToFuture
 
 //  q.foreach { q => {
-    println(s"Result size is ${q.size}")
-    println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
+  println(s"Result size is ${q.size}")
+  println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
 //  }
 //  }
 //

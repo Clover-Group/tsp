@@ -1,13 +1,7 @@
 package ru.itclover.tsp.v2
-import cats.implicits._
-import cats.{Functor, Id, Monad}
-import ru.itclover.tsp.core.{Time, Window}
-import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.io.TimeExtractor.GetTime
-import ru.itclover.tsp.v2.Extract.IdxExtractor._
-import ru.itclover.tsp.v2.Extract.{Idx, IdxExtractor, _}
+import cats.Id
+import ru.itclover.tsp.v2.Extract.{Idx, _}
 
-import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
@@ -15,7 +9,7 @@ import scala.language.higherKinds
 
 object Extract {
 
-  type Idx = Int
+  type Idx = Long
   type QI[T] = m.Queue[IdxValue[T]]
 
   type Result[T] = Option[T]
@@ -53,27 +47,6 @@ case class IdxValue[+T](index: Idx, value: Result[T])
 trait PState[T, +Self <: PState[T, _]] {
   def queue: QI[T]
   def copyWithQueue(queue: QI[T]): Self
-}
-
-trait AddToQueue[F[_]] {
-  def addToQueue[T](events: F[T], queue: m.Queue[T]): m.Queue[T]
-}
-
-object AddToQueue {
-
-  def apply[T[_]: AddToQueue]: AddToQueue[T] = implicitly[AddToQueue[T]]
-
-  implicit val idInstance: AddToQueue[Id] = new AddToQueue[Id] {
-    override def addToQueue[T](events: Id[T], queue: m.Queue[T]): m.Queue[T] = {queue.enqueue(events); queue}
-  }
-
-  implicit val seqInstance: AddToQueue[Seq] = new AddToQueue[Seq] {
-    override def addToQueue[T](events: Seq[T], queue: m.Queue[T]): m.Queue[T] = queue ++ events
-  }
-
-  implicit val listInstance: AddToQueue[List] = new AddToQueue[List] {
-    override def addToQueue[T](events: List[T], queue: m.Queue[T]): m.Queue[T] = queue ++ events
-  }
 }
 
 trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {

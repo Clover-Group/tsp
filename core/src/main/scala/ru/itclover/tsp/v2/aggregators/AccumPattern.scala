@@ -1,18 +1,19 @@
-package ru.itclover.tsp.v2.aggregators.accums
+package ru.itclover.tsp.v2.aggregators
 
 import cats.implicits._
-import cats.{Functor, Monad}
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.io.TimeExtractor.GetTime
 import ru.itclover.tsp.v2.Extract.IdxExtractor._
 import ru.itclover.tsp.v2.Extract._
 import ru.itclover.tsp.v2._
-import ru.itclover.tsp.v2.aggregators.AggregatorPatterns
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
+
+trait AggregatorPatterns[Event, T, S <: PState[T, S], F[_], Cont[_]] extends Pattern[Event, T, S, F, Cont]
 
 case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Out](
   innerState: InnerState,
@@ -27,7 +28,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
   InnerOut,
   Out,
   AState
-], F[_]: Monad, Cont[_]: AddToQueue: Functor]
+], F[_]: Monad, Cont[_]: Foldable: Functor]
     extends AggregatorPatterns[Event, Out, AggregatorPState[Inner, AState, Out], F, Cont] {
 
   val innerPattern: Pattern[Event, InnerOut, Inner, F, Cont]
@@ -39,7 +40,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
   ): F[AggregatorPState[Inner, AState, Out]] = {
 
     val idxTimeMapWithNewEvents =
-      AddToQueue[Cont].addToQueue(event.map(event => event.index -> event.time), state.indexTimeMap)
+      event.map(e => e.index -> e.time).foldLeft(state.indexTimeMap) { case (a, b) => { a.enqueue(b); a } }
 
     innerPattern
       .apply(state.innerState, event)

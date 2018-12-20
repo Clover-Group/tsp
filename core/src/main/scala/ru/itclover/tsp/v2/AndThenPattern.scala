@@ -60,13 +60,13 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             // if any of parts is empty -> do nothing
             case None => default
             // if that's an late event from second queue, just skip it
-            case Some(IdxValue(index2, _)) if index2 < index1 => //todo < or <= ?
+            case Some(IdxValue(index2, _)) if index2 <= index1 => //todo < or <= ?
               inner(first, {second.dequeue; second}, total)
             // if second part is Failure return None as a result
             case Some(IdxValue(_, Fail)) =>
               inner({first.dequeue; first}, second, {total.enqueue(IdxValue(index1, Fail)); total})
             // if both first and second stages a Success then return Success
-            case Some(IdxValue(index2, Succ(_))) if index2 >= index1 =>
+            case Some(IdxValue(index2, Succ(_))) if index2 > index1 =>
               inner({first.dequeue; first}, {second.dequeue; second}, {total.enqueue(IdxValue(index1, Succ(index1 -> index2))); total})
           }
       }

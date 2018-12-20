@@ -1,11 +1,11 @@
-package ru.itclover.tsp.v2.aggregators.accums
+package ru.itclover.tsp.v2.aggregators
 
-import cats.{Functor, Monad}
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Extract._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.v2.{AddToQueue, PState, Pattern, _}
+import ru.itclover.tsp.v2.{PState, Pattern, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
@@ -13,7 +13,7 @@ import scala.language.higherKinds
 /* Count */
 /* WindowStatistic */
 
-case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: AddToQueue](
+case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: Foldable](
   override val innerPattern: Pattern[Event, T, S, F, Cont],
   override val window: Window
 ) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T], F, Cont] {
