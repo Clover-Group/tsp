@@ -5,7 +5,7 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.utils._
-import ru.itclover.tsp.v2.Extract.Idx
+import ru.itclover.tsp.v2.Pattern.Idx
 import ru.itclover.tsp.v2.{Patterns, RowWithIdx, StateMachine}
 import ru.itclover.tsp.v2.RowWIthIdxCompanion._
 import cats.implicits._

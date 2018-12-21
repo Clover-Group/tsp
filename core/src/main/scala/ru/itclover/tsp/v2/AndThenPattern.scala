@@ -1,7 +1,7 @@
 package ru.itclover.tsp.v2
 import cats.Monad
-import ru.itclover.tsp.v2.Extract.{Idx, QI, Result}
-import ru.itclover.tsp.v2.Extract._
+import ru.itclover.tsp.v2.Pattern.{Idx, QI}
+import ru.itclover.tsp.v2.Pattern._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 

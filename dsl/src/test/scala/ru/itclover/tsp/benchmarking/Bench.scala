@@ -4,7 +4,7 @@ import ru.itclover.tsp.core.{Pattern, Time, Window}
 import ru.itclover.tsp.dsl.PhaseBuilder
 import ru.itclover.tsp.io.{AnyDecodersInstances, Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
-import ru.itclover.tsp.v2.Extract.{Idx, IdxExtractor}
+import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.v2.{Patterns, StateMachine}
 
 import scala.concurrent.Await
@@ -96,13 +96,14 @@ object Bench extends App {
 
   val startRun = System.currentTimeMillis()
 
-  val q = StateMachine.run(pattern2, rowsWithIndex, 1000) // .runToFuture
+  import monix.execution.Scheduler.Implicits.global
+  val q = StateMachine.run(pattern2, rowsWithIndex, 10000).runToFuture
 
-//  q.foreach { q => {
-  println(s"Result size is ${q.size}")
-  println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
-//  }
-//  }
-//
-//  Await.result(q, Duration.Inf)
+  q.foreach { q => {
+    println(s"Result size is ${q.size}")
+    println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
+  }
+  }
+
+  Await.result(q, Duration.Inf)
 }

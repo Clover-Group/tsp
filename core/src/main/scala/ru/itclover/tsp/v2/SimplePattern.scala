@@ -1,7 +1,7 @@
 package ru.itclover.tsp.v2
 import cats.{Foldable, Functor, Monad}
-import ru.itclover.tsp.v2.Extract.{IdxExtractor, QI, Result}
-import ru.itclover.tsp.v2.Extract.IdxExtractor._
+import ru.itclover.tsp.v2.Pattern.{IdxExtractor, QI}
+import ru.itclover.tsp.v2.Pattern.IdxExtractor._
 import cats.syntax.functor._
 import cats.syntax.foldable._
 

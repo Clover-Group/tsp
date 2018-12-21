@@ -3,7 +3,7 @@ import cats.Monad
 import cats.syntax.functor._
 import cats.syntax.flatMap._
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.v2.Extract.QI
+import ru.itclover.tsp.v2.Pattern.QI
 
 import scala.language.higherKinds
 

@@ -3,7 +3,7 @@ package ru.itclover.tsp.v2.aggregators
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2.Extract._
+import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.v2.{PState, Pattern, _}
 
@@ -45,7 +45,7 @@ case class WindowStatisticAccumState[T](
           val elem = WindowStatisticQueueInstance(
             idx = idx,
             time = time,
-            isSuccess = value.isDefined,
+            isSuccess = value.isSuccess,
             // count success and fail times by previous result, not current!
             successTimeFromPrevious = if (cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0,
             failTimeFromPrevious = if (!cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0
@@ -54,10 +54,10 @@ case class WindowStatisticAccumState[T](
           val newLV = WindowStatisticResult(
             idx = idx,
             time = time,
-            lastWasSuccess = value.isDefined,
-            successCount = cmr.successCount + (if (value.isDefined) 1 else 0),
+            lastWasSuccess = value.isSuccess,
+            successCount = cmr.successCount + (if (value.isSuccess) 1 else 0),
             successMillis = cmr.successMillis + math.min(elem.successTimeFromPrevious, window.toMillis),
-            failCount = cmr.failCount + (if (value.isEmpty) 1 else 0),
+            failCount = cmr.failCount + (if (value.isFail) 1 else 0),
             failMillis = cmr.failMillis + math.min(elem.failTimeFromPrevious, window.toMillis)
           )
 
@@ -68,16 +68,16 @@ case class WindowStatisticAccumState[T](
           WindowStatisticResult(
             idx,
             time,
-            value.isDefined,
-            if (value.isDefined) 1 else 0,
+            value.isSuccess,
+            if (value.isSuccess) 1 else 0,
             0,
-            if (value.isEmpty) 1 else 0,
+            if (value.isFail) 1 else 0,
             0
           )
           -> WindowStatisticQueueInstance(
             idx,
             time,
-            isSuccess = value.isDefined,
+            isSuccess = value.isSuccess,
             successTimeFromPrevious = 0,
             failTimeFromPrevious = 0
           )
@@ -95,7 +95,7 @@ case class WindowStatisticAccumState[T](
           WindowStatisticResult(
             idx,
             time,
-            lastWasSuccess = value.isDefined,
+            lastWasSuccess = value.isSuccess,
             successCount = cmr.successCount - 1,
             successMillis = cmr.successMillis - math.min(maxChangeTime, elem.successTimeFromPrevious),
             failCount = cmr.failCount,
@@ -105,7 +105,7 @@ case class WindowStatisticAccumState[T](
           WindowStatisticResult(
             idx,
             time,
-            lastWasSuccess = value.isDefined,
+            lastWasSuccess = value.isSuccess,
             successCount = cmr.successCount,
             successMillis = cmr.successMillis - math.min(maxChangeTime, elem.successTimeFromPrevious),
             failCount = cmr.failCount - 1,

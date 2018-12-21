@@ -1,7 +1,7 @@
 package ru.itclover.tsp.v2
 import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2.Extract.{Idx, IdxExtractor}
+import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
 
 case class RowWithIdx(idx: Idx, ts: Time, value: Int)
 
