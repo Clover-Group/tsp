@@ -16,18 +16,19 @@ import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.Segment
 import scala.math.Numeric.DoubleIsFractional
 
-object PhaseBuilder {
+object PatternBuilder {
 
   def build[Event, EKey, EItem](
     input: String,
     idToEKey: Symbol => EKey,
+    toleranceFraction: Double,
     formatter: ErrorFormatter = new ErrorFormatter()
   )(
     implicit timeExtractor: TimeExtractor[Event],
     extractor: Extractor[Event, EKey, EItem],
     decodeDouble: Decoder[EItem, Double]
   ): Either[String, (Pattern[Event, _, Segment], PatternMetadata)] = {
-    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey)
+    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey, toleranceFraction)
     val rawPattern = parser.start.run()
     rawPattern
       .map { p =>
@@ -110,7 +111,7 @@ object PhaseBuilder {
       case pusher: PushDownAccumInterval[Event, _, _, _] =>
         Math.max(pusher.accum.window.toMillis, maxPhaseWindowMs(pusher.accum.innerPhase))
       case timed: Timed[Event, _, _] =>
-        Math.max(timed.timeInterval.min, maxPhaseWindowMs(timed.inner))
+        Math.max(timed.timeInterval.max, maxPhaseWindowMs(timed.inner))
 
       case _ =>
         0L

@@ -13,7 +13,7 @@ import cats.implicits._
 import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.{PatternMetadata, PhaseBuilder}
+import ru.itclover.tsp.dsl.{PatternMetadata, PatternBuilder}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -43,7 +43,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, (Seq[RichPattern[In]], Vector[DataStreamSink[OutE]])] =
-    preparePatterns(rawPatterns, source.fieldToEKey) map { patterns =>
+    preparePatterns(rawPatterns, source.fieldToEKey, source.conf.defaultToleranceFraction.getOrElse(0)) map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
       val mapped = incidents.map(x => x.map(resultMapper))
@@ -102,7 +102,8 @@ object PatternsSearchJob {
 
   def preparePatterns[E: TimeExtractor, EKey, EItem](
     rawPatterns: Seq[RawPattern],
-    fieldsIdxMap: Symbol => EKey
+    fieldsIdxMap: Symbol => EKey,
+    toleranceFraction: Double
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     dDecoder: Decoder[EItem, Double]
@@ -111,7 +112,7 @@ object PatternsSearchJob {
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
+            .fromEither(PatternBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply, toleranceFraction))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
             .map(pat => (TimeMeasurementPattern(pat._1, p.id, p.sourceCode), pat._2))
       )

@@ -45,6 +45,7 @@ case class JDBCInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
+  defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(1),

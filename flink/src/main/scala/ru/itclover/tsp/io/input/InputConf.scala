@@ -16,6 +16,8 @@ trait InputConf[Event, EKey, EItem] extends Serializable {
 
   def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
 
+  def defaultToleranceFraction: Option[Double]
+
   // Set maximum number of physically independent partitions for stream.keyBy operation
   def maxPartitionsParallelism: Int = 8192
 }
