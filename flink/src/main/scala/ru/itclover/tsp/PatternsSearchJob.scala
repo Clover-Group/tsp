@@ -10,18 +10,18 @@ import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindo
 import cats.data.Validated
 import cats.{Monad, Traverse}
 import cats.implicits._
-import ru.itclover.tsp.core.{Incident, Pattern, Window}
+import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.{PhaseBuilder, PhaseMetadata}
-import ru.itclover.tsp.transformers._
+import ru.itclover.tsp.dsl.{PatternMetadata, PhaseBuilder}
+import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import cats.kernel.Semigroup
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.types.Row
-import ru.itclover.tsp.dsl.schema.RawPattern
 import ru.itclover.tsp.io._
+import ru.itclover.tsp.phases.TimeMeasurementPhases.TimeMeasurementPattern
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
@@ -39,51 +39,63 @@ case class PatternsSearchJob[In, InKey, InItem](
   import PatternsSearchJob._
 
   def patternsSearchStream[OutE: TypeInformation, OutKey](
-    patterns: Seq[RawPattern],
+    rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, Vector[DataStreamSink[OutE]]] = for {
-    incidents <- cleanIncidentsFromRawPatterns(patterns, outputConf.forwardedFieldsIds.map(source.fieldToEKey))
-    mapped = incidents.map(_.map(resultMapper))
-  } yield mapped.map(m => saveStream(m, outputConf))
+  ): Either[ConfigErr, (Seq[RichPattern[In]], Vector[DataStreamSink[OutE]])] =
+    preparePatterns(rawPatterns, source.fieldToEKey) map { patterns =>
+      val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
+      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
+      val mapped = incidents.map(x => x.map(resultMapper))
+      (patterns, mapped.map(m => saveStream(m, outputConf)))
+    }
 
 
-  def cleanIncidentsFromRawPatterns(
-    patterns: Seq[RawPattern],
-    forwardedFields: Seq[InKey]
-  ): Either[ConfigErr, Vector[DataStream[Incident]]] =
-    preparePatterns(patterns, source.fieldToEKey) map { richPatterns =>
-      for {
-        sourceBuckets   <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
-        patternsBuckets <- bucketizePatterns(sourceBuckets.items, source.conf.patternsParallelism.getOrElse(1))
-      } yield
-        reduceIncidents(
-          incidentsFromPatterns(source.createStream, patternsBuckets.items, forwardedFields)
-        )
+  def cleanIncidentsFromPatterns(
+    richPatterns: Seq[RichPattern[In]],
+    forwardedFields: Seq[(Symbol, InKey)]
+  ): Vector[DataStream[Incident]] =
+    for {
+      sourceBucket   <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
+      stream         =  source.createStream
+      patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
+    } yield {
+      val singleIncidents = incidentsFromPatterns(stream, patternsBucket.items, forwardedFields)
+      if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
   def incidentsFromPatterns(
     stream: DataStream[In],
     patterns: Seq[RichPattern[In]],
-    forwardedFields: Seq[InKey]
+    forwardedFields: Seq[(Symbol, InKey)]
   ): DataStream[Incident] = {
-    val mappers = patterns.map {
-      case ((phase, metadata), raw) =>
-        val incidentsRM = new ToIncidentsResultMapper(
-            raw,
-            if (metadata.maxWindowMs > 0L) metadata.maxWindowMs else source.conf.defaultEventsGapMs,
-            forwardedFields ++ raw.forwardedFields.map(source.fieldToEKey),
-            source.conf.partitionFields.map(source.fieldToEKey)
-          ).asInstanceOf[ResultMapper[In, Any, Incident]]
-        new FlinkPatternMapper(phase, incidentsRM, source.conf.eventsMaxGapMs, source.emptyEvent, source.isEventTerminal)
-          .asInstanceOf[RichStatefulFlatMapper[In, Any, Incident]]
+    val mappers: Seq[StatefulFlatMapper[In, Any, Incident]] = patterns.map {
+      case ((pattern, meta), rawP) =>
+        val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+        val toIncidents = ToIncidentsMapper(
+          rawP.id,
+          allForwardFields.map { case (id, k) => id.toString.tail -> k },
+          rawP.payload.toSeq,
+          if (meta.maxWindowMs > 0L) meta.maxWindowMs else source.conf.defaultEventsGapMs,
+          source.conf.partitionFields.map(source.fieldToEKey)
+        )
+        PatternFlatMapper(
+          pattern,
+          toIncidents.apply,
+          source.conf.eventsMaxGapMs,
+          source.emptyEvent,
+          source.isEventTerminal
+        )(timeExtractor).asInstanceOf[StatefulFlatMapper[In, Any, Incident]]
     }
-    stream.keyBy(source.partitioner).flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
+    stream
+      .keyBy(source.partitioner)
+      .flatMap(new FlatMappersCombinator[In, Any, Incident](mappers))
+      .setMaxParallelism(source.conf.maxPartitionsParallelism)
   }
 }
 
 object PatternsSearchJob {
-  type RichPattern[E] = ((Pattern[E, _, _], PhaseMetadata), RawPattern)
+  type RichPattern[E] = ((Pattern[E, _, Segment], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
@@ -101,6 +113,7 @@ object PatternsSearchJob {
           Validated
             .fromEither(PhaseBuilder.build[E, EKey, EItem](p.sourceCode, fieldsIdxMap.apply))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
+            .map(pat => (TimeMeasurementPattern(pat._1, p.id, p.sourceCode), pat._2))
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
@@ -125,7 +138,7 @@ object PatternsSearchJob {
   def reduceIncidents(incidents: DataStream[Incident]) = {
     incidents
       .assignAscendingTimestamps(p => p.segment.from.toMillis)
-      .keyBy(e => e.id + e.partitionFields.values.mkString)
+      .keyBy(_.id)
       .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
         override def extract(element: Incident): Long = element.maxWindowMs
       }))
@@ -133,8 +146,7 @@ object PatternsSearchJob {
       .name("Uniting adjacent incidents")
   }
 
-  // todo .. StrSink here?
-  def saveStream[E, EKey](stream: DataStream[E], outputConf: OutputConf[E]) = {
+  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]) = {
     stream.writeUsingOutputFormat(outputConf.getOutputFormat)
   }
 }

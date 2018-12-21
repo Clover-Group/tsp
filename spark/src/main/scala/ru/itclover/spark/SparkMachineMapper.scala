@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.PatternResult.{Success, TerminalResult}
 
 import scala.concurrent.duration.Duration
 
-class SparkMachineMapper[Group, Event, State, Out](override val phaseParser: Pattern[Event, State, Out])
+class SparkMachineMapper[Group, Event, State, Out](override val pattern: Pattern[Event, State, Out])
   extends AbstractPatternMapper[Event, State, Out]
     with ((Group, Iterator[Event], GroupState[Seq[State]]) => Iterator[Out])
     with Serializable {
@@ -47,8 +47,8 @@ class SparkMachineMapper[Group, Event, State, Out](override val phaseParser: Pat
   override def isEventTerminal(event: Event) = false // TODO
 }
 
-class TimedSparkMachineMapper[Group, Event, State, Out](timeout: Duration)(override val phaseParser: Pattern[Event, State, Out])
-  extends SparkMachineMapper[Group, Event, State, Out](phaseParser) {
+class TimedSparkMachineMapper[Group, Event, State, Out](timeout: Duration)(override val pattern: Pattern[Event, State, Out])
+  extends SparkMachineMapper[Group, Event, State, Out](pattern) {
   private val millis = timeout.toMillis
 
   override protected def updateStateWithNewValue(groupState: GroupState[Seq[State]], newState: Seq[State]): Unit = {

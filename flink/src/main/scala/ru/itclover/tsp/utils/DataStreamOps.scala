@@ -1,14 +1,10 @@
-package ru.itclover.tsp
-
+package ru.itclover.tsp.utils
 import org.apache.flink.api.common.functions.FlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala.typeutils.UnitTypeInfo
-import org.apache.flink.streaming.api.scala.{DataStream, KeyedStream}
-import org.apache.flink.types.Row
-import ru.itclover.tsp.transformers.{FlatMappersCombinator, RichStatefulFlatMapper}
+import org.apache.flink.streaming.api.scala.DataStream
 
-
-object DataStreamUtils {
+object DataStreamOps {
 
   implicit class DataStreamOps[Event: TypeInformation](val stream: DataStream[Event]) {
 

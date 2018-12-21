@@ -5,10 +5,14 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import scala.concurrent.{ExecutionContext, Future}
+
+import scala.concurrent.{Await, ExecutionContext, Future}
 import MonitoringServiceModel._
 import cats.implicits._
 import cats._
+
+import scala.concurrent.duration.Duration
+import scala.reflect.macros.whitebox
 
 case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMaterializer, ec: ExecutionContext)
     extends MonitoringServiceProtocols {
@@ -18,8 +22,8 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
   def queryJobDetailsWithMetrics(name: String, metricsInf: List[MetricInfo]): Future[Option[JobDetailsWithMetrics]] =
     queryJobInfo(name) flatMap {
       case Some(details) =>
-        queryJobMetrics(details, metricsInf).map(metrics =>
-          Some(JobDetailsWithMetrics(details, metrics.map({ case (inf, value) => inf.name -> value }).toMap))
+        queryJobMetrics(details, metricsInf).map(
+          metrics => Some(JobDetailsWithMetrics(details, metrics.map({ case (inf, value) => inf.name -> value }).toMap))
         )
       case _ => Future.successful(None)
     }
@@ -42,7 +46,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
         val mUri = uri + s"/jobs/${job.jid}/vertices/${job.vertices(vertexInd).id}/metrics?get=${m.id}"
         queryToEither[MonitoringError, List[Metric]](mUri) flatMap {
           case Right(metrics) if metrics.nonEmpty => Future.successful(metrics.map(m -> _.value))
-          case Right(_)                           => Future.successful(List(m -> "0"))
+          case Right(_)                           => Future.successful(List(m        -> "0"))
 
           case Left(err) => Future.failed(err.toThrowable)
         }
@@ -50,6 +54,75 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
         Future.failed(new IndexOutOfBoundsException("There is no such metric with index"))
       }
     })
+  }
+
+  def queryJobAllRootMetrics(name: String): Future[Either[Throwable, Map[String, String]]] =
+    queryJobInfo(name) flatMap {
+      case Some(job) =>
+        val metricNamesUri = uri + s"/jobs/${job.jid}/metrics"
+        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+          case Right(metricNames) =>
+            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
+            Await.result(
+              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
+                case Left(err)      => Left(err.toThrowable)
+              },
+              Duration.Inf
+            )
+          case Left(err) => Left(err.toThrowable)
+        }
+      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
+    }
+
+  def queryJobAllMetricsForVertex(name: String, vertexIndex: Int): Future[Either[Throwable, Map[String, String]]] =
+    queryJobInfo(name) flatMap {
+      case Some(job) =>
+        val metricNamesUri = uri + s"/jobs/${job.jid}/vertices/${job.vertices(vertexIndex).id}/metrics"
+        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+          case Right(metricNames) =>
+            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
+            Await.result(
+              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
+                case Left(err)      => Left(err.toThrowable)
+              },
+              Duration.Inf
+            )
+          case Left(err) => Left(err.toThrowable)
+        }
+      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
+    }
+
+  def queryJobAllMetrics(name: String): Future[Either[Throwable, Map[String, String]]] = queryJobInfo(name) flatMap {
+    case Some(job) =>
+      Future(
+        Right(
+          job.vertices
+            .map { v =>
+              val metricNamesUri = uri + s"/jobs/${job.jid}/vertices/${v.id}/metrics"
+              Await.result(
+                queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+                  case Right(metricNames) =>
+                    val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
+                    Await.result(
+                      queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+                        case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
+                        case Left(err)      => Left(err.toThrowable)
+                      },
+                      Duration.Inf
+                    )
+                  case Left(err) => Left(err.toThrowable)
+                },
+                Duration.Inf
+              )
+            }
+            .filter(_.isRight)
+            .map(_.right.get)
+            .foldLeft(Map.empty[String, String])(_ ++ _)
+        )
+      )
+    case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
   }
 
   def queryJobExceptions(name: String): Future[Option[JobExceptions]] = queryJobByName(name) flatMap {

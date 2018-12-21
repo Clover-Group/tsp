@@ -4,7 +4,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.{DefaultJsonProtocol, _}
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import ru.itclover.tsp.transformers.FlinkCompilingPatternMapper
+import ru.itclover.tsp.mappers.PatternFlatMapper
 import scala.language.implicitConversions
 
 object MonitoringServiceModel {
@@ -17,6 +17,8 @@ object MonitoringServiceModel {
 
   case class Metric(id: String, value: String)
 
+  case class MetricName(id: String)
+
   case class MetricInfo(vertexIndex: Int, id: String, name: String)
 
   object MetricInfo {
@@ -26,7 +28,7 @@ object MonitoringServiceModel {
 
   case class Vertex(id: String, name: String, metrics: VertexMetrics)
 
-  case class VertexMetrics(readRecords: Long, writeRecords: Long, currentEventTs: Option[Long]) // .. rm
+  case class VertexMetrics(readRecords: Long, writeRecords: Long, currentEventTs: Option[Long])
 
   case class JobsOverview(jobs: List[JobBrief])
 
@@ -51,9 +53,10 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   implicit val jobExceptionsFormat = jsonFormat(JobExceptions.apply, "timestamp", "root-exception", "truncated")
   implicit val emptyFormat = jsonFormat0(EmptyResponse.apply)
   implicit val metricFormat = jsonFormat2(Metric.apply)
+  implicit val metricNameFormat = jsonFormat1(MetricName.apply)
   implicit val monitoringErrorFormat = jsonFormat1(MonitoringError.apply)
   implicit val vertexMetricsFormat = jsonFormat(
-    VertexMetrics.apply, "read-records", "write-records", FlinkCompilingPatternMapper.currentEventTsMetric
+    VertexMetrics.apply, "read-records", "write-records", PatternFlatMapper.currentEventTsMetric
   )
 
   implicit val vertexFormat = jsonFormat3(Vertex.apply)

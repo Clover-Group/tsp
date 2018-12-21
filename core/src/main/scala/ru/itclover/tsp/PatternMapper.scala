@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.Pattern
 import scala.collection.mutable
 
 case class PatternMapper[Event, State, PhaseOut, MapperOut]
-  (phaseParser: Pattern[Event, State, PhaseOut], mapResults: ResultMapper[Event, PhaseOut, MapperOut])
+  (pattern: Pattern[Event, State, PhaseOut], mapResults: ResultMapper[Event, PhaseOut, MapperOut])
   extends AbstractPatternMapper[Event, State, PhaseOut]
 {
   val log: Logger = Logger[PatternMapper[Event, State, PhaseOut, MapperOut]]

@@ -2,7 +2,7 @@ package ru.itclover.tsp.dsl
 
 import org.parboiled2._
 import ru.itclover.tsp.utils.CollectionsOps.StringOps
-import ru.itclover.tsp.aggregators.AggregatorPhases.{PreviousValue, Skip, ToSegments}
+import ru.itclover.tsp.aggregators.AggregatorPhases.{PreviousValue, Skip, SegmentsPattern}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
 import ru.itclover.tsp.core.Time.MaxWindow
 import ru.itclover.tsp.core.{Pattern, Time, Window}
@@ -14,6 +14,7 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.patterns.Booleans.{Assert, ComparingPattern}
 import ru.itclover.tsp.patterns.Constants
 import ru.itclover.tsp.patterns.Numerics._
+import ru.itclover.tsp.Segment
 
 object SyntaxParser {
   // Used for testing purposes
@@ -35,8 +36,8 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
   val nullEvent: Event = null.asInstanceOf[Event]
 
-  def start: Rule1[AnyPattern] = rule {
-    trileanExpr ~ EOI ~> ((e: AnyPattern) => ToSegments(e).asInstanceOf[AnyPattern])
+  def start: Rule1[Pattern[Event, Any, Any]] = rule {
+    trileanExpr ~ EOI
   }
 
   def trileanExpr: Rule1[AnyPattern] = rule {

@@ -12,7 +12,7 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.types.Row
 import cats.syntax.either._
 import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-import ru.itclover.tsp.transformers.StreamSource
+import ru.itclover.tsp.StreamSource
 import scala.util.Try
 
 /**
@@ -28,9 +28,9 @@ import scala.util.Try
   * @param userName for JDBC auth
   * @param password for JDBC auth
   * @param parallelism of source task (not recommended to chagne)
-  * @param numParallelSources number of absolutely separate sources to create. Patterns also will be separated by 
-  *                           equal (as much as possible) buckets by the max window in pattern (TBD by sum window size) 
-  * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also 
+  * @param numParallelSources number of absolutely separate sources to create. Patterns also will be separated by
+  *                           equal (as much as possible) buckets by the max window in pattern (TBD by sum window size)
+  * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
 case class JDBCInputConf(
@@ -44,9 +44,9 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  dataTransformation: Option[SourceDataTransformation] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
-  patternsParallelism: Option[Int] = Some(2),
+  patternsParallelism: Option[Int] = Some(1),
   timestampMultiplier: Option[Double] = Some(1000.0)
-) extends InputConf[Row]
+) extends InputConf[Row, Int, Any]

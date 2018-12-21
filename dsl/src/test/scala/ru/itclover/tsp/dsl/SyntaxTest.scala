@@ -1,10 +1,11 @@
+/*
 package ru.itclover.tsp.dsl
 
 import java.time.{Instant, ZonedDateTime}
 import org.parboiled2.ParseError
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.aggregators.AggregatorPhases.{Skip, ToSegments}
+import ru.itclover.tsp.aggregators.AggregatorPhases.{Skip, AsSegments}
 import ru.itclover.tsp.aggregators.accums
 import ru.itclover.tsp.aggregators.accums.{AccumState, PushDownAccumInterval}
 import ru.itclover.tsp.aggregators.accums.OneTimeStates.TruthAccumState
@@ -64,7 +65,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "BreakCylinderPressure = 1 and SpeedEngine > 300 and PosKM > 0 and SpeedEngine > 340 for 3 sec",
-      ToSegments(
+      AsSegments(
         Assert(
           equalParser('BreakCylinderPressure.as[Double], const(1.0))
           and 'SpeedEngine.as[Double] > const(300.0)
@@ -75,7 +76,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "SensorBrakeRelease = 1 and SpeedEngine > 260 and PosKM > 3 and PosKM < 16 and Speed > 2 for 3 sec",
-      ToSegments(
+      AsSegments(
         Assert(
           equalParser('SensorBrakeRelease.as[Double], const(1.0))
           and 'SpeedEngine.as[Double] > const(260.0)
@@ -87,7 +88,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for 100 sec > 50 sec) andThen SpeedEngine > 0",
-      ToSegments(
+      AsSegments(
         Assert(equalParser('SpeedEngine.as[Double], const(0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
@@ -103,7 +104,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "(SpeedEngine = 0 for 100 sec and POilPumpOut > 0.1 for exactly 100 sec > 50 sec) andThen SpeedEngine > 0",
-      ToSegments(
+      AsSegments(
         Assert(equalParser('SpeedEngine.as[Double], const(0.0)))
           .timed(Window(100000), Window(100000))
         togetherWith
@@ -117,7 +118,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorOilPump = 1 for 7 min < 80 sec)) andThen SpeedEngine > 0",
-      ToSegments(
+      AsSegments(
         Assert(
           equalParser(Functions.lag('SpeedEngine.as[Double]), const(0.0))
           and 'TOilInDiesel.as[Double] < const(45.0)
@@ -161,7 +162,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "Current_V=0 andThen lag(I_OP) =0 and I_OP =1 and Current_V < 15",
-      ToSegments(
+      AsSegments(
         Assert(equalParser('Current_V.as[Double], const(0)))
         andThen Skip(
           1,
@@ -193,7 +194,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "K31 = 0 and lag(QF1) = 1 and QF1 = 0 and U_Br = 1 and pr_OFF_P7 = 1 and SA7 = 0 and Iheat < 300 and lag(Iheat) < 300",
-      ToSegments(
+      AsSegments(
         Assert(
           equalParser('K31.as[Double], const(0))
           and equalParser(Functions.lag('QF1.as[Double]), const(1))
@@ -220,7 +221,7 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     ),
     (
       "\"Section\" = 0",
-      ToSegments(Assert(equalParser('Section.as[Double], const(0.0))))
+      AsSegments(Assert(equalParser('Section.as[Double], const(0.0))))
     )
   )
 
@@ -248,3 +249,4 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     processedResult.get.format(event) shouldBe result.format(event)
   }
 }
+*/

@@ -8,11 +8,10 @@ import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
-
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{JDBCContainer, RangeMatchers, SqlMatchers}
 import ru.itclover.tsp.utils.Files
 
@@ -23,7 +22,7 @@ class BasicJdbcTest
     with HttpService
     with ForAllTestContainer {
 
-  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
+  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning

@@ -1,13 +1,13 @@
 package ru.itclover.tsp.io
 import org.apache.flink.types.Row
 
-trait EventCreator[Event] extends Serializable {
-  def create(kv: Seq[(Symbol, AnyRef)]): Event
-  def emptyEvent(fieldsIndexesMap: Map[Symbol, Int]): Event
+trait EventCreator[Event, Key] extends Serializable {
+  def create(kv: Seq[(Key, AnyRef)]): Event
+  def emptyEvent(fieldsIndexesMap: Map[Key, Int]): Event
 }
 
 object EventCreatorInstances {
-  implicit val rowEventCreator: EventCreator[Row] = new EventCreator[Row] {
+  implicit val rowEventCreator: EventCreator[Row, Symbol] = new EventCreator[Row, Symbol] {
     override def create(kv: Seq[(Symbol, AnyRef)]): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>

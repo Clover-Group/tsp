@@ -7,7 +7,7 @@ import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
@@ -25,7 +25,7 @@ class AccumsTest
     with HttpService
     with ForAllTestContainer {
 
-  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
+  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 

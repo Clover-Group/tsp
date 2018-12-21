@@ -1,36 +1,28 @@
-package ru.itclover.tsp.transformers
+package ru.itclover.tsp
 
-import java.sql.DriverManager
 import java.util
 import cats.syntax.either._
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.io.RichInputFormat
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
-import collection.JavaConversions._
-import com.typesafe.scalalogging.Logger
-import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
-import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.utils.CollectionsOps.TryOps
-import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import ru.itclover.tsp.utils.UtilityTypes.ThrowableOr
-import ru.itclover.tsp.JDBCInputFormatProps
-import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.io.Decoder.AnyDecoder
+import ru.itclover.tsp.io.{Extractor, TimeExtractor}
+import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
+import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.ErrorsADT._
-import ru.itclover.tsp.utils.Exceptions.SourceException
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowOps, RowTsTimeExtractor}
+import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.util.Try
 
-sealed trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
+/*sealed*/ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def createStream: DataStream[Event]
 
-  def conf: InputConf[Event]
+  def conf: InputConf[Event, EKey, EItem]
 
   def emptyEvent: Event
 
@@ -69,7 +61,7 @@ object JdbcSource {
 }
 
 
-// .. todo rm nullField, only emptyEvent (after debug and tests)
+// todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
