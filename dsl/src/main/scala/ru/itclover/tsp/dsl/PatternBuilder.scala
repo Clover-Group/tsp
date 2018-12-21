@@ -21,13 +21,14 @@ object PatternBuilder {
   def build[Event, EKey, EItem](
     input: String,
     idToEKey: Symbol => EKey,
+    toleranceFraction: Double,
     formatter: ErrorFormatter = new ErrorFormatter()
   )(
     implicit timeExtractor: TimeExtractor[Event],
     extractor: Extractor[Event, EKey, EItem],
     decodeDouble: Decoder[EItem, Double]
   ): Either[String, (Pattern[Event, _, Segment], PatternMetadata)] = {
-    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey)
+    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey, toleranceFraction)
     val rawPattern = parser.start.run()
     rawPattern
       .map { p =>

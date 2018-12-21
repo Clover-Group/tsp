@@ -23,7 +23,7 @@ object SyntaxParser {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey)(
+class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey, toleranceFraction: Double)(
   implicit timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   decodeDouble: Decoder[EItem, Double]
@@ -53,10 +53,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
-    (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
-    | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
+    | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
+      (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -350,7 +350,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
       }
     )
     | time ~> ((win: Window) => {
-      val tol = win.toMillis / 10
+      val tol = (win.toMillis * toleranceFraction).toLong
       TimeInterval(Window(Math.max(win.toMillis - tol, 0)), Window(win.toMillis + tol))
     }))
   }
@@ -448,7 +448,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
             )).asInstanceOf[AnyNumericPattern]
           case "countof" =>
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              const[Double](Double.MinValue).asInstanceOf[AnyNumericPattern],
+              const[Double](0.0).asInstanceOf[AnyNumericPattern],
               arguments: _*
             ).asInstanceOf[AnyNumericPattern]
           case _ => throw new RuntimeException(s"Unknown function `$function`")
