@@ -1,3 +1,6 @@
+## 0.13.1
+- Added new syntax for `for TIME` expressions: `x for t TIME +- (TIME | PERCENT)` and 
+`x for t1 to t2 TIME` to time with tolerance and time range accordingly
 ## 0.13.1-rc1
 
 ## 0.13.1-rc1
