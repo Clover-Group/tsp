@@ -10,6 +10,8 @@ object Constants {
 
   case class ConstPattern[Event, +T](value: T) extends NoStatePattern[Event, T] {
     override def apply(e: Event, s: NoState) = (Success(value), s)
+
+    override def format(event: Event, state: NoState) = value.toString
   }
 
   case class ExtractingPattern[Event, EKey, EItem, +T](key: EKey, keyName: Symbol)(

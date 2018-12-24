@@ -3,8 +3,8 @@ package ru.itclover.tsp.patterns
 import ru.itclover.tsp.core.Pattern.WithPattern
 import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.patterns.Combining.And
 import ru.itclover.tsp.patterns.Monads.MapParserLike
+import ru.itclover.tsp.utils.UtilityTypes.And
 
 object Booleans {
 

@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.dsl.schema.RawPattern
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.utils.Files
@@ -26,7 +26,7 @@ class RealDataTest
     with ForAllTestContainer {
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
-  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.Implicits.global
+  implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
@@ -64,7 +64,7 @@ class RealDataTest
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val (timeRangeSec, assertions) = (1 to 50) -> Seq(
+  val (timeRangeSec, assertions) = (1 to 70) -> Seq(
     RawPattern("6", "HI__wagon_id__6 < 0.5"),
     RawPattern("4", "HI__wagon_id__4 < 0.5")
   )

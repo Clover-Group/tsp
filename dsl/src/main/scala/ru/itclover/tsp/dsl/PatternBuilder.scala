@@ -2,7 +2,7 @@ package ru.itclover.tsp.dsl
 
 import org.parboiled2.{ErrorFormatter, ParseError}
 import cats.syntax.either._
-import ru.itclover.tsp.aggregators.AggregatorPhases.{Aligned, Skip, ToSegments}
+import ru.itclover.tsp.aggregators.AggregatorPhases.{Aligned, Skip, SegmentsPattern}
 import ru.itclover.tsp.aggregators.accums.{AccumPhase, PushDownAccumInterval}
 import ru.itclover.tsp.core.{Pattern, Window}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
@@ -13,25 +13,28 @@ import ru.itclover.tsp.patterns.Monads.{FlatMapParser, MapParser}
 import ru.itclover.tsp.patterns.Numerics.{BinaryNumericParser, Reduce}
 import ru.itclover.tsp.patterns.TimePhases.Timed
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
+import ru.itclover.tsp.Segment
 import scala.math.Numeric.DoubleIsFractional
 
-object PhaseBuilder {
+object PatternBuilder {
 
   def build[Event, EKey, EItem](
     input: String,
     idToEKey: Symbol => EKey,
+    toleranceFraction: Double,
     formatter: ErrorFormatter = new ErrorFormatter()
   )(
     implicit timeExtractor: TimeExtractor[Event],
     extractor: Extractor[Event, EKey, EItem],
     decodeDouble: Decoder[EItem, Double]
-  ): Either[String, (Pattern[Event, _, _], PhaseMetadata)] = {
-    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey)
-    val rawPhase = parser.start.run()
-    rawPhase
+  ): Either[String, (Pattern[Event, _, Segment], PatternMetadata)] = {
+    val parser = new SyntaxParser[Event, EKey, EItem](input, idToEKey, toleranceFraction)
+    val rawPattern = parser.start.run()
+    rawPattern
       .map { p =>
         val maxWindowMs = maxPhaseWindowMs(p)
-        (postProcess(p, maxWindowMs), PhaseMetadata(findFields(p).toSet, maxWindowMs))
+        val pattern = SegmentsPattern(postProcess(p, maxWindowMs))
+        (pattern, PatternMetadata(findFields(p).toSet, maxWindowMs))
       }
       .toEither
       .leftMap {
@@ -60,7 +63,7 @@ object PhaseBuilder {
           left = postProcess(bnp.left, maxPhase).asInstanceOf[Pattern[Event, _, Double]],
           right = postProcess(bnp.right, maxPhase).asInstanceOf[Pattern[Event, _, Double]]
         )
-      case ts: ToSegments[Event, _, _] => ts.copy(innerPhase = postProcess(ts.innerPhase, maxPhase))
+      case ts: SegmentsPattern[Event, _, _] => ts.copy(inner = postProcess(ts.inner, maxPhase))
       case mp: MapParser[Event, _, _, _] =>
         mp.copy(phaseParser = postProcess(mp.phaseParser, maxPhase))(mp.function.asInstanceOf[Any => _])
       case a: Assert[Event, _] =>
@@ -98,7 +101,7 @@ object PhaseBuilder {
       case bnp: BinaryNumericParser[Event, _, _, _] =>
         Math.max(maxPhaseWindowMs(bnp.left), maxPhaseWindowMs(bnp.right))
 
-      case toSegments: ToSegments[Event, _, _]    => maxPhaseWindowMs(toSegments.innerPhase)
+      case toSegments: SegmentsPattern[Event, _, _]    => maxPhaseWindowMs(toSegments.inner)
       case map: MapParser[Event, _, _, _]         => maxPhaseWindowMs(map.phaseParser)
       case assert: Assert[Event, _]               => maxPhaseWindowMs(assert.predicate)
       case fMap: FlatMapParser[Event, _, _, _, _] => maxPhaseWindowMs(fMap.phase)
@@ -108,7 +111,7 @@ object PhaseBuilder {
       case pusher: PushDownAccumInterval[Event, _, _, _] =>
         Math.max(pusher.accum.window.toMillis, maxPhaseWindowMs(pusher.accum.innerPhase))
       case timed: Timed[Event, _, _] =>
-        Math.max(timed.timeInterval.min, maxPhaseWindowMs(timed.inner))
+        Math.max(timed.timeInterval.max, maxPhaseWindowMs(timed.inner))
 
       case _ =>
         0L
@@ -129,7 +132,7 @@ object PhaseBuilder {
       case bnp: BinaryNumericParser[Event, _, _, _] => findFields(bnp.left) ++ findFields(bnp.right)
       case aph: AccumPhase[Event, _, _, _]          => findFields(aph.innerPhase)
       case p: PushDownAccumInterval[Event, _, _, _] => findFields(p.accum.innerPhase)
-      case ts: ToSegments[Event, _, _]              => findFields(ts.innerPhase)
+      case ts: SegmentsPattern[Event, _, _]              => findFields(ts.inner)
       case mp: MapParser[Event, _, _, _]            => findFields(mp.phaseParser)
       case fmp: FlatMapParser[Event, _, _, _, _]    => findFields(fmp.phase)
       case s: Skip[Event, _, _]                     => findFields(s.phase)

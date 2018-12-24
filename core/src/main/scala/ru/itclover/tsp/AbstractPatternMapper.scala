@@ -16,7 +16,7 @@ trait AbstractPatternMapper[Event, State, Out] {
   /** Is it last event in a stream? */
   def isEventTerminal(event: Event): Boolean = false
 
-  def phaseParser: Pattern[Event, State, Out]
+  def pattern: Pattern[Event, State, Out]
 
   def process(event: Event, oldStates: Seq[State]): (Seq[TerminalResult[Out]], Seq[State]) = {
 
@@ -27,9 +27,9 @@ trait AbstractPatternMapper[Event, State, Out] {
       Seq(heartbeat) -> Seq.empty
     } else {
       // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
-      val oldStatesWithOneInitialState = oldStates :+ phaseParser.initialState
+      val oldStatesWithOneInitialState = oldStates :+ pattern.initialState
 
-      val stateToResult = phaseParser.curried(event)
+      val stateToResult = pattern.curried(event)
 
       val resultsAndStates = oldStatesWithOneInitialState.map(stateToResult)
 
@@ -39,7 +39,7 @@ trait AbstractPatternMapper[Event, State, Out] {
 
       if (isDebug && counter.incrementAndGet() % 1000 == 0) {
         log.debug(s"After ${counter.longValue()} events")
-        val emitsLog = toEmit.map(resAndSt => phaseParser.format(event, resAndSt._2) + " emits " + resAndSt._1)
+        val emitsLog = toEmit.map(resAndSt => pattern.format(event, resAndSt._2) + " emits " + resAndSt._1)
         if (emitsLog.nonEmpty) log.debug(s"Results to emit: ${emitsLog.mkString("\n", "\n", "")}")
         log.debug(s"States on hold: ${newStates.size}")
       }

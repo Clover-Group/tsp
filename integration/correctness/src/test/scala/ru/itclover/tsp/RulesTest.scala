@@ -40,10 +40,6 @@ class RulesTest extends WordSpec with Matchers {
   def fakeMapper[Event, PhaseOut](p: Pattern[Event, _, PhaseOut]) = FakeMapper[Event, PhaseOut]()
 
 
-  def segmentMapper[Event, PhaseOut](p: Pattern[Event, _, PhaseOut])(implicit te: TimeExtractor[Event]) =
-    SegmentResultsMapper[Event, PhaseOut]()(te)
-
-
   def run[Event, Out](rule: Pattern[Event, _, Out], events: Seq[Event]): Vector[PatternResult.TerminalResult[Out]] = {
     val mapResults = fakeMapper(rule)
     events
@@ -88,43 +84,6 @@ class RulesTest extends WordSpec with Matchers {
       success.length should be > 1
       failures.length should be > 1
     }
-  }
-
-
-  "stopWithoutOilPumping" should {
-    //        +1 Остановка без прокачки масла
-    //        1. начало куска ContuctorOilPump не равен 0 И SpeedEngine уменьшается с 260 до 0
-    //        2. конец когда SpeedEngine попрежнему 0 и ContactorOilPump = 0 и между двумя этими условиями прошло меньше 60 сек
-    //          """ЕСЛИ SpeedEngine перешел из "не 0" в "0" И в течение 90 секунд суммарное время когда ContactorBlockOilPumpKMN = "не 0" менее 60 секунд"""
-    "match for valid-1" in {
-      val rows = (
-        for (time <- TimerGenerator(from = Instant.now());
-             pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
-               .after(Constant(0));
-             speed <- Constant(261.0).timed(1.seconds)
-               .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
-               .after(Constant(0.0))
-        ) yield Row(time, speed.toInt, pump.toInt, 1)
-        ).run(seconds = 100)
-
-      //      val results: Seq[(Int, String)] = run(Rules.stopWithoutOilPumping, rows).collect { case Success(x) => x }
-      //
-      //      assert(results.nonEmpty)
-    }
-
-    "match for valid-2" in {
-      val rows = (
-        for (time <- TimerGenerator(from = Instant.now());
-             pump <- RandomInRange(1, 100).map(_.toDouble).timed(40.second)
-               .after(Constant(0));
-             speed <- Change(from = 1.0, to = 261, 15.seconds).timed(1.seconds)
-               .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
-               .after(Constant(0.0))
-        ) yield Row(time, speed.toInt, pump.toInt, 1)
-        ).run(seconds = 100)
-
-    }
-
   }
 
   "dsl" should {
@@ -201,35 +160,7 @@ class RulesTest extends WordSpec with Matchers {
       segmentLengthOpt.get should be > 12000L
       segmentLengthOpt.get should be < 20000L
     }
-
-    /*"Segment Decreasing" in {
-      // val phase: Phase[Row] = ToSegments(Decreasing(_.speed, 50.0, 35.0))
-      val phase: Phase[Row] = ToSegments(Assert(Derivation('speed.field) <= 0.0) and Wait('speed.field <= 35.0))
-      val rows = (
-        for (time <- TimerGenerator(from = Instant.now());
-             speed <- Constant(50.0).timed(1.seconds)
-               .after(Change(from = 50.0, to = 35.0, howLong = 5.seconds))
-               .after(Constant(35.0).timed(1.seconds))
-               .after(Change(from = 35.0, to = 30.0, howLong = 2.seconds))
-               .after(Constant(0.0))
-        ) yield Row(time, speed.toInt, 0)
-        ).run(seconds = 8)
-      println(rows.map(_.speed))
-      val (successes, failures) = runWithSegmentation(phase, rows).partition(_.isInstanceOf[Success[_]])
-
-      failures.length should be > 0
-      successes should not be empty
-      successes.length should equal(1)
-
-      val segmentLengthOpt = successes.head match {
-        case Success(Segment(from, to)) => Some(to.toMillis - from.toMillis)
-        case _ => None
-      }
-      segmentLengthOpt should not be empty
-      segmentLengthOpt.get should be > 3000L
-      segmentLengthOpt.get should be < 10000L
-    }*/
-
+    
     "Segment Increasing" in {
       val phase: Phase[Row] = ToSegments(Increasing(_.speed, 35.0, 50.0))
       val rows = (
