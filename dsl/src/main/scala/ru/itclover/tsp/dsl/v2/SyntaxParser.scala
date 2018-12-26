@@ -1,12 +1,17 @@
 package ru.itclover.tsp.dsl.v2
 
-import cats.Monad
+import cats.{Foldable, Functor, Monad}
 import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
+import ru.itclover.tsp.core.Time.MaxWindow
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.v2.Extract.Result
+import ru.itclover.tsp.utils.UtilityTypes.ParseException
+import ru.itclover.tsp.v2.Extract.{IdxExtractor, Result}
 import ru.itclover.tsp.v2._
+import ru.itclover.tsp.v2.Patterns
+import ru.itclover.tsp.v2.aggregators._
+import cats.kernel.instances._
 
 import scala.language.higherKinds
 
@@ -18,10 +23,11 @@ object SyntaxParser {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserInput, idToEKey: Symbol => EKey, toleranceFraction: Double)(
+class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](val input: ParserInput, idToEKey: Symbol => EKey, toleranceFraction: Double)(
   implicit timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   decodeDouble: Decoder[EItem, Double],
+  idxExtractor: IdxExtractor[Event]
 ) extends Parser {
 
   def const[T](value: T) = ConstPattern[Event, T, F, Cont](value)
@@ -33,6 +39,8 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   type ComparisonOperatorPattern = CouplePattern[Event, Any, Any, Double, Double, Boolean, F, Cont]
 
   val nullEvent: Event = null.asInstanceOf[Event]
+  // TODO: Proper implicits
+  val richPatterns: Patterns[Event, F, Cont] = new Patterns[Event, F, Cont] {}
 
   def start: Rule1[AnyPattern] = rule {
     trileanExpr ~ EOI
@@ -41,11 +49,15 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   def trileanExpr: Rule1[AnyPattern] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => (e andThen Skip(1, f)).asInstanceOf[AnyPattern])
+      ((e: AnyPattern, f: AnyPattern) => AndThenPattern(e, Skip(1, f)).asInstanceOf[AnyPattern])
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => (e togetherWith f).asInstanceOf[AnyPattern])
+      ((e: AnyPattern, f: AnyPattern) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[AnyBooleanPattern])
+        .and(f.asInstanceOf[AnyBooleanPattern])
+        .asInstanceOf[AnyPattern])
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => (e either f).asInstanceOf[AnyPattern])
+      ((e: AnyPattern, f: AnyPattern) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[AnyBooleanPattern])
+        .or(f.asInstanceOf[AnyBooleanPattern])
+        .asInstanceOf[AnyPattern])
     )
   }
 
@@ -57,14 +69,14 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
-      (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
-      Assert(NotParser(b)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern]
+      (TimerPattern(c, MaxWindow).asInstanceOf[AnyBooleanPattern] and
+      richPatterns.assert(new MapPattern(b)((x: Boolean) => !x)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern]
     })
     | trileanFactor)
   }
 
   protected def buildForExpr(phase: AnyPattern, ti: TimeInterval): AnyPattern = {
-    Assert(phase.asInstanceOf[AnyBooleanPattern])
+    richPatterns.assert(phase.asInstanceOf[AnyBooleanPattern])
       .timed(ti)
       .asInstanceOf[AnyPattern]
   }
@@ -77,11 +89,11 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   ): AnyPattern = {
     val accum = range match {
       case _: NumericInterval[Long] =>
-        Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
+        richPatterns.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
       case _: TimeInterval =>
-        Pattern.Functions
-          .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], w)
-          .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
+        richPatterns
+          .truthMillis(phase.asInstanceOf[AnyBooleanPattern], w)
+          .asInstanceOf[AccumPattern[Event, Any, Boolean, Long, Any, F, Cont]] // TODO Covariant out
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
 
@@ -101,11 +113,11 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   // format: off
 
   def nonFatalTrileanFactor: Rule1[AnyPattern] = rule {
-    booleanExpr ~> { b: AnyBooleanPattern => b } | '(' ~ trileanExpr ~ ')' ~ ws
+    booleanExpr ~> { b: AnyBooleanPattern => b.asInstanceOf[AnyPattern] } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def trileanFactor: Rule1[AnyPattern] = rule {
-    booleanExpr ~> { b: AnyBooleanPattern => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
+    booleanExpr ~> { b: AnyBooleanPattern => richPatterns.assert(b).asInstanceOf[AnyPattern] } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def booleanExpr: Rule1[AnyBooleanPattern] = rule {
@@ -120,7 +132,7 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   def booleanTerm: Rule1[AnyBooleanPattern] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => new BooleanOperatorPattern(e, f)(((a: Boolean, b: Boolean) => Result.succ(a & b)).asInstanceOf[AnyBooleanPattern])
+      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => new BooleanOperatorPattern(e, f)(((a: Boolean, b: Boolean) => Result.succ(a & b)).asInstanceOf[AnyBooleanPattern]))
     )
   }
 
@@ -389,7 +401,7 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
       ((function: String, arguments: Seq[AnyNumericPattern], constraint: Option[Double => Boolean]) => {
         val ifCondition: Double => Boolean = constraint.getOrElse(_ => true)
         function.toLowerCase match {
-          case "lag" => Pattern.Functions.lag(arguments.head).asInstanceOf[AnyNumericPattern]
+          case "lag" => PreviousValue(arguments.head).asInstanceOf[AnyNumericPattern]
           case "abs" => new MapPattern(arguments.head)(Math.abs).asInstanceOf[AnyNumericPattern]
           case "sin" => new MapPattern(arguments.head)(Math.sin).asInstanceOf[AnyNumericPattern]
           case "cos" => new MapPattern(arguments.head)(Math.cos).asInstanceOf[AnyNumericPattern]
@@ -403,17 +415,13 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
             new MapPattern(arguments.head)((x: Double) => Math.tan(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
           case "cotd" | "ctgd" =>
             new MapPattern(arguments.head)((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
-          case "exp" =>
-            Pattern.Functions.call1(Math.exp, "exp", arguments.head).asInstanceOf[AnyNumericPattern]
-          case "ln" =>
-            Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPattern]
+          case "exp" => new MapPattern(arguments.head)(Math.exp).asInstanceOf[AnyNumericPattern]
+          case "ln" => new MapPattern(arguments.head)(Math.log).asInstanceOf[AnyNumericPattern]
           case "log" =>
-            Pattern.Functions
-              .call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1))
+            new NumericOperatorPattern(arguments(0), arguments(1))((x, y) => Math.log(y) / Math.log(x))
               .asInstanceOf[AnyNumericPattern]
           case "sigmoid" =>
-            Pattern.Functions
-              .call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1))
+            new NumericOperatorPattern(arguments(0), arguments(1))((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)))
               .asInstanceOf[AnyNumericPattern]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
@@ -450,9 +458,9 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
           win: Window
         ) => {
           function match {
-            case "avg" => Pattern.Functions.avg(arg, win).asInstanceOf[AnyNumericPattern]
-            case "sum" => Pattern.Functions.sum(arg, win).asInstanceOf[AnyNumericPattern]
-            case "lag" => Pattern.Functions.lag(arg, win).asInstanceOf[AnyNumericPattern]
+            case "avg" => richPatterns.avg(arg, win).asInstanceOf[AnyNumericPattern]
+            case "sum" => richPatterns.sum(arg, win).asInstanceOf[AnyNumericPattern]
+            case "lag" => richPatterns.lag[Double, Any](arg, win).asInstanceOf[AnyNumericPattern]
           }
         }
       )
@@ -468,10 +476,10 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]](val input: ParserIn
   }
 
   def fieldValue: Rule1[ExtractingPattern[Event, EKey, EItem, Double]] = rule {
-    (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(id.toSymbol), id.toSymbol))
+    (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(Symbol(id)), Symbol(id)))
     | anyWordInDblQuotes ~>
     ((id: String) => {
-      val clean = id.replace("\"\"", "\"").toSymbol
+      val clean = Symbol(id.replace("\"\"", "\""))
       ExtractingPattern(idToEKey(clean), clean)
     }))
   }

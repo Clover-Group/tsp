@@ -12,7 +12,7 @@ object Extract {
   type Idx = Long
   type QI[T] = m.Queue[IdxValue[T]]
 
-  type Result[T] = Option[T]
+  type Result[+T] = Option[T]
 
   object Result {
     def fail[T]: Result[T] = Fail
