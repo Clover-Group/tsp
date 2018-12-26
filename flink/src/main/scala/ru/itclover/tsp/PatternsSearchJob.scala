@@ -83,8 +83,7 @@ case class PatternsSearchJob[In, InKey, InItem](
           pattern,
           toIncidents.apply,
           source.conf.eventsMaxGapMs,
-          source.emptyEvent,
-          source.isEventTerminal
+          source.emptyEvent
         )(timeExtractor).asInstanceOf[StatefulFlatMapper[In, Any, Incident]]
     }
     stream
