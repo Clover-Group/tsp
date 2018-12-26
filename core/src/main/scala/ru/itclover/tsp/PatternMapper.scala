@@ -28,6 +28,4 @@ case class PatternMapper[Event, State, PhaseOut, MapperOut]
   }
 
   def result: Vector[TerminalResult[MapperOut]] = collector.toVector
-
-  override def isEventTerminal(event: Event) = false // TODO
 }
