@@ -40,7 +40,7 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
 
   val nullEvent: Event = null.asInstanceOf[Event]
   // TODO: Proper implicits
-  val richPatterns: Patterns[Event, F, Cont] = new Patterns[Event, F, Cont] {}
+  implicit val richPatterns: Patterns[Event, F, Cont] = new Patterns[Event, F, Cont] {}
 
   def start: Rule1[AnyPattern] = rule {
     trileanExpr ~ EOI
@@ -49,7 +49,7 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
   def trileanExpr: Rule1[AnyPattern] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => AndThenPattern(e, Skip(1, f)).asInstanceOf[AnyPattern])
+      ((e: AnyPattern, f: AnyPattern) => AndThenPattern(e, f).asInstanceOf[AnyPattern])
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
       ((e: AnyPattern, f: AnyPattern) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[AnyBooleanPattern])
         .and(f.asInstanceOf[AnyBooleanPattern])
@@ -69,8 +69,8 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
-      (TimerPattern(c, MaxWindow).asInstanceOf[AnyBooleanPattern] and
-      richPatterns.assert(new MapPattern(b)((x: Boolean) => !x)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern]
+      (richPatterns.BooleanPatternSyntax(TimerPattern(c, MaxWindow).asInstanceOf[AnyBooleanPattern]).and
+      (richPatterns.assert(new MapPattern(b)((x: Boolean) => !x)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern])
     })
     | trileanFactor)
   }
