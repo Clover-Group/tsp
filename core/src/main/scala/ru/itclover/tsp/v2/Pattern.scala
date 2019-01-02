@@ -4,8 +4,6 @@ import ru.itclover.tsp.v2.Pattern.{Idx, _}
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-//todo use Apache Arrow here. A lot of optimizations can be done.
-
 trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
 
   def initialState(): S
@@ -16,7 +14,25 @@ trait PState[T, +Self <: PState[T, _]] {
   def copyWithQueue(queue: QI[T]): Self
 }
 
-case class IdxValue[T](index: Idx, value: Result[T])
+trait IdxValue[T] {
+  def index: Idx
+  def value: Result[T]
+  def start: Idx
+  def end: Idx
+}
+
+object IdxValue {
+
+  def apply[T](index: Idx, value: Result[T]): IdxValue[T] = new IdxValueSimple[T](index, value)
+  def unapply[T](arg: IdxValue[T]): Option[(Idx, Result[T])] = Some(arg.index -> arg.value)
+
+  case class IdxValueSimple[T](index: Idx, value: Result[T]) extends IdxValue[T] {
+    override def start: Idx = index
+    override def end: Idx = index
+  }
+
+  case class IdxValueSegment[T](index: Idx, start: Idx, end: Idx, value: Result[T]) extends IdxValue[T]
+}
 
 object Pattern {
 

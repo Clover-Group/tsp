@@ -97,13 +97,13 @@ object Bench extends App {
   val startRun = System.currentTimeMillis()
 
   import monix.execution.Scheduler.Implicits.global
-  val q = StateMachine.run(pattern2, rowsWithIndex, 10000).runToFuture
+  val q = StateMachine.run(pattern2, rowsWithIndex, 10000)//.runToFuture
 
-  q.foreach { q => {
+//  q.foreach { q => {
     println(s"Result size is ${q.size}")
     println(s"Running time = ${System.currentTimeMillis() - startRun} ms")
-  }
-  }
+//  }
+//  }
 
   Await.result(q, Duration.Inf)
 }
