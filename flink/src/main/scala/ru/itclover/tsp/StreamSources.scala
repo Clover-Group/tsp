@@ -28,8 +28,6 @@ import scala.collection.mutable
 
   def fieldsClasses: Seq[(Symbol, Class[_])]
 
-  def isEventTerminal: Event => Boolean
-
   def fieldToEKey: Symbol => EKey
 
   def partitioner: Event => String
@@ -105,11 +103,6 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     val r = new Row(fieldsIdxMap.size)
     fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, 0) }
     r
-  }
-
-  override def isEventTerminal = {
-    val nullInd = fieldsIdxMap(nullFieldId)
-    event: Row => event.getArity > nullInd && event.getField(nullInd) == null
   }
 
   override def fieldToEKey = {
@@ -214,11 +207,6 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       case Some(p) => stream.setParallelism(p)
       case None    => stream
     }
-  }
-
-  override def isEventTerminal = {
-    val nullInd = fieldsIdxMap(nullFieldId)
-    event: Row => event.getArity > nullInd && event.getField(nullInd) == null
   }
 
   override def fieldToEKey = (fieldId: Symbol) => fieldsIdxMap(fieldId)

@@ -40,6 +40,8 @@ object Intervals {
         Inside
       }
     }
+
+    def midpoint: Long = (min + max) / 2
   }
 
   object TimeInterval {

@@ -23,7 +23,7 @@ object SyntaxParser {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey)(
+class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol => EKey, toleranceFraction: Double)(
   implicit timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   decodeDouble: Decoder[EItem, Double]
@@ -53,8 +53,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
 
   def trileanTerm: Rule1[AnyPattern] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => 1)) ~ time ~
-    optional(range) ~ ws ~> (buildForExpr(_, _, _, _))
+    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
+    | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
+      (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
       (c.timed(MaxWindow).asInstanceOf[AnyBooleanPattern] and
@@ -63,53 +65,39 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     | trileanFactor)
   }
 
-  protected def buildForExpr(
-    phase: AnyPattern,
-    exactly: Option[Int],
-    w: Window,
-    range: Option[Any]
-  ): AnyPattern = {
-    range match {
-      case Some(countInterval) if countInterval.isInstanceOf[NumericInterval[_]] => {
-        val accum = Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
-        (exactly.getOrElse(0) match {
-          case 0 =>
-            PushDownAccumInterval(accum, countInterval.asInstanceOf[NumericInterval[Long]])
-          case 1 =>
-            accum
-        }).flatMap({ truthCount =>
-            if (countInterval.asInstanceOf[NumericInterval[Long]].contains(truthCount)) {
-              ConstPattern(truthCount)
-            } else {
-              FailurePattern(s"Interval ($countInterval) not fully accumulated ($truthCount)")
-            }
-          })
-          .asInstanceOf[AnyPattern]
-      }
+  protected def buildForExpr(phase: AnyPattern, ti: TimeInterval): AnyPattern = {
+    Assert(phase.asInstanceOf[AnyBooleanPattern])
+      .timed(ti)
+      .asInstanceOf[AnyPattern]
+  }
 
-      case Some(timeRange) if timeRange.isInstanceOf[TimeInterval] => {
-        val accum = Pattern.Functions
+  protected def buildRangedForExpr(
+    phase: AnyPattern,
+    exactly: Option[Boolean],
+    w: Window,
+    range: Interval[Long]
+  ): AnyPattern = {
+    val accum = range match {
+      case _: NumericInterval[Long] =>
+        Pattern.Functions.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
+      case _: TimeInterval =>
+        Pattern.Functions
           .truthMillisCount(phase.asInstanceOf[AnyBooleanPattern], w)
           .asInstanceOf[AccumPhase[Event, Any, Boolean, Long]] // TODO Covariant out
-        (exactly.getOrElse(0) match {
-          case 0 =>
-            PushDownAccumInterval[Event, Any, Boolean, Long](accum, timeRange.asInstanceOf[Interval[Long]])
-          case 1 =>
-            accum
-        }).flatMap(msCount => {
-            if (timeRange.asInstanceOf[TimeInterval].contains(msCount)) {
-              ConstPattern(msCount)
-            } else {
-              FailurePattern(s"Window ($timeRange) not fully accumulated ($msCount)")
-            }
-          })
-          .asInstanceOf[AnyPattern]
-      }
-
-      case None => Assert(phase.asInstanceOf[AnyBooleanPattern]).timed(w, w).asInstanceOf[AnyPattern]
-
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
+
+    (exactly match {
+      case None => PushDownAccumInterval[Event, Any, Boolean, Long](accum, range)
+      case Some(_) => accum
+    }).flatMap(count => {
+        if (range.contains(count)) {
+          ConstPattern(count)
+        } else {
+          FailurePattern(s"Window ($range) not fully accumulated ($count)")
+        }
+      })
+      .asInstanceOf[AnyPattern]
   }
 
   // format: off
@@ -294,7 +282,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     )
   }
 
-  def range: Rule1[Any] = rule {
+  def range: Rule1[Interval[Long]] = rule {
     timeRange | repetitionRange
   }
 
@@ -303,7 +291,11 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
     | "<=" ~ ws ~ time ~> ((t: Window) => Time.less(t))
     | ">" ~ ws ~ time ~> ((t: Window) => Time.more(t))
     | ">=" ~ ws ~ time ~> ((t: Window) => Time.more(t))
-    | time ~ ignoreCase("to") ~ ws ~ time ~>
+    | timeBoundedRange)
+  }
+
+  def timeBoundedRange: Rule1[TimeInterval] = rule {
+    (time ~ ignoreCase("to") ~ ws ~ time ~>
     ((t1: Window, t2: Window) => TimeInterval(t1, t2))
     | real ~ ignoreCase("to") ~ ws ~ real ~ timeUnit ~>
     (
@@ -339,6 +331,28 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
           acc + t.toMillis
         })
     )
+  }
+
+  def timeWithTolerance: Rule1[TimeInterval] = rule {
+    (time ~ ws ~ "+-" ~ ws ~ time ~> (
+      (
+        win: Window,
+        tol: Window
+      ) => TimeInterval(Window(Math.max(win.toMillis - tol.toMillis, 0)), Window(win.toMillis + tol.toMillis))
+    )
+    | time ~ ws ~ "+-" ~ ws ~ real ~ ws ~ "%" ~> (
+      (
+        win: Window,
+        tolPc: ConstPattern[Event, Double]
+      ) => {
+        val tol = (tolPc.value * 0.01 * win.toMillis).toLong
+        TimeInterval(Window(Math.max(win.toMillis - tol, 0)), Window(win.toMillis + tol))
+      }
+    )
+    | time ~> ((win: Window) => {
+      val tol = (win.toMillis * toleranceFraction).toLong
+      TimeInterval(Window(Math.max(win.toMillis - tol, 0)), Window(win.toMillis + tol))
+    }))
   }
 
   def singleTime: Rule1[Window] = rule {
@@ -406,9 +420,13 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
           case "ln" =>
             Pattern.Functions.call1(Math.log, "ln", arguments.head).asInstanceOf[AnyNumericPattern]
           case "log" =>
-            Pattern.Functions.call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
+            Pattern.Functions
+              .call2((x, y) => Math.log(y) / Math.log(x), "log", arguments.head, arguments(1))
+              .asInstanceOf[AnyNumericPattern]
           case "sigmoid" =>
-            Pattern.Functions.call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1)).asInstanceOf[AnyNumericPattern]
+            Pattern.Functions
+              .call2((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)), "sigmoid", arguments.head, arguments(1))
+              .asInstanceOf[AnyNumericPattern]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
               const[Double](Double.MaxValue).asInstanceOf[AnyNumericPattern],
@@ -430,7 +448,7 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
             )).asInstanceOf[AnyNumericPattern]
           case "countof" =>
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              const[Double](Double.MinValue).asInstanceOf[AnyNumericPattern],
+              const[Double](0.0).asInstanceOf[AnyNumericPattern],
               arguments: _*
             ).asInstanceOf[AnyNumericPattern]
           case _ => throw new RuntimeException(s"Unknown function `$function`")
@@ -464,10 +482,10 @@ class SyntaxParser[Event, EKey, EItem](val input: ParserInput, idToEKey: Symbol 
   def fieldValue: Rule1[ExtractingPattern[Event, EKey, EItem, Double]] = rule {
     (anyWord ~> ((id: String) => ExtractingPattern(idToEKey(id.toSymbol), id.toSymbol))
     | anyWordInDblQuotes ~>
-      ((id: String) => {
-        val clean = id.replace("\"\"", "\"").toSymbol
-        ExtractingPattern(idToEKey(clean), clean)
-      }))
+    ((id: String) => {
+      val clean = id.replace("\"\"", "\"").toSymbol
+      ExtractingPattern(idToEKey(clean), clean)
+    }))
   }
 
   def boolean: Rule1[ConstPattern[Event, Boolean]] = rule {
