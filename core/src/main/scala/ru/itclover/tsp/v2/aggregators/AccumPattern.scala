@@ -5,8 +5,8 @@ import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.io.TimeExtractor.GetTime
-import ru.itclover.tsp.v2.Extract.IdxExtractor._
-import ru.itclover.tsp.v2.Extract._
+import ru.itclover.tsp.v2.Pattern.IdxExtractor._
+import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2._
 
 import scala.annotation.tailrec

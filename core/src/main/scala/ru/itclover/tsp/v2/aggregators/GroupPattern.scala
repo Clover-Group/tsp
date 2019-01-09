@@ -3,7 +3,8 @@ package ru.itclover.tsp.v2.aggregators
 import cats.{Foldable, Functor, Group, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2.Extract._
+import ru.itclover.tsp.v2.Pattern._
+import ru.itclover.tsp.v2.Result._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.v2.{PState, Pattern, _}
 
@@ -51,7 +52,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
 
         val finalWindowQueue = { updatedWindowQueue.enqueue(GroupAccumValue(idx, time, t)); updatedWindowQueue }
 
-        GroupAccumState(finalNewLastValue, finalWindowQueue) -> m.Queue(IdxValue(idx, finalNewLastValue))
+        GroupAccumState(finalNewLastValue, finalWindowQueue) -> m.Queue(IdxValue(idx, finalNewLastValue.toResult))
       }
       .getOrElse(this -> m.Queue.empty)
   }

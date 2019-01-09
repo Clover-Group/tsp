@@ -1,6 +1,6 @@
 package ru.itclover.tsp.v2
 import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.v2.Extract.Idx
+import ru.itclover.tsp.v2.Pattern.Idx
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}

@@ -3,7 +3,7 @@ package ru.itclover.tsp.v2.aggregators
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2.Extract._
+import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.v2._
 

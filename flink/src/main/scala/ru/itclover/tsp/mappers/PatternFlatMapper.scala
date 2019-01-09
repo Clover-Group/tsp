@@ -10,8 +10,7 @@ case class PatternFlatMapper[E, State, Inner, Out](
   pattern: Pattern[E, State, Inner],
   mapResults: (E, Seq[TerminalResult[Inner]]) => Seq[Out],
   eventsMaxGapMs: Long,
-  emptyEvent: E,
-  isTerminalEvent: E => Boolean
+  emptyEvent: E
 )(
   implicit timeExtractor: TimeExtractor[E]
 ) extends StatefulFlatMapper[E, (Seq[State], E), Out]
@@ -39,9 +38,6 @@ case class PatternFlatMapper[E, State, Inner, Out](
     if (prevEvent == emptyEvent) true
     else timeExtractor(currEvent).toMillis - timeExtractor(prevEvent).toMillis < eventsMaxGapMs
   }
-
-  /** Is it last event in a stream? */
-  override def isEventTerminal(event: E) = isTerminalEvent(event)
 }
 
 object PatternFlatMapper {
