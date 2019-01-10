@@ -1,7 +1,7 @@
 import sbt.Keys._
 import sbt._
 
-object Version {  
+object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.9.0"
 
@@ -11,13 +11,13 @@ object Version {
   val influxCli = "0.6.0"
   val influxFlink = "1.0"
 
-  val clickhouse = "0.1.42"
-  val flink = "1.7.0"
+  val clickhouse = "0.1.48"
+  val flink = "1.7.1"
 
-  val akka = "2.5.17"
+  val akka = "2.5.19"
   val akkaHttp = "10.1.5"
 
-  val cats = "1.4.0"
+  val cats = "1.5.0"
 
   val twitterUtilVersion = "6.43.0"
 
@@ -37,12 +37,12 @@ object Version {
   val jackson = "2.9.7"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
-  
+
   val kindProjector = "0.9.8"
 }
 
 object Library {
-  
+
   val jackson = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
