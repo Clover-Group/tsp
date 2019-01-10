@@ -15,7 +15,7 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
   override val innerPattern: Pattern[Event, Out, State, F, Cont],
   override val window: Window
 ) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out], F, Cont] {
-  override def initialState(): AggregatorPState[State, PreviousValueAccumState[Out], Out] =
+  override def initialState() =
     AggregatorPState(innerPattern.initialState(), PreviousValueAccumState(None), m.Queue.empty, m.Queue.empty)
 }
 

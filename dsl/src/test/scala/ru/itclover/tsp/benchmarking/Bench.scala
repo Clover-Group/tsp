@@ -1,7 +1,7 @@
 package ru.itclover.tsp.benchmarking
 import monix.eval.Task
 import ru.itclover.tsp.core.{Pattern, Time, Window}
-import ru.itclover.tsp.dsl.PhaseBuilder
+import ru.itclover.tsp.dsl.PatternBuilder
 import ru.itclover.tsp.io.{AnyDecodersInstances, Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
@@ -49,8 +49,8 @@ object Bench extends App {
   }
 
   val pattern =
-    PhaseBuilder
-      .build("PosKM = 0 andThen SpeedEngine > 0 and (PosKM > 4 for  110 min < 60 sec)", identity _)(
+    PatternBuilder
+      .build("PosKM = 0 andThen SpeedEngine > 0 and (PosKM > 4 for  110 min < 60 sec)", identity _, 0.1)(
         timeExtractor,
         RowSymbolExtractor,
         AnyDecodersInstances.decodeToDouble
@@ -105,5 +105,6 @@ object Bench extends App {
 //  }
 //  }
 
-  Await.result(q, Duration.Inf)
+  //Await.result(q, Duration.Inf)
+  q
 }
