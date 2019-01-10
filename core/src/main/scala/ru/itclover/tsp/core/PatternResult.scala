@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+import ru.itclover.tsp.core.PatternResult.{Failure, Stay, Success}
 
 sealed trait PatternResult[+T] extends Product with Serializable {
   def map[B](f: T => B): PatternResult[B]
@@ -8,6 +9,12 @@ sealed trait PatternResult[+T] extends Product with Serializable {
   def isTerminal: Boolean
 
   def getOrElse[B >: T](other: => B) = other
+
+  @inline final def fold[B](ifEmpty: => B)(f: T => B): B =
+    this match {
+      case Success(t) => f(t)
+      case _          => ifEmpty
+    }
 }
 
 object PatternResult {
@@ -22,6 +29,16 @@ object PatternResult {
     override def flatMap[B](f: T => PatternResult[B]): PatternResult[B] = f(t)
 
     override def getOrElse[B >: T](other: => B) = t
+  }
+
+  object Success {
+
+    val unitSuccess = Success(())
+
+    def of(x: Unit): Success[Unit] = unitSuccess
+
+    def of[T](t: T): Success[T] = Success(t)
+
   }
 
   case class Failure(msg: String) extends TerminalResult[Nothing] {
@@ -40,4 +57,8 @@ object PatternResult {
 
   val heartbeat = Failure("__heartbeat__")
 
+  def fromOption[T](opt: Option[T]): PatternResult[T] = opt match {
+    case Some(x) => Success(x)
+    case None    => Stay
+  }
 }

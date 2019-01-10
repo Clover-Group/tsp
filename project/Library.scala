@@ -125,4 +125,8 @@ object Library {
   val shapeless = Seq(
     "com.chuusai" %% "shapeless" % Version.shapeless
   )
+
+  val monix = Seq(
+    "io.monix" %% "monix" % "3.0.0-RC2"
+  )
 }

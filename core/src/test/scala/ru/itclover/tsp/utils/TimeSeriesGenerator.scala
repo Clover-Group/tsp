@@ -1,4 +1,4 @@
-package ru.itclover.tsp.http.utils
+package ru.itclover.tsp.utils
 
 import java.time.Instant
 
@@ -16,7 +16,7 @@ trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
 
   def timed(duration: Duration): TimeSeriesGenerator[T] = Timed(this, duration)
 
-  def run(seconds: Int): Seq[T] = (1 to seconds).map(_.seconds).map(this)
+  def run(seconds: Int): Seq[T] = (0 to seconds).map(_.seconds).map(this)
 
   override def isDefinedAt(x: Duration) = x >= 0.seconds && x <= howLong
 
