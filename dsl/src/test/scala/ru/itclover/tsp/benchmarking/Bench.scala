@@ -1,5 +1,6 @@
 package ru.itclover.tsp.benchmarking
 import monix.eval.Task
+import cats.syntax.functor._
 import ru.itclover.tsp.core.{Pattern, Time, Window}
 import ru.itclover.tsp.dsl.PatternBuilder
 import ru.itclover.tsp.io.{AnyDecodersInstances, Decoder, Extractor, TimeExtractor}
@@ -50,7 +51,7 @@ object Bench extends App {
 
   val pattern =
     PatternBuilder
-      .build("PosKM = 0 andThen SpeedEngine > 0 and (PosKM > 4 for  110 min < 60 sec)", identity _, 0.1)(
+      .build("PosKM = 0 andThen SpeedEngine > 0 and (PosKM > 4 for  110 min < 60 sec)", identity, 0.1)(
         timeExtractor,
         RowSymbolExtractor,
         AnyDecodersInstances.decodeToDouble
@@ -97,7 +98,7 @@ object Bench extends App {
   val startRun = System.currentTimeMillis()
 
   import monix.execution.Scheduler.Implicits.global
-  val q = StateMachine.run(pattern2, rowsWithIndex, 10000)//.runToFuture
+  val q = StateMachine.run(pattern2, rowsWithIndex, pattern2.initialState(), 10000).map(_.queue)
 
 //  q.foreach { q => {
     println(s"Result size is ${q.size}")
@@ -106,5 +107,4 @@ object Bench extends App {
 //  }
 
   //Await.result(q, Duration.Inf)
-  q
 }

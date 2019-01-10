@@ -1,4 +1,6 @@
 package ru.itclover.tsp.v2
+
+import scala.language.higherKinds
 import cats.{Functor, Monad}
 import ru.itclover.tsp.v2.Pattern.QI
 

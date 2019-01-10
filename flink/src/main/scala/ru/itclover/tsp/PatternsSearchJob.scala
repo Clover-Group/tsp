@@ -10,10 +10,10 @@ import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindo
 import cats.data.Validated
 import cats.{Monad, Traverse}
 import cats.implicits._
-import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Window}
+import ru.itclover.tsp.core.{Incident, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.{PatternMetadata, PatternBuilder}
+import ru.itclover.tsp.dsl.{PatternBuilder, PatternMetadata}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -26,6 +26,7 @@ import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+import ru.itclover.tsp.v2.{Pattern, PState}
 import scala.language.higherKinds
 
 
@@ -38,12 +39,12 @@ case class PatternsSearchJob[In, InKey, InItem](
   import decoders._
   import PatternsSearchJob._
 
-  def patternsSearchStream[OutE: TypeInformation, OutKey](
+  def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In]], Vector[DataStreamSink[OutE]])] =
-    preparePatterns(rawPatterns, source.fieldToEKey, source.conf.defaultToleranceFraction.getOrElse(0)) map { patterns =>
+  ): Either[ConfigErr, (Seq[RichPattern[In, S]], Vector[DataStreamSink[OutE]])] =
+    preparePatterns[In, S, InKey, InItem](rawPatterns, source.fieldToEKey, source.conf.defaultToleranceFraction.getOrElse(0)) map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
       val mapped = incidents.map(x => x.map(resultMapper))
@@ -51,8 +52,8 @@ case class PatternsSearchJob[In, InKey, InItem](
     }
 
 
-  def cleanIncidentsFromPatterns(
-    richPatterns: Seq[RichPattern[In]],
+  def cleanIncidentsFromPatterns[S <: PState[Segment, S]](
+    richPatterns: Seq[RichPattern[In, S]],
     forwardedFields: Seq[(Symbol, InKey)]
   ): Vector[DataStream[Incident]] =
     for {
@@ -64,9 +65,9 @@ case class PatternsSearchJob[In, InKey, InItem](
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
-  def incidentsFromPatterns(
+  def incidentsFromPatterns[S <: PState[Segment, S]](
     stream: DataStream[In],
-    patterns: Seq[RichPattern[In]],
+    patterns: Seq[RichPattern[In, S]],
     forwardedFields: Seq[(Symbol, InKey)]
   ): DataStream[Incident] = {
     val mappers: Seq[StatefulFlatMapper[In, Any, Incident]] = patterns.map {
@@ -79,7 +80,7 @@ case class PatternsSearchJob[In, InKey, InItem](
           if (meta.maxWindowMs > 0L) meta.maxWindowMs else source.conf.defaultEventsGapMs,
           source.conf.partitionFields.map(source.fieldToEKey)
         )
-        PatternFlatMapper(
+        PatternFlatMapper[In, S, Segment, Incident](
           pattern,
           toIncidents.apply,
           source.conf.eventsMaxGapMs,
@@ -94,20 +95,20 @@ case class PatternsSearchJob[In, InKey, InItem](
 }
 
 object PatternsSearchJob {
-  type RichPattern[E] = ((Pattern[E, _, Segment], PatternMetadata), RawPattern)
+  type RichPattern[E, S <: PState[Segment, S]] = ((Pattern[E, Segment, S, cats.Id, List], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
 
-  def preparePatterns[E: TimeExtractor, EKey, EItem](
+  def preparePatterns[E: TimeExtractor, S <: PState[Segment, S], EKey, EItem](
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     dDecoder: Decoder[EItem, Double]
-  ): Either[ConfigErr, List[RichPattern[E]]] = {
-    Traverse[List]
+  ): Either[ConfigErr, List[RichPattern[E, S]]] = {
+    /*Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
@@ -117,19 +118,20 @@ object PatternsSearchJob {
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
-      .toEither
+      .toEither*/
+    ???
   }
 
-  def bucketizePatterns[E](patterns: Seq[RichPattern[E]], parallelism: Int): Vector[Bucket[RichPattern[E]]] = {
-    import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
+  def bucketizePatterns[E, S <: PState[Segment, S]](patterns: Seq[RichPattern[E, S]], parallelism: Int): Vector[Bucket[RichPattern[E, S]]] = {
+    // import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
     val patternsBuckets = if (parallelism > patterns.length) {
       log.warn(
         s"Patterns parallelism conf ($parallelism) is higher than amount of " +
           s"phases - ${patterns.length}, setting patternsParallelism to amount of phases."
       )
-      Bucketizer.bucketizeByWeight(patterns, patterns.length)
+      Bucketizer.bucketizeByWeight(patterns, patterns.length)(Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, S])
     } else {
-      Bucketizer.bucketizeByWeight(patterns, parallelism)
+      Bucketizer.bucketizeByWeight(patterns, parallelism)(Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, S])
     }
     log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
     patternsBuckets

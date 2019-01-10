@@ -1,4 +1,5 @@
 package ru.itclover.tsp.v2
+
 import cats.Monad
 import cats.syntax.functor._
 import cats.syntax.flatMap._
@@ -11,16 +12,16 @@ object StateMachine {
 
   private val log = Logger("StateMachineV2")
 
-  def run[Event, Out, S <: PState[Out, S], F[_]: Monad](
-    pattern: Pattern[Event, Out, S, F, List],
+  def run[Event, Out, State <: PState[Out, State], F[_]](
+    pattern: Pattern[Event, Out, State, F, List],
     events: Iterable[Event],
+    previousState: State,
     groupSize: Int = 1000
-  ): F[QI[Out]] = {
+  )(implicit F: Monad[F]): F[State] = {
 
     var counter = 0
-    val initialState = pattern.initialState()
 
-    val finalstate = events.grouped(groupSize).foldLeft(Monad[F].pure(initialState)) {
+    val finalState: F[State] = events.grouped(groupSize).foldLeft(F.pure(previousState)) {
       case (state, evs) => {
         log.debug(s"After $counter rows")
         counter += groupSize
@@ -29,7 +30,7 @@ object StateMachine {
     }
 
     log.debug("Finished")
-    finalstate.map(_.queue)
+    finalState
   }
 
 }

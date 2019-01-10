@@ -1,36 +1,32 @@
 package ru.itclover.tsp.mappers
 
-import ru.itclover.tsp.core.{Pattern, PatternResult, Time}
-import ru.itclover.tsp.core.PatternResult.{heartbeat, Failure, Success, TerminalResult}
+import cats.Id
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.{AbstractPatternMapper, ResultMapper}
+import ru.itclover.tsp.v2.{Pattern, PState, StateMachine, Succ}
 
 
-case class PatternFlatMapper[E, State, Inner, Out](
-  pattern: Pattern[E, State, Inner],
-  mapResults: (E, Seq[TerminalResult[Inner]]) => Seq[Out],
+case class PatternFlatMapper[E, State <: PState[Inner, State], Inner, Out](
+  pattern: Pattern[E, Inner, State, Id, List],
+  mapResults: (E, Seq[Inner]) => Seq[Out],
   eventsMaxGapMs: Long,
   emptyEvent: E
 )(
   implicit timeExtractor: TimeExtractor[E]
-) extends StatefulFlatMapper[E, (Seq[State], E), Out]
-    with AbstractPatternMapper[E, State, Inner]
+) extends StatefulFlatMapper[E, (State, E), Out]
     with Serializable {
 
-  override def initialState = (Seq.empty, emptyEvent)
+  override def initialState = (pattern.initialState(), emptyEvent)
 
-  override def apply(event: E, stateAndPrevEvent: (Seq[State], E)) = {
+  override def apply(event: E, stateAndPrevEvent: (State, E)) = {
     val prevEvent = stateAndPrevEvent._2
-    val (results, newStates) = if (doProcessOldState(event, prevEvent)) {
-      process(event, stateAndPrevEvent._1)
+    val newState: State = if (doProcessOldState(event, prevEvent)) {
+      StateMachine.run(pattern, List(event), stateAndPrevEvent._1)
     } else {
-      process(event, Seq.empty) match { case (res, states) =>
-        // Heartbeat here for SegmentResultsMapper to split segment if successes stream splitted
-        (heartbeat +: res, pattern.initialState +: states)
-      }
+      StateMachine.run(pattern, List(event), pattern.initialState()) // .. careful here, init state may need to create only 1 time
     }
-    // Terminal results with events (for toIncidentsMapper) + state with previous event (to tract gaps in the data)
-    (mapResults(event, results), (newStates, event))
+    val results = newState.queue.map(_.value).collect { case Succ(v) => v }
+    // Non failed results with events (for toIncidentsMapper) + state with previous event (to tract gaps in the data)
+    (mapResults(event, results), (newState, event))
   }
 
   /** Check is new event from same events time seq */

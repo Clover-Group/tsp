@@ -27,7 +27,7 @@ class TimerPatternTest extends WordSpec with Matchers {
 
       val pattern = timer(newTypesHolder.assert(field(_.value) >= const(5)), 4.seconds)
 
-      val x = StateMachine.run(pattern, rows)
+      val x = StateMachine.run(pattern, rows, pattern.initialState())
       x.size should be (3)
     }
 

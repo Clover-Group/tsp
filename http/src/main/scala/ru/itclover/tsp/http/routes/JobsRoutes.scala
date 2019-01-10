@@ -100,13 +100,15 @@ trait JobsRoutes extends RoutesProtocols {
   )(implicit decoders: BasicDecoders[EItem]) = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     val searcher = PatternsSearchJob(source, decoders)
-    searcher.patternsSearchStream(
+    val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,
       PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
-    ) map {
+    )
+    strOrErr.map {
       case (parsedPatterns, stream) =>
-        val strPatterns = parsedPatterns.map { case ((p, meta), _) => p.format(source.emptyEvent) + s" ;; Meta=$meta" }
+        // .. patternV2.format
+        val strPatterns = parsedPatterns.map { case ((p, meta), _) => /*p.format(source.emptyEvent) +*/ s" ;; Meta=$meta" }
         log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
         stream
     }
