@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.Time.MaxWindow
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.v2.Extract.{IdxExtractor, Result}
+import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.Patterns
 import ru.itclover.tsp.v2.aggregators._
@@ -31,68 +31,68 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
 ) extends Parser {
 
   def const[T](value: T) = ConstPattern[Event, T, F, Cont](value)
-  type AnyPattern = Pattern[Event, Any, Any, F, Cont]
-  type AnyBooleanPattern = Pattern[Event, Boolean, Any, F, Cont]
-  type AnyNumericPattern = Pattern[Event, Double, Any, F, Cont]
-  type BooleanOperatorPattern = CouplePattern[Event, Any, Any, Boolean, Boolean, Boolean, F, Cont]
-  type NumericOperatorPattern = CouplePattern[Event, Any, Any, Double, Double, Double, F, Cont]
-  type ComparisonOperatorPattern = CouplePattern[Event, Any, Any, Double, Double, Boolean, F, Cont]
+
+  type AnyTPattern[T, S <: PState[T, S]] = Pattern[Event, T, S, F, Cont]
+  type AnyPattern[S <: PState[Any, S]] = AnyTPattern[Any, S]
+  type BooleanPattern[S <: PState[Boolean, S]] = AnyTPattern[Boolean, S]
+  type NumericPattern[S <: PState[Double, S]] = AnyTPattern[Double, S]
+  type BooleanOperatorPattern[S1 <: PState[Boolean, S1], S2 <: PState[Boolean, S2]] = CouplePattern[Event, S1, S2, Boolean, Boolean, Boolean, F, Cont]
+  type NumericOperatorPattern[S1 <: PState[Double, S1], S2 <: PState[Double, S2]] = CouplePattern[Event, S1, S2, Double, Double, Double, F, Cont]
+  type ComparisonOperatorPattern[S1 <: PState[Double, S1], S2 <: PState[Double, S2]] = CouplePattern[Event, S1, S2, Double, Double, Boolean, F, Cont]
 
   val nullEvent: Event = null.asInstanceOf[Event]
   // TODO: Proper implicits
   implicit val richPatterns: Patterns[Event, F, Cont] = new Patterns[Event, F, Cont] {}
 
-  def start: Rule1[AnyPattern] = rule {
+  def start: Rule1[AnyPattern[_]] = rule {
     trileanExpr ~ EOI
   }
 
-  def trileanExpr: Rule1[AnyPattern] = rule {
+  def trileanExpr: Rule1[AnyPattern[_]] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => AndThenPattern(e, f).asInstanceOf[AnyPattern])
+      ((e: AnyPattern[_], f: AnyPattern[_]) => AndThenPattern[Event, e.Type, f.Type, e.State, f.State, F, Cont](e, f))
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[AnyBooleanPattern])
-        .and(f.asInstanceOf[AnyBooleanPattern])
-        .asInstanceOf[AnyPattern])
+      ((e: AnyPattern[_], f: AnyPattern[_]) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[BooleanPattern[_]])
+        .and(f.asInstanceOf[BooleanPattern[_]]))
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AnyPattern, f: AnyPattern) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[AnyBooleanPattern])
-        .or(f.asInstanceOf[AnyBooleanPattern])
-        .asInstanceOf[AnyPattern])
+      ((e: AnyPattern[_], f: AnyPattern[_]) => richPatterns.BooleanPatternSyntax(e.asInstanceOf[BooleanPattern[_]])
+        .or(f.asInstanceOf[BooleanPattern[_]]))
     )
   }
 
-  def trileanTerm: Rule1[AnyPattern] = rule {
+  def trileanTerm: Rule1[AnyPattern[_]] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
-    ((c: AnyPattern, b: AnyBooleanPattern, r: Option[Any]) => {
-      (richPatterns.BooleanPatternSyntax(TimerPattern(c, MaxWindow).asInstanceOf[AnyBooleanPattern]).and
-      (richPatterns.assert(new MapPattern(b)((x: Boolean) => !x)).asInstanceOf[AnyBooleanPattern]).asInstanceOf[AnyPattern])
+    ((c: AnyPattern[_], b: BooleanPattern[_], r: Option[Any]) => {
+      (richPatterns.BooleanPatternSyntax(TimerPattern(c, MaxWindow).asInstanceOf[BooleanPattern[_]]).and
+      (richPatterns.assert(new MapPattern(b)((x: Boolean) => !x)).asInstanceOf[BooleanPattern[_]]).asInstanceOf[AnyPattern[_]])
     })
     | trileanFactor)
   }
 
-  protected def buildForExpr(phase: AnyPattern, ti: TimeInterval): AnyPattern = {
-    richPatterns.assert(phase.asInstanceOf[AnyBooleanPattern])
+  protected def buildForExpr(phase: AnyPattern[_], ti: TimeInterval): AnyPattern[_] = {
+    richPatterns.assert(phase.asInstanceOf[BooleanPattern[_]])
       .timed(ti)
       .asInstanceOf[AnyPattern]
   }
 
   protected def buildRangedForExpr(
-    phase: AnyPattern,
+    phase: AnyPattern[_],
     exactly: Option[Boolean],
     w: Window,
     range: Interval[Long]
-  ): AnyPattern = {
+  ): AnyPattern[_] = {
     val accum = range match {
       case _: NumericInterval[Long] =>
-        richPatterns.truthCount(phase.asInstanceOf[AnyBooleanPattern], w)
+        richPatterns.truthCount(phase.asInstanceOf[BooleanPattern[_]], w)
       case _: TimeInterval =>
         richPatterns
-          .truthMillis(phase.asInstanceOf[AnyBooleanPattern], w)
+          .truthMillis(phase.asInstanceOf[BooleanPattern[_]], w)
           .asInstanceOf[AccumPattern[Event, Any, Boolean, Long, Any, F, Cont]] // TODO Covariant out
       case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
     }
@@ -112,114 +112,108 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
 
   // format: off
 
-  def nonFatalTrileanFactor: Rule1[AnyPattern] = rule {
-    booleanExpr ~> { b: AnyBooleanPattern => b.asInstanceOf[AnyPattern] } | '(' ~ trileanExpr ~ ')' ~ ws
+  def nonFatalTrileanFactor: Rule1[AnyPattern[_]] = rule {
+    booleanExpr ~> { b: BooleanPattern[_] => b.asInstanceOf[AnyPattern[_]] } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def trileanFactor: Rule1[AnyPattern] = rule {
-    booleanExpr ~> { b: AnyBooleanPattern => richPatterns.assert(b).asInstanceOf[AnyPattern] } | '(' ~ trileanExpr ~ ')' ~ ws
+  def trileanFactor: Rule1[AnyPattern[_]] = rule {
+    booleanExpr ~> { b: BooleanPattern[_] => richPatterns.assert(b).asInstanceOf[AnyPattern[_]] } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def booleanExpr: Rule1[AnyBooleanPattern] = rule {
+  def booleanExpr: Rule1[BooleanPattern[_]] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => new BooleanOperatorPattern(e, f)((a: Boolean, b: Boolean) => Result.succ(a | b)).asInstanceOf[AnyBooleanPattern])
+      ((e: BooleanPattern[_], f: BooleanPattern[_]) => new BooleanOperatorPattern(e, f)((a: Boolean, b: Boolean) => Result.succ(a | b)).asInstanceOf[BooleanPattern[_]])
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AnyBooleanPattern, f: AnyBooleanPattern) => new BooleanOperatorPattern(e, f)((a: Boolean, b: Boolean) => Result.succ(a ^ b)).asInstanceOf[AnyBooleanPattern])
+        ((e: BooleanPattern[_], f: BooleanPattern[_]) => new BooleanOperatorPattern(e, f)((a: Boolean, b: Boolean) => Result.succ(a ^ b)).asInstanceOf[BooleanPattern[_]])
     )
   }
 
-  def booleanTerm: Rule1[AnyBooleanPattern] = rule {
+  def booleanTerm: Rule1[BooleanPattern[_]] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AnyBooleanPattern, f: AnyBooleanPattern) => new BooleanOperatorPattern(e, f)(((a: Boolean, b: Boolean) => Result.succ(a & b)).asInstanceOf[AnyBooleanPattern]))
+      ((e: BooleanPattern[_], f: BooleanPattern[_]) => new BooleanOperatorPattern(e, f)(((a: Boolean, b: Boolean) => Result.succ(a & b)).asInstanceOf[BooleanPattern[_]]))
     )
   }
 
-  def booleanFactor: Rule1[AnyBooleanPattern] = rule {
+  def booleanFactor: Rule1[BooleanPattern[_]] = rule {
     comparison |
-      boolean ~> ((b: ConstPattern[Event, Boolean, F, Cont]) => b.asInstanceOf[AnyBooleanPattern]) |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AnyBooleanPattern) => new MapPattern(b)((x: Boolean) => !x))
+      boolean ~> ((b: ConstPattern[Event, Boolean, F, Cont]) => b.asInstanceOf[BooleanPattern[_]]) |
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: BooleanPattern[_]) => new MapPattern(b)((x: Boolean) => !x))
   }
 
-  def comparison: Rule1[AnyBooleanPattern] = rule {
+  def comparison: Rule1[BooleanPattern[_]] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 < d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 <= d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 > d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 >= d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 == d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AnyNumericPattern, e2: AnyNumericPattern) =>
+        (e1: NumericPattern[_], e2: NumericPattern[_]) =>
           new ComparisonOperatorPattern(e1, e2)((d1: Double, d2: Double) => Result.succ(d1 != d2))
-            .asInstanceOf[AnyBooleanPattern]
       )
     )
   }
   // format: on
 
-  def expr: Rule1[AnyNumericPattern] = rule {
+  def expr: Rule1[NumericPattern[_]] = rule {
     term ~ zeroOrMore(
       '+' ~ ws ~ term ~> (
         (
-          e: AnyNumericPattern,
-          f: AnyNumericPattern
-        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a + b)).asInstanceOf[AnyNumericPattern]
+          e: NumericPattern[_],
+          f: NumericPattern[_]
+        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a + b))
       )
       | '-' ~ ws ~ term ~> (
         (
-          e: AnyNumericPattern,
-          f: AnyNumericPattern
-        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a - b)).asInstanceOf[AnyNumericPattern]
+          e: NumericPattern[_],
+          f: NumericPattern[_]
+        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a - b))
       )
     )
   }
 
-  def term: Rule1[AnyNumericPattern] = rule {
+  def term: Rule1[NumericPattern[_]] = rule {
     factor ~
     zeroOrMore(
       '*' ~ ws ~ factor ~> (
         (
-          e: AnyNumericPattern,
-          f: AnyNumericPattern
-        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a * b)).asInstanceOf[AnyNumericPattern]
+          e: NumericPattern[_],
+          f: NumericPattern[_]
+        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a * b)).asInstanceOf[NumericPattern[_]]
       )
       | '/' ~ ws ~ factor ~> (
         (
-          e: AnyNumericPattern,
-          f: AnyNumericPattern
-        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a / b)).asInstanceOf[AnyNumericPattern]
+          e: NumericPattern[_],
+          f: NumericPattern[_]
+        ) => new NumericOperatorPattern(e, f)((a: Double, b: Double) => Result.succ(a / b)).asInstanceOf[NumericPattern[_]]
       )
     )
   }
 
-  def factor: Rule1[AnyNumericPattern] = rule {
+  def factor: Rule1[NumericPattern[_]] = rule {
     (
-      real ~> (_.asInstanceOf[AnyNumericPattern])
-      | long ~> (_.asInstanceOf[AnyNumericPattern])
+      real ~> (_.asInstanceOf[NumericPattern[_]])
+      | long ~> (_.asInstanceOf[NumericPattern[_]])
       | functionCall
-      | fieldValue ~> (_.asInstanceOf[AnyNumericPattern])
+      | fieldValue ~> (_.asInstanceOf[NumericPattern[_]])
       | '(' ~ expr ~ ')' ~ ws
     )
   }
@@ -395,58 +389,58 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
     ~> ((s: Int, i: String) => const[Long](s * i.toLong)))
   }
 
-  def functionCall: Rule1[AnyNumericPattern] = rule {
+  def functionCall: Rule1[NumericPattern[_]] = rule {
     (
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
-      ((function: String, arguments: Seq[AnyNumericPattern], constraint: Option[Double => Boolean]) => {
+      ((function: String, arguments: Seq[NumericPattern[_]], constraint: Option[Double => Boolean]) => {
         val ifCondition: Double => Boolean = constraint.getOrElse(_ => true)
         function.toLowerCase match {
-          case "lag" => PreviousValue(arguments.head).asInstanceOf[AnyNumericPattern]
-          case "abs" => new MapPattern(arguments.head)(Math.abs).asInstanceOf[AnyNumericPattern]
-          case "sin" => new MapPattern(arguments.head)(Math.sin).asInstanceOf[AnyNumericPattern]
-          case "cos" => new MapPattern(arguments.head)(Math.cos).asInstanceOf[AnyNumericPattern]
-          case "tan" | "tg" => new MapPattern(arguments.head)(Math.tan).asInstanceOf[AnyNumericPattern]
-          case "cot" | "ctg" => new MapPattern(arguments.head)(1.0 / Math.tan(_)).asInstanceOf[AnyNumericPattern]
+          case "lag" => PreviousValue(arguments.head).asInstanceOf[NumericPattern[_]]
+          case "abs" => new MapPattern(arguments.head)(Math.abs).asInstanceOf[NumericPattern[_]]
+          case "sin" => new MapPattern(arguments.head)(Math.sin).asInstanceOf[NumericPattern[_]]
+          case "cos" => new MapPattern(arguments.head)(Math.cos).asInstanceOf[NumericPattern[_]]
+          case "tan" | "tg" => new MapPattern(arguments.head)(Math.tan).asInstanceOf[NumericPattern[_]]
+          case "cot" | "ctg" => new MapPattern(arguments.head)(1.0 / Math.tan(_)).asInstanceOf[NumericPattern[_]]
           case "sind" =>
-            new MapPattern(arguments.head)((x: Double) => Math.sin(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
+            new MapPattern(arguments.head)((x: Double) => Math.sin(x * Math.PI / 180.0)).asInstanceOf[NumericPattern[_]]
           case "cosd" =>
-            new MapPattern(arguments.head)((x: Double) => Math.cos(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
+            new MapPattern(arguments.head)((x: Double) => Math.cos(x * Math.PI / 180.0)).asInstanceOf[NumericPattern[_]]
           case "tand" | "tgd" =>
-            new MapPattern(arguments.head)((x: Double) => Math.tan(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
+            new MapPattern(arguments.head)((x: Double) => Math.tan(x * Math.PI / 180.0)).asInstanceOf[NumericPattern[_]]
           case "cotd" | "ctgd" =>
-            new MapPattern(arguments.head)((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0)).asInstanceOf[AnyNumericPattern]
-          case "exp" => new MapPattern(arguments.head)(Math.exp).asInstanceOf[AnyNumericPattern]
-          case "ln" => new MapPattern(arguments.head)(Math.log).asInstanceOf[AnyNumericPattern]
+            new MapPattern(arguments.head)((x: Double) => 1.0 / Math.tan(x * Math.PI / 180.0)).asInstanceOf[NumericPattern[_]]
+          case "exp" => new MapPattern(arguments.head)(Math.exp).asInstanceOf[NumericPattern[_]]
+          case "ln" => new MapPattern(arguments.head)(Math.log).asInstanceOf[NumericPattern[_]]
           case "log" =>
             new NumericOperatorPattern(arguments(0), arguments(1))((x, y) => Math.log(y) / Math.log(x))
-              .asInstanceOf[AnyNumericPattern]
+              .asInstanceOf[NumericPattern[_]]
           case "sigmoid" =>
             new NumericOperatorPattern(arguments(0), arguments(1))((x, y) => 1.0 / (1 + Math.exp(-2 * x * y)))
-              .asInstanceOf[AnyNumericPattern]
+              .asInstanceOf[NumericPattern[_]]
           case "minof" =>
             Reduce[Event, Any](TestFunctions.min(_, _, ifCondition))(
-              const[Double](Double.MaxValue).asInstanceOf[AnyNumericPattern],
+              const[Double](Double.MaxValue).asInstanceOf[NumericPattern[_]],
               arguments: _*
-            ).asInstanceOf[AnyNumericPattern]
+            ).asInstanceOf[NumericPattern[_]]
           case "maxof" =>
             Reduce[Event, Any](TestFunctions.max(_, _, ifCondition))(
-              const[Double](Double.MinValue).asInstanceOf[AnyNumericPattern],
+              const[Double](Double.MinValue).asInstanceOf[NumericPattern[_]],
               arguments: _*
-            ).asInstanceOf[AnyNumericPattern]
+            ).asInstanceOf[NumericPattern[_]]
           case "avgof" =>
             (Reduce[Event, Any](TestFunctions.plus(_, _, ifCondition))(
-              const[Double](0.0).asInstanceOf[AnyNumericPattern],
+              const[Double](0.0).asInstanceOf[NumericPattern[_]],
               arguments: _*
             ) div
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              const[Double](0.0).asInstanceOf[AnyNumericPattern],
+              const[Double](0.0).asInstanceOf[NumericPattern[_]],
               arguments: _*
-            )).asInstanceOf[AnyNumericPattern]
+            )).asInstanceOf[NumericPattern[_]]
           case "countof" =>
             Reduce[Event, Any](TestFunctions.countNotNan(_, _, ifCondition))(
-              const[Double](0.0).asInstanceOf[AnyNumericPattern],
+              const[Double](0.0).asInstanceOf[NumericPattern[_]],
               arguments: _*
-            ).asInstanceOf[AnyNumericPattern]
+            ).asInstanceOf[NumericPattern[_]]
           case _ => throw new RuntimeException(s"Unknown function `$function`")
         }
       })
@@ -454,13 +448,13 @@ class SyntaxParser[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable](
       (
         (
           function: String,
-          arg: AnyNumericPattern,
+          arg: NumericPattern[_],
           win: Window
         ) => {
           function match {
-            case "avg" => richPatterns.avg(arg, win).asInstanceOf[AnyNumericPattern]
-            case "sum" => richPatterns.sum(arg, win).asInstanceOf[AnyNumericPattern]
-            case "lag" => richPatterns.lag[Double, Any](arg, win).asInstanceOf[AnyNumericPattern]
+            case "avg" => richPatterns.avg(arg, win).asInstanceOf[NumericPattern[_]]
+            case "sum" => richPatterns.sum(arg, win).asInstanceOf[NumericPattern[_]]
+            case "lag" => richPatterns.lag[Double, Any](arg, win).asInstanceOf[NumericPattern[_]]
           }
         }
       )

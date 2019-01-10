@@ -5,7 +5,8 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
-
+  type Type = T
+  type State = S
   def initialState(): S
 }
 

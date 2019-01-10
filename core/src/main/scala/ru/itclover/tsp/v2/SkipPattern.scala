@@ -1,6 +1,6 @@
 package ru.itclover.tsp.v2
 import cats.{Functor, Monad}
-import ru.itclover.tsp.v2.Extract.QI
+import ru.itclover.tsp.v2.Pattern.QI
 
 class SkipPattern[Event, T, InnerState <: PState[T, InnerState], F[_]: Monad, Cont[_]: Functor](
   inner: Pattern[Event, T, InnerState, F, Cont],
