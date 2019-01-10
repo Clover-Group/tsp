@@ -2,7 +2,7 @@ package ru.itclover.tsp.dsl.v2
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.Window
 
-sealed trait AST
+sealed trait AST extends Product with Serializable
 
 case class Constant[T](value: T) extends AST
 
