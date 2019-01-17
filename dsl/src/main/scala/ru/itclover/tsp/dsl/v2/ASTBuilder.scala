@@ -351,7 +351,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
         val normalisedFunction = function.toLowerCase
         val c = constraint.getOrElse((_: Double) => true)
         if (normalisedFunction.endsWith("of"))
-          FilteredFunctionCall(
+          ReducerFunctionCall(
             Symbol(normalisedFunction),
             (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
             arguments: _*)

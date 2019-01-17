@@ -3,7 +3,9 @@ import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.v2.Result
 
-sealed trait AST[+T] extends Product with Serializable
+sealed trait AST[+T] extends Product with Serializable {
+  type Type = T
+}
 
 case class Constant[T](value: T) extends AST[T]
 
@@ -14,7 +16,7 @@ case class Range[T](from: T, to: T) extends AST[T]
 
 case class FunctionCall[RT](functionName: Symbol, arguments: AST[Any]*) extends AST[RT]
 
-case class FilteredFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: AST[Any]*) extends AST[RT]
+case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: AST[Any]*) extends AST[RT]
 
 case class PatternStatsCall[RT](functionName: Symbol, inner: AST[Any], window: Window) extends AST[RT]
 
