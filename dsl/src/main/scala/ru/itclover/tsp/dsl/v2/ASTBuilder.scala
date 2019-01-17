@@ -346,9 +346,18 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   def functionCall: Rule1[AST[Any]] = rule {
     (
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
-      ((function: String, arguments: Seq[AST[Any]], constraint: Option[Double => Boolean]) =>
-        // TODO: Divide between regular and filtered function calls
-        FilteredFunctionCall(Symbol(function), constraint.getOrElse(_ => true), arguments: _*)
+      ((function: String, arguments: Seq[AST[Any]], constraint: Option[Double => Boolean]) => {
+        // TODO: Convention about function naming?
+        val normalisedFunction = function.toLowerCase
+        val c = constraint.getOrElse((_: Double) => true)
+        if (normalisedFunction.endsWith("of"))
+          FilteredFunctionCall(
+            Symbol(normalisedFunction),
+            (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
+            arguments: _*)
+        else
+          FunctionCall(Symbol(normalisedFunction), arguments: _*)
+      }
       )
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
       (
