@@ -2,6 +2,8 @@ package ru.itclover.tsp.dsl.v2
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.v2.Result
+import shapeless.HList
+import shapeless.ops.hlist.Mapped
 
 sealed trait AST[+T] extends Product with Serializable {
   type Type = T
@@ -14,9 +16,12 @@ case class Identifier(value: Symbol) extends AST[Double]
 
 case class Range[T](from: T, to: T) extends AST[T]
 
-case class FunctionCall[RT](functionName: Symbol, arguments: AST[Any]*) extends AST[RT]
+case class FunctionCall[H <: HList, AH <: HList, RT](functionName: Symbol, arguments: AH)(
+  implicit mapped: Mapped.Aux[H, AST, AH]
+) extends AST[RT]
 
-case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: AST[Any]*) extends AST[RT]
+case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: AST[Any]*)
+    extends AST[RT]
 
 case class PatternStatsCall[RT](functionName: Symbol, inner: AST[Any], window: Window) extends AST[RT]
 

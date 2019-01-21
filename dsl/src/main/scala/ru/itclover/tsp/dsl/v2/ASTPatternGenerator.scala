@@ -4,10 +4,10 @@ import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
+import ru.itclover.tsp.dsl.v2.FunctionRegistry
 import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
 
 import scala.language.implicitConversions
-import scala.reflect.ClassTag
 
 class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
   implicit idxExtractor: IdxExtractor[Event],
@@ -21,19 +21,21 @@ class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _, F, Cont]): Pattern[Event, T, AnyState[T], F, Cont] =
     p.asInstanceOf[Pattern[Event, T, AnyState[T], F, Cont]]
 
-  def generatePattern[T: ClassTag](ast: AST[T]): Pattern[Event, T, AnyState[T], F, Cont] = {
+  def generatePattern[T](ast: AST[T]): Pattern[Event, T, AnyState[T], F, Cont] = {
     ast match {
       case c: Constant[_] => ConstPattern[Event, T, F, Cont](c.value)
-      case id: Identifier => ??? // TODO: Extracting pattern
+      case id: Identifier => new ExtractingPattern[Event, _, _, T, AnyState[T], F, Cont](id.value, id.value) // TODO: Extracting pattern
       case r: Range[_]    => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall[_] =>
         fc.arguments.length match {
           case 1 =>
-            new MapPattern(generatePattern(fc.arguments.head))(
+            val p1 = generatePattern(fc.arguments.head)
+            new MapPattern(p1)(
               registry.getFunction1(fc.functionName).getOrElse(sys.error(s"Function ${fc.functionName} not found"))
             )
           case 2 =>
-            new CouplePattern(generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))(
+            val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
+            new CouplePattern(p1, p2)(
               registry.getFunction2(fc.functionName).getOrElse(sys.error(s"Function ${fc.functionName} not found"))
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
@@ -59,5 +61,11 @@ class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
           innerBool => if (innerBool) Result.succ(()) else Result.fail
         )
     }
+  }
+
+  def build(sourceCode: String, toleranceFraction: Double
+  ): Either[Throwable, Pattern[Event, Any, AnyState[Any], F, Cont]] = {
+    val ast = new ASTBuilder(sourceCode, toleranceFraction).start.run()
+    ast.toEither.map(generatePattern)
   }
 }

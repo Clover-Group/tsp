@@ -12,8 +12,10 @@ import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.Patterns
 import ru.itclover.tsp.v2.aggregators._
 import cats.kernel.instances._
+import shapeless.{::, HNil}
 
 import scala.language.higherKinds
+
 
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
 object ASTBuilder {
@@ -34,9 +36,9 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
       ((e: AST[Any], f: AST[Any]) => AndThen(e, f))
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AST[Any], f: AST[Any]) => FunctionCall('and, e, f))
+      ((e: AST[Any], f: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('and, e :: f :: HNil))
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AST[Any], f: AST[Any]) => FunctionCall('or, e, f))
+      ((e: AST[Any], f: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('or, e :: f :: HNil))
     )
   }
 
@@ -48,7 +50,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST[Any], b: AST[Boolean], r: Option[Any]) => {
-      FunctionCall('and, Timer(c, TimeInterval(MaxWindow, MaxWindow)), Assert(FunctionCall('not, b)))
+      FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('and, Timer(c, TimeInterval(MaxWindow, MaxWindow)) :: Assert(FunctionCall('not, b :: HNil)) :: HNil)
     })
     | trileanFactor)
   }
@@ -85,45 +87,45 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   def booleanExpr: Rule1[AST[Boolean]] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean]('or, e, f))
+      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('or, e :: f :: HNil))
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean]('xor, e, f))
+        ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('xor, e :: f :: HNil))
     )
   }
 
   def booleanTerm: Rule1[AST[Boolean]] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean]('and, e, f))
+      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('and, e :: f :: HNil))
     )
   }
 
   def booleanFactor: Rule1[AST[Boolean]] = rule {
     comparison |
       boolean |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST[Boolean]) => FunctionCall[Boolean]('not, b))
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST[Boolean]) => FunctionCall('not, b :: HNil))
   }
 
   def comparison: Rule1[AST[Boolean]] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('lt, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('lt, e1 :: e2 :: HNil)
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('le, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('le, e1 :: e2 :: HNil)
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('gt, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('gt, e1 :: e2 :: HNil)
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('ge, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('ge, e1 :: e2 :: HNil)
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('eq, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('eq, e1 :: e2 :: HNil)
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall('ne, e1, e2)
+        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('ne, e1 :: e2 :: HNil)
       )
     )
   }
@@ -135,13 +137,13 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
         (
           e: AST[Any],
           f: AST[Any]
-        ) => FunctionCall('add, e, f)
+        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('add, e :: f :: HNil)
       )
       | '-' ~ ws ~ term ~> (
         (
           e: AST[Any],
           f: AST[Any]
-        ) => FunctionCall('sub, e, f)
+        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('sub, e :: f :: HNil)
       )
     )
   }
@@ -153,13 +155,13 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
         (
           e: AST[Any],
           f: AST[Any]
-        ) => FunctionCall('mul, e, f)
+        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('mul, e :: f :: HNil)
       )
       | '/' ~ ws ~ factor ~> (
         (
           e: AST[Any],
           f: AST[Any]
-        ) => FunctionCall('div, e, f)
+        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('div, e :: f :: HNil)
       )
     )
   }
@@ -354,9 +356,9 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
           ReducerFunctionCall(
             Symbol(normalisedFunction),
             (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
-            arguments: _*)
+            arguments)
         else
-          FunctionCall(Symbol(normalisedFunction), arguments: _*)
+          FunctionCall(Symbol(normalisedFunction), arguments)
       }
       )
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
