@@ -2,7 +2,6 @@ package ru.itclover.tsp.v2
 import cats.{Functor, Monad}
 import cats.syntax.functor._
 import ru.itclover.tsp.v2.Pattern.QI
-
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 

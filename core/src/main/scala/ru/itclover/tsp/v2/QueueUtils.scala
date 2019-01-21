@@ -26,12 +26,12 @@ object  QueueUtils {
 
   @tailrec
   def rollMap(idx: Idx, q:  m.Queue[(Idx, Time)]): (Time,  m.Queue[(Idx, Time)]) = {
-    assert(q.nonEmpty, "IdxTimeMap should not be empty!")
+    assert(q.nonEmpty, "IdxTimeMap should not be empty!") // .. understandable exception?
     q.dequeue match {
       case (index, time) =>
         if (index == idx) (time, q)
         else if (index < idx) rollMap(idx, q)
-        else sys.error("Invalid state!")
+        else sys.error("Invalid state!") // .. same?
     }
   }
 }

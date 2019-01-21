@@ -4,6 +4,14 @@ import ru.itclover.tsp.v2.Pattern.{Idx, _}
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
+/**
+  * Main trait for all patterns, basically just a function from state and events chunk to new a state.
+  * @tparam Event underlying data
+  * @tparam T Type of the results in the S
+  * @tparam S Holds State for the next step AND results (wrong named `queue`)
+  * @tparam F Container for state (some simple monad mostly)
+  * @tparam Cont Container for yet another chunk of Events
+  */
 trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
   type Type = T
   type State = S
@@ -42,6 +50,18 @@ object Pattern {
 
   trait IdxExtractor[Event] extends Serializable {
     def apply(e: Event): Idx
+  }
+
+  // .. TODO Try to fixate TsIdxExtractor for all the patterns somehow
+  class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
+    var counter = 0
+
+    override def apply(e: Event): Idx = {
+      counter += 1
+      eventToTs(e) * 1000 + counter
+    }
+
+    def idxToTs(idx: Idx): Long = idx / 1000
   }
 
   object IdxExtractor {

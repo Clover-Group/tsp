@@ -1,16 +1,15 @@
 package ru.itclover.tsp.v2
-import cats.Monad
+
+import cats.{Foldable, Functor, Monad}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import ru.itclover.tsp.v2.Pattern.QI
-
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 
 /** Couple Pattern */
-
 class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3, F[_]: Monad, Cont[_]](
   left: Pattern[Event, T1, State1, F, Cont],
   right: Pattern[Event, T2, State2, F, Cont]
