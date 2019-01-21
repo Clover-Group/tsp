@@ -27,44 +27,44 @@ object ASTBuilder {
 
 class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Parser {
 
-  def start: Rule1[AST[Any]] = rule {
+  def start: Rule1[AST] = rule {
     trileanExpr ~ EOI
   }
 
-  def trileanExpr: Rule1[AST[Any]] = rule {
+  def trileanExpr: Rule1[AST] = rule {
     trileanTerm ~ zeroOrMore(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
-      ((e: AST[Any], f: AST[Any]) => AndThen(e, f))
+      ((e: AST, f: AST) => AndThen(e, f))
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AST[Any], f: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('and, e :: f :: HNil))
+      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AST[Any], f: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('or, e :: f :: HNil))
+      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
     )
   }
 
-  def trileanTerm: Rule1[AST[Any]] = rule {
+  def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
-    ((c: AST[Any], b: AST[Boolean], r: Option[Any]) => {
-      FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('and, Timer(c, TimeInterval(MaxWindow, MaxWindow)) :: Assert(FunctionCall('not, b :: HNil)) :: HNil)
+    ((c: AST, b: AST, r: Option[Any]) => {
+      FunctionCall('and, Seq(Timer(c, TimeInterval(MaxWindow, MaxWindow)), Assert(FunctionCall('not, Seq(b)))))
     })
     | trileanFactor)
   }
 
-  protected def buildForExpr(phase: AST[Any], ti: TimeInterval): AST[Any] = {
-    Timer(Assert(phase.asInstanceOf[AST[Boolean]]), ti)
+  protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
+    Timer(Assert(phase.asInstanceOf[AST]), ti)
   }
 
   protected def buildRangedForExpr(
-    phase: AST[Any],
+    phase: AST,
     exactly: Option[Boolean],
     w: Window,
     range: Interval[Long]
-  ): AST[Any] = {
+  ): AST = {
     val accum = range match {
       case _: NumericInterval[Long] => PatternStatsCall('truthCount, phase, w)
       case _: TimeInterval => PatternStatsCall('truthMillis, phase, w)
@@ -76,97 +76,97 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
 
   // format: off
 
-  def nonFatalTrileanFactor: Rule1[AST[Any]] = rule {
+  def nonFatalTrileanFactor: Rule1[AST] = rule {
     booleanExpr | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def trileanFactor: Rule1[AST[Any]] = rule {
-    booleanExpr ~> { b: AST[Boolean] => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
+  def trileanFactor: Rule1[AST] = rule {
+    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
-  def booleanExpr: Rule1[AST[Boolean]] = rule {
+  def booleanExpr: Rule1[AST] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('or, e :: f :: HNil))
+      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('xor, e :: f :: HNil))
+        ((e: AST, f: AST) => FunctionCall('xor, Seq(e, f)))
     )
   }
 
-  def booleanTerm: Rule1[AST[Boolean]] = rule {
+  def booleanTerm: Rule1[AST] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AST[Boolean], f: AST[Boolean]) => FunctionCall[Boolean :: Boolean :: HNil, AST[Boolean] :: AST[Boolean] :: HNil, Boolean]('and, e :: f :: HNil))
+      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
     )
   }
 
-  def booleanFactor: Rule1[AST[Boolean]] = rule {
+  def booleanFactor: Rule1[AST] = rule {
     comparison |
       boolean |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST[Boolean]) => FunctionCall('not, b :: HNil))
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST) => FunctionCall('not, Seq(b)))
   }
 
-  def comparison: Rule1[AST[Boolean]] = rule {
+  def comparison: Rule1[AST] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('lt, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('lt, Seq(e1, e2))
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('le, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('le, Seq(e1, e2))
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('gt, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('gt, Seq(e1, e2))
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('ge, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('ge, Seq(e1, e2))
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('eq, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('eq, Seq(e1, e2))
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AST[Any], e2: AST[Any]) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Boolean]('ne, e1 :: e2 :: HNil)
+        (e1: AST, e2: AST) => FunctionCall('ne, Seq(e1, e2))
       )
     )
   }
   // format: on
 
-  def expr: Rule1[AST[Any]] = rule {
+  def expr: Rule1[AST] = rule {
     term ~ zeroOrMore(
       '+' ~ ws ~ term ~> (
         (
-          e: AST[Any],
-          f: AST[Any]
-        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('add, e :: f :: HNil)
+          e: AST,
+          f: AST
+        ) => FunctionCall('add, Seq(e, f))
       )
       | '-' ~ ws ~ term ~> (
         (
-          e: AST[Any],
-          f: AST[Any]
-        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('sub, e :: f :: HNil)
+          e: AST,
+          f: AST
+        ) => FunctionCall('sub, Seq(e, f))
       )
     )
   }
 
-  def term: Rule1[AST[Any]] = rule {
+  def term: Rule1[AST] = rule {
     factor ~
     zeroOrMore(
       '*' ~ ws ~ factor ~> (
         (
-          e: AST[Any],
-          f: AST[Any]
-        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('mul, e :: f :: HNil)
+          e: AST,
+          f: AST
+        ) => FunctionCall('mul, Seq(e, f))
       )
       | '/' ~ ws ~ factor ~> (
         (
-          e: AST[Any],
-          f: AST[Any]
-        ) => FunctionCall[Any :: Any :: HNil, AST[Any] :: AST[Any] :: HNil, Any]('div, e :: f :: HNil)
+          e: AST,
+          f: AST
+        ) => FunctionCall('div, Seq(e, f))
       )
     )
   }
 
-  def factor: Rule1[AST[Any]] = rule {
+  def factor: Rule1[AST] = rule {
     (
       real
       | fieldValue
@@ -345,10 +345,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
     ~> ((s: Int, i: String) => Constant(s * i.toLong)))
   }
 
-  def functionCall: Rule1[AST[Any]] = rule {
+  def functionCall: Rule1[AST] = rule {
     (
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
-      ((function: String, arguments: Seq[AST[Any]], constraint: Option[Double => Boolean]) => {
+      ((function: String, arguments: Seq[AST], constraint: Option[Double => Boolean]) => {
         // TODO: Convention about function naming?
         val normalisedFunction = function.toLowerCase
         val c = constraint.getOrElse((_: Double) => true)
@@ -365,7 +365,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
       (
         (
           function: String,
-          arg: AST[Any],
+          arg: AST,
           win: Window
         ) => {
           AggregateCall(Symbol(function), arg, win)

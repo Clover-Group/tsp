@@ -1,36 +1,66 @@
 package ru.itclover.tsp.dsl.v2
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.Window
+import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.v2.Result
 import shapeless.HList
 import shapeless.ops.hlist.Mapped
 
-sealed trait AST[+T] extends Product with Serializable {
-  type Type = T
+import scala.reflect.ClassTag
+
+sealed trait AST extends Product with Serializable {
+  val valueType: ASTType
+
+  def requireType(requirementType: ASTType, message: Any): Unit =
+    if(valueType != requirementType) throw ParseException(message.toString)
 }
 
-case class Constant[T](value: T) extends AST[T]
+case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
+  override val valueType: ASTType = ASTType.of[T]
+}
 
 // TODO: Other types for columns
-case class Identifier(value: Symbol) extends AST[Double]
+case class Identifier(value: Symbol) extends AST {
+  override val valueType: ASTType = DoubleASTType
+}
 
-case class Range[T](from: T, to: T) extends AST[T]
+case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
+  override val valueType: ASTType = ASTType.of[T]
+}
 
-case class FunctionCall[H <: HList, AH <: HList, RT](functionName: Symbol, arguments: AH)(
-  implicit mapped: Mapped.Aux[H, AST, AH]
-) extends AST[RT]
+case class FunctionCall[RT](functionName: Symbol, arguments: Seq[AST])(implicit ct: ClassTag[RT]) extends AST {
+  override val valueType: ASTType = ASTType.of[RT]
+}
 
-case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: AST[Any]*)
-    extends AST[RT]
+case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: Seq[AST])(
+  implicit ct: ClassTag[RT]
+) extends AST {
+  override val valueType: ASTType = ASTType.of[RT]
+}
 
-case class PatternStatsCall[RT](functionName: Symbol, inner: AST[Any], window: Window) extends AST[RT]
+case class PatternStatsCall[RT](functionName: Symbol, inner: AST, window: Window)(implicit ct: ClassTag[RT])
+    extends AST {
+  override val valueType: ASTType = ASTType.of[RT]
+}
 
-case class AggregateCall[RT](functionName: Symbol, value: AST[Any], window: Window) extends AST[RT]
+case class AggregateCall[RT](functionName: Symbol, value: AST, window: Window)(implicit ct: ClassTag[RT]) extends AST {
+  override val valueType: ASTType = ASTType.of[RT]
+}
 
-case class AndThen(first: AST[Any], second: AST[Any]) extends AST[Any]
+case class AndThen(first: AST, second: AST) extends AST {
+  first.requireType(BooleanASTType, s"1st argument '$first' must be boolean in '$this'")
+  second.requireType(BooleanASTType, s"2nd argument '$second' must be boolean in '$this'")
+  override val valueType: ASTType = BooleanASTType
+}
 
-case class Timer(cond: AST[Any], interval: TimeInterval) extends AST[Any]
+case class Timer(cond: AST, interval: TimeInterval) extends AST {
+  override val valueType: ASTType = BooleanASTType
+}
 
-case class For(accum: AST[Boolean], range: Interval[Long], exactly: Option[Boolean]) extends AST[Any]
+case class For(accum: AST, range: Interval[Long], exactly: Option[Boolean]) extends AST {
+  override val valueType: ASTType = BooleanASTType
+}
 
-case class Assert(cond: AST[Boolean]) extends AST[Any]
+case class Assert(cond: AST) extends AST {
+  override val valueType: ASTType = BooleanASTType
+}
