@@ -13,8 +13,6 @@ import scala.language.higherKinds
   * @tparam Cont Container for yet another chunk of Events
   */
 trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
-  type Type = T
-  type State = S
   def initialState(): S
 }
 
@@ -23,7 +21,7 @@ trait PState[T, +Self <: PState[T, _]] {
   def copyWithQueue(queue: QI[T]): Self
 }
 
-trait IdxValue[T] {
+trait IdxValue[+T] {
   def index: Idx
   def value: Result[T]
   def start: Idx
