@@ -11,13 +11,13 @@ object Version {
   val influxCli = "0.6.0"
   val influxFlink = "1.0"
 
-  val clickhouse = "0.1.42"
-  val flink = "1.7.0"
+  val clickhouse = "0.1.48"
+  val flink = "1.7.1"
 
-  val akka = "2.5.17"
+  val akka = "2.5.19"
   val akkaHttp = "10.1.5"
 
-  val cats = "1.4.0"
+  val cats = "1.5.0"
 
   val twitterUtilVersion = "6.43.0"
 

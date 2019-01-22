@@ -6,7 +6,7 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -18,12 +18,12 @@ lazy val commonSettings = Seq(
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
-    "-feature"               // warn about feature warnings 
+    "-feature"               // warn about feature warnings
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-  
+
   // don't release subprojects
   githubRelease := null,
   skip in publish := true
@@ -166,7 +166,7 @@ lazy val integrationPerformance = project.in(file("integration/performance"))
 
 /*** Other settings ***/
 
-// Kind projector 
+// Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
 
