@@ -121,7 +121,7 @@ object PatternsSearchJob {
   }
 
   def bucketizePatterns[E](patterns: Seq[RichPattern[E]], parallelism: Int): Vector[Bucket[RichPattern[E]]] = {
-    import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
+    import Bucketizer.WeightExtractorInstances.phasesWeightExtractor
     val patternsBuckets = if (parallelism > patterns.length) {
       log.warn(
         s"Patterns parallelism conf ($parallelism) is higher than amount of " +

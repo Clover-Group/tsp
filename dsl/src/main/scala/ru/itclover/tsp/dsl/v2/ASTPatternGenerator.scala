@@ -10,7 +10,7 @@ import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
 import scala.language.implicitConversions
 import scala.language.higherKinds
 
-class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
+case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event]
 ) {
@@ -60,7 +60,12 @@ class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
           registry
             .getReducer(ffc.functionName, ffc.valueType)
             .getOrElse(sys.error(s"Reducer function ${ffc.functionName} not found"))
-        new ReducePattern(ffc.arguments.map(generatePattern))(func, ffc.cond, Result.succ(initial))
+        val wrappedFunc = (x: Result[Any], y: Result[Any]) => (x, y) match {
+          case (Fail, _) => Result.fail
+          case (_, Fail) => Result.fail
+          case (Succ(t), Succ(u)) => Result.succ(func(t, u))
+        }
+        new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
       case psc: PatternStatsCall[_] =>
         psc.functionName match {
           case _ => ???

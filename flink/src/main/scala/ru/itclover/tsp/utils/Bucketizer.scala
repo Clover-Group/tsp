@@ -1,5 +1,6 @@
 package ru.itclover.tsp.utils
 import ru.itclover.tsp.PatternsSearchJob.RichPattern
+import ru.itclover.tsp.v2.PatternsSearchJob.{RichPattern => NewRichPattern}
 import scala.collection.immutable
 
 object Bucketizer {
@@ -36,8 +37,12 @@ object Bucketizer {
       override def apply(v1: T) = 1L
     }
 
-    implicit def phasesWeightExtrator[Event] = new WeightExtractor[RichPattern[Event]] {
+    implicit def phasesWeightExtractor[Event] = new WeightExtractor[RichPattern[Event]] {
       override def apply(item: RichPattern[Event]) = Math.max(item._1._2.maxWindowMs, 1L)
+    }
+
+    implicit def newPhasesWeightExtractor[Event, F[_], Cont[_]] = new WeightExtractor[NewRichPattern[Event, F, Cont]] {
+      override def apply(item: NewRichPattern[Event, F, Cont]) = Math.max(item._1._2.maxWindowMs, 1L)
     }
   }
 
