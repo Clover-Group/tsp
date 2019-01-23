@@ -16,11 +16,6 @@ trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Even
   def initialState(): S
 }
 
-trait PState[T, +Self <: PState[T, _]] {
-  def queue: QI[T]
-  def copyWithQueue(queue: QI[T]): Self
-}
-
 trait IdxValue[+T] {
   def index: Idx
   def value: Result[T]

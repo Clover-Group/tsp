@@ -1,6 +1,7 @@
 package ru.itclover.tsp.dsl.v2
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Window
+import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
@@ -21,6 +22,15 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
 
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _, F, Cont]): Pattern[Event, T, AnyState[T], F, Cont] =
     p.asInstanceOf[Pattern[Event, T, AnyState[T], F, Cont]]
+
+  def build(
+    sourceCode: String,
+    toleranceFraction: Double
+  ): Either[Throwable, (Pattern[Event, Any, AnyState[Any], F, Cont], PatternMetadata)] = {
+    val ast = new ASTBuilder(sourceCode, toleranceFraction).start.run()
+    ast.toEither.map(a => (generatePattern(a), a.metadata))
+  }
+
 
   def generatePattern(ast: AST): Pattern[Event, Any, AnyState[Any], F, Cont] = {
     ast match {
@@ -66,30 +76,21 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
           case (Succ(t), Succ(u)) => Result.succ(func(t, u))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
-      case psc: PatternStatsCall[_] =>
+      /*case psc: PatternStatsCall[_] =>
         psc.functionName match {
           case _ => ???
-        }
+        }*/ // ..
       // TODO: Function registry for aggregate
       case ac: AggregateCall[_] => ??? //GroupPattern(generatePattern(ac.value), ac.window) // TODO: Which pattern?
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.min))
-      case f: For   => ???
+      /*case f: For   => ???*/ // ..
       case a: Assert =>
         new MapPattern(generatePattern(a.cond))(
           innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
         )
     }
-  }
-
-
-  def build(
-    sourceCode: String,
-    toleranceFraction: Double
-  ): Either[Throwable, Pattern[Event, Any, AnyState[Any], F, Cont]] = {
-    val ast = new ASTBuilder(sourceCode, toleranceFraction).start.run()
-    ast.toEither.map(generatePattern)
   }
 }

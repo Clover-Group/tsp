@@ -45,33 +45,20 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
-    time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
+    time ~ range ~ ws ~> (ForWithInterval(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
       (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST, b: AST, r: Option[Any]) => {
-      FunctionCall('and, Seq(Timer(c, TimeInterval(MaxWindow, MaxWindow)), Assert(FunctionCall('not, Seq(b)))))
+      val until = Assert(FunctionCall('not, Seq(b)))
+      val timedCondition = Seq(Timer(c, TimeInterval(MaxWindow, MaxWindow)))
+      FunctionCall('and, timedCondition, until)
     })
     | trileanFactor)
   }
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
     Timer(Assert(phase.asInstanceOf[AST]), ti)
-  }
-
-  protected def buildRangedForExpr(
-    phase: AST,
-    exactly: Option[Boolean],
-    w: Window,
-    range: Interval[Long]
-  ): AST = {
-    val accum = range match {
-      case _: NumericInterval[Long] => PatternStatsCall('truthCount, phase, w)
-      case _: TimeInterval => PatternStatsCall('truthMillis, phase, w)
-      case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
-    }
-
-    For(accum, range, exactly)
   }
 
   // format: off

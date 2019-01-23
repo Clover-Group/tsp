@@ -10,9 +10,8 @@ import ru.itclover.tsp.v2.{PState, Pattern, _}
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
-/* Count */
-/* WindowStatistic */
 
+// TOOD@fabura Docs? Rename?
 case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: Foldable](
   override val innerPattern: Pattern[Event, T, S, F, Cont],
   override val window: Window

@@ -19,15 +19,15 @@ import ru.itclover.tsp.v2.Pattern.{QI, TsIdxExtractor}
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   * @tparam F Container for state (some simple monad mostly)
   */
-class IdxToSegmentsP[E, Inner, S <: PState[Inner, S], F[_]: Monad](
-  inner: Pattern[E, Inner, S, F, Vector]
+class IdxToSegmentsP[E, Inner, S <: PState[Inner, S], F[_]: Monad, Cont[_]](
+  inner: Pattern[E, Inner, S, F, Cont]
 )(
   implicit extractor: TsIdxExtractor[E]
-) extends Pattern[E, Segment, WrappingPState[Inner, S, Segment], F, Vector] {
+) extends Pattern[E, Segment, WrappingPState[Inner, S, Segment], F, Cont] {
 
   override def initialState() = WrappingPState.empty[Inner, S, Segment](inner.initialState())
 
-  override def apply(oldState: WrappingPState[Inner, S, Segment], events: Vector[E]) = {
+  override def apply(oldState: WrappingPState[Inner, S, Segment], events: Cont[E]) = {
     val newInnerState = inner.apply(oldState.inner, events)
     for (innerS <- newInnerState) yield {
       val newSegments: QI[Segment] = innerS.queue.map { idxVal =>

@@ -34,7 +34,7 @@ object PatternBuilder {
       .map { p =>
         val maxWindowMs = maxPhaseWindowMs(p)
         val pattern = SegmentsPattern(postProcess(p, maxWindowMs))
-        (pattern, PatternMetadata(findFields(p).toSet, maxWindowMs))
+        (pattern, PatternMetadata(findFields(p).map(Symbol(_)).toSet, maxWindowMs))
       }
       .toEither
       .leftMap {

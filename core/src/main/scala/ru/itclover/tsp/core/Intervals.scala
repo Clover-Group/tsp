@@ -4,7 +4,7 @@ import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 object Intervals {
 
   /** Interval abstraction for time measurment in accumulators and some other patterns */
-  trait Interval[T] {
+  sealed trait Interval[T] {
     def contains(item: T) = getRelativePosition(item) == Inside
 
     def isInfinite: Boolean
