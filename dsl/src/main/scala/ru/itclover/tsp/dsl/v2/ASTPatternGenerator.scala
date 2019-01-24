@@ -87,7 +87,6 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
         }
-      // TODO: Function registry for reduce
       case ffc: ReducerFunctionCall[_] =>
         val (func, initial, _) =
           registry.reducers
@@ -99,11 +98,6 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             case (Succ(t), Succ(u)) => Result.succ(func(t, u))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
-      /*case psc: PatternStatsCall[_] =>
-        psc.functionName match {
-          case _ => ???
-        }*/ // ..
-      // TODO: Function registry for aggregate
       case ac: AggregateCall[_] => ac.function match {
         case Count => richPatterns.count(generatePattern(ac.value)
           .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
@@ -115,9 +109,8 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
-      case t: Timer             => TimerPattern(generatePattern(t.cond), Window(t.interval.min))
-      case sf: SimpleFor        => ??? //..
-      case fwi: ForWithInterval => ??? // ..
+      case t: Timer             => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
+      case fwi: ForWithInterval => ???
       case a: Assert =>
         new MapPattern(generatePattern(a.cond))(
           innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail

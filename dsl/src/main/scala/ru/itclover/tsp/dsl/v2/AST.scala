@@ -24,7 +24,6 @@ case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
   override val valueType: ASTType = ASTType.of[T]
 }
 
-// TODO: Other types for columns
 case class Identifier(value: Symbol, tag: ClassTag[_]) extends AST {
   override def metadata = PatternMetadata(Set(value), 0L)
 
@@ -82,16 +81,6 @@ case class Assert(cond: AST) extends AST {
   */
 case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window, interval: Interval[Long])
   extends AST {
-  override def metadata = inner.metadata |+| PatternMetadata(Set.empty, window.toMillis)
-  override val valueType = inner.valueType
-}
-
-/**
-  * Term for syntax like `X for T TIME`, where
-  * @param inner is `X`
-  * @param window is `T TIME`
-  */
-case class SimpleFor(inner: AST, window: Window) extends AST {
   override def metadata = inner.metadata |+| PatternMetadata(Set.empty, window.toMillis)
   override val valueType = inner.valueType
 }
