@@ -51,7 +51,7 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   import MonitoringServiceModel._
 
   implicit val jobExceptionsFormat = jsonFormat(JobExceptions.apply, "timestamp", "root-exception", "truncated")
-  implicit val emptyFormat = jsonFormat0(EmptyResponse.apply)
+  implicit val emptyFormat = jsonFormat0(EmptyResponse.apply _)
   implicit val metricFormat = jsonFormat2(Metric.apply)
   implicit val metricNameFormat = jsonFormat1(MetricName.apply)
   implicit val monitoringErrorFormat = jsonFormat1(MonitoringError.apply)

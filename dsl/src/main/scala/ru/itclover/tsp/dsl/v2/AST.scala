@@ -104,7 +104,15 @@ case class AggregateCall[RT](function: AggregateFn, value: AST, window: Window)(
 }
 
 sealed trait AggregateFn extends Product with Serializable
-case class Sum() extends AggregateFn
-case class Count() extends AggregateFn
-case class Avg() extends AggregateFn
+case object Sum extends AggregateFn
+case object Count extends AggregateFn
+case object Avg extends AggregateFn
 
+object AggregateFn {
+  def fromSymbol(name: Symbol): AggregateFn = name match {
+    case 'sum => Sum
+    case 'count => Count
+    case 'avg => Avg
+    case _ => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
+  }
+}

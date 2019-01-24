@@ -11,12 +11,12 @@ import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
 import scala.language.implicitConversions
 import scala.language.higherKinds
 
-case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
+case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event]
 ) {
 
-  val registry = FunctionRegistry.createDefault
+  val registry: FunctionRegistry = ???
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -31,7 +31,6 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
     ast.toEither.map(a => (generatePattern(a), a.metadata))
   }
 
-
   def generatePattern(ast: AST): Pattern[Event, Any, AnyState[Any], F, Cont] = {
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any, F, Cont](c.value)
@@ -45,9 +44,11 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
             new MapPattern(p1)(
               (x: Any) =>
                 Result.succ(
-                  registry
-                    .getFunction(fc.functionName, fc.arguments.map(_.valueType))
-                    .getOrElse(sys.error(s"Function ${fc.functionName} not found"))(Seq(x))
+                  registry.functions
+                    .getOrElse(
+                      (fc.functionName, fc.arguments.map(_.valueType)),
+                      sys.error(s"Function ${fc.functionName} not found")
+                    )(Seq(x))
               )
             )
           case 2 =>
@@ -55,9 +56,11 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
             new CouplePattern(p1, p2)(
               (x, y) =>
                 Result.succ(
-                  registry
-                    .getFunction(fc.functionName, fc.arguments.map(_.valueType))
-                    .getOrElse(sys.error(s"Function ${fc.functionName} not found"))(
+                  registry.functions
+                    .getOrElse(
+                      (fc.functionName, fc.arguments.map(_.valueType)),
+                      sys.error(s"Function ${fc.functionName} not found")
+                    )(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
                     )
               )
@@ -67,13 +70,13 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
       // TODO: Function registry for reduce
       case ffc: ReducerFunctionCall[_] =>
         val (func, initial) =
-          registry
-            .getReducer(ffc.functionName, ffc.valueType)
-            .getOrElse(sys.error(s"Reducer function ${ffc.functionName} not found"))
-        val wrappedFunc = (x: Result[Any], y: Result[Any]) => (x, y) match {
-          case (Fail, _) => Result.fail
-          case (_, Fail) => Result.fail
-          case (Succ(t), Succ(u)) => Result.succ(func(t, u))
+          registry.reducers
+            .getOrElse((ffc.functionName, ffc.valueType), sys.error(s"Reducer function ${ffc.functionName} not found"))
+        val wrappedFunc = (x: Result[Any], y: Result[Any]) =>
+          (x, y) match {
+            case (Fail, _)          => Result.fail
+            case (_, Fail)          => Result.fail
+            case (Succ(t), Succ(u)) => Result.succ(func(t, u))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
       /*case psc: PatternStatsCall[_] =>
@@ -86,7 +89,8 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable](
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.min))
-      /*case f: For   => ???*/ // ..
+      case sf: SimpleFor => ??? //..
+      case fwi: ForWithInterval   => ??? // ..
       case a: Assert =>
         new MapPattern(generatePattern(a.cond))(
           innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail

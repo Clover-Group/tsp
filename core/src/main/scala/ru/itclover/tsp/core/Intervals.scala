@@ -46,6 +46,8 @@ object Intervals {
 
   object TimeInterval {
     def apply(min: Window = MinWindow, max: Window = MaxWindow): TimeInterval = TimeInterval(min.toMillis, max.toMillis)
+
+    val MaxInterval = TimeInterval(MaxWindow, MaxWindow)
   }
 
   /** Simple inclusive-exclusive numeric interval */

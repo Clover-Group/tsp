@@ -66,9 +66,9 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
       override def write(obj: SourceDataTransformation[Event, EKey, EValue]): JsValue = {
         val c = obj.config match {
-          case ndu: NarrowDataUnfolding[Event, EKey, EValue] => ndu.toJson
-          case wdf: WideDataFilling[Event, EKey, EValue]     => wdf.toJson
-          case _                                             => sys.error("Unknown source data transformation")
+          case ndu @ NarrowDataUnfolding(_, _, _, _) => ndu.toJson
+          case wdf @ WideDataFilling(_, _)           => wdf.toJson
+          case _                                     => sys.error("Unknown source data transformation")
         }
         JsObject(
           "type"   -> obj.`type`.toJson,

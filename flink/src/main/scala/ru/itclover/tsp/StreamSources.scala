@@ -16,7 +16,7 @@ import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /*sealed*/ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -189,13 +189,13 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
           mutable.Buffer[Row]()
         } else
           for {
-            series   <- queryResult.getSeries
-            valueSet <- series.getValues
+            series   <- queryResult.getSeries.asScala
+            valueSet <- series.getValues.asScala.map(_.asScala)
             if valueSet != null
           } yield {
-            val tags = if (series.getTags != null) series.getTags else new util.HashMap[String, String]()
-            val row = new Row(tags.size() + valueSet.size())
-            val fieldsAndValues = tags ++ series.getColumns.toSeq.zip(valueSet)
+            val tags = if (series.getTags != null) series.getTags.asScala else Map.empty
+            val row = new Row(tags.size + valueSet.size)
+            val fieldsAndValues = tags ++ series.getColumns.asScala.zip(valueSet)
             fieldsAndValues.foreach {
               case (field, value) => row.setField(serFieldsIdxMap(Symbol(field)), value)
             }

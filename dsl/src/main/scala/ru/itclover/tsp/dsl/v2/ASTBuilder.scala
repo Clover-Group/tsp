@@ -51,8 +51,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST, b: AST, r: Option[Any]) => {
       val until = Assert(FunctionCall('not, Seq(b)))
-      val timedCondition = Seq(Timer(c, TimeInterval(MaxWindow, MaxWindow)))
-      FunctionCall('and, timedCondition, until)
+      val timedCondition = Timer(c, TimeInterval.MaxInterval)
+      FunctionCall('and, Seq(timedCondition, until))
     })
     | trileanFactor)
   }
@@ -355,7 +355,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
           arg: AST,
           win: Window
         ) => {
-          AggregateCall(Symbol(function), arg, win)
+          AggregateCall(AggregateFn.fromSymbol(Symbol(function)), arg, win)
         }
       )
     )
