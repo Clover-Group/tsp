@@ -5,6 +5,8 @@ import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
+
+import scala.reflect.ClassTag
 //import ru.itclover.tsp.dsl.v2.FunctionRegistry
 import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
 
@@ -16,7 +18,7 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
   timeExtractor: TimeExtractor[Event]
 ) {
 
-  val registry: FunctionRegistry = ???
+  val registry: FunctionRegistry = DefaultFunctionRegistry
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -25,9 +27,10 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
 
   def build(
     sourceCode: String,
-    toleranceFraction: Double
+    toleranceFraction: Double,
+    fieldsTags: Map[Symbol, ClassTag[_]]
   ): Either[Throwable, (Pattern[Event, Any, AnyState[Any], F, Cont], PatternMetadata)] = {
-    val ast = new ASTBuilder(sourceCode, toleranceFraction).start.run()
+    val ast = new ASTBuilder(sourceCode, toleranceFraction, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
   }
 
@@ -48,7 +51,8 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
                       sys.error(s"Function ${fc.functionName} not found")
-                    )(Seq(x))
+                    )._1
+                    (Seq(x))
               )
             )
           case 2 =>
@@ -60,7 +64,7 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
                       sys.error(s"Function ${fc.functionName} not found")
-                    )(
+                    )._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
                     )
               )
@@ -69,7 +73,7 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
         }
       // TODO: Function registry for reduce
       case ffc: ReducerFunctionCall[_] =>
-        val (func, initial) =
+        val (func, initial, _) =
           registry.reducers
             .getOrElse((ffc.functionName, ffc.valueType), sys.error(s"Reducer function ${ffc.functionName} not found"))
         val wrappedFunc = (x: Result[Any], y: Result[Any]) =>

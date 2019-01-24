@@ -15,6 +15,7 @@ import cats.kernel.instances._
 import shapeless.{::, HNil}
 
 import scala.language.higherKinds
+import scala.reflect.ClassTag
 
 
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
@@ -25,7 +26,7 @@ object ASTBuilder {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Parser {
+class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]]) extends Parser {
 
   def start: Rule1[AST] = rule {
     trileanExpr ~ EOI
@@ -362,7 +363,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   }
 
   def anyWord: Rule1[String] = rule {
-    capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws
+    ((capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws)
+      | (anyWordInDblQuotes ~> ((id: String) => id.replace("\"\"", "\""))))
   }
 
   def anyWordInDblQuotes: Rule1[String] = rule {
@@ -370,12 +372,12 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   }
 
   def fieldValue: Rule1[Identifier] = rule {
-    (anyWord ~> ((id: String) => Identifier(Symbol(id)))
-    | anyWordInDblQuotes ~>
-    ((id: String) => {
-      val clean = Symbol(id.replace("\"\"", "\""))
-      Identifier(clean)
-    }))
+    anyWord ~> ((id: String) => {
+      fieldsTags.get(Symbol(id)) match {
+        case Some(tag) => Identifier(Symbol(id), tag)
+        case None => throw ParseException(s"Unknown identifier (field) $id")
+      }
+    })
   }
 
   def boolean: Rule1[Constant[Boolean]] = rule {

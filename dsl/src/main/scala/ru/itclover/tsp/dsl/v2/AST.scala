@@ -25,10 +25,10 @@ case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
 }
 
 // TODO: Other types for columns
-case class Identifier(value: Symbol) extends AST {
+case class Identifier(value: Symbol, tag: ClassTag[_]) extends AST {
   override def metadata = PatternMetadata(Set(value), 0L)
 
-  override val valueType: ASTType = DoubleASTType
+  override val valueType: ASTType = ASTType.of(tag)
 }
 
 case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {

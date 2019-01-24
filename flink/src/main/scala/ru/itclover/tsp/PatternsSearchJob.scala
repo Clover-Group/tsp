@@ -42,7 +42,11 @@ case class PatternsSearchJob[In, InKey, InItem](
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] =
-    preparePatterns[In, S, InKey, InItem](rawPatterns, source.fieldToEKey, source.conf.defaultToleranceFraction.getOrElse(0)) map { patterns =>
+    preparePatterns[In, S, InKey, InItem](rawPatterns,
+      source.fieldToEKey,
+      source.conf.defaultToleranceFraction.getOrElse(0),
+      source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
+    ) map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
       val mapped = incidents.map(x => x.map(resultMapper))
@@ -102,7 +106,8 @@ object PatternsSearchJob {
   def preparePatterns[E, S <: PState[Segment, S], EKey, EItem](
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
-    toleranceFraction: Double
+    toleranceFraction: Double,
+    fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
@@ -114,7 +119,7 @@ object PatternsSearchJob {
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction))
+            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
             .map(p => (new IdxToSegmentsP(p._1).asInstanceOf[Pattern[E, Segment, AnyState[Segment], cats.Id, List]], p._2))
             // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
