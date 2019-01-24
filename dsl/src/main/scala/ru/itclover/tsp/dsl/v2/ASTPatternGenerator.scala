@@ -2,23 +2,28 @@ package ru.itclover.tsp.dsl.v2
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.io.{AnyDecodersInstances, Extractor, TimeExtractor}
 import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
 
 import scala.reflect.ClassTag
 //import ru.itclover.tsp.dsl.v2.FunctionRegistry
 import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
+import ru.itclover.tsp.io.AnyDecodersInstances._
 
 import scala.language.implicitConversions
 import scala.language.higherKinds
+import cats.instances.double._
 
-case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()(
+case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable]()(
   implicit idxExtractor: IdxExtractor[Event],
-  timeExtractor: TimeExtractor[Event]
+  timeExtractor: TimeExtractor[Event],
+  extractor: Extractor[Event, EKey, EItem],
+  fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
+  val richPatterns = new Patterns[Event, F, Cont] {}
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -37,8 +42,18 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
   def generatePattern(ast: AST): Pattern[Event, Any, AnyState[Any], F, Cont] = {
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any, F, Cont](c.value)
-      case id: Identifier => ???
-      // new ExtractingPattern[Event, _, _, Any, AnyState[Any], F, Cont](id.value, id.value) // TODO: Extracting pattern
+      case id: Identifier =>
+        id.valueType match {
+          case IntASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int], F, Cont](id.value, id.value)
+          case LongASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long], F, Cont](id.value, id.value)
+          case DoubleASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double], F, Cont](id.value, id.value)
+          case BooleanASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean], F, Cont](id.value, id.value)
+          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any], F, Cont](id.value, id.value)
+        }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall[_] =>
         fc.arguments.length match {
@@ -51,8 +66,8 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
                       sys.error(s"Function ${fc.functionName} not found")
-                    )._1
-                    (Seq(x))
+                    )
+                    ._1(Seq(x))
               )
             )
           case 2 =>
@@ -64,7 +79,8 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
                       sys.error(s"Function ${fc.functionName} not found")
-                    )._1(
+                    )
+                    ._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
                     )
               )
@@ -88,13 +104,20 @@ case class ASTPatternGenerator[Event, F[_]: Monad, Cont[_]: Functor: Foldable]()
           case _ => ???
         }*/ // ..
       // TODO: Function registry for aggregate
-      case ac: AggregateCall[_] => ??? //GroupPattern(generatePattern(ac.value), ac.window) // TODO: Which pattern?
+      case ac: AggregateCall[_] => ac.function match {
+        case Count => richPatterns.count(generatePattern(ac.value)
+          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
+        case Sum => richPatterns.sum(generatePattern(ac.value)
+          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
+        case Avg => richPatterns.avg(generatePattern(ac.value)
+          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
+      }
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
-      case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.min))
-      case sf: SimpleFor => ??? //..
-      case fwi: ForWithInterval   => ??? // ..
+      case t: Timer             => TimerPattern(generatePattern(t.cond), Window(t.interval.min))
+      case sf: SimpleFor        => ??? //..
+      case fwi: ForWithInterval => ??? // ..
       case a: Assert =>
         new MapPattern(generatePattern(a.cond))(
           innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail

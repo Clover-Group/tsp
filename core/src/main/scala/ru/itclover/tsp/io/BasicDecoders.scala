@@ -12,37 +12,74 @@ object AnyDecodersInstances extends BasicDecoders[Any] {
 
   implicit val decodeToDouble: Decoder[Any, Double] = new AnyDecoder[Double] {
     override def apply(x: Any) = x match {
-      case d: Double => d
+      case d: Double           => d
       case n: java.lang.Number => n.doubleValue()
-      case s: String => try { java.lang.Double.parseDouble(s)} catch {
-        case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
-      }
+      case s: String =>
+        try { java.lang.Double.parseDouble(s) } catch {
+          case e: Exception =>
+            throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
+        }
       case null => Double.NaN
     }
   }
 
   implicit val decodeToInt: Decoder[Any, Int] = new AnyDecoder[Int] {
     override def apply(x: Any) = x match {
-      case i: Int => i
+      case i: Int              => i
       case n: java.lang.Number => n.intValue()
       case s: String =>
         try { Helper.strToInt(s) } catch {
-        case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
-      }
+          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
+        }
       case null => throw new RuntimeException(s"Cannot parse null to Int")
     }
   }
 
-  implicit val decodeToString: Decoder[Any, String] = Decoder { x: Any => x.toString }
+  implicit val decodeToLong: Decoder[Any, Long] = new AnyDecoder[Long] {
+    override def apply(x: Any) = x match {
+      case i: Int              => i
+      case l: Long             => l
+      case n: java.lang.Number => n.longValue()
+      case s: String =>
+        try { Helper.strToInt(s) } catch {
+          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
+        }
+      case null => throw new RuntimeException(s"Cannot parse null to Long")
+    }
+  }
 
-  implicit val decodeToAny: Decoder[Any, Any] = Decoder { x: Any => x }
+  implicit val decodeToBoolean: Decoder[Any, Boolean] = new AnyDecoder[Boolean] {
+    override def apply(x: Any) = x match {
+      case 0 | 0L | 0.0 | "0" | "false" | "off" | "no" => false
+      case 1 | 1L | 1.0 | "1" | "true" | "on" | "yes"  => true
+      case b: Boolean                                  => b
+      case null                                        => throw new RuntimeException(s"Cannot parse null to Boolean")
+      case _                                           => throw new RuntimeException(s"Cannot parse '$x' to Boolean")
+    }
+  }
+
+  implicit val decodeToString: Decoder[Any, String] = Decoder { x: Any =>
+    x.toString
+  }
+
+  implicit val decodeToAny: Decoder[Any, Any] = Decoder { x: Any =>
+    x
+  }
 }
 
 object DoubleDecoderInstances extends BasicDecoders[Double] {
-  override implicit def decodeToDouble = Decoder { d: Double => d }
-  override implicit def decodeToInt = Decoder { d: Double => d.toInt }
-  override implicit def decodeToString = Decoder { d: Double => d.toString }
-  override implicit def decodeToAny = Decoder { d: Double => d }
+  implicit override def decodeToDouble = Decoder { d: Double =>
+    d
+  }
+  implicit override def decodeToInt = Decoder { d: Double =>
+    d.toInt
+  }
+  implicit override def decodeToString = Decoder { d: Double =>
+    d.toString
+  }
+  implicit override def decodeToAny = Decoder { d: Double =>
+    d
+  }
 }
 
 // Hack for String.toInt implicit method

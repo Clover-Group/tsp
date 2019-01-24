@@ -1,6 +1,6 @@
 package ru.itclover.tsp.io
 
-trait Decoder[From, T] extends (From => T) with Serializable
+trait Decoder[-From, T] extends (From => T) with Serializable
 
 object Decoder {
   def apply[From, T](f: From => T) = new Decoder[From, T] {

@@ -114,13 +114,14 @@ object PatternsSearchJob {
     dDecoder: Decoder[EItem, Double]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
     implicit val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
-    val pGenerator = ASTPatternGenerator[E, cats.Id, List]()
+    implicit val impFIM = fieldsIdxMap
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem, cats.Id, List]()
     val a = Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
-            .leftMap(err => List(s"PatternID#${p.id}, error: " + err))
+            .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(p => (new IdxToSegmentsP(p._1).asInstanceOf[Pattern[E, Segment, AnyState[Segment], cats.Id, List]], p._2))
             // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )

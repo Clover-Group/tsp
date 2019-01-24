@@ -110,6 +110,8 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Fu
 
   def sum[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = GroupPattern(inner, w).map(_.sum)
 
+  def count[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = GroupPattern(inner, w).map(_.count)
+
   // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
   def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window)(implicit f: Fractional[T]) =
     GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))

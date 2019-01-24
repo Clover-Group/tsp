@@ -157,6 +157,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   def factor: Rule1[AST] = rule {
     (
       real
+      | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
     )
