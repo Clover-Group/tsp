@@ -38,7 +38,7 @@ case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
 
 // TODO@trolley Rm with Function1, Function2, Function3 - boilerplate is better than mutable maps and extra complexity
 case class FunctionCall[RT](functionName: Symbol, arguments: Seq[AST])(implicit ct: ClassTag[RT]) extends AST {
-  override def metadata = ???
+  override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
   override val valueType: ASTType = ASTType.of[RT]
 }
 
