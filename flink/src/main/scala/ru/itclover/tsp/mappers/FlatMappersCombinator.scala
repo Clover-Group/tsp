@@ -7,7 +7,7 @@ import org.apache.flink.util.Collector
 import scala.reflect.ClassTag
 
 
-trait StatefulFlatMapper[In, State, Out] extends ((In, State) => (Seq[Out], State)) { self =>
+trait StatefulFlatMapper[In, State, Out] extends ((In, State) => (Seq[Out], State)) with Serializable { self =>
   def initialState: State
 }
 

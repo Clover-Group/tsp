@@ -66,6 +66,7 @@ object FunctionRegistry {
 
 trait PFunction extends (Seq[Any] => Any)
 trait PReducer extends ((Any, Any) => Any)
+trait PReducerTransformation extends (Any => Any)
 
 /**
   * Registry for runtime functions
@@ -74,8 +75,8 @@ trait PReducer extends ((Any, Any) => Any)
   * @param reducers Reducer functions, their return types and initial values
   */
 case class FunctionRegistry(
-  functions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)],
-  reducers: Map[(Symbol, ASTType), (PReducer, ASTType, Any)]
+  @transient functions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)],
+  @transient reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)]
 ) {
 
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
@@ -85,37 +86,75 @@ object DefaultFunctions {
 
   val arithmeticFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
     ('add, Seq(DoubleASTType, DoubleASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Double] + xs(1).asInstanceOf[Double], DoubleASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] + xs(1).asInstanceOf[Double],
+        DoubleASTType
+      )
     ),
     ('sub, Seq(DoubleASTType, DoubleASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Double] - xs(1).asInstanceOf[Double], DoubleASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] - xs(1).asInstanceOf[Double],
+        DoubleASTType
+      )
     ),
     ('mul, Seq(DoubleASTType, DoubleASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Double] * xs(1).asInstanceOf[Double], DoubleASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] * xs(1).asInstanceOf[Double],
+        DoubleASTType
+      )
     ),
     ('div, Seq(DoubleASTType, DoubleASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Double] / xs(1).asInstanceOf[Double], DoubleASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] / xs(1).asInstanceOf[Double],
+        DoubleASTType
+      )
     )
   )
 
   val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
     ('and, Seq(BooleanASTType, BooleanASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] && xs(1).asInstanceOf[Boolean], BooleanASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] && xs(1).asInstanceOf[Boolean],
+        BooleanASTType
+      )
     ),
     ('or, Seq(BooleanASTType, BooleanASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] || xs(1).asInstanceOf[Boolean], BooleanASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] || xs(1).asInstanceOf[Boolean],
+        BooleanASTType
+      )
     ),
     ('xor, Seq(BooleanASTType, BooleanASTType)) -> (
-      ((xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] ^ xs(1).asInstanceOf[Boolean], BooleanASTType)
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] ^ xs(1).asInstanceOf[Boolean],
+        BooleanASTType
+      )
     ),
     ('not, Seq(BooleanASTType)) -> (
-      ((xs: Seq[Any]) => !xs(0).asInstanceOf[Boolean], BooleanASTType)
+      (
+        (xs: Seq[Any]) => !xs(0).asInstanceOf[Boolean],
+        BooleanASTType
+      )
     )
   )
 
-  val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, Any)] = Map(
-    ('sum, DoubleASTType) -> ((r: Any, x: Any) => r.asInstanceOf[Double] + x.asInstanceOf[Double], DoubleASTType, 0),
-    ('count, DoubleASTType) -> ((r: Any, x: Any) => r.asInstanceOf[Double] + 1, DoubleASTType, 0)
+  val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
+    ('sumof, DoubleASTType) -> (
+      (
+        (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double],
+        DoubleASTType,
+        identity(_),
+        0
+      )
+    ),
+    ('countof, DoubleASTType) -> ((acc: Any, x: Any) => acc.asInstanceOf[Double] + 1, DoubleASTType, identity(_), 0),
+    ('avgof, DoubleASTType) -> (((acc: Any, x: Any) => {
+      val (sum, count) = acc.asInstanceOf[(Double, Double)]
+      (sum + x.asInstanceOf[Double], count + 1)
+    }, DoubleASTType, (x: Any) => {
+      val (sum, count) = x.asInstanceOf[(Double, Double)]
+      sum / count
+    }, 0))
   )
 }
 

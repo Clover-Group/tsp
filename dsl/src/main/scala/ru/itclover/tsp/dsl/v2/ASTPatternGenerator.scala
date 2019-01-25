@@ -19,11 +19,12 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  fieldToEKey: Symbol => EKey
+  @transient fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
-  val richPatterns = new Patterns[Event, F, Cont] {}
+  @transient val richPatterns = new Patterns[Event, F, Cont] {}
+  //import richPatterns._
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -88,24 +89,38 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
         }
       case ffc: ReducerFunctionCall[_] =>
-        val (func, initial, _) =
+        val (func, _, trans, initial) =
           registry.reducers
-            .getOrElse((ffc.functionName, ffc.valueType), sys.error(s"Reducer function ${ffc.functionName} not found"))
+            .getOrElse((ffc.functionName, ffc.valueType),
+              sys.error(s"Reducer function ${ffc.functionName} with argument type ${ffc.valueType} not found"))
         val wrappedFunc = (x: Result[Any], y: Result[Any]) =>
           (x, y) match {
             case (Fail, _)          => Result.fail
             case (_, Fail)          => Result.fail
-            case (Succ(t), Succ(u)) => Result.succ(func(t, u))
+            case (Succ(t), Succ(u)) => Result.succ(trans(func(t, u)))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
-      case ac: AggregateCall[_] => ac.function match {
-        case Count => richPatterns.count(generatePattern(ac.value)
-          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
-        case Sum => richPatterns.sum(generatePattern(ac.value)
-          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
-        case Avg => richPatterns.avg(generatePattern(ac.value)
-          .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]], ac.window)
-      }
+      case ac: AggregateCall[_] =>
+        ac.function match {
+          case Count =>
+            richPatterns.count(
+              generatePattern(ac.value)
+                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+              ac.window
+            )
+          case Sum =>
+            richPatterns.sum(
+              generatePattern(ac.value)
+                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+              ac.window
+            )
+          case Avg =>
+            richPatterns.avg(
+              generatePattern(ac.value)
+                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+              ac.window
+            )
+        }
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
