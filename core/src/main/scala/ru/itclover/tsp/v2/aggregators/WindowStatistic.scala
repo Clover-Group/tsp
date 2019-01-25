@@ -143,12 +143,13 @@ case class WindowStatisticQueueInstance(
   failTimeFromPrevious: Long
 )
 
+// OPTIMIZE memory, make successCount and failCount - Int
 case class WindowStatisticResult(
   idx: Idx,
   time: Time,
   lastWasSuccess: Boolean,
-  successCount: Int,
+  successCount: Long,
   successMillis: Long,
-  failCount: Int,
+  failCount: Long,
   failMillis: Long
 )

@@ -1,11 +1,13 @@
 package ru.itclover.tsp.dsl.v2
+
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Window
+import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.io.{AnyDecodersInstances, Extractor, TimeExtractor}
 import ru.itclover.tsp.v2.Pattern.IdxExtractor
 import ru.itclover.tsp.v2._
-
+import ru.itclover.tsp.v2.aggregators.{WindowStatistic, WindowStatisticResult}
 import scala.reflect.ClassTag
 //import ru.itclover.tsp.dsl.v2.FunctionRegistry
 import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
@@ -125,7 +127,14 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer             => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
-      case fwi: ForWithInterval => ???
+      case fwi: ForWithInterval => new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({
+        stats: WindowStatisticResult =>
+          fwi.interval match {
+            case ti: TimeInterval          if ti.contains(stats.successMillis) => Succ(true)
+            case ni: NumericInterval[Long] if ni.contains(stats.successCount)  => Succ(true)
+            case _ => Fail
+          }
+      })
       case a: Assert =>
         new MapPattern(generatePattern(a.cond))(
           innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
