@@ -14,22 +14,22 @@ import scala.concurrent.duration.DurationInt
 
 class TimerPatternTest extends WordSpec with Matchers {
 
-  "TimerPatter " should {
-    "return " in {
-      val newTypesHolder = new Patterns[RowWithIdx, cats.Id, List] {}
-      import newTypesHolder._
-
-      val now = Instant.now
-
-      val rows = (for (v   <- Change(0, 10, 10.seconds).timed(5.seconds);
-                       ts  <- Timer(now);
-                       idx <- Milliseconds) yield RowWithIdx(idx, Time(ts.toEpochMilli), v.toInt)).run(11)
-
-      val pattern = timer(newTypesHolder.assert(field(_.value) >= const(5)), 4.seconds)
-
-      val x = StateMachine.run(pattern, rows, pattern.initialState())
-      x.size should be (3)
-    }
-
-  }
+//  "TimerPatter " should {
+//    "return " in {
+//      val newTypesHolder = new Patterns[RowWithIdx, cats.Id, List] {}
+//      import newTypesHolder._
+//
+//      val now = Instant.now
+//
+//      val rows = (for (v   <- Change(0, 10, 10.seconds).timed(5.seconds);
+//                       ts  <- Timer(now);
+//                       idx <- Milliseconds) yield RowWithIdx(idx, Time(ts.toEpochMilli), v.toInt)).run(11)
+//
+//      val pattern = timer(newTypesHolder.assert(field(_.value) >= const(5)), 4.seconds)
+//
+//      val x = StateMachine.run(pattern, rows, pattern.initialState())
+//      x.size should be (3)
+//    }
+//
+//  }
 }

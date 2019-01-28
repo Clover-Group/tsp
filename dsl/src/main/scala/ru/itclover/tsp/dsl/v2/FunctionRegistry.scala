@@ -138,34 +138,111 @@ object DefaultFunctions {
     )
   )
 
-  val comparingFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
-    ('lt, Seq(LongASTType, LongASTType)) -> (
-      (
-        {
-          (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[Long] < xs(1).asInstanceOf[Long]
-        },
-        BooleanASTType
-      )
-    ),
-    ('lt, Seq(IntASTType, IntASTType)) -> (
-      (
-        {
-          (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[Int] < xs(1).asInstanceOf[Int]
-        },
-        BooleanASTType
-      )
-    ),
-    ('lt, Seq(DoubleASTType, DoubleASTType)) -> (
-      (
-        { (xs: Seq[Any]) =>
-          xs(0).asInstanceOf[Double] < xs(1).asInstanceOf[Double]
-        },
-        BooleanASTType
+  def comparingFunctions[T1: ClassTag, T2: ClassTag](
+    implicit ord: Ordering[T1],
+    ev: T2 => T1
+  ): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+    val astType1: ASTType = ASTType.of[T1]
+    val astType2: ASTType = ASTType.of[T2]
+    Map(
+      ('lt, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.lt(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
+          },
+          BooleanASTType
+        )
+      ),
+      ('le, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.lteq(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
+          },
+          BooleanASTType
+        )
+      ),
+      ('gt, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.gt(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
+          },
+          BooleanASTType
+        )
+      ),
+      ('ge, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.gteq(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
+          },
+          BooleanASTType
+        )
+      ),
+      ('eq, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[T1] == xs(1).asInstanceOf[T2]
+          },
+          BooleanASTType
+        )
+      ),
+      ('ne, Seq(astType1, astType2)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[T1] != xs(1).asInstanceOf[T2]
+          },
+          BooleanASTType
+        )
+      ),
+      ('lt, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.lt(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
+          },
+          BooleanASTType
+        )
+      ),
+      ('le, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.lteq(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
+          },
+          BooleanASTType
+        )
+      ),
+      ('gt, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.gt(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
+          },
+          BooleanASTType
+        )
+      ),
+      ('ge, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            ord.gteq(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
+          },
+          BooleanASTType
+        )
+      ),
+      ('eq, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[T2] == xs(1).asInstanceOf[T1]
+          },
+          BooleanASTType
+        )
+      ),
+      ('ne, Seq(astType2, astType1)) -> (
+        (
+          { (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[T2] != xs(1).asInstanceOf[T1]
+          },
+          BooleanASTType
+        )
       )
     )
-  )
+  }
 
   val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
     ('sumof, DoubleASTType) -> (
@@ -191,6 +268,11 @@ import DefaultFunctions._
 
 object DefaultFunctionRegistry
     extends FunctionRegistry(
-      functions = arithmeticFunctions ++ logicalFunctions ++ comparingFunctions,
+      functions = arithmeticFunctions ++
+      logicalFunctions ++
+      comparingFunctions[Int, Int] ++
+      comparingFunctions[Long, Long] ++
+      comparingFunctions[Double, Double] ++
+      comparingFunctions[Double, Long],
       reducers = reducers
     )
