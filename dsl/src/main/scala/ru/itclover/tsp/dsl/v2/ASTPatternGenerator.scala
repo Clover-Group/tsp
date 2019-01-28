@@ -78,7 +78,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             new CouplePattern(p1, p2)(
               { (x, y) =>
-                val r = Result.succ(
+                Result.succ(
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
@@ -88,9 +88,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                     ._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
                     )
-
                 )
-                r // .. Check comparing function here (too much result in sink now)
               }
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")

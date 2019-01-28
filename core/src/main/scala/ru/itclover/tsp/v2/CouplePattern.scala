@@ -26,8 +26,8 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
     val rightF = right.apply(oldState.right, events)
     for (newLeftState  <- leftF;
          newRightState <- rightF) yield {
-      // process queues
-      val (updatedLeftQueue, updatedRightQueue, newFinalQueue) = // .. inside
+      // Build a new queue from the left and right ones
+      val (updatedLeftQueue, updatedRightQueue, newFinalQueue) =
         processQueues(newLeftState.queue, newRightState.queue, oldState.queue)
 
       CouplePState(
