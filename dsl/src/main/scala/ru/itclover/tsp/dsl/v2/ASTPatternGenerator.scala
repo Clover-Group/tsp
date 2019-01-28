@@ -1,11 +1,11 @@
 package ru.itclover.tsp.dsl.v2
 
-import cats.{Foldable, Functor, Monad}
+import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.io.{AnyDecodersInstances, Extractor, TimeExtractor}
-import ru.itclover.tsp.v2.Pattern.IdxExtractor
+import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.aggregators.{WindowStatistic, WindowStatisticResult}
 import scala.reflect.ClassTag
@@ -21,12 +21,12 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey
+  @transient fieldToEKey: Symbol => EKey,
+  idxOrd: Order[Idx]
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event, F, Cont] {}
-  //import richPatterns._
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -76,8 +76,8 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
           case 2 =>
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             new CouplePattern(p1, p2)(
-              (x, y) =>
-                Result.succ(
+              { (x, y) =>
+                val r = Result.succ(
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
@@ -86,7 +86,10 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                     ._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
                     )
-              )
+
+                )
+                r // .. Check comparing function here (too much result in sink now)
+              }
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
         }
@@ -130,15 +133,17 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
       case fwi: ForWithInterval => new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({
         stats: WindowStatisticResult =>
           fwi.interval match {
-            case ti: TimeInterval          if ti.contains(stats.successMillis) => Succ(true)
-            case ni: NumericInterval[Long] if ni.contains(stats.successCount)  => Succ(true)
-            case _ => Fail
+            case ti: TimeInterval          if ti.contains(stats.successMillis) => Result.succ(true)
+            case ni: NumericInterval[Long] if ni.contains(stats.successCount)  => Result.succ(true)
+            case _ => Result.fail
           }
       })
       case a: Assert =>
-        new MapPattern(generatePattern(a.cond))(
-          innerBool => if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
-        )
+        // TODO@trolley check types
+        new MapPattern(generatePattern(a.cond)) ({
+          innerBool =>
+            if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
+        })
     }
   }
 }

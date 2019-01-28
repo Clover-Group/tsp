@@ -138,6 +138,35 @@ object DefaultFunctions {
     )
   )
 
+  val comparingFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
+    ('lt, Seq(LongASTType, LongASTType)) -> (
+      (
+        {
+          (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[Long] < xs(1).asInstanceOf[Long]
+        },
+        BooleanASTType
+      )
+    ),
+    ('lt, Seq(IntASTType, IntASTType)) -> (
+      (
+        {
+          (xs: Seq[Any]) =>
+            xs(0).asInstanceOf[Int] < xs(1).asInstanceOf[Int]
+        },
+        BooleanASTType
+      )
+    ),
+    ('lt, Seq(DoubleASTType, DoubleASTType)) -> (
+      (
+        { (xs: Seq[Any]) =>
+          xs(0).asInstanceOf[Double] < xs(1).asInstanceOf[Double]
+        },
+        BooleanASTType
+      )
+    )
+  )
+
   val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
     ('sumof, DoubleASTType) -> (
       (
@@ -158,8 +187,10 @@ object DefaultFunctions {
   )
 }
 
+import DefaultFunctions._
+
 object DefaultFunctionRegistry
     extends FunctionRegistry(
-      functions = DefaultFunctions.arithmeticFunctions ++ DefaultFunctions.logicalFunctions,
-      reducers = DefaultFunctions.reducers
+      functions = arithmeticFunctions ++ logicalFunctions ++ comparingFunctions,
+      reducers = reducers
     )

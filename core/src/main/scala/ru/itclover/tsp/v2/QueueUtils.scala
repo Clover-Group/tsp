@@ -1,7 +1,7 @@
 package ru.itclover.tsp.v2
+import cats.kernel.Order
 import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.v2.Pattern.Idx
-
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 
@@ -25,12 +25,12 @@ object  QueueUtils {
   }
 
   @tailrec
-  def rollMap(idx: Idx, q:  m.Queue[(Idx, Time)]): (Time,  m.Queue[(Idx, Time)]) = {
+  def rollMap(idx: Idx, q:  m.Queue[(Idx, Time)])(implicit ord: Order[Idx]): (Time,  m.Queue[(Idx, Time)]) = {
     assert(q.nonEmpty, "IdxTimeMap should not be empty!") // .. understandable exception?
     q.dequeue match {
       case (index, time) =>
-        if (index == idx) (time, q)
-        else if (index < idx) rollMap(idx, q)
+        if (ord.eqv(index, idx)) (time, q)
+        else if (ord.lt(index, idx)) rollMap(idx, q)
         else sys.error("Invalid state!") // .. same?
     }
   }

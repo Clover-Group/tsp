@@ -1,14 +1,13 @@
 package ru.itclover.tsp.v2.aggregators
 
 import cats.implicits._
-import cats.{Foldable, Functor, Monad}
+import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.io.TimeExtractor.GetTime
 import ru.itclover.tsp.v2.Pattern.IdxExtractor._
 import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2._
-
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
@@ -20,6 +19,8 @@ case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Ou
   astate: AState,
   override val queue: QI[Out],
   indexTimeMap: m.Queue[(Idx, Time)]
+)(
+  implicit idxOrd: Order[Idx]
 ) extends PState[Out, AggregatorPState[InnerState, AState, Out]] {
   override def copyWithQueue(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
 }
@@ -28,7 +29,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
   InnerOut,
   Out,
   AState
-], F[_]: Monad, Cont[_]: Foldable: Functor]
+], F[_]: Monad, Cont[_]: Foldable: Functor](implicit idxOrd: Order[Idx])
     extends AggregatorPatterns[Event, Out, AggregatorPState[Inner, AState, Out], F, Cont] {
 
   val innerPattern: Pattern[Event, InnerOut, Inner, F, Cont]
@@ -53,7 +54,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
             newInnerState.copyWithQueue(newInnerQueue),
             newAState, { state.queue.enqueue(newResults: _*); state.queue },
             updatedIndexTimeMap
-          )
+          )(idxOrd)
         }
       )
   }
@@ -75,7 +76,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
         case None => (innerQueue, accumState, collectedNewResults, indexTimeMap)
         case Some(IdxValue(index, value)) =>
           val updatedQueue = { innerQueue.dequeue(); innerQueue }
-          val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)
+          val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)(idxOrd)
 
           val (newAState, newResults) = accumState.updated(window, index, newInnerResultTime, value)
 

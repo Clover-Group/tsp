@@ -1,6 +1,7 @@
 package ru.itclover.tsp.v2
-import ru.itclover.tsp.v2.Pattern.{Idx, _}
 
+import cats.Order
+import ru.itclover.tsp.v2.Pattern.{Idx, _}
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
@@ -39,9 +40,12 @@ object IdxValue {
 object Pattern {
 
   type Idx = Long
+
   type QI[T] = m.Queue[IdxValue[T]]
 
-  trait IdxExtractor[Event] extends Serializable {
+
+
+  trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
   }
 
@@ -54,6 +58,9 @@ object Pattern {
       eventToTs(e) * 1000 + counter
     }
 
+    override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
+
+
     def idxToTs(idx: Idx): Long = idx / 1000
   }
 
@@ -64,6 +71,8 @@ object Pattern {
 
     def of[E](f: E => Idx): IdxExtractor[E] = new IdxExtractor[E] {
       override def apply(e: E): Idx = f(e)
+
+      override def compare(x: Idx, y: Idx) = x compare y
     }
   }
 }

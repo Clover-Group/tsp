@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindows, SessionWindowTimeGapExtractor}
 import cats.data.Validated
-import cats.{Id, Monad, Traverse}
+import cats.{Foldable, Functor, Id, Monad, Traverse}
 import cats.implicits._
 import ru.itclover.tsp.core.{Incident, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
@@ -115,8 +115,17 @@ object PatternsSearchJob {
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
     implicit val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
     implicit val impFIM = fieldsIdxMap
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem, cats.Id, List]()
-    val a = Traverse[List]
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem, cats.Id, List]()(
+      Monad[Id],
+      Functor[List],
+      Foldable[List],
+      tsToIdx,
+      getTime,
+      extractor,
+      fieldsIdxMap,
+      tsToIdx
+    )
+    Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
@@ -128,7 +137,6 @@ object PatternsSearchJob {
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
       .toEither
-    a
   }
 
   def bucketizePatterns[E, T, S <: PState[T, S]](patterns: Seq[RichPattern[E, T, S]], parallelism: Int): Vector[Bucket[RichPattern[E, T, S]]] = {

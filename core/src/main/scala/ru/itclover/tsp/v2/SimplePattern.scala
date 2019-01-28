@@ -13,7 +13,10 @@ import scala.language.higherKinds
 class SimplePattern[Event: IdxExtractor, T, F[_]: Monad, Cont[_]: Functor: Foldable](f: Event => Result[T])
     extends Pattern[Event, T, SimplePState[T], F, Cont] {
   override def apply(oldState: SimplePState[T], events: Cont[Event]): F[SimplePState[T]] = {
-    Monad[F].pure(SimplePState(events.map { e => IdxValueSimple(e.index, f(e)) }.foldLeft(oldState.queue) {
+    Monad[F].pure(SimplePState(events.map { e =>
+      val x = f(e)
+      IdxValueSimple(e.index, x)
+    }.foldLeft(oldState.queue) {
       case (oldStateQ, b) => { oldStateQ.enqueue(b); oldStateQ } // .. style?
     }))
   }

@@ -14,7 +14,10 @@ class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState], F[_]: Mona
     oldState: MapPState[InnerState, T1, T2],
     event: Cont[Event]
   ): F[MapPState[InnerState, T1, T2]] =
-    inner(oldState.innerState, event).map(innerResult => oldState.copy(innerState = innerResult))
+    inner(oldState.innerState, event).map({
+      innerResult =>
+        oldState.copy(innerState = innerResult)
+    })
 
   override def initialState(): MapPState[InnerState, T1, T2] = MapPState(innerState = inner.initialState(), func)
 }

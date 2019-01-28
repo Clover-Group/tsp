@@ -10,4 +10,7 @@ class ExtractingPattern[Event: IdxExtractor, EKey, EItem, T, S <: PState[T, S], 
 )(
   implicit extract: Extractor[Event, EKey, EItem],
   decoder: Decoder[EItem, T]
-) extends SimplePattern[Event, T, F, Cont] (e => Result.succ(extract(e, key)))
+) extends SimplePattern[Event, T, F, Cont]({e =>
+  val r = extract(e, key)
+  Result.succ(r)
+})

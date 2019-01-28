@@ -1,10 +1,9 @@
 package ru.itclover.tsp.v2
-import cats.Monad
+import cats.{Monad, Order}
 import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 import ru.itclover.tsp.v2.Pattern._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-
 import scala.collection.{mutable => m}
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -14,7 +13,10 @@ import scala.language.higherKinds
 case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, S2], F[_]: Monad, Cont[_]](
   first: Pattern[Event, T1, S1, F, Cont],
   second: Pattern[Event, T2, S2, F, Cont]
-) extends Pattern[Event, (Idx, Idx), AndThenPState[T1, T2, S1, S2], F, Cont] {
+)(
+  implicit idxOrd: Order[Idx]
+)
+  extends Pattern[Event, (Idx, Idx), AndThenPState[T1, T2, S1, S2], F, Cont] {
 
   def apply(
     oldState: AndThenPState[T1, T2, S1, S2],
@@ -60,13 +62,13 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             // if any of parts is empty -> do nothing
             case None => default
             // if that's an late event from second queue, just skip it
-            case Some(IdxValue(index2, _)) if index2 <= index1 => //todo < or <= ?
+            case Some(IdxValue(index2, _)) if idxOrd.lteqv(index2, index1) => //todo lt or lteqv ?
               inner(first, {second.dequeue; second}, total)
             // if second part is Failure return None as a result
             case Some(IdxValue(_, Fail)) =>
               inner({first.dequeue; first}, second, {total.enqueue(IdxValue(index1, Fail)); total})
             // if both first and second stages a Success then return Success
-            case Some(IdxValue(index2, Succ(_))) if index2 > index1 =>
+            case Some(IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
               inner({first.dequeue; first}, {second.dequeue; second}, {total.enqueue(IdxValue(index1, Succ(index1 -> index2))); total})
           }
       }

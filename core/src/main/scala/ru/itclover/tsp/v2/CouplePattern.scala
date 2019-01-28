@@ -1,9 +1,9 @@
 package ru.itclover.tsp.v2
 
-import cats.{Foldable, Functor, Monad}
+import cats.{Foldable, Functor, Monad, Order}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import ru.itclover.tsp.v2.Pattern.QI
+import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
@@ -15,6 +15,8 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
   right: Pattern[Event, T2, State2, F, Cont]
 )(
   func: (Result[T1], Result[T2]) => Result[T3]
+)(
+  implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, T3, CouplePState[State1, State2, T1, T2, T3], F, Cont] {
   override def apply(
     oldState: CouplePState[State1, State2, T1, T2, T3],
@@ -25,7 +27,7 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
     for (newLeftState  <- leftF;
          newRightState <- rightF) yield {
       // process queues
-      val (updatedLeftQueue, updatedRightQueue, newFinalQueue) =
+      val (updatedLeftQueue, updatedRightQueue, newFinalQueue) = // .. inside
         processQueues(newLeftState.queue, newRightState.queue, oldState.queue)
 
       CouplePState(
@@ -49,11 +51,11 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
         case (None, _)                                                => default
         case (Some(IdxValue(idx1, val1)), Some(IdxValue(idx2, val2))) =>
           // we emit result only if results on left and right sides come at the same time
-          if (idx1 == idx2) {
+          if (idxOrd.eqv(idx1, idx2)) {
             val result: Result[T3] = func(val1, val2)
             inner({first.dequeue; first}, {second.dequeue; second}, {total.enqueue(IdxValue(idx1, result)); total})
             // otherwise skip results from one of sides
-          } else if (idx1 < idx2) {
+          } else if (idxOrd.lt(idx1, idx2)) {
             inner({first.dequeue; first}, second, total)
           } else {
             inner(first, {second.dequeue; second}, total)
