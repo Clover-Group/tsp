@@ -19,6 +19,7 @@ import ru.itclover.tsp.core.IncidentInstances.semigroup
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
 import ru.itclover.tsp.io._
+import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -156,7 +157,7 @@ object PatternsSearchJob {
 
   def reduceIncidents(incidents: DataStream[Incident]) = {
     incidents
-      .assignAscendingTimestamps(p => p.segment.from.toMillis)
+      .assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
       .keyBy(_.id)
       .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
         override def extract(element: Incident): Long = element.maxWindowMs
