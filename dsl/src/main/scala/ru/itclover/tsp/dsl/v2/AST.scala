@@ -15,7 +15,7 @@ sealed trait AST extends Product with Serializable {
   def metadata: PatternMetadata
 
   def requireType(requirementType: ASTType, message: Any): Unit =
-    if(valueType != requirementType) throw ParseException(message.toString)
+    if (valueType != requirementType) throw ParseException(message.toString)
 }
 
 case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
@@ -37,16 +37,40 @@ case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
 }
 
 // TODO@trolley Rm with Function1, Function2, Function3 - boilerplate is better than mutable maps and extra complexity
-case class FunctionCall[RT](functionName: Symbol, arguments: Seq[AST])(implicit ct: ClassTag[RT]) extends AST {
+case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: FunctionRegistry) extends AST {
   override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
-  override val valueType: ASTType = ASTType.of[RT]
+  override val valueType: ASTType = fr.functions.get((functionName, arguments.map(_.valueType))) match {
+    case Some((_, t)) => t
+    case None =>
+      throw ParseException(
+        s"No function with name $functionName " +
+        s"and types (${arguments.map(_.valueType).mkString(", ")})"
+      )
+  }
 }
 
-case class ReducerFunctionCall[RT](functionName: Symbol, cond: Result[Any] => Boolean, arguments: Seq[AST])(
-  implicit ct: ClassTag[RT]
+case class ReducerFunctionCall(functionName: Symbol, cond: Result[Any] => Boolean, arguments: Seq[AST])(
+  implicit fr: FunctionRegistry
 ) extends AST {
+  // require the same type for all arguments
+  arguments.zipWithIndex.foreach {
+    case (a, idx) =>
+      a.requireType(
+        arguments.head.valueType,
+        s"Arguments must have the same type, but arg #1 is ${arguments.head.valueType} " +
+        s"and arg #${idx + 1} is ${a.valueType}"
+      )
+  }
+
   override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
-  override val valueType: ASTType = ASTType.of[RT]
+  override val valueType: ASTType = fr.reducers.get((functionName, arguments.head.valueType)) match {
+    case Some((_, t, _, _)) => t
+    case None =>
+      throw ParseException(
+        s"No reducer with name $functionName " +
+        s"and type ${arguments.head.valueType}"
+      )
+  }
 }
 
 case class AndThen(first: AST, second: AST) extends AST {
@@ -70,7 +94,6 @@ case class Assert(cond: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
-
 /**
   * Term for syntax like `X for [exactly] T TIME > 3 times`, where
   * @param inner is `X`
@@ -79,17 +102,15 @@ case class Assert(cond: AST) extends AST {
   * @param exactly special term to mark the for-expr as non-sort-circuiting
   *                (ie run to the end, even if result is obvious).
   */
-case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window, interval: Interval[Long])
-  extends AST {
+case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window, interval: Interval[Long]) extends AST {
   override def metadata = inner.metadata |+| PatternMetadata(Set.empty, window.toMillis)
   override val valueType = inner.valueType
 }
 
-
-case class AggregateCall[RT](function: AggregateFn, value: AST, window: Window)(implicit ct: ClassTag[RT]) extends AST {
+case class AggregateCall(function: AggregateFn, value: AST, window: Window) extends AST {
   override def metadata = value.metadata |+| PatternMetadata(Set.empty, window.toMillis)
 
-  override val valueType: ASTType = ASTType.of[RT]
+  override val valueType: ASTType = DoubleASTType //TODO: Customize return type
 }
 
 sealed trait AggregateFn extends Product with Serializable
@@ -98,10 +119,11 @@ case object Count extends AggregateFn
 case object Avg extends AggregateFn
 
 object AggregateFn {
+
   def fromSymbol(name: Symbol): AggregateFn = name match {
-    case 'sum => Sum
+    case 'sum   => Sum
     case 'count => Count
-    case 'avg => Avg
-    case _ => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
+    case 'avg   => Avg
+    case _      => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
   }
 }

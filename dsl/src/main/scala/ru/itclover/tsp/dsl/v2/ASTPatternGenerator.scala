@@ -58,7 +58,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
           case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any], F, Cont](id.value, id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
-      case fc: FunctionCall[_] =>
+      case fc: FunctionCall =>
         fc.arguments.length match {
           case 1 =>
             val p1 = generatePattern(fc.arguments.head)
@@ -68,7 +68,8 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
-                      sys.error(s"Function ${fc.functionName} not found")
+                      sys.error(s"Function ${fc.functionName} with argument types " +
+                        s"(${fc.arguments.map(_.valueType).mkString(",")})  not found")
                     )
                     ._1(Seq(x))
               )
@@ -81,7 +82,8 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
-                      sys.error(s"Function ${fc.functionName} not found")
+                      sys.error(s"Function ${fc.functionName} with argument types " +
+                        s"(${fc.arguments.map(_.valueType).mkString(",")}) not found")
                     )
                     ._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
@@ -93,7 +95,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
         }
-      case ffc: ReducerFunctionCall[_] =>
+      case ffc: ReducerFunctionCall =>
         val (func, _, trans, initial) =
           registry.reducers
             .getOrElse((ffc.functionName, ffc.valueType),
@@ -105,7 +107,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             case (Succ(t), Succ(u)) => Result.succ(trans(func(t, u)))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
-      case ac: AggregateCall[_] =>
+      case ac: AggregateCall =>
         ac.function match {
           case Count =>
             richPatterns.count(
