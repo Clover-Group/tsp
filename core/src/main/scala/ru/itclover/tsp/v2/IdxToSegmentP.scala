@@ -30,7 +30,7 @@ class IdxToSegmentsP[E, Inner, S <: PState[Inner, S], F[_]: Monad, Cont[_]](
   override def apply(oldState: WrappingPState[Inner, S, Segment], events: Cont[E]) = {
     val newInnerState = inner.apply(oldState.inner, events)
     for (innerS <- newInnerState) yield {
-      val newSegments: QI[Segment] = innerS.queue.map { idxVal =>
+      val newSegments: QI[Segment] = innerS.queue.collect { case idxVal if idxVal.value.isSuccess =>
         val (fromTs, toTs) = (extractor.idxToTs(idxVal.start), extractor.idxToTs(idxVal.end))
         val segment = Result.succ(Segment(Time(toMillis = fromTs), Time(toMillis = toTs)))
         IdxValueSegment(idxVal.index, idxVal.start, idxVal.end, segment)
