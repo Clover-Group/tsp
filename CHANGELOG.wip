@@ -1,1 +1,2 @@
-- completely new pattern engine implementation based on queues
+- Completely new pattern engine implementation based on queues
+- A new syntax implementation for the new core. Now in to steps: Parsing and AST generation + pattern building
