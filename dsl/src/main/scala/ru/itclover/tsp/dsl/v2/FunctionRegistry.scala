@@ -273,6 +273,7 @@ object DefaultFunctionRegistry
       comparingFunctions[Int, Int] ++
       comparingFunctions[Long, Long] ++
       comparingFunctions[Double, Double] ++
-      comparingFunctions[Double, Long],
+      comparingFunctions[Double, Long] ++
+      comparingFunctions[Double, Int],
       reducers = reducers
     )

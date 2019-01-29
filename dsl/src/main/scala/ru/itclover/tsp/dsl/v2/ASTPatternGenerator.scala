@@ -105,6 +105,9 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             case (Succ(t), Succ(u)) => Result.succ(trans(func(t, u)))
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
+
+      case AggregateCall(Count, inner, w) if inner.valueType == DoubleASTType => ??? // this way
+
       case ac: AggregateCall =>
         ac.function match {
           case Count =>
@@ -138,12 +141,16 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
             case _ => Result.fail
           }
       })
-      case a: Assert =>
-        // TODO@trolley check types
-        new MapPattern(generatePattern(a.cond)) ({
+
+      case Assert(inner) if inner.valueType == BooleanASTType =>
+        new MapPattern(generatePattern(inner)) ({
           innerBool =>
             if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
         })
+      case Assert(inner) if inner.valueType != BooleanASTType =>
+        sys.error(s"Invalid pattern, non-boolean pattern inside of Assert - $inner")
+
+      case notImplemented => sys.error(s"AST $notImplemented is not implemented yet.")
     }
   }
 }

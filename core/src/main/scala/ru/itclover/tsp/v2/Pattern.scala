@@ -55,13 +55,13 @@ object Pattern {
 
     override def apply(e: Event): Idx = {
       counter += 1
-      eventToTs(e) * 1000 + counter
+      eventToTs(e) * 100000 + counter // .. incr
     }
 
     override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
 
 
-    def idxToTs(idx: Idx): Long = idx / 1000
+    def idxToTs(idx: Idx): Long = idx / 100000
   }
 
   object IdxExtractor {
