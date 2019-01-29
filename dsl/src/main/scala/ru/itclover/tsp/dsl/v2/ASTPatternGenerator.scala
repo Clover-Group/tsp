@@ -106,7 +106,7 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
         }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
 
-      case AggregateCall(Count, inner, w) if inner.valueType == DoubleASTType => ??? // this way
+      // case AggregateCall(Count, inner, w) if inner.valueType == DoubleASTType => ??? // this way
 
       case ac: AggregateCall =>
         ac.function match {

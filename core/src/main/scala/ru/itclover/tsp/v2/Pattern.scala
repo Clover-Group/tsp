@@ -18,8 +18,8 @@ trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Even
 }
 
 trait IdxValue[+T] {
-  def index: Idx
-  def value: Result[T]
+  def index: Idx        // For internal use in patterns
+  def value: Result[T]  // actual result
   def start: Idx
   def end: Idx
 }
@@ -49,19 +49,20 @@ object Pattern {
     def apply(e: Event): Idx
   }
 
-  // .. TODO Try to fixate TsIdxExtractor for all the patterns somehow
   class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
-    var counter = 0
+    val maxCounter = 10e5.toInt // should be power of 10
+    var counter: Int = 0
 
     override def apply(e: Event): Idx = {
-      counter += 1
-      eventToTs(e) * 100000 + counter // .. incr
+      counter = (counter + 1) % maxCounter
+      tsToIdx(eventToTs(e))
     }
 
     override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
 
+    def idxToTs(idx: Idx): Long = idx / maxCounter
 
-    def idxToTs(idx: Idx): Long = idx / 100000
+    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter
   }
 
   object IdxExtractor {
