@@ -38,7 +38,7 @@ class RealDataTest
 
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9087 -> 9000 :: Nil,
+    port -> 8123 :: 9083 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
