@@ -1,3 +1,6 @@
+## 0.14.0-rc2
+- restored more functions
+- added cast operator
 ## 0.14.0-rc1
 - Completely new pattern engine implementation based on queues
 - A new syntax implementation for the new core. Now in to steps: Parsing and AST generation + pattern building
