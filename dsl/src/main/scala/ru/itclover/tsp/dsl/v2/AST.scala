@@ -117,6 +117,7 @@ sealed trait AggregateFn extends Product with Serializable
 case object Sum extends AggregateFn
 case object Count extends AggregateFn
 case object Avg extends AggregateFn
+case object Lag extends AggregateFn
 
 object AggregateFn {
 
@@ -124,6 +125,7 @@ object AggregateFn {
     case 'sum   => Sum
     case 'count => Count
     case 'avg   => Avg
+    case 'lag   => Lag
     case _      => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
   }
 }

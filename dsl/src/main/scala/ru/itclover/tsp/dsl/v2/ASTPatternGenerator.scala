@@ -128,6 +128,12 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                 .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
               ac.window
             )
+          case Lag =>
+            richPatterns.lag(
+              generatePattern(ac.value)
+              .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+              ac.window
+            )
         }
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))

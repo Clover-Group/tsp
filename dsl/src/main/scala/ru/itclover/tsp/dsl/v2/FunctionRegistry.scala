@@ -84,32 +84,63 @@ case class FunctionRegistry(
 
 object DefaultFunctions {
 
-  val arithmeticFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
-    ('add, Seq(DoubleASTType, DoubleASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] + xs(1).asInstanceOf[Double],
-        DoubleASTType
-      )
-    ),
-    ('sub, Seq(DoubleASTType, DoubleASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] - xs(1).asInstanceOf[Double],
-        DoubleASTType
-      )
-    ),
-    ('mul, Seq(DoubleASTType, DoubleASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] * xs(1).asInstanceOf[Double],
-        DoubleASTType
-      )
-    ),
-    ('div, Seq(DoubleASTType, DoubleASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Double] / xs(1).asInstanceOf[Double],
-        DoubleASTType
+  def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
+    implicit f: Fractional[T1],
+    conv: T2 => T1
+  ): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+    val astType1: ASTType = ASTType.of[T1]
+    val astType2: ASTType = ASTType.of[T2]
+    Map(
+      ('add, Seq(astType1, astType2)) -> (
+        (
+          (xs: Seq[Any]) => f.plus(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2]),
+          astType1
+        )
+      ),
+      ('sub, Seq(astType1, astType2)) -> (
+        (
+          (xs: Seq[Any]) => f.minus(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2]),
+          astType1
+        )
+      ),
+      ('mul, Seq(astType1, astType2)) -> (
+        (
+          (xs: Seq[Any]) => f.times(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2]),
+          astType1
+        )
+      ),
+      ('div, Seq(astType1, astType2)) -> (
+        (
+          (xs: Seq[Any]) => f.div(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2]),
+          astType1
+        )
+      ),
+      ('add, Seq(astType2, astType1)) -> (
+        (
+          (xs: Seq[Any]) => f.plus(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1]),
+          astType1
+        )
+      ),
+      ('sub, Seq(astType2, astType1)) -> (
+        (
+          (xs: Seq[Any]) => f.minus(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1]),
+          astType1
+        )
+      ),
+      ('mul, Seq(astType2, astType1)) -> (
+        (
+          (xs: Seq[Any]) => f.times(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1]),
+          astType1
+        )
+      ),
+      ('div, Seq(astType2, astType1)) -> (
+        (
+          (xs: Seq[Any]) => f.div(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1]),
+          astType1
+        )
       )
     )
-  )
+  }
 
   val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
     ('and, Seq(BooleanASTType, BooleanASTType)) -> (
@@ -140,7 +171,7 @@ object DefaultFunctions {
 
   def comparingFunctions[T1: ClassTag, T2: ClassTag](
     implicit ord: Ordering[T1],
-    ev: T2 => T1
+    conv: T2 => T1
   ): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType1: ASTType = ASTType.of[T1]
     val astType2: ASTType = ASTType.of[T2]
@@ -244,10 +275,30 @@ object DefaultFunctions {
     )
   }
 
+//  def lags[T: ClassTag]: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+//    val astType = ASTType.of[T]
+//  }
+
   val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
     ('sumof, DoubleASTType) -> (
       (
         (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double],
+        DoubleASTType,
+        identity(_),
+        0
+      )
+    ),
+    ('minof, DoubleASTType) -> (
+      (
+        (acc: Any, x: Any) => Math.min(acc.asInstanceOf[Double], x.asInstanceOf[Double]),
+        DoubleASTType,
+        identity(_),
+        0
+      )
+    ),
+    ('maxof, DoubleASTType) -> (
+      (
+        (acc: Any, x: Any) => Math.max(acc.asInstanceOf[Double], x.asInstanceOf[Double]),
         DoubleASTType,
         identity(_),
         0
@@ -262,13 +313,47 @@ object DefaultFunctions {
       sum / count
     }, 0))
   )
+
+  // Fractional type for Int and Long to allow division
+
+  implicit val fractionalInt: Fractional[Int] = new Fractional[Int] {
+    override def div(x: Int, y: Int): Int = x / y
+    override def plus(x: Int, y: Int): Int = x + y
+    override def minus(x: Int, y: Int): Int = x - y
+    override def times(x: Int, y: Int): Int = x * y
+    override def negate(x: Int): Int = -x
+    override def fromInt(x: Int): Int = x
+    override def toInt(x: Int): Int = x
+    override def toLong(x: Int): Long = x
+    override def toFloat(x: Int): Float = x.toFloat
+    override def toDouble(x: Int): Double = x.toDouble
+    override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x, y)
+  }
+
+  implicit val fractionalLong: Fractional[Long] = new Fractional[Long] {
+    override def div(x: Long, y: Long): Long = x / y
+    override def plus(x: Long, y: Long): Long = x + y
+    override def minus(x: Long, y: Long): Long = x - y
+    override def times(x: Long, y: Long): Long = x * y
+    override def negate(x: Long): Long = -x
+    override def fromInt(x: Int): Long = x
+    override def toInt(x: Long): Int = x.toInt
+    override def toLong(x: Long): Long = x
+    override def toFloat(x: Long): Float = x.toFloat
+    override def toDouble(x: Long): Double = x.toDouble
+    override def compare(x: Long, y: Long): Int = java.lang.Long.compare(x, y)
+  }
 }
 
 import DefaultFunctions._
 
 object DefaultFunctionRegistry
     extends FunctionRegistry(
-      functions = arithmeticFunctions ++
+      functions = arithmeticFunctions[Int, Int] ++
+      arithmeticFunctions[Long, Long] ++
+      arithmeticFunctions[Double, Double] ++
+      arithmeticFunctions[Double, Long] ++
+      arithmeticFunctions[Double, Int] ++
       logicalFunctions ++
       comparingFunctions[Int, Int] ++
       comparingFunctions[Long, Long] ++
