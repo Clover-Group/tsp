@@ -17,7 +17,6 @@ import shapeless.{::, HNil}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
 object ASTBuilder {
   // Used for testing purposes
@@ -26,7 +25,8 @@ object ASTBuilder {
   def testFieldsIdxMap(anyStr: String) = 0
 }
 
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]]) extends Parser {
+class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]])
+    extends Parser {
 
   // TODO: Move to params
   implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
@@ -51,7 +51,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (ForWithInterval(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
-      (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
+    (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST, b: AST, r: Option[Any]) => {
       val until = Assert(FunctionCall('not, Seq(b)))
@@ -163,6 +163,21 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
+      | cast
+    )
+  }
+
+  def cast: Rule1[AST] = rule {
+    factor ~ ws ~ ignoreCase("as") ~ ws ~ typeName ~ ws ~> Cast
+  }
+
+  def typeName: Rule1[ASTType] = rule {
+    (
+      ignoreCase("int32") ~> (() => IntASTType)
+      | ignoreCase("int64") ~> (() => LongASTType)
+      | ignoreCase("float64") ~> (() => DoubleASTType)
+      | ignoreCase("boolean") ~> (() => BooleanASTType)
+      | ignoreCase("string") ~> (() => StringASTType)
     )
   }
 
@@ -348,11 +363,11 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
           ReducerFunctionCall(
             Symbol(normalisedFunction),
             (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
-            arguments)
+            arguments
+          )
         else
           FunctionCall(Symbol(normalisedFunction), arguments)
-      }
-      )
+      })
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
       (
         (
@@ -368,7 +383,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
 
   def anyWord: Rule1[String] = rule {
     ((capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws)
-      | (anyWordInDblQuotes ~> ((id: String) => id.replace("\"\"", "\""))))
+    | (anyWordInDblQuotes ~> ((id: String) => id.replace("\"\"", "\""))))
   }
 
   def anyWordInDblQuotes: Rule1[String] = rule {
@@ -379,7 +394,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     anyWord ~> ((id: String) => {
       fieldsTags.get(Symbol(id)) match {
         case Some(tag) => Identifier(Symbol(id), tag)
-        case None => throw ParseException(s"Unknown identifier (field) $id")
+        case None      => throw ParseException(s"Unknown identifier (field) $id")
       }
     })
   }

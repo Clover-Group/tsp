@@ -33,6 +33,8 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _, F, Cont]): Pattern[Event, T, AnyState[T], F, Cont] =
     p.asInstanceOf[Pattern[Event, T, AnyState[T], F, Cont]]
 
+  implicit def toResult[T](value: T): Result[T] = Result.succ(value)
+
   def build(
     sourceCode: String,
     toleranceFraction: Double,
@@ -68,8 +70,10 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
-                      sys.error(s"Function ${fc.functionName} with argument types " +
-                        s"(${fc.arguments.map(_.valueType).mkString(",")})  not found")
+                      sys.error(
+                        s"Function ${fc.functionName} with argument types " +
+                        s"(${fc.arguments.map(_.valueType).mkString(",")})  not found"
+                      )
                     )
                     ._1(Seq(x))
               )
@@ -82,8 +86,10 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
-                      sys.error(s"Function ${fc.functionName} with argument types " +
-                        s"(${fc.arguments.map(_.valueType).mkString(",")}) not found")
+                      sys.error(
+                        s"Function ${fc.functionName} with argument types " +
+                        s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
+                      )
                     )
                     ._1(
                       Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
@@ -96,8 +102,10 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
       case ffc: ReducerFunctionCall =>
         val (func, _, trans, initial) =
           registry.reducers
-            .getOrElse((ffc.functionName, ffc.valueType),
-              sys.error(s"Reducer function ${ffc.functionName} with argument type ${ffc.valueType} not found"))
+            .getOrElse(
+              (ffc.functionName, ffc.valueType),
+              sys.error(s"Reducer function ${ffc.functionName} with argument type ${ffc.valueType} not found")
+            )
         val wrappedFunc = (x: Result[Any], y: Result[Any]) =>
           (x, y) match {
             case (Fail, _)          => Result.fail
@@ -131,27 +139,36 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
           case Lag =>
             richPatterns.lag(
               generatePattern(ac.value)
-              .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
               ac.window
             )
         }
       case at: AndThen =>
         AndThenPattern(generatePattern(at.first), generatePattern(at.second))
       // TODO: Window -> TimeInterval in TimerPattern
-      case t: Timer             => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
-      case fwi: ForWithInterval => new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({
-        stats: WindowStatisticResult =>
+      case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
+      case fwi: ForWithInterval =>
+        new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           fwi.interval match {
-            case ti: TimeInterval          if ti.contains(stats.successMillis) => Result.succ(true)
-            case ni: NumericInterval[Long] if ni.contains(stats.successCount)  => Result.succ(true)
-            case _ => Result.fail
+            case ti: TimeInterval if ti.contains(stats.successMillis)         => Result.succ(true)
+            case ni: NumericInterval[Long] if ni.contains(stats.successCount) => Result.succ(true)
+            case _                                                            => Result.fail
           }
-      })
+        })
+
+      case c: Cast =>
+        c.to match {
+          case IntASTType     => new MapPattern(generatePattern(c.inner))(decodeToInt(_))
+          case LongASTType    => new MapPattern(generatePattern(c.inner))(decodeToLong(_))
+          case BooleanASTType => new MapPattern(generatePattern(c.inner))(decodeToBoolean(_))
+          case StringASTType  => new MapPattern(generatePattern(c.inner))(decodeToString(_))
+          case DoubleASTType  => new MapPattern(generatePattern(c.inner))(decodeToDouble(_))
+          case AnyASTType     => new MapPattern(generatePattern(c.inner))(decodeToAny(_))
+        }
 
       case Assert(inner) if inner.valueType == BooleanASTType =>
-        new MapPattern(generatePattern(inner)) ({
-          innerBool =>
-            if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
+        new MapPattern(generatePattern(inner))({ innerBool =>
+          if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
         })
       case Assert(inner) if inner.valueType != BooleanASTType =>
         sys.error(s"Invalid pattern, non-boolean pattern inside of Assert - $inner")

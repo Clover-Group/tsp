@@ -129,3 +129,8 @@ object AggregateFn {
     case _      => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
   }
 }
+
+case class Cast(inner: AST, to: ASTType) extends AST {
+  override val valueType: ASTType = to
+  override def metadata: PatternMetadata = inner.metadata
+}
