@@ -140,7 +140,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
 
   def term: Rule1[AST] = rule {
-    factor ~
+    ((factor ~
     zeroOrMore(
       '*' ~ ws ~ factor ~> (
         (
@@ -154,7 +154,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
           f: AST
         ) => FunctionCall('div, Seq(e, f))
       )
-    )
+    ))
+    | cast)
   }
 
   def factor: Rule1[AST] = rule {
@@ -163,7 +164,6 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
-      | cast
     )
   }
 

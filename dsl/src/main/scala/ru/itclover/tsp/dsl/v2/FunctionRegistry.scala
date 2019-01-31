@@ -142,6 +142,18 @@ object DefaultFunctions {
     )
   }
 
+  def mathFunctions[T: ClassTag](implicit conv: T => Double): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+    val astType = ASTType.of[T]
+    Map(
+      ('abs, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.abs(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+    )
+  }
+
   val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
     ('and, Seq(BooleanASTType, BooleanASTType)) -> (
       (
@@ -354,6 +366,9 @@ object DefaultFunctionRegistry
       arithmeticFunctions[Double, Double] ++
       arithmeticFunctions[Double, Long] ++
       arithmeticFunctions[Double, Int] ++
+      mathFunctions[Int] ++
+      mathFunctions[Long] ++
+      mathFunctions[Double] ++
       logicalFunctions ++
       comparingFunctions[Int, Int] ++
       comparingFunctions[Long, Long] ++
