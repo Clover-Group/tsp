@@ -151,6 +151,78 @@ object DefaultFunctions {
           astType
         )
         ),
+      ('sin, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.sin(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('cos, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.cos(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('tan, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('tg, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('cot, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('ctg, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
+          astType
+        )
+        ),
+      ('sind, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.sin(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
+      ('cosd, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.cos(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
+      ('tand, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
+      ('tgd, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
+      ('cotd, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
+      ('ctgd, Seq(astType)) -> (
+        (
+          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          astType
+        )
+        ),
     )
   }
 
@@ -291,7 +363,7 @@ object DefaultFunctions {
 //    val astType = ASTType.of[T]
 //  }
 
-  val reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
+  def reducers[T: ClassTag](implicit conv: T => Double): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
     ('sumof, DoubleASTType) -> (
       (
         (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double],
@@ -375,5 +447,5 @@ object DefaultFunctionRegistry
       comparingFunctions[Double, Double] ++
       comparingFunctions[Double, Long] ++
       comparingFunctions[Double, Int],
-      reducers = reducers
+      reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
     )

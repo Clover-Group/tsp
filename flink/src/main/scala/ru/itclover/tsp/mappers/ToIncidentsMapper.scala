@@ -13,17 +13,20 @@ final case class ToIncidentsMapper[E, EKey, EItem](
   partitionFields: Seq[EKey]
 )(implicit extractor: Extractor[E, EKey, EItem], decoder: Decoder[EItem, Any]) {
 
-  def apply(event: E, results: Seq[Segment]): Seq[Incident] =
+  def apply(event: E, results: Seq[Segment]): Seq[Incident] = {
+    val incidentId = s"P#$patternId;" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString
+    val extractedFields = forwardedFields.map { case (name, k) => name -> extractor[Any](event, k) }
     results flatMap { segment =>
       Seq(
         Incident(
-          s"P#${patternId};" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString,
+          incidentId,
           patternId,
           sessionWindowMs,
           segment,
-          forwardedFields.map { case (name, k) => name -> extractor[Any](event, k) },
+          extractedFields,
           payload
         )
       )
     }
+  }
 }

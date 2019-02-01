@@ -3,7 +3,7 @@ package ru.itclover.tsp.dsl.v2
 import cats.{Foldable, Functor, Monad}
 import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
-import ru.itclover.tsp.core.Time.MaxWindow
+import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
@@ -46,6 +46,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     )
   }
 
+  // The following comment disables IDEA's type-aware inspection for a region (until the line with the same comment)
+  /*_*/
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
@@ -60,6 +62,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     })
     | trileanFactor)
   }
+  /*_*/
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
     Timer(Assert(phase.asInstanceOf[AST]), ti)
@@ -140,7 +143,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
 
   def term: Rule1[AST] = rule {
-    ((factor ~
+    factor ~
     zeroOrMore(
       '*' ~ ws ~ factor ~> (
         (
@@ -154,22 +157,29 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
           f: AST
         ) => FunctionCall('div, Seq(e, f))
       )
-    ))
-    | cast)
+    )
   }
 
+  /*_*/
   def factor: Rule1[AST] = rule {
     (
       real
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
+    ) ~ optional(ws ~ ignoreCase("as") ~ ws ~ typeName ~ ws) ~>
+    (
+      (
+        f: AST, // expression
+        t: Option[ASTType] // which optionally can be cast to this type
+      ) =>
+        t match {
+          case Some(value) => Cast(f, value)
+          case None        => f
+        }
     )
   }
-
-  def cast: Rule1[AST] = rule {
-    factor ~ ws ~ ignoreCase("as") ~ ws ~ typeName ~ ws ~> Cast
-  }
+  /*_*/
 
   def typeName: Rule1[ASTType] = rule {
     (
@@ -352,6 +362,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     ~> ((s: Int, i: String) => Constant(s * i.toLong)))
   }
 
+  /*_*/
   def functionCall: Rule1[AST] = rule {
     (
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
@@ -359,14 +370,18 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
         // TODO: Convention about function naming?
         val normalisedFunction = function.toLowerCase
         val c = constraint.getOrElse((_: Double) => true)
-        if (normalisedFunction.endsWith("of"))
-          ReducerFunctionCall(
-            Symbol(normalisedFunction),
-            (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
-            arguments
-          )
-        else
-          FunctionCall(Symbol(normalisedFunction), arguments)
+        normalisedFunction match {
+          case x if x.endsWith("of") =>
+            ReducerFunctionCall(
+              Symbol(normalisedFunction),
+              (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
+              arguments
+            )
+          case "lag" =>
+            if (arguments.length > 1) throw ParseException("Lag should use only 1 argument when called without window")
+            AggregateCall(Lag, arguments.head, Window(1))
+          case _ => FunctionCall(Symbol(normalisedFunction), arguments)
+        }
       })
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
       (
@@ -380,6 +395,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
       )
     )
   }
+  /*_*/
 
   def anyWord: Rule1[String] = rule {
     ((capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws)
