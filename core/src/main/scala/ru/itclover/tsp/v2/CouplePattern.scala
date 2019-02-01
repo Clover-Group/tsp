@@ -8,17 +8,16 @@ import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-
 /** Couple Pattern */
-class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3, F[_]: Monad, Cont[_]](
-  left: Pattern[Event, T1, State1, F, Cont],
-  right: Pattern[Event, T2, State2, F, Cont]
+class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
+  left: Pattern[Event, State1, T1],
+  right: Pattern[Event, State2, T2]
 )(
   func: (Result[T1], Result[T2]) => Result[T3]
 )(
   implicit idxOrd: Order[Idx]
-) extends Pattern[Event, T3, CouplePState[State1, State2, T1, T2, T3], F, Cont] {
-  override def apply(
+) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3] {
+  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: CouplePState[State1, State2, T1, T2, T3],
     events: Cont[Event]
   ): F[CouplePState[State1, State2, T1, T2, T3]] = {
@@ -53,12 +52,12 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
           // we emit result only if results on left and right sides come at the same time
           if (idxOrd.eqv(idx1, idx2)) {
             val result: Result[T3] = func(val1, val2)
-            inner({first.dequeue; first}, {second.dequeue; second}, {total.enqueue(IdxValue(idx1, result)); total})
+            inner({ first.dequeue; first }, { second.dequeue; second }, { total.enqueue(IdxValue(idx1, result)); total })
             // otherwise skip results from one of sides
           } else if (idxOrd.lt(idx1, idx2)) {
-            inner({first.dequeue; first}, second, total)
+            inner({ first.dequeue; first }, second, total)
           } else {
-            inner(first, {second.dequeue; second}, total)
+            inner(first, { second.dequeue; second }, total)
           }
       }
     }

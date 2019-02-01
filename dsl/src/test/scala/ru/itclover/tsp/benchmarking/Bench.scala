@@ -1,14 +1,10 @@
 package ru.itclover.tsp.benchmarking
-import monix.eval.Task
-import cats.syntax.functor._
-import ru.itclover.tsp.core.{Pattern, Time, Window}
+import cats.Id
+import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.dsl.PatternBuilder
 import ru.itclover.tsp.io.{AnyDecodersInstances, Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.patterns.Numerics.NumericPhaseParser
 import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.v2.{Patterns, StateMachine}
-
-import scala.concurrent.Await
 
 object Bench extends App {
 
@@ -63,19 +59,17 @@ object Bench extends App {
   case class RowWithIdx(ts: Time, posKM: Int, speedEngine: Double, idx: Idx)
   import cats.implicits._
   import ru.itclover.tsp.core.Time._
+
   import scala.concurrent.duration._
-  import monix.execution.Scheduler.Implicits.global
 
   // A Future type that is also Cancelable
-  import monix.execution.CancelableFuture
 
   // Task is in monix.eval
-  import monix.eval.Task
 
   implicit val timeExtractor2: TimeExtractor[RowWithIdx] = TimeExtractor.of[RowWithIdx](_.ts)
   implicit val idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of[RowWithIdx](_.idx)
 
-  val newTypesHolder = new Patterns[RowWithIdx, cats.Id, List] {}
+  val newTypesHolder = new Patterns[RowWithIdx] {}
   import newTypesHolder._
 
   val pattern2 =
@@ -96,9 +90,7 @@ object Bench extends App {
   }
 
   val startRun = System.currentTimeMillis()
-
-  import monix.execution.Scheduler.Implicits.global
-  val q = StateMachine.run(pattern2, rowsWithIndex, pattern2.initialState(), 10000).map(_.queue)
+  val q = StateMachine[Id].run(pattern2, rowsWithIndex, pattern2.initialState(), 10000).map(_.queue)
 
 //  q.foreach { q => {
     println(s"Result size is ${q.size}")

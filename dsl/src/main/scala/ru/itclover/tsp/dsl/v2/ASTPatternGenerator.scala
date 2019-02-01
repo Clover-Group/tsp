@@ -1,23 +1,22 @@
 package ru.itclover.tsp.dsl.v2
 
-import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.Window
+import cats.Order
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
+import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.io.{AnyDecodersInstances, Extractor, TimeExtractor}
+import ru.itclover.tsp.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.aggregators.{WindowStatistic, WindowStatisticResult}
+
 import scala.reflect.ClassTag
-//import ru.itclover.tsp.dsl.v2.FunctionRegistry
-import ru.itclover.tsp.v2.aggregators.{AccumPattern, GroupPattern, TimerPattern}
-import ru.itclover.tsp.io.AnyDecodersInstances._
-
-import scala.language.implicitConversions
-import scala.language.higherKinds
 import cats.instances.double._
+import ru.itclover.tsp.io.AnyDecodersInstances._
+import ru.itclover.tsp.v2.aggregators.TimerPattern
 
-case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor: Foldable]()(
+import scala.language.{higherKinds, implicitConversions}
+
+case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
@@ -26,12 +25,12 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
-  @transient val richPatterns = new Patterns[Event, F, Cont] {}
+  @transient val richPatterns = new Patterns[Event] {}
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
-  implicit def toAnyStatePattern[T](p: Pattern[Event, _, _, F, Cont]): Pattern[Event, T, AnyState[T], F, Cont] =
-    p.asInstanceOf[Pattern[Event, T, AnyState[T], F, Cont]]
+  implicit def toAnyStatePattern[T](p: Pattern[Event, _, _]): Pattern[Event, AnyState[T], T] =
+    p.asInstanceOf[Pattern[Event, AnyState[T], T]]
 
   implicit def toResult[T](value: T): Result[T] = Result.succ(value)
 
@@ -39,25 +38,25 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
     sourceCode: String,
     toleranceFraction: Double,
     fieldsTags: Map[Symbol, ClassTag[_]]
-  ): Either[Throwable, (Pattern[Event, Any, AnyState[Any], F, Cont], PatternMetadata)] = {
+  ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
     val ast = new ASTBuilder(sourceCode, toleranceFraction, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
   }
 
-  def generatePattern(ast: AST): Pattern[Event, Any, AnyState[Any], F, Cont] = {
+  def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
     ast match {
-      case c: Constant[_] => ConstPattern[Event, Any, F, Cont](c.value)
+      case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
         id.valueType match {
           case IntASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int], F, Cont](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value, id.value)
           case LongASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long], F, Cont](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value, id.value)
           case DoubleASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double], F, Cont](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value, id.value)
           case BooleanASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean], F, Cont](id.value, id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any], F, Cont](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value, id.value)
+          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value, id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -121,25 +120,25 @@ case class ASTPatternGenerator[Event, EKey, EItem, F[_]: Monad, Cont[_]: Functor
           case Count =>
             richPatterns.count(
               generatePattern(ac.value)
-                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+                .asInstanceOf[Pattern[Event, AnyState[Double], Double]],
               ac.window
             )
           case Sum =>
             richPatterns.sum(
               generatePattern(ac.value)
-                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+                .asInstanceOf[Pattern[Event, AnyState[Double], Double]],
               ac.window
             )
           case Avg =>
             richPatterns.avg(
               generatePattern(ac.value)
-                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+                .asInstanceOf[Pattern[Event, AnyState[Double], Double]],
               ac.window
             )
           case Lag =>
             richPatterns.lag(
               generatePattern(ac.value)
-                .asInstanceOf[Pattern[Event, Double, AnyState[Double], F, Cont]],
+                .asInstanceOf[Pattern[Event, AnyState[Double], Double]],
               ac.window
             )
         }

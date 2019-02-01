@@ -1,21 +1,21 @@
 package ru.itclover.tsp.v2.aggregators
 
-import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.v2.IdxValue.{IdxValueSegment, IdxValueSimple}
 import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.v2._
-import ru.itclover.tsp.v2.IdxValue.{IdxValueSegment, IdxValueSimple}
+
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /* Timer */
-case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: Foldable](
-  override val innerPattern: Pattern[Event, T, S, F, Cont],
+case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
+  override val innerPattern: Pattern[Event, S, T],
   override val window: Window
-) extends AccumPattern[Event, S, T, T, TimerAccumState[T], F, Cont] {
+) extends AccumPattern[Event, S, T, T, TimerAccumState[T]] {
   override def initialState(): AggregatorPState[S, TimerAccumState[T], T] = AggregatorPState(
     innerPattern.initialState(),
     astate = TimerAccumState(m.Queue.empty),
@@ -42,4 +42,3 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
     }
   }
 }
-

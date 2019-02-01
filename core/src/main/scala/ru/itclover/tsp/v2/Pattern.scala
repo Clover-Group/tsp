@@ -1,25 +1,40 @@
 package ru.itclover.tsp.v2
 
-import cats.Order
+import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.v2.Pattern.{Idx, _}
+
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /**
   * Main trait for all patterns, basically just a function from state and events chunk to new a state.
+  *
   * @tparam Event underlying data
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
-  * @tparam F Container for state (some simple monad mostly)
-  * @tparam Cont Container for yet another chunk of Events
   */
-trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
+trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
+
+  /**
+    * Creates initial state. Has to be called only once
+    *
+    * @return initial state
+    */
   def initialState(): S
+
+  /**
+    * @param oldState - previous state
+    * @param events - new events to be processed
+    * @tparam F Container for state (some simple monad mostly)
+    * @tparam Cont Container for yet another chunk of Events
+    * @return
+    */
+  def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
 }
 
 trait IdxValue[+T] {
-  def index: Idx        // For internal use in patterns
-  def value: Result[T]  // actual result
+  def index: Idx // For internal use in patterns
+  def value: Result[T] // actual result
   def start: Idx
   def end: Idx
 }
@@ -43,14 +58,12 @@ object Pattern {
 
   type QI[T] = m.Queue[IdxValue[T]]
 
-
-
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
   }
 
   class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
-    val maxCounter = 10e5.toInt // should be power of 10
+    val maxCounter: Int = 10e5.toInt // should be power of 10
     var counter: Int = 0
 
     override def apply(e: Event): Idx = {
@@ -62,7 +75,7 @@ object Pattern {
 
     def idxToTs(idx: Idx): Long = idx / maxCounter
 
-    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter
+    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter //todo ts << 5 & counter ?
   }
 
   object IdxExtractor {

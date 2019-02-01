@@ -4,9 +4,8 @@ import cats.Id
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.{Pattern, PState, StateMachine, Succ}
 
-
 case class PatternFlatMapper[E, State <: PState[Inner, State], Inner, Out](
-  pattern: Pattern[E, Inner, State, Id, List],
+  pattern: Pattern[E, State, Inner], //todo Why List?
   mapResults: (E, Seq[Inner]) => Seq[Out],
   eventsMaxGapMs: Long,
   emptyEvent: E
@@ -20,9 +19,10 @@ case class PatternFlatMapper[E, State <: PState[Inner, State], Inner, Out](
   override def apply(event: E, stateAndPrevEvent: (State, E)) = {
     val prevEvent = stateAndPrevEvent._2
     val newState: State = if (doProcessOldState(event, prevEvent)) {
-      StateMachine.run(pattern, List(event), stateAndPrevEvent._1)
+      StateMachine[Id].run(pattern, List(event), stateAndPrevEvent._1)
     } else {
-      StateMachine.run(pattern, List(event), pattern.initialState()) // .. careful here, init state may need to create only 1 time
+      StateMachine[Id]
+        .run(pattern, List(event), pattern.initialState()) // .. careful here, init state may need to create only 1 time
     }
     val results = newState.queue.map(_.value).collect { case Succ(v) => v }
     // Non failed results with events (for toIncidentsMapper) + state with previous event (to tract gaps in the data)

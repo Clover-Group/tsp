@@ -1,30 +1,29 @@
 package ru.itclover.tsp.v2
-import cats.{Monad, Order}
-import ru.itclover.tsp.v2.Pattern.{Idx, QI}
-import ru.itclover.tsp.v2.Pattern._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import scala.collection.{mutable => m}
+import cats.{Foldable, Functor, Monad, Order}
+import ru.itclover.tsp.v2.Pattern.{Idx, QI}
+
 import scala.annotation.tailrec
+import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /** AndThen  */
 //We lose T1 and T2 in output for performance reason only. If needed outputs of first and second stages can be returned as well
-case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, S2], F[_]: Monad, Cont[_]](
-  first: Pattern[Event, T1, S1, F, Cont],
-  second: Pattern[Event, T2, S2, F, Cont]
+case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, S2]](
+  first: Pattern[Event, S1, T1],
+  second: Pattern[Event, S2, T2]
 )(
   implicit idxOrd: Order[Idx]
-)
-  extends Pattern[Event, (Idx, Idx), AndThenPState[T1, T2, S1, S2], F, Cont] {
+) extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)] {
 
-  def apply(
+  def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: AndThenPState[T1, T2, S1, S2],
     event: Cont[Event]
   ): F[AndThenPState[T1, T2, S1, S2]] = {
 
-    val firstF = first.apply(oldState.first, event)
-    val secondF = second.apply(oldState.second, event)
+    val firstF = first.apply[F, Cont](oldState.first, event)
+    val secondF = second.apply[F, Cont](oldState.second, event)
 
     for (newFirstState  <- firstF;
          newSecondState <- secondF)
@@ -56,20 +55,22 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
         case None => default
         // if first part is Failure (== None) then return None as a result
         case Some(x @ IdxValue(_, Fail)) =>
-          inner({first.dequeue; first}, second, {total.enqueue(IdxValue(x.index,Result.fail)); total})
+          inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(x.index, Result.fail)); total })
         case Some(IdxValue(index1, _)) =>
           second.headOption match {
             // if any of parts is empty -> do nothing
             case None => default
             // if that's an late event from second queue, just skip it
             case Some(IdxValue(index2, _)) if idxOrd.lteqv(index2, index1) => //todo lt or lteqv ?
-              inner(first, {second.dequeue; second}, total)
+              inner(first, { second.dequeue; second }, total)
             // if second part is Failure return None as a result
             case Some(IdxValue(_, Fail)) =>
-              inner({first.dequeue; first}, second, {total.enqueue(IdxValue(index1, Fail)); total})
+              inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(index1, Fail)); total })
             // if both first and second stages a Success then return Success
             case Some(IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
-              inner({first.dequeue; first}, {second.dequeue; second}, {total.enqueue(IdxValue(index1, Succ(index1 -> index2))); total})
+              inner({ first.dequeue; first }, { second.dequeue; second }, {
+                total.enqueue(IdxValue(index1, Succ(index1 -> index2))); total
+              })
           }
       }
     }

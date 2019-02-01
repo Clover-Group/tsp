@@ -4,8 +4,8 @@ import scala.language.higherKinds
 import cats.{Functor, Monad}
 import ru.itclover.tsp.v2.Pattern.QI
 
-class SkipPattern[Event, T, InnerState <: PState[T, InnerState], F[_]: Monad, Cont[_]: Functor](
-  inner: Pattern[Event, T, InnerState, F, Cont],
+class SkipPattern[Event, T, InnerState <: PState[T, InnerState]](
+  inner: Pattern[Event, InnerState, T],
   eventCount: Int
 ) {
 //  override def apply(

@@ -1,21 +1,21 @@
 package ru.itclover.tsp.v2.aggregators
 
-import cats.{Foldable, Functor, Group, Monad}
+import cats.Group
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern._
-import ru.itclover.tsp.v2.Result._
 import ru.itclover.tsp.v2.QueueUtils.takeWhileFromQueue
+import ru.itclover.tsp.v2.Result._
 import ru.itclover.tsp.v2.{PState, Pattern, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group, F[_]: Monad, Cont[_]: Functor: Foldable](
-  override val innerPattern: Pattern[Event, T, S, F, Cont],
+case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](
+  override val innerPattern: Pattern[Event, S, T],
   override val window: Window
-) extends AccumPattern[Event, S, T, GroupAccumResult[T], GroupAccumState[T], F, Cont] {
+) extends AccumPattern[Event, S, T, GroupAccumResult[T], GroupAccumState[T]] {
   override def initialState(): AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]] =
     AggregatorPState(
       innerState = innerPattern.initialState(),

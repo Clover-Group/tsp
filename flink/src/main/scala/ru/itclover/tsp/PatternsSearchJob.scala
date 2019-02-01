@@ -28,7 +28,6 @@ import ru.itclover.tsp.v2.Pattern.TsIdxExtractor
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-
 case class PatternsSearchJob[In, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
@@ -43,7 +42,8 @@ case class PatternsSearchJob[In, InKey, InItem](
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] =
-    preparePatterns[In, S, InKey, InItem](rawPatterns,
+    preparePatterns[In, S, InKey, InItem](
+      rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
@@ -54,14 +54,13 @@ case class PatternsSearchJob[In, InKey, InItem](
       (patterns, mapped.map(m => saveStream(m, outputConf)))
     }
 
-
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
     forwardedFields: Seq[(Symbol, InKey)]
   ): Vector[DataStream[Incident]] =
     for {
-      sourceBucket   <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
-      stream         =  source.createStream
+      sourceBucket <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
+      stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
       val singleIncidents = incidentsFromPatterns(stream, patternsBucket.items, forwardedFields)
@@ -99,7 +98,7 @@ case class PatternsSearchJob[In, InKey, InItem](
 
 object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
-  type RichPattern[E, T, S <: PState[T, S]] = ((Pattern[E, T, S, cats.Id, List], PatternMetadata), RawPattern)
+  type RichPattern[E, T, S <: PState[T, S]] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
@@ -116,40 +115,40 @@ object PatternsSearchJob {
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
     implicit val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
     implicit val impFIM = fieldsIdxMap
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem, cats.Id, List]()(
-      Monad[Id],
-      Functor[List],
-      Foldable[List],
-      tsToIdx,
-      getTime,
-      extractor,
-      fieldsIdxMap,
-      tsToIdx
-    )
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap, tsToIdx)
     Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
-            .map(p => (new IdxToSegmentsP(p._1).asInstanceOf[Pattern[E, Segment, AnyState[Segment], cats.Id, List]], p._2))
-            // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
+            .map(
+              p => (new IdxToSegmentsP(p._1).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+          )
+        // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
       .toEither
   }
 
-  def bucketizePatterns[E, T, S <: PState[T, S]](patterns: Seq[RichPattern[E, T, S]], parallelism: Int): Vector[Bucket[RichPattern[E, T, S]]] = {
+  def bucketizePatterns[E, T, S <: PState[T, S]](
+    patterns: Seq[RichPattern[E, T, S]],
+    parallelism: Int
+  ): Vector[Bucket[RichPattern[E, T, S]]] = {
     // import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
     val patternsBuckets = if (parallelism > patterns.length) {
       log.warn(
         s"Patterns parallelism conf ($parallelism) is higher than amount of " +
-          s"phases - ${patterns.length}, setting patternsParallelism to amount of phases."
+        s"phases - ${patterns.length}, setting patternsParallelism to amount of phases."
       )
-      Bucketizer.bucketizeByWeight(patterns, patterns.length)(Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S])
+      Bucketizer.bucketizeByWeight(patterns, patterns.length)(
+        Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S]
+      )
     } else {
-      Bucketizer.bucketizeByWeight(patterns, parallelism)(Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S])
+      Bucketizer.bucketizeByWeight(patterns, parallelism)(
+        Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S]
+      )
     }
     log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
     patternsBuckets

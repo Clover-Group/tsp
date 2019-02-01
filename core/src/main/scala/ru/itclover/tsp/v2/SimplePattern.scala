@@ -10,13 +10,12 @@ import scala.language.higherKinds
 
 // TODO Rename to FunctionP(attern)?
 /** Simple Pattern */
-class SimplePattern[Event: IdxExtractor, T, F[_]: Monad, Cont[_]: Functor: Foldable](f: Event => Result[T])
-    extends Pattern[Event, T, SimplePState[T], F, Cont] {
-  override def apply(oldState: SimplePState[T], events: Cont[Event]): F[SimplePState[T]] = {
-    Monad[F].pure(SimplePState(events.map { e =>
-      val x = f(e)
-      IdxValueSimple(e.index, x)
-    }.foldLeft(oldState.queue) {
+class SimplePattern[Event: IdxExtractor, T](f: Event => Result[T]) extends Pattern[Event, SimplePState[T], T] {
+  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
+    oldState: SimplePState[T],
+    events: Cont[Event]
+  ): F[SimplePState[T]] = {
+    Monad[F].pure(SimplePState(events.map(e => IdxValueSimple(e.index, f(e))).foldLeft(oldState.queue) {
       case (oldStateQ, b) => { oldStateQ.enqueue(b); oldStateQ } // .. style?
     }))
   }
@@ -27,5 +26,4 @@ case class SimplePState[T](override val queue: QI[T]) extends PState[T, SimplePS
   override def copyWithQueue(queue: QI[T]): SimplePState[T] = this.copy(queue = queue)
 }
 
-case class ConstPattern[Event: IdxExtractor, T, F[_]: Monad, Cont[_]: Functor: Foldable](value: T)
-    extends SimplePattern[Event, T, F, Cont](_ => Result.succ(value))
+case class ConstPattern[Event: IdxExtractor, T](value: T) extends SimplePattern[Event, T](_ => Result.succ(value))

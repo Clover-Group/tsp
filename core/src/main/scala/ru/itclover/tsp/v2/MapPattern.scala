@@ -1,22 +1,20 @@
 package ru.itclover.tsp.v2
-import cats.{Functor, Monad}
 import cats.syntax.functor._
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.v2.Pattern.QI
-import scala.collection.{mutable => m}
+
 import scala.language.higherKinds
 
 //todo optimize Map(Simple) => Simple
-class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState], F[_]: Monad, Cont[_]: Functor](
-  inner: Pattern[Event, T1, InnerState, F, Cont]
-)(func: T1 => Result[T2])
-    extends Pattern[Event, T2, MapPState[InnerState, T1, T2], F, Cont] {
-  override def apply(
+class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: Pattern[Event, InnerState, T1])(
+  func: T1 => Result[T2]
+) extends Pattern[Event, MapPState[InnerState, T1, T2], T2] {
+  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: MapPState[InnerState, T1, T2],
     event: Cont[Event]
   ): F[MapPState[InnerState, T1, T2]] =
-    inner(oldState.innerState, event).map({
-      innerResult =>
-        oldState.copy(innerState = innerResult)
+    inner(oldState.innerState, event).map({ innerResult =>
+      oldState.copy(innerState = innerResult)
     })
 
   override def initialState(): MapPState[InnerState, T1, T2] = MapPState(innerState = inner.initialState(), func)

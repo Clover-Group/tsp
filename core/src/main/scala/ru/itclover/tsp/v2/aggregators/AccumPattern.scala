@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-trait AggregatorPatterns[Event, T, S <: PState[T, S], F[_], Cont[_]] extends Pattern[Event, T, S, F, Cont]
+trait AggregatorPatterns[Event, S <: PState[T, S], T] extends Pattern[Event, S, T]
 
 case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Out](
   innerState: InnerState,
@@ -25,17 +25,16 @@ case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Ou
   override def copyWithQueue(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
 }
 
-abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[InnerOut, Inner], InnerOut, Out, AState <: AccumState[
-  InnerOut,
-  Out,
-  AState
-], F[_]: Monad, Cont[_]: Foldable: Functor](implicit idxOrd: Order[Idx])
-    extends AggregatorPatterns[Event, Out, AggregatorPState[Inner, AState, Out], F, Cont] {
+abstract class AccumPattern[
+  Event: IdxExtractor: TimeExtractor, Inner <: PState[InnerOut, Inner], InnerOut, Out,
+  AState <: AccumState[InnerOut, Out, AState]
+](implicit idxOrd: Order[Idx])
+    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out],Out] {
 
-  val innerPattern: Pattern[Event, InnerOut, Inner, F, Cont]
+  val innerPattern: Pattern[Event,Inner, InnerOut]
   val window: Window
 
-  override def apply(
+  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     state: AggregatorPState[Inner, AState, Out],
     event: Cont[Event]
   ): F[AggregatorPState[Inner, AState, Out]] = {
@@ -44,7 +43,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, Inner <: PState[
       event.map(e => e.index -> e.time).foldLeft(state.indexTimeMap) { case (a, b) => { a.enqueue(b); a } }
 
     innerPattern
-      .apply(state.innerState, event)
+      .apply[F, Cont](state.innerState, event)
       .map(
         newInnerState => {
           val (newInnerQueue, newAState, newResults, updatedIndexTimeMap) =

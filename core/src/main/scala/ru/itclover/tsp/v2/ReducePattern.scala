@@ -1,5 +1,5 @@
 package ru.itclover.tsp.v2
-import cats.Monad
+import cats.{Foldable, Functor, Monad}
 import cats.implicits._
 import ru.itclover.tsp.v2.Pattern.QI
 
@@ -9,21 +9,21 @@ import scala.language.higherKinds
 
 /** Reduce Pattern */
 
-class ReducePattern[Event, S <: PState[T1, S], T1, T2, F[_] : Monad, Cont[_]](
-  patterns: Seq[Pattern[Event, T1, S, F, Cont]]
+class ReducePattern[Event, S <: PState[T1, S], T1, T2](
+  patterns: Seq[Pattern[Event, S, T1]]
 )(
   func: (Result[T2], Result[T1]) => Result[T2],
   filterCond: Result[T1] => Boolean,
   initial: Result[T2]
-) extends Pattern[Event, T2, ReducePState[S, T1, T2], F, Cont] {
+) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
 
-  override def apply(
+  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: ReducePState[S, T1, T2],
     events: Cont[Event]
   ): F[ReducePState[S, T1, T2]] = {
     //val leftF = left.apply(oldState.left, events)
     //val rightF = right.apply(oldState.right, events)
-    val patternsF: List[F[S]] = patterns.zip(oldState.states).map { case (p, s) => p.apply(s, events) }.toList
+    val patternsF: List[F[S]] = patterns.zip(oldState.states).map { case (p, s) => p.apply[F, Cont](s, events) }.toList
     val patternsG: F[List[S]] = patternsF.traverse(identity)
     for (pG <- patternsG) yield {
       val (updatedQueues, newFinalQueue) =

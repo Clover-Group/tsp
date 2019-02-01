@@ -1,6 +1,5 @@
 package ru.itclover.tsp.v2.aggregators
 
-import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
@@ -11,10 +10,10 @@ import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out, F[_]: Monad, Cont[_]: Functor: Foldable](
-  override val innerPattern: Pattern[Event, Out, State, F, Cont],
+case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
+  override val innerPattern: Pattern[Event, State, Out],
   override val window: Window
-) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out], F, Cont] {
+) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out]] {
   override def initialState() =
     AggregatorPState(innerPattern.initialState(), PreviousValueAccumState(None), m.Queue.empty, m.Queue.empty)
 }

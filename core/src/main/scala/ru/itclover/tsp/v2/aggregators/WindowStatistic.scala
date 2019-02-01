@@ -1,6 +1,5 @@
 package ru.itclover.tsp.v2.aggregators
 
-import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern._
@@ -12,10 +11,10 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 // TOOD@fabura Docs? Rename?
-case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T, F[_]: Monad, Cont[_]: Functor: Foldable](
-  override val innerPattern: Pattern[Event, T, S, F, Cont],
+case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
+  override val innerPattern: Pattern[Event, S, T],
   override val window: Window
-) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T], F, Cont] {
+) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T]] {
   override def initialState(): AggregatorPState[S, WindowStatisticAccumState[T], WindowStatisticResult] =
     AggregatorPState(
       innerState = innerPattern.initialState(),
