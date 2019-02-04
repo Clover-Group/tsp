@@ -143,11 +143,11 @@ object PatternsSearchJob {
         s"phases - ${patterns.length}, setting patternsParallelism to amount of phases."
       )
       Bucketizer.bucketizeByWeight(patterns, patterns.length)(
-        Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S]
+        Bucketizer.WeightExtractorInstances.phasesWeightExtractor[E, T, S]
       )
     } else {
       Bucketizer.bucketizeByWeight(patterns, parallelism)(
-        Bucketizer.WeightExtractorInstances.phasesWeightExtrator[E, T, S]
+        Bucketizer.WeightExtractorInstances.phasesWeightExtractor[E, T, S]
       )
     }
     log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))

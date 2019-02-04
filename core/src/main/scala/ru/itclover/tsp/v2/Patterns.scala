@@ -78,7 +78,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
       new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x | y)
 
     def xor[S2 <: PState[Boolean, S2]](second: Pat[S2, Boolean]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x & y)
+      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x ^ y)
 
   }
 
