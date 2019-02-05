@@ -1,3 +1,5 @@
+## 0.14.0-rc4
+
 ## 0.14.0-rc3
 - fixed type casting operator (`value as float64` etc.)
 - re-added lag function without window (uses default value of 1 ms)
