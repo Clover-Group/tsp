@@ -24,7 +24,8 @@ case class PatternFlatMapper[E, State <: PState[Inner, State], Inner, Out](
       StateMachine[Id]
         .run(pattern, List(event), pattern.initialState()) // .. careful here, init state may need to create only 1 time
     }
-    val results = newState.queue.map(_.value).collect { case Succ(v) => v }
+    // TODO: Can be more than 1 result per 1 event and 1 pattern?
+    val results = newState.queue.map(_.value).collect { case Succ(v) => v }.takeRight(1)
     // Non failed results with events (for toIncidentsMapper) + state with previous event (to tract gaps in the data)
     (mapResults(event, results), (newState, event))
   }
