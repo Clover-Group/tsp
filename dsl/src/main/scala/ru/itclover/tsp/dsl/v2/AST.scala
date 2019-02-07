@@ -49,7 +49,7 @@ case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: 
   }
 }
 
-case class ReducerFunctionCall(functionName: Symbol, cond: Result[Any] => Boolean, arguments: Seq[AST])(
+case class ReducerFunctionCall(functionName: Symbol, @transient cond: Result[Any] => Boolean, arguments: Seq[AST])(
   implicit fr: FunctionRegistry
 ) extends AST {
   // require the same type for all arguments

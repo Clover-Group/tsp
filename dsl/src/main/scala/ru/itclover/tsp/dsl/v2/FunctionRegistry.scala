@@ -1,4 +1,6 @@
 package ru.itclover.tsp.dsl.v2
+import java.io.Serializable
+
 import ru.itclover.tsp.v2.{Fail, Result, Succ}
 import shapeless.{HList, HNil}
 
@@ -64,9 +66,14 @@ object FunctionRegistry {
   }
 }*/
 
-trait PFunction extends (Seq[Any] => Any)
-trait PReducer extends ((Any, Any) => Any)
-trait PReducerTransformation extends (Any => Any)
+@SerialVersionUID(81001L)
+trait PFunction extends (Seq[Any] => Any) with Serializable
+
+@SerialVersionUID(81002L)
+trait PReducer extends ((Any, Any) => Any) with Serializable
+
+@SerialVersionUID(81003L)
+trait PReducerTransformation extends (Any => Any) with Serializable
 
 /**
   * Registry for runtime functions
@@ -76,7 +83,7 @@ trait PReducerTransformation extends (Any => Any)
   */
 case class FunctionRegistry(
   @transient functions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)],
-  @transient reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)]
+  @transient reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)]
 ) {
 
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
@@ -363,38 +370,58 @@ object DefaultFunctions {
 //    val astType = ASTType.of[T]
 //  }
 
-  def reducers[T: ClassTag](implicit conv: T => Double): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Any)] = Map(
+  def reducers[T: ClassTag](implicit conv: T => Double): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
     ('sumof, DoubleASTType) -> (
       (
-        (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double],
+        {
+          (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double]
+        },
         DoubleASTType,
-        identity(_),
-        0
+        {
+          identity(_)
+        },
+        java.lang.Double.valueOf(0)
       )
     ),
     ('minof, DoubleASTType) -> (
       (
-        (acc: Any, x: Any) => Math.min(acc.asInstanceOf[Double], x.asInstanceOf[Double]),
+        {
+          (acc: Any, x: Any) => Math.min(acc.asInstanceOf[Double], x.asInstanceOf[Double])
+        },
         DoubleASTType,
-        identity(_),
-        0
+        {
+          identity(_)
+        },
+        java.lang.Double.valueOf(0)
       )
     ),
     ('maxof, DoubleASTType) -> (
       (
-        (acc: Any, x: Any) => Math.max(acc.asInstanceOf[Double], x.asInstanceOf[Double]),
+        {
+          (acc: Any, x: Any) => Math.max(acc.asInstanceOf[Double], x.asInstanceOf[Double])
+        },
         DoubleASTType,
-        identity(_),
-        0
+        {
+          identity(_)
+        },
+        java.lang.Double.valueOf(0)
       )
     ),
-    ('countof, DoubleASTType) -> ((acc: Any, x: Any) => acc.asInstanceOf[Double] + 1, DoubleASTType, identity(_), 0),
-    ('avgof, DoubleASTType) -> (((acc: Any, x: Any) => {
-      val (sum, count) = acc.asInstanceOf[(Double, Double)]
-      (sum + x.asInstanceOf[Double], count + 1)
-    }, DoubleASTType, (x: Any) => {
-      val (sum, count) = x.asInstanceOf[(Double, Double)]
-      sum / count
+    ('countof, DoubleASTType) -> ({
+      (acc: Any, x: Any) => acc.asInstanceOf[Double] + 1
+    }, DoubleASTType, {
+      identity(_)
+    }, 0),
+    ('avgof, DoubleASTType) -> (({
+      (acc: Any, x: Any) => {
+        val (sum, count) = acc.asInstanceOf[(Double, Double)]
+        (sum + x.asInstanceOf[Double], count + 1)
+      }
+    }, DoubleASTType, {
+      (x: Any) => {
+        val (sum, count) = x.asInstanceOf[(Double, Double)]
+        sum / count
+      }
     }, 0))
   )
 

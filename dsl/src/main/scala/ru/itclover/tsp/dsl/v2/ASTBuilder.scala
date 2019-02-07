@@ -29,7 +29,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     extends Parser {
 
   // TODO: Move to params
-  implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
+  @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
 
   def start: Rule1[AST] = rule {
     trileanExpr ~ EOI
