@@ -6,7 +6,12 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindows, SessionWindowTimeGapExtractor}
+import org.apache.flink.streaming.api.windowing.assigners.{
+  EventTimeSessionWindows,
+  SessionWindowTimeGapExtractor,
+  TumblingEventTimeWindows,
+  WindowAssigner
+}
 import cats.data.Validated
 import cats.{Foldable, Functor, Id, Monad, Traverse}
 import cats.implicits._
@@ -17,6 +22,9 @@ import ru.itclover.tsp.dsl.{PatternBuilder, PatternMetadata}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
+import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
+import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
 import ru.itclover.tsp.io._
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
@@ -25,6 +33,7 @@ import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.Pattern.TsIdxExtractor
+
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
@@ -72,7 +81,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     patterns: Seq[RichPattern[In, Segment, S]],
     forwardedFields: Seq[(Symbol, InKey)]
   ): DataStream[Incident] = {
-    val mappers: Seq[StatefulFlatMapper[In, S, Incident]] = patterns.map {
+    val mappers: Seq[PatternProcessor[In, S, Segment, Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
         val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
         val toIncidents = ToIncidentsMapper(
@@ -82,16 +91,21 @@ case class PatternsSearchJob[In, InKey, InItem](
           if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
           source.conf.partitionFields.map(source.fieldToEKey)
         )
-        PatternFlatMapper[In, S, Segment, Incident](
+        PatternProcessor[In, S, Segment, Incident](
           pattern,
           toIncidents.apply,
           source.conf.eventsMaxGapMs,
           source.emptyEvent
-        )(timeExtractor).asInstanceOf[StatefulFlatMapper[In, S, Incident]]
+        )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
     }
     stream
+      .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.partitioner)
-      .flatMap(new FlatMappersCombinator[In, S, Incident](mappers))
+      .window(TumblingEventTimeWindows.of(WindowingTime.minutes(15)).asInstanceOf[WindowAssigner[In, FlinkWindow]])
+      .process[Incident](
+        ProcessorCombinator[In, S, Segment, Incident](mappers)
+      )
+      //.flatMap(new FlatMappersCombinator[In, S, Incident](mappers))
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
   }
 }

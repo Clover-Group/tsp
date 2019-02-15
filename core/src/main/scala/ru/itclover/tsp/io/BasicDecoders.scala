@@ -7,7 +7,7 @@ trait BasicDecoders[From] {
   implicit def decodeToAny: Decoder[From, Any]
 }
 
-object AnyDecodersInstances extends BasicDecoders[Any] {
+object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   import Decoder._
 
   implicit val decodeToDouble: Decoder[Any, Double] = new AnyDecoder[Double] {
@@ -15,7 +15,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] {
       case d: Double           => d
       case n: java.lang.Number => n.doubleValue()
       case s: String =>
-        try { java.lang.Double.parseDouble(s) } catch {
+        try { Helper.strToDouble(s) } catch {
           case e: Exception =>
             throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
         }
@@ -85,4 +85,5 @@ object DoubleDecoderInstances extends BasicDecoders[Double] {
 // Hack for String.toInt implicit method
 object Helper {
   def strToInt(s: String) = s.toInt
+  def strToDouble(s: String) = s.toDouble
 }

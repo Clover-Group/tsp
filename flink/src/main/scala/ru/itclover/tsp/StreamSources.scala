@@ -61,7 +61,7 @@ object JdbcSource {
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
-  implicit streamEnv: StreamExecutionEnvironment
+  implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
 
   import conf._
