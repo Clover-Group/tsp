@@ -42,30 +42,9 @@ object StateMachine {
 abstract class AbstractStateMachine[Event, Out, State <: PState[Out, State], F[_], Cont[_]] {
   private val isDebug = ConfigFactory.load().getBoolean("general.is-debug")
   private val log = Logger("AbstractPatternMapper")
-//
+
   def pattern: Pattern[Event, State, Out]
 
   def initialState
-
-//  def process(event: Event, ):  Seq[State] = {
-//    log.debug(s"Search for patterns in: $event")
-//    // new state is adding every time to account every possible outcomes considering terminal nature of phase mappers
-//    val oldStatesWithOneInitialState = oldStates :+ pattern.initialState
-//
-//    val stateToResult = pattern.curried(event)
-//
-//    val resultsAndStates = oldStatesWithOneInitialState.map(stateToResult)
-//
-//    val (toEmit, newStates) = resultsAndStates.span(_._1.isTerminal)
-//
-//    // TODO: Move to SMM or to Writer monad in Phases
-//    if (isDebug) {
-//      val emitsLog = toEmit.map(resAndSt => pattern.format(event, resAndSt._2) + " emits " + resAndSt._1)
-//      if (emitsLog.nonEmpty) log.debug(s"Results to emit: ${emitsLog.mkString("\n", "\n", "")}")
-//      log.debug(s"States on hold: ${newStates.size}")
-//    }
-//
-//    toEmit.map(_._1).asInstanceOf[Seq[TerminalResult[Out]]] -> newStates.map(_._2)
-//  }
 
 }
