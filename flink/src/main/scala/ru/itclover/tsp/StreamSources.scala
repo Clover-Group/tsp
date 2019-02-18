@@ -148,7 +148,7 @@ object InfluxDBSource {
 }
 
 case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
-  implicit streamEnv: StreamExecutionEnvironment
+  implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
 
   import conf._

@@ -81,19 +81,23 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             new CouplePattern(p1, p2)(
               { (x, y) =>
-                Result.succ(
-                  registry.functions
-                    .getOrElse(
-                      (fc.functionName, fc.arguments.map(_.valueType)),
-                      sys.error(
-                        s"Function ${fc.functionName} with argument types " +
-                        s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
-                      )
+                (x, y) match {
+                  case (Succ(rx), Succ(ry)) =>
+                    Result.succ(
+                      registry.functions
+                        .getOrElse(
+                          (fc.functionName, fc.arguments.map(_.valueType)),
+                          sys.error(
+                            s"Function ${fc.functionName} with argument types " +
+                            s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
+                          )
+                        )
+                        ._1(
+                          Seq(rx, ry)
+                        )
                     )
-                    ._1(
-                      Seq(x.getOrElse(Double.NaN), y.getOrElse(Double.NaN))
-                    )
-                )
+                  case _ => Result.fail
+                }
               }
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")
@@ -143,7 +147,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             )
         }
       case at: AndThen =>
-        AndThenPattern(generatePattern(at.first), generatePattern(at.second))
+        // Pair of indices indicates success, so we convert it to true
+        new MapPattern(AndThenPattern(generatePattern(at.first), generatePattern(at.second)))(
+          v => if (v.isInstanceOf[(Idx, Idx)]) true else v
+        )
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
       case fwi: ForWithInterval =>

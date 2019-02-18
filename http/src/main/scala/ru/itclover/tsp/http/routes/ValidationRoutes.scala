@@ -11,9 +11,10 @@ import cats.data.Reader
 import ru.itclover.tsp.core.{RawPattern, Time}
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
-import ru.itclover.tsp.io.{TimeExtractor, Decoder, Extractor}
+import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
 import scala.concurrent.ExecutionContextExecutor
+import scala.reflect.ClassTag
 
 object ValidationRoutes {
 
@@ -31,7 +32,8 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
   val route: Route = path("patterns" / "validate"./) {
     entity(as[PatternsValidatorConf]) { request =>
       val patterns: Seq[RawPattern] = request.patterns
-      val res = PatternsValidator.validate[Nothing](patterns)(
+      val fields: Map[String, String] = request.fields
+      val res = PatternsValidator.validate[Nothing](patterns, fields)(
         new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
         new Extractor[Nothing, Int, Any] {
           override def apply[T](e: Nothing, k: Int)(implicit d: Decoder[Any, T]): T = 0.0

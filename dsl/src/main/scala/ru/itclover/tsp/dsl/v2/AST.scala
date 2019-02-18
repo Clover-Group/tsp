@@ -104,7 +104,7 @@ case class Assert(cond: AST) extends AST {
   */
 case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window, interval: Interval[Long]) extends AST {
   override def metadata = inner.metadata |+| PatternMetadata(Set.empty, window.toMillis)
-  override val valueType = inner.valueType
+  override val valueType = BooleanASTType
 }
 
 case class AggregateCall(function: AggregateFn, value: AST, window: Window) extends AST {

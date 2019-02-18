@@ -8,6 +8,6 @@ case class ValidationResult(pattern: RawPattern, success: Boolean, context: Stri
 
 trait PatternsValidatorProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val rawPattern = jsonFormat4(RawPattern.apply)
-  implicit val patterns = jsonFormat1(PatternsValidatorConf.apply)
+  implicit val patterns = jsonFormat2(PatternsValidatorConf.apply)
   implicit val patternResult = jsonFormat3(ValidationResult.apply)
 }
