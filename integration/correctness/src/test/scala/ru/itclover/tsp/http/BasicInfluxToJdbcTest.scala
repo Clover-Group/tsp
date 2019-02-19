@@ -51,6 +51,7 @@ class BasicInfluxToJdbcTest
     dbName = influxContainer.dbName,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id),
     userName = Some("default")
   )

@@ -51,6 +51,7 @@ class RealDataTest
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 10000L,
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num)
   )
 

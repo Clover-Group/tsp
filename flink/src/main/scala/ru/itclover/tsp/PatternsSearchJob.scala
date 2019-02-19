@@ -101,11 +101,13 @@ case class PatternsSearchJob[In, InKey, InItem](
     stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.partitioner)
-      .window(TumblingEventTimeWindows.of(WindowingTime.minutes(15)).asInstanceOf[WindowAssigner[In, FlinkWindow]])
+      .window(
+        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+      )
       .process[Incident](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )
-      //.flatMap(new FlatMappersCombinator[In, S, Incident](mappers))
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
   }
 }
