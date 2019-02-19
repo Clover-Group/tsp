@@ -1,0 +1,2 @@
+- rules validator now requires field types
+- added `chunkSizeMs` parameter for chunk window size
