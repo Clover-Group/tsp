@@ -1,0 +1,362 @@
+{
+	"sink": {
+		"jdbcUrl": "jdbc:postgresql://192.168.40.101:30543/events?stringtype=unspecified",
+		"password": "clover",
+		"userName": "clover",
+		"rowSchema": {
+			"toTsField": "to_ts",
+			"fromTsField": "from_ts",
+			"contextField": "context",
+			"appIdFieldVal": [
+				"type",
+				1
+			],
+			"sourceIdField": "series_storage",
+			"patternIdField": "entity_id",
+			"forwardedFields": [
+				"loco_num",
+				"Section",
+				"upload_id"
+			],
+			"processingTsField": "processing_ts"
+		},
+		"tableName": "events_23ec4k",
+		"driverName": "org.postgresql.Driver",
+		"parallelism": 1,
+		"batchInterval": 5000
+	},
+	"uuid": "44ffb062-ca1c-42ab-864c-b1b94eccb1fb",
+	"source": {
+		"query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, k4, k43con, k27, k8, u2, k30, k36con, km23con, ka21, k5con, k13con, km19con, s101, k7, k53, k23con, k24con, k30con, km33con, uks, k35con, km67con, k22, km66, k14con, miv_u1, km43con, km65con, k41, i3_4, ka1, km65, k17, k25, k20con, k26, km53, s102, k36, s20_venti, iab_z, bp12, k32, k6con, u1, k47con, km1, v2, bp11, k19con, k11con, k32con, k2con, v4, k21con, k41con, fpsn_ain4bug, k23, k10con, q21avar, im21, im12, k15, s20_tok1, qf21, ib1_2, k44con, k31con, v3, k3con, k24, k42con, s20_tok2, i1_2, km17con, k33con, km53con, s20_bv, npf, s73, km1con, s76, k15con, km66con, npz, k18con, s74, k53con, k34, opnpz, k25con, opnpf, s104, k29con, k35, k31, s75, k42, k1con, fpsn_ain2bug, km17, k18, k34con, k27con, k61con, k17con, k9, k52con, qf11, km69con, k62, km23, tormoz, qf1, im22, k10, k4con, k1, k20, miv_u2, k51con, k16, k11, k43, k5, k28, k26con, k13, k14, k2, k51, ib3_4, k16con, k54, k9con, sxsobr, k28con, v1, im11, q11avar, k62con, km69, s20_vozb, k61, k33, km15con, s20_avt, k6, km68, km15, km68con, k12con, k7con, k21, k47, k52, u3, km19, u4, km67, k8con, km43, k44, k22con, ka11, km16, s103, k19, k54con, km33, k29, k12, k3, km16con \nFROM es4k_tmy_20180720_wide \nWHERE upload_id = '1697954' AND ts >= 1548979200.0 AND ts < 1551398400.0 ORDER BY ts",
+		"jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=A7qoFxdH8PadW5B",
+		"password": "A7qoFxdH8PadW5B",
+		"sourceId": 127,
+		"userName": "loco_user",
+		"driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+		"parallelism": 1,
+		"datetimeField": "ts",
+		"eventsMaxGapMs": 60000,
+		"partitionFields": [
+			"loco_num",
+			"Section",
+			"upload_id"
+		],
+		"defaultEventsGapMs": 2000,
+		"numParallelSources": 1,
+		"patternsParallelism": 1
+	},
+	"patterns": [
+		{
+			"id": "1786",
+			"payload": {},
+			"sourceCode": "uks > 500 and (v1 > 10 or v2 > 10 or v3 > 10 or v4 > 10) and npz = 0 and s20_venti = 0 for  120 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1792",
+			"payload": {},
+			"sourceCode": "uks > 2000 and (v1 > 2 or v2 > 2 or v3 > 2 or v4 > 2) and (i1_2 > 10 or i3_4 > 10) and (bp11 > 0.2 or bp12 > 0.2) and iab_z > 0 for  5 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1857",
+			"payload": {},
+			"sourceCode": "sxsobr = 1 and uks > 2100 and s20_bv = 1 and s73 = 0 and s74 = 0 and s75 = 0 and s76 = 0 and qf1 = 1 and ka11 = 1 and ka21 = 1 andThen qf1 = 0 and ka11 = 0 and ka21 = 0 for  1 sec > 0 times",
+			"forwardedFields": []
+		},
+		{
+			"id": "1863",
+			"payload": {},
+			"sourceCode": "sxsobr = 1 and uks > 500 and s20_bv = 1 and s73 = 0 and s74 = 0 and s75 = 0 and s76 = 0 and qf1 = 1 and qf21 = 1 andThen qf1 = 0 and qf21 = 0 and npf >= 0 and npz >= 0 and opnpf >= 0 and opnpz >= 0 and v2 >= 0 and qf21 < 2 and s20_avt < 2 and s20_vozb < 2 and i1_2 >= 0 and i3_4 >= 0 and ib1_2 >= 0 and ib3_4 >= 0 for  1 sec > 0 times",
+			"forwardedFields": []
+		},
+		{
+			"id": "1874",
+			"payload": {},
+			"sourceCode": "v3 - avgOf(v1, v2, v3, v4) > 10",
+			"forwardedFields": []
+		},
+		{
+			"id": "1884",
+			"payload": {},
+			"sourceCode": "(npz = 31 and npf = 32 and v3 < 27 and v2 < 27) or (npz = 16 and npf = 17 and v3 < 9 and v2 < 9)",
+			"forwardedFields": []
+		},
+		{
+			"id": "1888",
+			"payload": {},
+			"sourceCode": "k2 != k2con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1891",
+			"payload": {},
+			"sourceCode": "k5 != k5con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1894",
+			"payload": {},
+			"sourceCode": "k8 != k8con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1897",
+			"payload": {},
+			"sourceCode": "k11 != k11con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1900",
+			"payload": {},
+			"sourceCode": "k14 != k14con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1903",
+			"payload": {},
+			"sourceCode": "k17 != k17con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1906",
+			"payload": {},
+			"sourceCode": "k20 != k20con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1909",
+			"payload": {},
+			"sourceCode": "k23 != k23con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1912",
+			"payload": {},
+			"sourceCode": "k26 != k26con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1915",
+			"payload": {},
+			"sourceCode": "k29 != k29con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1918",
+			"payload": {},
+			"sourceCode": "k32 != k32con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1921",
+			"payload": {},
+			"sourceCode": "k41 != k41con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1924",
+			"payload": {},
+			"sourceCode": "k44 != k44con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1927",
+			"payload": {},
+			"sourceCode": "k52 != k52con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "1930",
+			"payload": {},
+			"sourceCode": "k61 != k61con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2265",
+			"payload": {},
+			"sourceCode": "miv_u2 > 999 and s73 = 0 and s74 = 0 and s75 = 0 and npf >= 0 and uks >= 0 and v2 >= 0 and i1_2 >= 0 and i3_4 >= 0 and s20_vozb >= 0 and km23 < 2 and km43 < 2 and km23con < 2 and km43con < 2 and fpsn_ain4bug < 2 for  1 min ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2268",
+			"payload": {},
+			"sourceCode": "uks > 500 and (avgOf(v1, v2, v3, v4) - v4 > 10) and tormoz = 1 for  10 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2273",
+			"payload": {},
+			"sourceCode": "sxsobr = 1 and uks > 2100 and s20_bv = 1 and s73 = 0 and s74 = 0 and s75 = 0 and s76 = 0 and qf1 = 1 and ka11 = 1 and ka21 = 1 andThen ka21 = 1 and (qf1 = 0 and ka11 = 0 for  1 sec > 0 times)",
+			"forwardedFields": []
+		},
+		{
+			"id": "2277",
+			"payload": {},
+			"sourceCode": "((u3 + u4) / 2 - u1) > 300 and q11avar = 0 andThen u1 = 0 for  3 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2281",
+			"payload": {},
+			"sourceCode": "((u1 + u2) / 2 - u4) > 300 and q21avar = 0 andThen u4 = 0 for  3 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2284",
+			"payload": {},
+			"sourceCode": "km16 != km16con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2287",
+			"payload": {},
+			"sourceCode": "km23 != km23con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2290",
+			"payload": {},
+			"sourceCode": "km65 != km65con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2293",
+			"payload": {},
+			"sourceCode": "km68 != km68con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2296",
+			"payload": {},
+			"sourceCode": "k1 = 1 and k1con = 1 andThen k1 = 1 and k1con = 0 andThen k1 = 1 and k1con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2299",
+			"payload": {},
+			"sourceCode": "k4 = 1 and k4con = 1 andThen k4 = 1 and k4con = 0 andThen k4 = 1 and k4con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2302",
+			"payload": {},
+			"sourceCode": "k7 = 1 and k7con = 1 andThen k7 = 1 and k7con = 0 andThen k7 = 1 and k7con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2305",
+			"payload": {},
+			"sourceCode": "k10 = 1 and k10con = 1 andThen k10 = 1 and k10con = 0 andThen k10 = 1 and k10con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2308",
+			"payload": {},
+			"sourceCode": "k10 = 1 and k10con = 1 andThen k10 = 1 and k10con = 0 andThen k10 = 1 and k10con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2311",
+			"payload": {},
+			"sourceCode": "k13 = 1 and k13con = 1 andThen k13 = 1 and k13con = 0 andThen k13 = 1 and k13con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2314",
+			"payload": {},
+			"sourceCode": "k16 = 1 and k16con = 1 andThen k16 = 1 and k16con = 0 andThen k16 = 1 and k16con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2317",
+			"payload": {},
+			"sourceCode": "k19 = 1 and k19con = 1 andThen k19 = 1 and k19con = 0 andThen k19 = 1 and k19con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2320",
+			"payload": {},
+			"sourceCode": "k22 = 1 and k22con = 1 andThen k22 = 1 and k22con = 0 andThen k22 = 1 and k22con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2323",
+			"payload": {},
+			"sourceCode": "k25 = 1 and k25con = 1 andThen k25 = 1 and k25con = 0 andThen k25 = 1 and k25con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2326",
+			"payload": {},
+			"sourceCode": "k28 = 1 and k28con = 1 andThen k28 = 1 and k28con = 0 andThen k28 = 1 and k28con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2329",
+			"payload": {},
+			"sourceCode": "k31 = 1 and k31con = 1 andThen k31 = 1 and k31con = 0 andThen k31 = 1 and k31con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2332",
+			"payload": {},
+			"sourceCode": "k34 = 1 and k34con = 1 andThen k34 = 1 and k34con = 0 andThen k34 = 1 and k34con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2335",
+			"payload": {},
+			"sourceCode": "k41 = 1 and k41con = 1 andThen k41 = 1 and k41con = 0 andThen k41 = 1 and k41con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2338",
+			"payload": {},
+			"sourceCode": "k35 != k35con and npz >= 0 and npf >= 0 and uks >= 0 and qf1 >= 0 and ka1 >= 0 and i1_2 >= 0 and i3_4 >= 0 and v1 >= 0 for  1 sec ",
+			"forwardedFields": []
+		},
+		{
+			"id": "2341",
+			"payload": {},
+			"sourceCode": "k44 = 1 and k44con = 1 andThen k44 = 1 and k44con = 0 andThen k44 = 1 and k44con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2344",
+			"payload": {},
+			"sourceCode": "km68 = 1 and km68con = 1 andThen km68 = 1 and km68con = 0 andThen km68 = 1 and km68con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2347",
+			"payload": {},
+			"sourceCode": "km66 = 1 and km66con = 1 andThen km66 = 1 and km66con = 0 andThen km66 = 1 and km66con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2350",
+			"payload": {},
+			"sourceCode": "km65 = 1 and km65con = 1 andThen km65 = 1 and km65con = 0 andThen km65 = 1 and km65con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2353",
+			"payload": {},
+			"sourceCode": "km33 = 1 and km33con = 1 andThen km33 = 1 and km33con = 0 andThen km33 = 1 and km33con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2356",
+			"payload": {},
+			"sourceCode": "km19 = 1 and km19con = 1 andThen km19 = 1 and km19con = 0 andThen km19 = 1 and km19con = 1",
+			"forwardedFields": []
+		},
+		{
+			"id": "2359",
+			"payload": {},
+			"sourceCode": "km16 = 1 and km16con = 1 andThen km16 = 1 and km16con = 0 andThen km16 = 1 and km16con = 1",
+			"forwardedFields": []
+		}
+	]
+}
