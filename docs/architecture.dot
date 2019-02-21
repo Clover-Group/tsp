@@ -1,0 +1,13 @@
+digraph D {
+    "external request" [shape=plaintext]
+    output [shape=plaintext]
+    "external request" -> http
+    http -> flink
+    flink -> core
+    core -> flink
+    dsl -> core
+    core -> dsl
+    dsl -> flink
+    flink -> dsl
+    flink -> output
+}
