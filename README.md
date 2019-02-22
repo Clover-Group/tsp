@@ -10,7 +10,7 @@ TSP is a distributed compute system implemented in Modern Scala. For more inform
 Regression test allows to run a large number of predefined requests thru the REST API and easily and quickly validate TSP operation. 
 Running regression doesn't require any specific knowledge of the TSP platform, beyond the ability to generate requests, which mimic a production system.
 
-### Prerequesties: Python 3.5, Docker and REST-compatible requests
+### Prerequesties: Python 3.6 or later, Docker and REST-compatible requests
 
 #### 1. Launch a docker runtime for the production environment:
 ``` bash
@@ -33,7 +33,13 @@ tsp/test/reqs
 #### 4. Start regression
 ``` bash
 cd tsp/test/regression
-./tester.py
+./tester.py ../reqs/* [--batch-size <desired batch size>] [--timeout <desired timeout>]
 ```
 
-This packs requests from the **/tsp/test/reqs** folder into bathces and sends to the TSP backend thru the Docker runtime. All jobs should be visible in the Flink dashboard ( see 2 ). If any batch fails, the regression stops immediately and displays the error information
+This packs requests from the **/tsp/test/reqs** folder into batches
+ of the given size (defaults to 1) and sends to the TSP backend 
+ thru the Docker runtime. All jobs should be visible in the Flink
+ dashboard ( see 2 ). If any batch fails, the regression stops 
+ immediately and displays the error information. If the execution
+ of a batch takes more than a given timeout (defaults to 180 seconds,
+ or 3 minutes), a warning will be displayed.
