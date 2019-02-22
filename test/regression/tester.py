@@ -74,7 +74,9 @@ if __name__ == "__main__":
 
         # thread sync
         for t in threads:
-            t.join()
+            t.join(timeout)
+            if t.is_alive():
+                print("Thread timed out")
 
         t2 = time.time()
 
