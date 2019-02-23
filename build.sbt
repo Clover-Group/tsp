@@ -6,7 +6,7 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -214,4 +214,9 @@ releaseProcess := Seq[ReleaseStep](
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
 
-githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
+githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated 
+
+
+// Lint
+scapegoatVersion in ThisBuild := "1.3.8"
+scalaBinaryVersion in ThisBuild := "2.12"
