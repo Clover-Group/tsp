@@ -13,7 +13,7 @@ object PatternsValidator {
     fieldsTypes: Map[String, String]
   )(
     implicit timeExtractor: TimeExtractor[Event],
-    toNumberExtractor: Extractor[Event, Int, Any],
+    //toNumberExtractor: Extractor[Event, Int, Any],
     doubleDecoder: Decoder[Any, Double]
   ): Seq[(RawPattern, Either[Throwable, AST])] = {
     // Since it's only the validation, we don't need any tolerance fraction here.

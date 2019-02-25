@@ -18,12 +18,12 @@ import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
-object ASTBuilder {
-  // Used for testing purposes
-  def testFieldsSymbolMap(anySymbol: Symbol) = anySymbol
-  def testFieldsIdxMap(anySymbol: Symbol) = 0
-  def testFieldsIdxMap(anyStr: String) = 0
-}
+//object ASTBuilder {
+//  // Used for testing purposes
+//  def testFieldsSymbolMap(anySymbol: Symbol) = anySymbol
+//  def testFieldsIdxMap(anySymbol: Symbol) = 0
+//  def testFieldsIdxMap(anyStr: String) = 0
+//}
 
 class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]])
     extends Parser {
@@ -164,6 +164,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   def factor: Rule1[AST] = rule {
     (
       real
+      | boolean
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
@@ -423,19 +424,4 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   def ws = rule {
     quiet(zeroOrMore(anyOf(" \t \n \r")))
   }
-}
-
-object TestFunctions {
-
-  def min(d1: Double, d2: Double, cond: Double => Boolean): Double =
-    Math.min(if (d1.isNaN) Double.MaxValue else d1, if (d2.isNaN || !cond(d2)) Double.MaxValue else d2)
-
-  def max(d1: Double, d2: Double, cond: Double => Boolean): Double =
-    Math.max(if (d1.isNaN) Double.MinValue else d1, if (d2.isNaN || !cond(d2)) Double.MinValue else d2)
-
-  def plus(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
-  (if (d2.isNaN || !cond(d2)) 0 else d2)
-
-  def countNotNan(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
-  (if (d2.isNaN || !cond(d2)) 0 else 1)
 }

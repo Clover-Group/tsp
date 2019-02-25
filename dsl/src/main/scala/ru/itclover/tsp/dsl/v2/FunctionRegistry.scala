@@ -157,79 +157,79 @@ object DefaultFunctions {
           (xs: Seq[Any]) => Math.abs(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('sin, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.sin(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('cos, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.cos(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('tan, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('tg, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('cot, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('ctg, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
           astType
         )
-        ),
+      ),
       ('sind, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.sin(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
       ('cosd, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.cos(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
       ('tand, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
       ('tgd, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
       ('cotd, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
       ('ctgd, Seq(astType)) -> (
         (
           (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
           astType
         )
-        ),
+      ),
     )
   }
 
@@ -255,6 +255,18 @@ object DefaultFunctions {
     ('not, Seq(BooleanASTType)) -> (
       (
         (xs: Seq[Any]) => !xs(0).asInstanceOf[Boolean],
+        BooleanASTType
+      )
+    ),
+    ('eq, Seq(BooleanASTType, BooleanASTType)) -> (
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] == xs(1).asInstanceOf[Boolean],
+        BooleanASTType
+      )
+    ),
+    ('ne, Seq(BooleanASTType, BooleanASTType)) -> (
+      (
+        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] != xs(1).asInstanceOf[Boolean],
         BooleanASTType
       )
     )
@@ -370,14 +382,15 @@ object DefaultFunctions {
 //    val astType = ASTType.of[T]
 //  }
 
-  def reducers[T: ClassTag](implicit conv: T => Double): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
+  def reducers[T: ClassTag](
+    implicit conv: T => Double
+  ): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
     ('sumof, DoubleASTType) -> (
       (
-        {
-          (acc: Any, x: Any) => acc.asInstanceOf[Double] + x.asInstanceOf[Double]
+        { (acc: Any, x: Any) =>
+          acc.asInstanceOf[Double] + x.asInstanceOf[Double]
         },
-        DoubleASTType,
-        {
+        DoubleASTType, {
           identity(_)
         },
         java.lang.Double.valueOf(0)
@@ -385,11 +398,10 @@ object DefaultFunctions {
     ),
     ('minof, DoubleASTType) -> (
       (
-        {
-          (acc: Any, x: Any) => Math.min(acc.asInstanceOf[Double], x.asInstanceOf[Double])
+        { (acc: Any, x: Any) =>
+          Math.min(acc.asInstanceOf[Double], x.asInstanceOf[Double])
         },
-        DoubleASTType,
-        {
+        DoubleASTType, {
           identity(_)
         },
         java.lang.Double.valueOf(0)
@@ -397,28 +409,27 @@ object DefaultFunctions {
     ),
     ('maxof, DoubleASTType) -> (
       (
-        {
-          (acc: Any, x: Any) => Math.max(acc.asInstanceOf[Double], x.asInstanceOf[Double])
+        { (acc: Any, x: Any) =>
+          Math.max(acc.asInstanceOf[Double], x.asInstanceOf[Double])
         },
-        DoubleASTType,
-        {
+        DoubleASTType, {
           identity(_)
         },
         java.lang.Double.valueOf(0)
       )
     ),
-    ('countof, DoubleASTType) -> ({
-      (acc: Any, x: Any) => acc.asInstanceOf[Double] + 1
+    ('countof, DoubleASTType) -> ({ (acc: Any, x: Any) =>
+      acc.asInstanceOf[Double] + 1
     }, DoubleASTType, {
       identity(_)
     }, 0),
-    ('avgof, DoubleASTType) -> (({
-      (acc: Any, x: Any) => {
+    ('avgof, DoubleASTType) -> (({ (acc: Any, x: Any) =>
+      {
         val (sum, count) = acc.asInstanceOf[(Double, Double)]
         (sum + x.asInstanceOf[Double], count + 1)
       }
-    }, DoubleASTType, {
-      (x: Any) => {
+    }, DoubleASTType, { (x: Any) =>
+      {
         val (sum, count) = x.asInstanceOf[(Double, Double)]
         sum / count
       }
@@ -462,6 +473,7 @@ object DefaultFunctionRegistry
     extends FunctionRegistry(
       functions = arithmeticFunctions[Int, Int] ++
       arithmeticFunctions[Long, Long] ++
+      arithmeticFunctions[Long, Int] ++
       arithmeticFunctions[Double, Double] ++
       arithmeticFunctions[Double, Long] ++
       arithmeticFunctions[Double, Int] ++
