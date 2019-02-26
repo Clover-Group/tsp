@@ -62,7 +62,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case fc: FunctionCall =>
         fc.arguments.length match {
           case 1 =>
-            val p1 = generatePattern(fc.arguments.head)
+            val p1 = generatePattern(fc.arguments(0))
             new MapPattern(p1)(
               (x: Any) =>
                 Result.succ(

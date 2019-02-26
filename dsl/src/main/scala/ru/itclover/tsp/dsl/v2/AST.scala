@@ -56,19 +56,19 @@ case class ReducerFunctionCall(functionName: Symbol, @transient cond: Result[Any
   arguments.zipWithIndex.foreach {
     case (a, idx) =>
       a.requireType(
-        arguments.head.valueType,
-        s"Arguments must have the same type, but arg #1 is ${arguments.head.valueType} " +
+        arguments(0).valueType,
+        s"Arguments must have the same type, but arg #1 is ${arguments(0).valueType} " +
         s"and arg #${idx + 1} is ${a.valueType}"
       )
   }
 
   override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
-  override val valueType: ASTType = fr.reducers.get((functionName, arguments.head.valueType)) match {
+  override val valueType: ASTType = fr.reducers.get((functionName, arguments(0).valueType)) match {
     case Some((_, t, _, _)) => t
     case None =>
       throw ParseException(
         s"No reducer with name $functionName " +
-        s"and type ${arguments.head.valueType}"
+        s"and type ${arguments(0).valueType}"
       )
   }
 }

@@ -89,6 +89,8 @@ case class FunctionRegistry(
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
 }
 
+// Here we need to explicitly convert the arguments to given types at runtime, so `asInstanceOf()` should stand
+@SuppressWarnings(Array("AsInstanceOf"))
 object DefaultFunctions {
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
@@ -154,79 +156,79 @@ object DefaultFunctions {
     Map(
       ('abs, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.abs(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => Math.abs(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('sin, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.sin(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => Math.sin(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('cos, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.cos(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => Math.cos(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('tan, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => Math.tan(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('tg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.tan(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => Math.tan(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('cot, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => 1.0 / Math.tan(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('ctg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => 1.0 / Math.tan(xs.head.asInstanceOf[T]),
+          (xs: Seq[Any]) => 1.0 / Math.tan(xs(0).asInstanceOf[T]),
           astType
         )
       ),
       ('sind, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.sin(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => Math.sin(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
       ('cosd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.cos(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => Math.cos(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
       ('tand, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
       ('tgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => Math.tan(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
       ('cotd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
       ('ctgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs.head.asInstanceOf[T])),
+          (xs: Seq[Any]) => 1.0 / Math.tan(Math.toRadians(xs(0).asInstanceOf[T])),
           astType
         )
       ),
@@ -314,7 +316,7 @@ object DefaultFunctions {
       ('eq, Seq(astType1, astType2)) -> (
         (
           { (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[T1] == xs(1).asInstanceOf[T2]
+            ord.equiv(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
           },
           BooleanASTType
         )
@@ -322,7 +324,7 @@ object DefaultFunctions {
       ('ne, Seq(astType1, astType2)) -> (
         (
           { (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[T1] != xs(1).asInstanceOf[T2]
+            ! ord.equiv(xs(0).asInstanceOf[T1], xs(1).asInstanceOf[T2])
           },
           BooleanASTType
         )
@@ -362,7 +364,7 @@ object DefaultFunctions {
       ('eq, Seq(astType2, astType1)) -> (
         (
           { (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[T2] == xs(1).asInstanceOf[T1]
+            ord.equiv(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
           },
           BooleanASTType
         )
@@ -370,7 +372,7 @@ object DefaultFunctions {
       ('ne, Seq(astType2, astType1)) -> (
         (
           { (xs: Seq[Any]) =>
-            xs(0).asInstanceOf[T2] != xs(1).asInstanceOf[T1]
+            ! ord.equiv(xs(0).asInstanceOf[T2], xs(1).asInstanceOf[T1])
           },
           BooleanASTType
         )
@@ -428,7 +430,7 @@ object DefaultFunctions {
         val (sum, count) = acc.asInstanceOf[(Double, Double)]
         (sum + x.asInstanceOf[Double], count + 1)
       }
-    }, DoubleASTType, { (x: Any) =>
+    }, DoubleASTType, { x: Any =>
       {
         val (sum, count) = x.asInstanceOf[(Double, Double)]
         sum / count
