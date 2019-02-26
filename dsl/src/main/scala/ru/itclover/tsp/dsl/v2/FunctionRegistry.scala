@@ -90,7 +90,7 @@ case class FunctionRegistry(
 }
 
 // Here we need to explicitly convert the arguments to given types at runtime, so `asInstanceOf()` should stand
-@SuppressWarnings(Array("AsInstanceOf"))
+//@SuppressWarnings(Array("AsInstanceOf"))
 object DefaultFunctions {
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
@@ -235,45 +235,33 @@ object DefaultFunctions {
     )
   }
 
-  val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = Map(
-    ('and, Seq(BooleanASTType, BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] && xs(1).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    ),
-    ('or, Seq(BooleanASTType, BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] || xs(1).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    ),
-    ('xor, Seq(BooleanASTType, BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] ^ xs(1).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    ),
-    ('not, Seq(BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => !xs(0).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    ),
-    ('eq, Seq(BooleanASTType, BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] == xs(1).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    ),
-    ('ne, Seq(BooleanASTType, BooleanASTType)) -> (
-      (
-        (xs: Seq[Any]) => xs(0).asInstanceOf[Boolean] != xs(1).asInstanceOf[Boolean],
-        BooleanASTType
-      )
-    )
-  )
+  val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+  
+    // TSP-182 - Workaround for correct type inference
+    
+    type A = Boolean
+    def dummyPF = new PartialFunction[A,A] {
+      def apply (in:A) = in 
+      def isDefinedAt (in:A) = true
+    }
 
+    // Apply for Boolean
+    def dummy = dummyPF(true)
+
+    val ttype  = BooleanASTType
+    
+    Map (
+
+      ('and , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy && dummy , ttype),
+      ('or  , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy || dummy , ttype),
+      ('xor , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy ^  dummy , ttype),
+      ('not , Seq(ttype       ))  -> ((xs: Seq[Any]) => !dummy         , ttype),
+      ('eq  , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy == dummy , ttype), // FIXME - implement a deep compare with ScalaZ ===
+      ('neq , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy != dummy , ttype)  // FIXME - same here implement =!=
+
+    )
+  }
+    
   def comparingFunctions[T1: ClassTag, T2: ClassTag](
     implicit ord: Ordering[T1],
     conv: T2 => T1
