@@ -35,12 +35,12 @@ class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
     funReg.functions(('div, Seq(IntASTType, IntASTType)))._1(Seq(78, 6)) shouldBe 13
   }
 
-//  "Function registry arithmetic functions with mixed types" should "be callable" in {
-//    funReg.functions(('add, Seq(DoubleASTType, IntASTType)))._1(Seq(5.0, 8)) shouldBe 13.0
-//    funReg.functions(('sub, Seq(DoubleASTType, IntASTType)))._1(Seq(29.0, 16)) shouldBe 13.0
-//    funReg.functions(('mul, Seq(DoubleASTType, IntASTType)))._1(Seq(13.0, 1)) shouldBe 13.0
-//    funReg.functions(('div, Seq(DoubleASTType, IntASTType)))._1(Seq(78.0, 6)) shouldBe 13.0
-//  }
+  "Function registry arithmetic functions with mixed types" should "be callable" in {
+    funReg.functions(('add, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](5.0, 8)) shouldBe 13.0
+    funReg.functions(('sub, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](29.0, 16)) shouldBe 13.0
+    funReg.functions(('mul, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](13.0, 1)) shouldBe 13.0
+    funReg.functions(('div, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](78.0, 6)) shouldBe 13.0
+  }
 
   "Math functions" should "be callable" in {
     // We need `.asInstanceOf[Double]` here to enable tolerant comparison
@@ -66,6 +66,15 @@ class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
     funReg.functions(('ge, Seq(DoubleASTType, DoubleASTType)))._1(Seq(5.0, 6.0)) shouldBe false
     funReg.functions(('eq, Seq(DoubleASTType, DoubleASTType)))._1(Seq(4.0, 4.0)) shouldBe true
     funReg.functions(('ne, Seq(DoubleASTType, DoubleASTType)))._1(Seq(21.0, 6.0)) shouldBe true
+  }
+
+  "Function registry comparison functions with mixed types" should "be callable" in {
+    funReg.functions(('lt, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](5.0, 8)) shouldBe true
+    funReg.functions(('le, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](29.0, 18)) shouldBe false
+    funReg.functions(('gt, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](13.0, 12)) shouldBe true
+    funReg.functions(('ge, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](5.0, 6)) shouldBe false
+    funReg.functions(('eq, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](4.0, 4)) shouldBe true
+    funReg.functions(('ne, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](21.0, 6)) shouldBe true
   }
 
   "Function registry concatenation" should "work" in {

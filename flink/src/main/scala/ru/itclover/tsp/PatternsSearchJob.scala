@@ -18,7 +18,7 @@ import cats.implicits._
 import ru.itclover.tsp.core.{Incident, RawPattern, Window}
 import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.{PatternBuilder, PatternMetadata}
+import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import com.typesafe.scalalogging.Logger

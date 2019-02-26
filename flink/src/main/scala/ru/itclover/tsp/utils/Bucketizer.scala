@@ -3,6 +3,7 @@ package ru.itclover.tsp.utils
 import ru.itclover.tsp.PatternsSearchJob.RichPattern
 import ru.itclover.tsp.v2.PState
 import ru.itclover.tsp.Segment
+
 import scala.collection.immutable
 
 object Bucketizer {

@@ -35,9 +35,6 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
       val fields: Map[String, String] = request.fields
       val res = PatternsValidator.validate[Nothing](patterns, fields)(
         new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
-        new Extractor[Nothing, Int, Any] {
-          override def apply[T](e: Nothing, k: Int)(implicit d: Decoder[Any, T]): T = 0.0
-        },
         new Decoder[Any, Double] {
           override def apply(v1: Any): Double = 0.0
         }
