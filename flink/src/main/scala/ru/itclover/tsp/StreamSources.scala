@@ -75,9 +75,9 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
   private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.isEmpty || idx.get >= fieldsIdxMap.size).flatten
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
     .map(p => fieldsClasses(p)._1)
-  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.get}), index overflow.")
+  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
@@ -165,9 +165,9 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
   private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.isEmpty || idx.get >= fieldsIdxMap.size).flatten
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
     .map(p => fieldsClasses(p)._1)
-  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.get}), index overflow.")
+  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray

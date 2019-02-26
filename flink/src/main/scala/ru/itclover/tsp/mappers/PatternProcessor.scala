@@ -28,15 +28,21 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
       elements.toList,
       (next: E, prev: E) => timeExtractor(next).toMillis - timeExtractor(prev).toMillis > eventsMaxGapMs
     )
-    val states = StateMachine[Id].run(pattern, sequences.head, lastState) :: sequences.tail.map(
+    val states = StateMachine[Id]
+      .run(pattern, sequences.headOption.getOrElse(sys.error("Empty sequence list")), lastState) :: sequences.tail.map(
       StateMachine[Id].run(pattern, _, pattern.initialState())
     )
-    lastState = states.last
+    lastState = states.lastOption.getOrElse(sys.error("Empty state list"))
     val results = states.map(_.queue).foldLeft(List.empty[Inner]) { (acc: List[Inner], q: QI[Inner]) =>
       acc ++ q.map(_.value).collect { case Succ(v) => v }
     }
     if (elements.nonEmpty)
-      mapResults(elements.head, results).foreach(out.collect)
+      mapResults(
+        elements.headOption.getOrElse(
+          sys.error("Non-empty collection but still cannot get the head for some cryptic reason")
+        ),
+        results
+      ).foreach(out.collect)
   }
 }
 
@@ -51,17 +57,17 @@ object PatternProcessor {
     * @return List of chunks
     */
   def splitByCondition[T](elements: List[T], pred: (T, T) => Boolean): List[Seq[T]] = {
-    val results = ListBuffer(ListBuffer(elements.head))
     if (elements.length < 2) {
       List(elements)
     } else {
+      val results = ListBuffer(ListBuffer(elements(0)))
       elements.sliding(2).foreach { e =>
         val prev = e(0)
         val cur = e(1)
         if (pred(cur, prev)) {
           results += ListBuffer(cur)
         } else {
-          results.last += cur
+          results.lastOption.getOrElse(sys.error("Empty result sequence - something went wrong")) += cur
         }
       }
       results.map(_.toSeq).toList

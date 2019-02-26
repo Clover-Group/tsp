@@ -29,7 +29,7 @@ import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
+//import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 import scala.util.Try
 
