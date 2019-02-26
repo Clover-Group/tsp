@@ -15,11 +15,11 @@ trait SinkSchema extends Serializable {
 }
 
 
-case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
-  override def toString: String = {
-    "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"
-  }
-}
+//case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
+//  override def toString: String = {
+//    "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"
+//  }
+//}
 
 
 trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
