@@ -11,11 +11,11 @@ object DataStreamOps {
 
   implicit class DataStreamOps[E: TypeInformation](val stream: DataStream[E]) {
 
-    def flatMapIf(cond: Boolean, mapper: => FlatMapFunction[E, E]): DataStream[E] = {
-      if (cond) { stream.flatMap(mapper) } else { stream }
-    }
+//    def flatMapIf(cond: Boolean, mapper: => FlatMapFunction[E, E]): DataStream[E] = {
+//      if (cond) { stream.flatMap(mapper) } else { stream }
+//    }
 
-    def foreach(fn: E => Unit): DataStream[Unit] = stream.map[Unit](fn)(new UnitTypeInfo)
+//    def foreach(fn: E => Unit): DataStream[Unit] = stream.map[Unit](fn)(new UnitTypeInfo) // It seems to be unneeded
 
     def assignAscendingTimestamps_withoutWarns(extractor: E => Long): DataStream[E] = {
       // Careful! Closure cleaner is disabled bcs it's private for Flink for some stupid reason // val cleanExtractor = stream.clean(extractor)
