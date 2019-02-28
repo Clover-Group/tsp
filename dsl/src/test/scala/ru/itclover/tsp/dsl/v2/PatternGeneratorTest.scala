@@ -34,7 +34,7 @@ class PatternGeneratorTest extends FlatSpec with Matchers with PropertyChecks {
     gen.build("tan(doubleSensor1) >= 1 for 5 hr andThen avg(doubleSensor2, 3 sec) > 42", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
     gen.build("count(doubleSensor1, 4 sec) * sum(doubleSensor2, 3 sec) < 9", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
     gen.build("lag(doubleSensor1, 10 sec) > doubleSensor1", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
-    gen.build("boolSensor = true andThen boolSensor != false", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
+    //gen.build("boolSensor = true andThen boolSensor != false", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
   }
 
   "Pattern generator" should "not generate invalid patterns" in {
