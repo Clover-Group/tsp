@@ -2,7 +2,6 @@ package ru.itclover.tsp.dsl.v2
 import java.io.Serializable
 
 import ru.itclover.tsp.v2.{Fail, Result, Succ}
-import shapeless.{HList, HNil}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -235,33 +234,37 @@ object DefaultFunctions {
     )
   }
 
+
   val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
   
     // TSP-182 - Workaround for correct type inference
     
-    type A = Boolean
-    def dummyPF = new PartialFunction[A,A] {
-      def apply (in:A) = in 
-      def isDefinedAt (in:A) = true
-    }
+    val btype  = BooleanASTType
+    
+    def func (sym:Symbol, xs:Seq[Any]):Boolean  =  sym match {
 
-    // Apply for Boolean
-    def dummy = dummyPF(true)
+      case 'and => xs(0).asInstanceOf[Boolean] && xs(1).asInstanceOf[Boolean]
+      case 'or  => xs(0).asInstanceOf[Boolean] || xs(1).asInstanceOf[Boolean]
+      case 'xor => xs(0).asInstanceOf[Boolean] ^  xs(1).asInstanceOf[Boolean]
+      case 'eq  => xs(0).asInstanceOf[Boolean] == xs(1).asInstanceOf[Boolean]
+      case 'neq => xs(0).asInstanceOf[Boolean] != xs(1).asInstanceOf[Boolean]
+      case 'not => !xs(0).asInstanceOf[Boolean] 
+      //case _ => // FIXME
 
-    val ttype  = BooleanASTType
+    } 
     
     Map (
-
-      ('and , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy && dummy , ttype),
-      ('or  , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy || dummy , ttype),
-      ('xor , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy ^  dummy , ttype),
-      ('not , Seq(ttype       ))  -> ((xs: Seq[Any]) => !dummy         , ttype),
-      ('eq  , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy == dummy , ttype), // FIXME - implement a deep compare with ScalaZ ===
-      ('neq , Seq(ttype, ttype))  -> ((xs: Seq[Any]) => dummy != dummy , ttype)  // FIXME - same here implement =!=
-
+      ('and , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('and, xs), btype ),
+      ('or  , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('or , xs), btype ),
+      ('xor , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('xor, xs), btype ),
+      ('eq  , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('eq , xs), btype ),
+      ('neq , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('neq, xs), btype ),
+      ('not , Seq(btype))         -> ((xs: Seq[Any]) => func('not, xs), btype )
     )
   }
     
+
+
   def comparingFunctions[T1: ClassTag, T2: ClassTag](
     implicit ord: Ordering[T1],
     conv: T2 => T1
