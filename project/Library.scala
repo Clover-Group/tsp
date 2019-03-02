@@ -39,6 +39,8 @@ object Version {
   val activation = "1.2.0"
 
   val kindProjector = "0.9.8"
+
+  val simulacrum = "0.15.0"
 }
 
 object Library {
@@ -92,6 +94,11 @@ object Library {
   val cats = Seq(
     "org.typelevel" %% "cats-core" % Version.cats
   )
+
+  val scrum  = Seq (
+    "com.github.mpilquist"  %% "simulacrum" % Version.simulacrum
+  )
+  
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
 

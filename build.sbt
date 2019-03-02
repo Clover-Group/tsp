@@ -146,7 +146,7 @@ lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.parboiled
+    libraryDependencies ++=  Library.scalaTest ++ Library.parboiled ++ Library.scrum
   ).dependsOn(core)
 
 
@@ -170,7 +170,7 @@ lazy val integrationPerformance = project.in(file("integration/performance"))
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
-
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 
 // Git-specific settings

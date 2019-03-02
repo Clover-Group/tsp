@@ -31,5 +31,4 @@ regr:
 	@python3.6 test/regression/tester.py test/reqs/* --batch-size 3
 
 clean:
-	@rm -rf target/ http/target spark/target config/target dsl/target 
-	@rm -rf core/target flink/target project/target project/project/target
+	@find . -name "target" | xargs rm -rf {} \;
