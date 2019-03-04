@@ -6,6 +6,7 @@ import ru.itclover.tsp.v2.{Fail, Result, Succ}
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
+
 /*class FunctionRegistry {
   private val functions: mutable.Map[(Symbol, Seq[ASTType]), Seq[Any] => Any] =
     mutable.Map.empty
@@ -236,34 +237,34 @@ object DefaultFunctions {
 
 
   val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
-  
+    import Functional._
+
     // TSP-182 - Workaround for correct type inference
     
     val btype  = BooleanASTType
-    
-    def func (sym:Symbol, xs:Seq[Any]):Boolean  =  sym match {
+   
+    def func (sym:Symbol, xs:Seq[Any])(implicit l: Logical[Any]):Boolean  =  sym match {
 
-      case 'and => xs(0).asInstanceOf[Boolean] && xs(1).asInstanceOf[Boolean]
-      case 'or  => xs(0).asInstanceOf[Boolean] || xs(1).asInstanceOf[Boolean]
-      case 'xor => xs(0).asInstanceOf[Boolean] ^  xs(1).asInstanceOf[Boolean]
-      case 'eq  => xs(0).asInstanceOf[Boolean] == xs(1).asInstanceOf[Boolean]
-      case 'neq => xs(0).asInstanceOf[Boolean] != xs(1).asInstanceOf[Boolean]
-      case 'not => !xs(0).asInstanceOf[Boolean] 
+      case 'and => l.and  (xs(0), xs(1))
+      case 'or  => l.or   (xs(0), xs(1))
+      case 'xor => l.xor  (xs(0), xs(1))
+      case 'eq  => l.eq   (xs(0), xs(1))
+      case 'neq => l.neq  (xs(0), xs(1))
+      case 'not => l.not  (xs(0))
       //case _ => // FIXME
 
     } 
     
     Map (
-      ('and , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('and, xs), btype ),
-      ('or  , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('or , xs), btype ),
-      ('xor , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('xor, xs), btype ),
-      ('eq  , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('eq , xs), btype ),
-      ('neq , Seq(btype, btype))  -> ((xs: Seq[Any]) => func('neq, xs), btype ),
-      ('not , Seq(btype))         -> ((xs: Seq[Any]) => func('not, xs), btype )
+      ('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('and, xs), btype)),
+      ('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('or , xs), btype)),
+      ('xor , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('xor, xs), btype)),
+      ('eq  , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('eq , xs), btype)),
+      ('neq , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('neq, xs), btype)),
+      ('not , Seq(btype))         -> (((xs: Seq[Any]) => func('not, xs), btype))
     )
   }
     
-
 
   def comparingFunctions[T1: ClassTag, T2: ClassTag](
     implicit ord: Ordering[T1],
