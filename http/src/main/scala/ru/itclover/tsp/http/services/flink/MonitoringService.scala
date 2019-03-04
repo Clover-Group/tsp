@@ -56,43 +56,43 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     })
   }
 
-  def queryJobAllRootMetrics(name: String): Future[Either[Throwable, Map[String, String]]] =
-    queryJobInfo(name) flatMap {
-      case Some(job) =>
-        val metricNamesUri = uri + s"/jobs/${job.jid}/metrics"
-        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
-          case Right(metricNames) =>
-            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
-            Await.result(
-              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
-                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
-                case Left(err)      => Left(err.toThrowable)
-              },
-              Duration.Inf
-            )
-          case Left(err) => Left(err.toThrowable)
-        }
-      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
-    }
+//  def queryJobAllRootMetrics(name: String): Future[Either[Throwable, Map[String, String]]] =
+//    queryJobInfo(name) flatMap {
+//      case Some(job) =>
+//        val metricNamesUri = uri + s"/jobs/${job.jid}/metrics"
+//        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+//          case Right(metricNames) =>
+//            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
+//            Await.result(
+//              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+//                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
+//                case Left(err)      => Left(err.toThrowable)
+//              },
+//              Duration.Inf
+//            )
+//          case Left(err) => Left(err.toThrowable)
+//        }
+//      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
+//    }
 
-  def queryJobAllMetricsForVertex(name: String, vertexIndex: Int): Future[Either[Throwable, Map[String, String]]] =
-    queryJobInfo(name) flatMap {
-      case Some(job) =>
-        val metricNamesUri = uri + s"/jobs/${job.jid}/vertices/${job.vertices(vertexIndex).id}/metrics"
-        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
-          case Right(metricNames) =>
-            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
-            Await.result(
-              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
-                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
-                case Left(err)      => Left(err.toThrowable)
-              },
-              Duration.Inf
-            )
-          case Left(err) => Left(err.toThrowable)
-        }
-      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
-    }
+//  def queryJobAllMetricsForVertex(name: String, vertexIndex: Int): Future[Either[Throwable, Map[String, String]]] =
+//    queryJobInfo(name) flatMap {
+//      case Some(job) =>
+//        val metricNamesUri = uri + s"/jobs/${job.jid}/vertices/${job.vertices(vertexIndex).id}/metrics"
+//        queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+//          case Right(metricNames) =>
+//            val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
+//            Await.result(
+//              queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+//                case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
+//                case Left(err)      => Left(err.toThrowable)
+//              },
+//              Duration.Inf
+//            )
+//          case Left(err) => Left(err.toThrowable)
+//        }
+//      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
+//    }
 
   def queryJobAllMetrics(name: String): Future[Either[Throwable, Map[String, String]]] = queryJobInfo(name) flatMap {
     case Some(job) =>
@@ -117,8 +117,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
                 Duration.Inf
               )
             }
-            .filter(_.isRight)
-            .map(_.right.get)
+            .collect { case Right(v) => v }
             .foldLeft(Map.empty[String, String])(_ ++ _)
         )
       )

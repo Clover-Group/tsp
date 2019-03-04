@@ -66,16 +66,16 @@ trait HttpService extends RoutesProtocols {
       }
     }
     .handleAll[MalformedFormFieldRejection] { x =>
-      complete(BadRequest, FailureResponse(4001, s"Malformed field.", x.map(_.toString)))
+      complete(BadRequest, FailureResponse(4001, "Malformed field.", x.map(_.toString)))
     }
     .handleAll[MalformedQueryParamRejection] { x =>
-      complete(BadRequest, FailureResponse(4002, s"Malformed query.", x.map(_.toString)))
+      complete(BadRequest, FailureResponse(4002, "Malformed query.", x.map(_.toString)))
     }
     .handleAll[MalformedRequestContentRejection] { x =>
-      complete(BadRequest, FailureResponse(4003, s"Malformed request content.", x.map(_.toString)))
+      complete(BadRequest, FailureResponse(4003, "Malformed request content.", x.map(_.toString)))
     }
     .handleAll[Rejection] { _ =>
-      complete(InternalServerError, FailureResponse(5003, s"Unknown rejection.", Seq.empty))
+      complete(InternalServerError, FailureResponse(5003, "Unknown rejection.", Seq.empty))
     }
     .result()
 
@@ -87,7 +87,7 @@ trait HttpService extends RoutesProtocols {
       log.error(error)
       complete(
         InternalServerError,
-        FailureResponse(5001, s"Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
       )
 
     case ex: JobExecutionException =>
@@ -97,7 +97,7 @@ trait HttpService extends RoutesProtocols {
       log.error(error)
       complete(
         InternalServerError,
-        FailureResponse(5002, s"Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        FailureResponse(5002, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
       )
 
     case InvalidRequest(msg) =>
@@ -111,7 +111,7 @@ trait HttpService extends RoutesProtocols {
       log.error(error)
       complete(
         InternalServerError,
-        FailureResponse(5005, s"Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        FailureResponse(5005, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
       )
   }
 

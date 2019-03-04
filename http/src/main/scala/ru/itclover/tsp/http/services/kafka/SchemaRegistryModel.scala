@@ -26,11 +26,11 @@ object SchemaRegistryModel {
     implicit def fromInt(id: Int) = SchemaID(id)
   }
 
-  trait SchemaException extends Product with Serializable
+  trait SchemaExceptionBase extends Product with Serializable
 
-  case class AvroException(err: String) extends Exception with SchemaException
+  case class AvroException(err: String) extends Exception with SchemaExceptionBase
 
-  case class SchemaBuilderException(err: String) extends Exception with SchemaException
+  case class SchemaBuilderException(err: String) extends Exception with SchemaExceptionBase
 }
 
 
