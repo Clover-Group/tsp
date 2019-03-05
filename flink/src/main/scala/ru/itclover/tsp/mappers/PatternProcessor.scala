@@ -7,6 +7,7 @@ import ru.itclover.tsp.v2.Pattern.QI
 import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ}
 
 import scala.collection.mutable.ListBuffer
+import scala.language.reflectiveCalls
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner], //todo Why List?
