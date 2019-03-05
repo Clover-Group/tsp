@@ -26,8 +26,6 @@ object Version {
   val testContainers = "0.20.0"
   val postgres = "42.2.5"
 
-  val spark = "2.4.0"
-
   val avro = "1.8.2"
 
   val parboiled = "2.1.5"
@@ -110,15 +108,6 @@ object Library {
 
   val testContainers = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
-  )
-
-  val sparkStreaming = Seq(
-    "org.apache.spark" %% "spark-core" % Version.spark,
-    "org.apache.spark" %% "spark-streaming" % Version.spark,
-    "org.apache.spark" %% "spark-streaming-kafka-0-10" % Version.spark,
-    // Needed for structured streams
-    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark,
-    "org.apache.spark" %% "spark-sql" % Version.spark
   )
 
   val kafka = Seq(

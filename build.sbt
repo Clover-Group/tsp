@@ -27,7 +27,8 @@ lazy val commonSettings = Seq(
 
   // don't release subprojects
   githubRelease := null,
-  skip in publish := true
+  skip in publish := true, 
+  maxErrors := 5
 )
 
 lazy val assemblySettings = Seq(
@@ -100,8 +101,8 @@ lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
-  .dependsOn(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
+  .aggregate(core, config, http, flinkConnector, dsl, integrationCorrectness)
+  .dependsOn(core, config, http, flinkConnector, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -134,21 +135,12 @@ lazy val http = project.in(file("http"))
   )
   .dependsOn(core, config, flinkConnector, dsl)
 
-lazy val spark = project.in(file("spark"))
-  .settings(commonSettings)
-  .settings(
-    fork in run := true,
-    libraryDependencies ++= Library.sparkStreaming
-  )
-  .dependsOn(core, config)
-
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
     libraryDependencies ++=  Library.scalaTest ++ Library.parboiled ++ Library.scrum
   ).dependsOn(core)
-
 
 lazy val integrationCorrectness = project.in(file("integration/correctness"))
   .settings(commonSettings)
