@@ -15,6 +15,8 @@ import ru.itclover.tsp.io.AnyDecodersInstances._
 import ru.itclover.tsp.v2.aggregators.TimerPattern
 
 import scala.language.{higherKinds, implicitConversions}
+import com.typesafe.scalalogging.Logger
+
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
@@ -26,6 +28,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event] {}
+
+  private val log = Logger("ASTPGenLogger")
 
   trait AnyState[T] extends PState[T, AnyState[T]]
 
@@ -44,6 +48,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
+    log.debug("Entering generatePattern...")
+
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -156,7 +162,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case fwi: ForWithInterval =>
         new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           fwi.interval match {
-            case ti: TimeInterval if ti.contains(stats.successMillis)         => Result.succ(true)
+            //case ti: TimeInterval if ti.contains(stats.successMillis)         => Result.succ(true)
+            case ti: NumericInterval[Long] if ti.contains(stats.successCount) => Result.succ(true)
             case ni: NumericInterval[Long] if ni.contains(stats.successCount) => Result.succ(true)
             case _                                                            => Result.fail
           }
@@ -182,4 +189,5 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case notImplemented => sys.error(s"AST $notImplemented is not implemented yet.")
     }
   }
+    log.debug("Exiting generatePattern...")
 }
