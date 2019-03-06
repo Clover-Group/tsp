@@ -245,8 +245,8 @@ object DefaultFunctions {
    
     def func (sym:Symbol, xs:Seq[Any])(implicit l: Logical[Any]):Boolean  =  sym match {
 
-      case 'and => l.and  (xs(0), xs(1))
-      case 'or  => l.or   (xs(0), xs(1))
+      //case 'and => l.and  (xs(0), xs(1))
+      //case 'or  => l.or   (xs(0), xs(1))
       case 'xor => l.xor  (xs(0), xs(1))
       case 'eq  => l.eq   (xs(0), xs(1))
       case 'neq => l.neq  (xs(0), xs(1))
@@ -256,8 +256,8 @@ object DefaultFunctions {
     } 
     
     Map (
-      ('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('and, xs), btype)),
-      ('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('or , xs), btype)),
+      ('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
+      ('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] || _.asInstanceOf[Boolean]}, btype)),
       ('xor , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('xor, xs), btype)),
       ('eq  , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('eq , xs), btype)),
       ('neq , Seq(btype, btype))  -> (((xs: Seq[Any]) => func('neq, xs), btype)),

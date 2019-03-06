@@ -45,6 +45,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
     val ast = new ASTBuilder(sourceCode, toleranceFraction, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
+  
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
@@ -84,6 +85,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
               )
             )
           case 2 =>
+
+            log.debug(s"Case 2 called: Arg0 = $fc.arguments(0), Arg1 = $fc.arguments(1)")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             new CouplePattern(p1, p2)(
               { (x, y) =>
@@ -99,7 +102,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                           )
                         )
                         ._1(
-                          Seq(rx, ry)
+                          Seq(rx,ry) // <--- TSP-182 fails here
                         )
                     )
                   case _ => Result.fail
@@ -162,8 +165,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case fwi: ForWithInterval =>
         new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           fwi.interval match {
-            //case ti: TimeInterval if ti.contains(stats.successMillis)         => Result.succ(true)
-            case ti: NumericInterval[Long] if ti.contains(stats.successCount) => Result.succ(true)
+            case ti: TimeInterval if ti.contains(stats.successMillis)         => Result.succ(true)
             case ni: NumericInterval[Long] if ni.contains(stats.successCount) => Result.succ(true)
             case _                                                            => Result.fail
           }
@@ -189,5 +191,4 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case notImplemented => sys.error(s"AST $notImplemented is not implemented yet.")
     }
   }
-    log.debug("Exiting generatePattern...")
 }

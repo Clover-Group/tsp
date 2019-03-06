@@ -15,8 +15,8 @@ object Logical {
 
   implicit val AnyLogical:Logical[Any]  = new Logical[Any] {
 
-    def and (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] && b.asInstanceOf[Boolean]
-    def or  (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] || b.asInstanceOf[Boolean]
+    //def and (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] && b.asInstanceOf[Boolean]
+    //def or  (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] || b.asInstanceOf[Boolean]
     def xor (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] ^  b.asInstanceOf[Boolean]
     def eq  (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] == b.asInstanceOf[Boolean] // FIXME ===
     def neq (a:Any, b:Any):Boolean = a.asInstanceOf[Boolean] != b.asInstanceOf[Boolean] // FIXME =!=
