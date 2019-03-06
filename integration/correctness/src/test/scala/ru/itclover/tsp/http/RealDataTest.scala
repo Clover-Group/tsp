@@ -38,7 +38,7 @@ class RealDataTest
 
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9087 -> 9000 :: Nil,
+    port -> 8123 :: 9083 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
@@ -51,6 +51,7 @@ class RealDataTest
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 10000L,
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num)
   )
 
@@ -64,7 +65,7 @@ class RealDataTest
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val (timeRangeSec, assertions) = (1 to 70) -> Seq(
+  val (timeRangeSec, assertions) = (1 to 80) -> Seq(
     RawPattern("6", "HI__wagon_id__6 < 0.5"),
     RawPattern("4", "HI__wagon_id__4 < 0.5")
   )

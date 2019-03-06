@@ -16,7 +16,7 @@ import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /*sealed*/ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -61,7 +61,7 @@ object JdbcSource {
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
-  implicit streamEnv: StreamExecutionEnvironment
+  implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
 
   import conf._
@@ -75,9 +75,9 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
   private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.isEmpty || idx.get >= fieldsIdxMap.size).flatten
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
     .map(p => fieldsClasses(p)._1)
-  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.get}), index overflow.")
+  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
@@ -148,7 +148,7 @@ object InfluxDBSource {
 }
 
 case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
-  implicit streamEnv: StreamExecutionEnvironment
+  implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
 
   import conf._
@@ -165,9 +165,9 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
   private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.isEmpty || idx.get >= fieldsIdxMap.size).flatten
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
     .map(p => fieldsClasses(p)._1)
-  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.get}), index overflow.")
+  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
@@ -189,13 +189,13 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
           mutable.Buffer[Row]()
         } else
           for {
-            series   <- queryResult.getSeries
-            valueSet <- series.getValues
+            series   <- queryResult.getSeries.asScala
+            valueSet <- series.getValues.asScala.map(_.asScala)
             if valueSet != null
           } yield {
-            val tags = if (series.getTags != null) series.getTags else new util.HashMap[String, String]()
-            val row = new Row(tags.size() + valueSet.size())
-            val fieldsAndValues = tags ++ series.getColumns.toSeq.zip(valueSet)
+            val tags = if (series.getTags != null) series.getTags.asScala else Map.empty
+            val row = new Row(tags.size + valueSet.size)
+            val fieldsAndValues = tags ++ series.getColumns.asScala.zip(valueSet)
             fieldsAndValues.foreach {
               case (field, value) => row.setField(serFieldsIdxMap(Symbol(field)), value)
             }

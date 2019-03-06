@@ -12,12 +12,12 @@ object Version {
   val influxFlink = "1.0"
 
   val clickhouse = "0.1.48"
-  val flink = "1.7.1"
+  val flink = "1.7.2"
 
   val akka = "2.5.19"
   val akkaHttp = "10.1.5"
 
-  val cats = "1.5.0"
+  val cats = "1.6.0"
 
   val twitterUtilVersion = "6.43.0"
 
@@ -39,6 +39,8 @@ object Version {
   val activation = "1.2.0"
 
   val kindProjector = "0.9.8"
+
+  val simulacrum = "0.15.0"
 }
 
 object Library {
@@ -92,6 +94,11 @@ object Library {
   val cats = Seq(
     "org.typelevel" %% "cats-core" % Version.cats
   )
+
+  val scrum  = Seq (
+    "com.github.mpilquist"  %% "simulacrum" % Version.simulacrum
+  )
+  
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
 

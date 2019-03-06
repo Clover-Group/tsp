@@ -12,7 +12,9 @@ object UtilityTypes {
 
   type ThrowableOr[T] = Either[Throwable, T]
 
-  case class ParseException(errs: Seq[String]) extends Throwable
+  case class ParseException(errs: Seq[String]) extends Throwable {
+    override def getMessage: String = errs.mkString("\n")
+  }
 
   object ParseException {
     def apply(info: String): ParseException = ParseException(Seq(info))

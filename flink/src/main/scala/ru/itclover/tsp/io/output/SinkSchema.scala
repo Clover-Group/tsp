@@ -15,22 +15,22 @@ trait SinkSchema extends Serializable {
 }
 
 
-case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
-  override def toString: String = {
-    "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"
-  }
-}
+//case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
+//  override def toString: String = {
+//    "{" + super.toString + s", fieldsIndexesMap=${rowSchema.fieldsIndexesMap}"
+//  }
+//}
 
 
-trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
-  require(fieldsCount == fieldsTypes.length)
-
-  def fieldsTypes: List[Class[_]]
-
-  val fieldsNames: List[Symbol]
-
-  val fieldsCount: Int = fieldsNames.length
-}
+//trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
+//  require(fieldsCount == fieldsTypes.length)
+//
+//  def fieldsTypes: List[Class[_]]
+//
+//  val fieldsNames: List[Symbol]
+//
+//  val fieldsCount: Int = fieldsNames.length
+//}
 
 /**
   * Schema, used for result row construction for sinks. Params are names of fields in sink.

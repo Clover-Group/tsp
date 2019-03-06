@@ -10,6 +10,7 @@ scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
+scalacOptions in ThisBuild += "-target:jvm-1.8"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
 
@@ -99,8 +100,8 @@ lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flinkConnector, spark, dsl)
-  .dependsOn(core, config, http, flinkConnector, spark, dsl)
+  .aggregate(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
+  .dependsOn(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -145,7 +146,7 @@ lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.parboiled
+    libraryDependencies ++=  Library.scalaTest ++ Library.parboiled ++ Library.scrum
   ).dependsOn(core)
 
 
@@ -169,7 +170,7 @@ lazy val integrationPerformance = project.in(file("integration/performance"))
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
-
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 
 // Git-specific settings
@@ -213,4 +214,9 @@ releaseProcess := Seq[ReleaseStep](
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
 
-githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
+githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated 
+
+
+// Lint
+scapegoatVersion in ThisBuild := "1.3.8"
+scalaBinaryVersion in ThisBuild := "2.12"

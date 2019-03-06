@@ -2,7 +2,7 @@ package ru.itclover.tsp.services
 
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import collection.JavaConversions._
+import collection.JavaConverters._
 import okhttp3.OkHttpClient
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import cats.syntax.either._
@@ -25,11 +25,11 @@ object InfluxDBService {
   def fetchFieldsTypesInfo(query: String, conf: InfluxConf): Try[Seq[(Symbol, Class[_])]] = for {
     db <- connectDb(conf)
     series <- fetchFirstSeries(db, query, conf.dbName)
-    values <- series.getValues.headOption.toTry(whenNone = emptyValuesException(query))
-    tags = if (series.getTags != null) series.getTags.toSeq.sortBy(_._1) else Seq.empty
+    values <- series.getValues.asScala.headOption.toTry(whenNone = emptyValuesException(query))
+    tags = if (series.getTags != null) series.getTags.asScala.toSeq.sortBy(_._1) else Seq.empty
   } yield {
-    val fields = tags.map(_._1) ++ series.getColumns.toSeq
-    val classes = tags.map(_ => classOf[String]) ++ values.map(v => if (v != null) v.getClass else classOf[Double])
+    val fields = tags.map(_._1) ++ series.getColumns.asScala
+    val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(v => if (v != null) v.getClass else classOf[Double])
     fields.map(Symbol(_)).zip(classes)
   }
 
@@ -41,8 +41,8 @@ object InfluxDBService {
       else if (result.getResults == null) Failure(new InfluxDBException(s"Null results of query `$influxQuery`."))
       else Success(())
       // Safely get first series
-      firstSeries <- result.getResults.headOption
-        .flatMap(r => Option(r.getSeries).flatMap(_.headOption))
+      firstSeries <- result.getResults.asScala.headOption
+        .flatMap(r => Option(r.getSeries.asScala).flatMap(_.headOption))
         .toTry(whenNone = new InfluxDBException(s"Empty results in query - `$query`."))
     } yield firstSeries
   }

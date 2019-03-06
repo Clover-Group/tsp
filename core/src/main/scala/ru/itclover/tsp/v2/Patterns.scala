@@ -8,18 +8,18 @@ import ru.itclover.tsp.v2.aggregators.{GroupPattern, PreviousValue, TimerPattern
 import scala.language.higherKinds
 
 //todo refactor it later on
-abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Functor: Foldable] {
+abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
-  type Pat[State <: PState[Out, State], Out] = Pattern[E, Out, State, F, Cont]
+  type Pat[State <: PState[Out, State], Out] = Pattern[E, State, Out]
 
   implicit class MapSyntax[S <: PState[T, S], T](pattern: Pat[S, T]) {
-    def map[A](f: T => A): MapPattern[E, T, A, S, F, Cont] = new MapPattern(pattern)(f.andThen(Result.succ))
+    def map[A](f: T => A): MapPattern[E, T, A, S] = new MapPattern(pattern)(f.andThen(Result.succ))
     def flatMap[A](f: T => Result[A]) = new MapPattern(pattern)(f)
   }
 
   implicit class AndThenSyntax[S <: PState[T, S], T](pattern: Pat[S, T]) {
 
-    def andThen[S2 <: PState[T2, S2], T2](nextPattern: Pat[S2, T2]): AndThenPattern[E, T, T2, S, S2, F, Cont] =
+    def andThen[S2 <: PState[T2, S2], T2](nextPattern: Pat[S2, T2]): AndThenPattern[E, T, T2, S, S2] =
       AndThenPattern(pattern, nextPattern)
   }
 
@@ -50,12 +50,12 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Fu
       new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].min(x, y))
 
     //aliases
-    def >=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = gteq(second)
-    def >[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = gt(second)
-    def <[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = lt(second)
-    def <=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = lteq(second)
-    def ===[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = equiv(second)
-    def =!=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean, F, Cont] = notEquiv(second)
+    def >=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = gteq(second)
+    def >[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = gt(second)
+    def <[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = lt(second)
+    def <=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = lteq(second)
+    def ===[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = equiv(second)
+    def =!=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = notEquiv(second)
 
   }
 
@@ -78,40 +78,42 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor, F[_]: Monad, Cont[_]: Fu
       new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x | y)
 
     def xor[S2 <: PState[Boolean, S2]](second: Pat[S2, Boolean]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x & y)
+      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x ^ y)
 
   }
 
-  def assert[S <: PState[Boolean, S]](inner: Pattern[E, Boolean, S, F, Cont]): MapPattern[E, Boolean, Unit, S, F, Cont] =
+  def assert[S <: PState[Boolean, S]](inner: Pattern[E, S, Boolean]): MapPattern[E, Boolean, Unit, S] =
     inner.flatMap(innerBool => if (innerBool) Result.succ(()) else Result.fail)
 
-  def field[T](f: E => T): SimplePattern[E, T, F, Cont] = new SimplePattern(f.andThen(Result.succ))
+  def field[T](f: E => T): SimplePattern[E, T] = new SimplePattern(f.andThen(Result.succ))
 
-  def const[T](a: T): ConstPattern[E, T, F, Cont] = ConstPattern(a)
+  def const[T](a: T): ConstPattern[E, T] = ConstPattern(a)
 
-  def windowStatistic[T, S <: PState[T, S]](i: Pattern[E, T, S, F, Cont], w: Window): WindowStatistic[E, S, T, F, Cont] =
+  def windowStatistic[T, S <: PState[T, S]](i: Pattern[E, S, T], w: Window): WindowStatistic[E, S, T] =
     WindowStatistic(i, w)
 
-  def truthCount[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) =
+  def truthCount[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) =
     windowStatistic(inner, w).map(wsr => wsr.successCount)
 
-  def truthMillis[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) =
+  def truthMillis[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) =
     windowStatistic(inner, w).map(wsr => wsr.successMillis)
 
-  def failCount[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) =
+  def failCount[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) =
     windowStatistic(inner, w).map(wsr => wsr.failCount)
 
-  def failMillis[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) =
+  def failMillis[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) =
     windowStatistic(inner, w).map(wsr => wsr.failMillis)
 
-  def lag[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = PreviousValue(inner, w)
+  def lag[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = PreviousValue(inner, w)
 
-  def timer[T, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = TimerPattern(inner, w)
+  def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
 
-  def sum[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window) = GroupPattern(inner, w).map(_.sum)
+  def sum[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = GroupPattern(inner, w).map(_.sum)
+
+  def count[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = GroupPattern(inner, w).map(_.count)
 
   // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
-  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, T, S, F, Cont], w: Window)(implicit f: Fractional[T]) =
+  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window)(implicit f: Fractional[T]) =
     GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
 
 //  abs(lag(x) - x) > 0 for 10m

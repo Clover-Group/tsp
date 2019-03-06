@@ -38,6 +38,7 @@ class JDBCContainer(imageName: String,
 
   override def starting()(implicit description: Description): Unit = {
     super.starting()
+    Thread.sleep(8000)
     connection = {
       Class.forName(driverName)
       DriverManager.getConnection(jdbcUrl)

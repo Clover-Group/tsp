@@ -41,6 +41,7 @@ case class JDBCInputConf(
   datetimeField: Symbol,
   eventsMaxGapMs: Long,
   defaultEventsGapMs: Long,
+  chunkSizeMs: Option[Long],
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,

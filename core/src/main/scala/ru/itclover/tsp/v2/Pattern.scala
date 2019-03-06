@@ -1,23 +1,40 @@
 package ru.itclover.tsp.v2
+
+import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.v2.Pattern.{Idx, _}
 
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-trait Pattern[Event, T, S <: PState[T, S], F[_], Cont[_]] extends ((S, Cont[Event]) => F[S]) with Serializable {
-  type Type = T
-  type State = S
+/**
+  * Main trait for all patterns, basically just a function from state and events chunk to new a state.
+  *
+  * @tparam Event underlying data
+  * @tparam T Type of the results in the S
+  * @tparam S Holds State for the next step AND results (wrong named `queue`)
+  */
+trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
+
+  /**
+    * Creates initial state. Has to be called only once
+    *
+    * @return initial state
+    */
   def initialState(): S
+
+  /**
+    * @param oldState - previous state
+    * @param events - new events to be processed
+    * @tparam F Container for state (some simple monad mostly)
+    * @tparam Cont Container for yet another chunk of Events
+    * @return
+    */
+  def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
 }
 
-trait PState[T, +Self <: PState[T, _]] {
-  def queue: QI[T]
-  def copyWithQueue(queue: QI[T]): Self
-}
-
-trait IdxValue[T] {
-  def index: Idx
-  def value: Result[T]
+trait IdxValue[+T] {
+  def index: Idx // For internal use in patterns
+  def value: Result[T] // actual result
   def start: Idx
   def end: Idx
 }
@@ -38,10 +55,27 @@ object IdxValue {
 object Pattern {
 
   type Idx = Long
+
   type QI[T] = m.Queue[IdxValue[T]]
 
-  trait IdxExtractor[Event] extends Serializable {
+  trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
+  }
+
+  class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
+    val maxCounter: Int = 10e5.toInt // should be power of 10
+    var counter: Int = 0
+
+    override def apply(e: Event): Idx = {
+      counter = (counter + 1) % maxCounter
+      tsToIdx(eventToTs(e))
+    }
+
+    override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
+
+    def idxToTs(idx: Idx): Long = idx / maxCounter
+
+    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter //todo ts << 5 & counter ?
   }
 
   object IdxExtractor {
@@ -51,6 +85,8 @@ object Pattern {
 
     def of[E](f: E => Idx): IdxExtractor[E] = new IdxExtractor[E] {
       override def apply(e: E): Idx = f(e)
+
+      override def compare(x: Idx, y: Idx) = x compare y
     }
   }
 }

@@ -69,7 +69,7 @@ class AccumsTest
   )
 
   val (nestedTimeWindowMaxTimeSec, nestedTimeWindowPattern) = 175L -> List(
-    RawPattern("4991", s"(avg(lt10Sens, 30 sec) >= 8) for $windowMin min > ${windowMin - 1} min")
+    RawPattern("4991", s"(avg(lt10Sens as float64, 30 sec) >= 8.0) for $windowMin min > ${windowMin - 1} min")
   )
 
   val (timeWindowCountMaxTimeSec, timeWindowCountPattern) = 60L -> List(
@@ -89,6 +89,7 @@ class AccumsTest
     datetimeField = 'ts,
     eventsMaxGapMs = 2000L,
     defaultEventsGapMs = 2000L,
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('t1)
   )
 

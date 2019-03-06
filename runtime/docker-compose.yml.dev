@@ -1,0 +1,37 @@
+version: '2'
+services:
+  streammachine:
+    environment:
+      - "EXECUTION_TYPE=flink-cluster"
+      - "FLINK_JOBMGR_HOST=jobmanager"
+      - "FLINK_JOBMGR_PORT=8081"
+      - "FLINK_MONITORING_HOST=jobmanager"
+      - "FLINK_MONITORING_PORT=8081"
+      - "JOB_MANAGER_RPC_ADDRESS=jobmanager"
+      - "TSP_JAVA_OPTS=-Xms2G -Xmx4G" 
+    restart: always
+    image: clovergrp/tsp:0.14.0
+    ports:
+      - "8080:8080"
+  jobmanager:
+    image: flink:1.7-scala_2.12-alpine
+    expose:
+      - "6123"
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+
+  taskmanager:
+    image: flink:1.7-scala_2.12-alpine
+    expose:
+      - "6121"
+      - "6122"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    links:
+      - "jobmanager:jobmanager"
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager

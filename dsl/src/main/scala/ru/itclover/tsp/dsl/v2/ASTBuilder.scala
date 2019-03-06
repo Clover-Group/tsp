@@ -3,7 +3,7 @@ package ru.itclover.tsp.dsl.v2
 import cats.{Foldable, Functor, Monad}
 import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
-import ru.itclover.tsp.core.Time.MaxWindow
+import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
@@ -12,18 +12,24 @@ import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.Patterns
 import ru.itclover.tsp.v2.aggregators._
 import cats.kernel.instances._
+import shapeless.{::, HNil}
 
 import scala.language.higherKinds
+import scala.reflect.ClassTag
 
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
-object ASTBuilder {
-  // Used for testing purposes
-  def testFieldsSymbolMap(anySymbol: Symbol) = anySymbol
-  def testFieldsIdxMap(anySymbol: Symbol) = 0
-  def testFieldsIdxMap(anyStr: String) = 0
-}
+//object ASTBuilder {
+//  // Used for testing purposes
+//  def testFieldsSymbolMap(anySymbol: Symbol) = anySymbol
+//  def testFieldsIdxMap(anySymbol: Symbol) = 0
+//  def testFieldsIdxMap(anyStr: String) = 0
+//}
 
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Parser {
+class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]])
+    extends Parser {
+
+  // TODO: Move to params
+  @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
 
   def start: Rule1[AST] = rule {
     trileanExpr ~ EOI
@@ -34,42 +40,32 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
       ((e: AST, f: AST) => AndThen(e, f))
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('and, e, f))
+      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('or, e, f))
+      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
     )
   }
 
+  // The following comment disables IDEA's type-aware inspection for a region (until the line with the same comment)
+  /*_*/
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
     (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
-    time ~ range ~ ws ~> (buildRangedForExpr(_, _, _, _))
+    time ~ range ~ ws ~> (ForWithInterval(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
-      (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
+    (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST, b: AST, r: Option[Any]) => {
-      FunctionCall('and, Timer(c, TimeInterval(MaxWindow, MaxWindow)), Assert(FunctionCall('not, b)))
+      val until = Assert(FunctionCall('not, Seq(b)))
+      val timedCondition = Timer(c, TimeInterval.MaxInterval)
+      FunctionCall('and, Seq(timedCondition, until))
     })
     | trileanFactor)
   }
+  /*_*/
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
-    Timer(Assert(phase), ti)
-  }
-
-  protected def buildRangedForExpr(
-    phase: AST,
-    exactly: Option[Boolean],
-    w: Window,
-    range: Interval[Long]
-  ): AST = {
-    val accum = range match {
-      case _: NumericInterval[Long] => PatternStatsCall('truthCount, phase, w)
-      case _: TimeInterval => PatternStatsCall('truthMillis, phase, w)
-      case _ => throw ParseException(s"Unknown range type in `for` expr: `$range`")
-    }
-
-    For(accum, range, exactly)
+    Timer(Assert(phase.asInstanceOf[AST]), ti)
   }
 
   // format: off
@@ -85,45 +81,45 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   def booleanExpr: Rule1[AST] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('or, e, f))
+      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AST, f: AST) => FunctionCall('xor, e, f))
+        ((e: AST, f: AST) => FunctionCall('xor, Seq(e, f)))
     )
   }
 
   def booleanTerm: Rule1[AST] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AST, f: AST) => FunctionCall('and, e, f))
+      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
     )
   }
 
   def booleanFactor: Rule1[AST] = rule {
     comparison |
       boolean |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST) => FunctionCall('not, b))
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST) => FunctionCall('not, Seq(b)))
   }
 
   def comparison: Rule1[AST] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('lt, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('lt, Seq(e1, e2))
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('le, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('le, Seq(e1, e2))
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('gt, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('gt, Seq(e1, e2))
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('ge, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('ge, Seq(e1, e2))
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('eq, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('eq, Seq(e1, e2))
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('ne, e1, e2)
+        (e1: AST, e2: AST) => FunctionCall('ne, Seq(e1, e2))
       )
     )
   }
@@ -135,13 +131,13 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
         (
           e: AST,
           f: AST
-        ) => FunctionCall('add, e, f)
+        ) => FunctionCall('add, Seq(e, f))
       )
       | '-' ~ ws ~ term ~> (
         (
           e: AST,
           f: AST
-        ) => FunctionCall('sub, e, f)
+        ) => FunctionCall('sub, Seq(e, f))
       )
     )
   }
@@ -153,24 +149,46 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
         (
           e: AST,
           f: AST
-        ) => FunctionCall('mul, e, f)
+        ) => FunctionCall('mul, Seq(e, f))
       )
       | '/' ~ ws ~ factor ~> (
         (
           e: AST,
           f: AST
-        ) => FunctionCall('div, e, f)
+        ) => FunctionCall('div, Seq(e, f))
       )
     )
   }
 
+  /*_*/
   def factor: Rule1[AST] = rule {
     (
-      real ~> (_.asInstanceOf[AST])
-      | long ~> (_.asInstanceOf[AST])
+      real
+      | boolean
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
+    ) ~ optional(ws ~ ignoreCase("as") ~ ws ~ typeName ~ ws) ~>
+    (
+      (
+        f: AST, // expression
+        t: Option[ASTType] // which optionally can be cast to this type
+      ) =>
+        t match {
+          case Some(value) => Cast(f, value)
+          case None        => f
+        }
+    )
+  }
+  /*_*/
+
+  def typeName: Rule1[ASTType] = rule {
+    (
+      ignoreCase("int32") ~> (() => IntASTType)
+      | ignoreCase("int64") ~> (() => LongASTType)
+      | ignoreCase("float64") ~> (() => DoubleASTType)
+      | ignoreCase("boolean") ~> (() => BooleanASTType)
+      | ignoreCase("string") ~> (() => StringASTType)
     )
   }
 
@@ -345,13 +363,27 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
     ~> ((s: Int, i: String) => Constant(s * i.toLong)))
   }
 
+  /*_*/
   def functionCall: Rule1[AST] = rule {
     (
       anyWord ~ ws ~ "(" ~ ws ~ expr.*(ws ~ "," ~ ws) ~ optional(";" ~ ws ~ underscoreConstraint) ~ ws ~ ")" ~ ws ~>
-      ((function: String, arguments: Seq[AST], constraint: Option[Double => Boolean]) =>
-        // TODO: Divide between regular and filtered function calls
-        FilteredFunctionCall(Symbol(function), constraint.getOrElse(_ => true), arguments: _*)
-      )
+      ((function: String, arguments: Seq[AST], constraint: Option[Double => Boolean]) => {
+        // TODO: Convention about function naming?
+        val normalisedFunction = function.toLowerCase
+        val c = constraint.getOrElse((_: Double) => true)
+        normalisedFunction match {
+          case x if x.endsWith("of") =>
+            ReducerFunctionCall(
+              Symbol(normalisedFunction),
+              (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
+              arguments
+            )
+          case "lag" =>
+            if (arguments.length > 1) throw ParseException("Lag should use only 1 argument when called without window")
+            AggregateCall(Lag, arguments.head, Window(1))
+          case _ => FunctionCall(Symbol(normalisedFunction), arguments)
+        }
+      })
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
       (
         (
@@ -359,27 +391,29 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
           arg: AST,
           win: Window
         ) => {
-          AggregateCall(Symbol(function), arg, win)
+          AggregateCall(AggregateFn.fromSymbol(Symbol(function)), arg, win)
         }
       )
     )
   }
+  /*_*/
 
   def anyWord: Rule1[String] = rule {
-    capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws
+    ((capture(CharPredicate.Alpha ~ zeroOrMore(CharPredicate.AlphaNum | '_')) ~ ws)
+    | (anyWordInDblQuotes ~> ((id: String) => id.replace("\"\"", "\""))))
   }
 
   def anyWordInDblQuotes: Rule1[String] = rule {
     '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws
   }
 
-  def fieldValue: Rule1[AST] = rule {
-    (anyWord ~> ((id: String) => Identifier(Symbol(id)))
-    | anyWordInDblQuotes ~>
-    ((id: String) => {
-      val clean = Symbol(id.replace("\"\"", "\""))
-      Identifier(clean)
-    }))
+  def fieldValue: Rule1[Identifier] = rule {
+    anyWord ~> ((id: String) => {
+      fieldsTags.get(Symbol(id)) match {
+        case Some(tag) => Identifier(Symbol(id), tag)
+        case None      => throw ParseException(s"Unknown identifier (field) $id")
+      }
+    })
   }
 
   def boolean: Rule1[Constant[Boolean]] = rule {
@@ -390,19 +424,4 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double) extends Pars
   def ws = rule {
     quiet(zeroOrMore(anyOf(" \t \n \r")))
   }
-}
-
-object TestFunctions {
-
-  def min(d1: Double, d2: Double, cond: Double => Boolean): Double =
-    Math.min(if (d1.isNaN) Double.MaxValue else d1, if (d2.isNaN || !cond(d2)) Double.MaxValue else d2)
-
-  def max(d1: Double, d2: Double, cond: Double => Boolean): Double =
-    Math.max(if (d1.isNaN) Double.MinValue else d1, if (d2.isNaN || !cond(d2)) Double.MinValue else d2)
-
-  def plus(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
-  (if (d2.isNaN || !cond(d2)) 0 else d2)
-
-  def countNotNan(d1: Double, d2: Double, cond: Double => Boolean): Double = (if (d1.isNaN) 0 else d1) +
-  (if (d2.isNaN || !cond(d2)) 0 else 1)
 }

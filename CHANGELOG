@@ -1,3 +1,22 @@
+## 0.14.0
+- rules validator now requires field types
+- added `chunkSizeMs` parameter for chunk window size
+## 0.14.0-rc5
+- added event chunking to speed up the processing
+## 0.14.0-rc4
+
+## 0.14.0-rc3
+- fixed type casting operator (`value as float64` etc.)
+- re-added lag function without window (uses default value of 1 ms)
+- some optimization
+## 0.14.0-rc2
+
+## 0.14.0-rc2
+- restored more functions
+- added cast operator
+## 0.14.0-rc1
+- Completely new pattern engine implementation based on queues
+- A new syntax implementation for the new core. Now in to steps: Parsing and AST generation + pattern building
 ## 0.13.3
 
 ## 0.13.2

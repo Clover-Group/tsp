@@ -1,35 +1,50 @@
 package ru.itclover.tsp.v2
+
 import cats.Monad
-import cats.syntax.functor._
 import cats.syntax.flatMap._
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.v2.Pattern.QI
 
 import scala.language.higherKinds
 
 object StateMachine {
 
-  private val log = Logger("StateMachineV2")
+  def apply[F[_]: Monad] = new {
 
-  def run[Event, Out, S <: PState[Out, S], F[_]: Monad](
-    pattern: Pattern[Event, Out, S, F, List],
-    events: Iterable[Event],
-    groupSize: Int = 1000
-  ): F[QI[Out]] = {
+    private val log = Logger("StateMachineV2")
 
-    var counter = 0
-    val initialState = pattern.initialState()
+    def run[Event, Out, State <: PState[Out, State]](
+      pattern: Pattern[Event, State, Out],
+      events: Iterable[Event],
+      previousState: State,
+      groupSize: Int = 1000
+    ): F[State] = {
 
-    val finalstate = events.grouped(groupSize).foldLeft(Monad[F].pure(initialState)) {
-      case (state, evs) => {
-        log.debug(s"After $counter rows")
-        counter += groupSize
-        state.flatMap(s => pattern.apply(s, evs.toList))
+      var counter = 0
+
+      import cats.instances.list._
+
+      val finalState: F[State] = events.grouped(groupSize).foldLeft(Monad[F].pure(previousState)) {
+        case (state, evs) => {
+          log.debug(s"After $counter rows")
+          counter += groupSize
+          state.flatMap(s => pattern.apply[F, List](s, evs.toList))
+        }
       }
-    }
 
-    log.debug("Finished")
-    finalstate.map(_.queue)
+      log.debug("Finished")
+      finalState
+    }
   }
+
+}
+
+abstract class AbstractStateMachine[Event, Out, State <: PState[Out, State], F[_], Cont[_]] {
+  private val isDebug = ConfigFactory.load().getBoolean("general.is-debug")
+  private val log = Logger("AbstractPatternMapper")
+
+  def pattern: Pattern[Event, State, Out]
+
+  def initialState
 
 }
