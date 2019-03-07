@@ -1,11 +1,14 @@
 package ru.itclover.tsp.http
+import akka.actor.ActorSystem
 import akka.http.scaladsl.{Http, model}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, StatusCodes}
+import akka.http.scaladsl.model.{HttpRequest, StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.stream.ActorMaterializer
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, BeforeAndAfterAll, Matchers}
+import ru.itclover.tsp.http.routes.MonitoringRoutes
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.{JobBrief, JobsOverview, MetricInfo}
 import ru.itclover.tsp.http.utils.MockServer
@@ -53,5 +56,37 @@ class MonitoringMockTest
     monitoringService.sendStopQuery("job1").map { res => assert(res.isDefined) }
     monitoringService.sendStopQuery("job2").map { res => assert(res.isDefined) }
     monitoringService.sendStopQuery("job3").map { res => assert(res.isEmpty) }
+  }
+
+  "Monitoring routes" should "work" in {
+    val monitoringRoutes = new MonitoringRoutes {
+      override implicit val actors: ActorSystem = ActorSystem("TSP-monitoring-test")
+      override implicit val materializer: ActorMaterializer = ActorMaterializer()(actors)
+      override implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+      override val uri: Uri = s"http://127.0.0.1:$port"
+}
+    Get("/metainfo/getVersion") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.OK
+    }
+
+    Get("/jobs/overview") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.OK
+    }
+
+    Get("/job/3/statusAndMetrics") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.BadRequest
+    }
+
+    Get("/job/3/status") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.BadRequest
+    }
+
+    Get("/job/3/exceptions") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.BadRequest
+    }
+
+    Get("/job/3/stop") ~> monitoringRoutes.route ~> check {
+      response.status shouldBe StatusCodes.BadRequest
+    }
   }
 }

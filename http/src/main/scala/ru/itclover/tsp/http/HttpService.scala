@@ -113,6 +113,16 @@ trait HttpService extends RoutesProtocols {
         InternalServerError,
         FailureResponse(5005, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
       )
+
+    case ex: Exception =>
+      val stackTrace = Exceptions.getStackTrace(ex)
+      val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
+      val error = s"Uncaught error during request handling, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
+      log.error(error)
+      complete(
+        InternalServerError,
+        FailureResponse(5008, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+      )
   }
 
 
