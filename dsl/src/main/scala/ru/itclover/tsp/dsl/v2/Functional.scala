@@ -1,5 +1,28 @@
 package Functional
 
+import scala.language.higherKinds
+import cats.arrow.Arrow
+
+import ru.itclover.tsp.dsl.v2.{ASTType, PFunction}
+
+// Generic Arrow Mapper
+sealed abstract class ArrMap[F[_,_], A,B] extends Arrow[F] {
+  def eval:F[A,B]
+}
+
+// Logical Functions Typeclass
+sealed abstract class TLogical extends ArrMap[Map, (Symbol, Seq[ASTType]), (PFunction, ASTType)]
+
+final object TLogical {
+
+  type A = (Symbol, Seq[ASTType])
+  type B = (PFunction, ASTType)
+
+  def eval (a:A, b:B):Map[A,B] = Map(a -> b)
+
+}
+
+
 // Logical Functions typeclass
 trait Logical[T] {
 

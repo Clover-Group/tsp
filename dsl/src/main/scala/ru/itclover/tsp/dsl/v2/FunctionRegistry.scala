@@ -3,69 +3,10 @@ import java.io.Serializable
 
 import ru.itclover.tsp.v2.{Fail, Result, Succ}
 
-import scala.collection.mutable
+//import scala.collection.mutable
 import scala.reflect.ClassTag
 import com.typesafe.scalalogging.Logger
 
-
-/*class FunctionRegistry {
-  private val functions: mutable.Map[(Symbol, Seq[ASTType]), Seq[Any] => Any] =
-    mutable.Map.empty
-  private val reducers: mutable.Map[(Symbol, ASTType), ((Any, Any) => Any, Any)] =
-    mutable.Map.empty
-
-  def registerFunction(name: Symbol, argTypes: Seq[ASTType], function: Seq[Any] => Any): Unit =
-    functions((name, argTypes)) = function
-
-  def getFunction(name: Symbol, argTypes: Seq[ASTType]): Option[Seq[Any] => Any] =
-    functions.get((name, argTypes))
-
-  def unregisterFunction(name: Symbol, argTypes: Seq[ASTType]): Unit =
-    functions.remove((name, argTypes))
-
-  def registerReducer(
-    name: Symbol,
-    argType: ASTType,
-    function: (Any, Any) => Any,
-    initial: Any
-  ): Unit =
-    reducers((name, argType)) = (function, initial)
-
-  def getReducer(name: Symbol, argType: ASTType): Option[((Any, Any) => Any, Any)] =
-    reducers.get((name, argType))
-
-  def unregisterReducer(name: Symbol, argType: ASTType): Unit =
-    reducers.remove((name, argType))
-
-}
-
-object FunctionRegistry {
-
-  def createDefault: FunctionRegistry = {
-    val fr = new FunctionRegistry
-    fr.registerFunction(
-      'add,
-      Seq(DoubleASTType, DoubleASTType),
-      (x: Seq[Any]) => x(0).asInstanceOf[Double] + x(1).asInstanceOf[Double]
-    )
-    fr.registerFunction(
-      'sub,
-      Seq(DoubleASTType, DoubleASTType),
-      (x: Seq[Any]) => x(0).asInstanceOf[Double] - x(1).asInstanceOf[Double]
-    )
-    fr.registerFunction(
-      'mul,
-      Seq(DoubleASTType, DoubleASTType),
-      (x: Seq[Any]) => x(0).asInstanceOf[Double] * x(1).asInstanceOf[Double]
-    )
-    fr.registerFunction(
-      'div,
-      Seq(DoubleASTType, DoubleASTType),
-      (x: Seq[Any]) => x(0).asInstanceOf[Double] / x(1).asInstanceOf[Double]
-    )
-    fr
-  }
-}*/
 
 @SerialVersionUID(81001L)
 trait PFunction extends (Seq[Any] => Any) with Serializable
@@ -237,7 +178,7 @@ object DefaultFunctions {
   }
 
 
-  val logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+  def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
     import Functional._
     val log = Logger("LogicalLogger")
 
@@ -380,10 +321,6 @@ object DefaultFunctions {
       )
     )
   }
-
-//  def lags[T: ClassTag]: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
-//    val astType = ASTType.of[T]
-//  }
 
   def reducers[T: ClassTag](
     implicit conv: T => Double
