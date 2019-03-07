@@ -3,8 +3,8 @@ package Functional
 // Logical Functions typeclass
 trait Logical[T] {
 
-  def and (a:T, b:T):Boolean
-  def or  (a:T, b:T):Boolean
+  //def and (a:T, b:T):Boolean
+  //def or  (a:T, b:T):Boolean
   def xor (a:T, b:T):Boolean
   def eq  (a:T, b:T):Boolean
   def neq (a:T, b:T):Boolean
