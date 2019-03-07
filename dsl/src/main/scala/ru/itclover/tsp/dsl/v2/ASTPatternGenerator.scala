@@ -183,7 +183,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
 
       case Assert(inner) if inner.valueType == BooleanASTType =>
         new MapPattern(generatePattern(inner))({ innerBool =>
-          if (innerBool.asInstanceOf[Boolean]) Result.succ(()) else Result.fail
+          if (innerBool.asInstanceOf[Boolean]) Result.succ(innerBool) else Result.fail
         })
       case Assert(inner) if inner.valueType != BooleanASTType =>
         sys.error(s"Invalid pattern, non-boolean pattern inside of Assert - $inner")
