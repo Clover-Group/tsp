@@ -49,7 +49,6 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-    log.debug("Entering generatePattern...")
 
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)

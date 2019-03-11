@@ -247,7 +247,7 @@ object DefaultFunctions {
    
     def func (sym:Symbol, xs:Seq[Any])(implicit l: Logical[Any]):Boolean  =  {
 
-      log.info(s"func: Arg0 = $xs(0), Arg1 = $xs(1)")
+      log.debug(s"func: Arg0 = $xs(0), Arg1 = $xs(1)")
       
       sym match {
 

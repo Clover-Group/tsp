@@ -9,6 +9,9 @@ import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ}
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
 
+import com.typesafe.scalalogging.Logger
+
+
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner], //todo Why List?
   mapResults: (E, Seq[Inner]) => Seq[Out],
@@ -18,6 +21,10 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   implicit timeExtractor: TimeExtractor[E]
 ) {
   var lastState = pattern.initialState()
+
+
+  val log = Logger("PatternLogger")
+  log.info(s"pattern: $pattern, innter: $pattern.inner")
 
   def process(
     key: String,
