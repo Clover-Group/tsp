@@ -46,17 +46,21 @@ class StateMachineTest extends FlatSpec with Matchers {
   
   "StateMachine" should "process ExtractingPattern correctly" in {
 
-    import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
-    //import ru.itclover.tsp.utils.RowOps.{RowSymbolExtractor}
+    import ru.itclover.tsp.io.{Decoder, Extractor}
     
-    
-    //val dec = new Decoder ((v:Int) => 2*v )
-    //val ext = RowSymbolExtractor(0, 'and, true)
-    
-    //val pat = new ExtractingPattern[Event[Int], Int, Int, Int, Int] (0, 'and)(extractor, new Extractor(event), dec)
-    
-    //val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+    // Decoder Instance
+    implicit val dec: Decoder[Int, Int] =  ((v:Int) => 2*v )
+ 
+    // Pattern Extractor
+    case class DummyExtractor (a:Int, sym:Symbol) extends Extractor[Int,Symbol,Int] {
+      def apply[T] (a:Int, sym:Symbol)(implicit d: Decoder[Int,T]) = d(a)
+    }
 
+    val ext  = DummyExtractor(0, 'and)
+    
+    val pat = new ExtractingPattern[Event[Int], Int, Int, Int, Int] (0, 'and)(extractor, ext, dec)
+    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+    
     true shouldBe true
   }
 
