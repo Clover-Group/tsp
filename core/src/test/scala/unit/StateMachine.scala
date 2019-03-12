@@ -10,15 +10,25 @@ import cats.Id
 import Common._
 
 class StateMachineTest extends FlatSpec with Matchers {
+  
+  val event = Event[Int](0L, 0, 0)
 
   "StateMachine" should "process ConstPattern correctly" in {
     
-    val tmp  = Event(0L, 0.0)
+    val pat = ConstPattern[Event[Int], Int] (0)(extractor)
+    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
-    val pat = ConstPattern[Event, Int] (0)(ext)
-   
-    // Run FSM with the predefined event
-    val res = StateMachine[Id].run(pat, Seq(tmp), pat.initialState())
+    true shouldBe true
+  }
+  
+  "StateMachine" should "process SimplePattern correctly" in {
+    
+    // Test function
+    def func[A] (e:Event[A]):Result[A]  = Result.succ(e.row)
+    
+    val pat = new SimplePattern[Event[Int], Int] (_ => func(event))(extractor)
+    
+    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
     true shouldBe true
   }
