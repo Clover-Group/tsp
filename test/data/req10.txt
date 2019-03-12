@@ -1,5 +1,5 @@
 {
-                        "uuid": null,
+                        "uuid": "req10",
                         "source": {
                             "sourceId": 88,
                             "jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=A7qoFxdH8PadW5B",

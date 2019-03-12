@@ -25,7 +25,7 @@
 "parallelism": 1,
 "batchInterval": 5000
 },
-"uuid": "c8197669-ccc9-4f0a-b3b6-cc7fdd3fc7cb",
+"uuid": "boolean0",
 "source": {
 "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, PosKM, SpeedEngine \nFROM \"2te116u_tmy_20180518_wide\" \nWHERE loco_num = '0133' AND section = 'Б' AND upload_id = '1571940' AND ts >= 1548979200.0 AND ts < 1551398400.0 ORDER BY ts",
 "jdbcUrl": "jdbc:clickhouse://192.168.1.56:8123/default?user=clover&password=clover_pass",

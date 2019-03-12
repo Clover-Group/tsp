@@ -25,7 +25,7 @@
 		"parallelism": 1,
 		"batchInterval": 5000
 	},
-	"uuid": "44ffb062-ca1c-42ab-864c-b1b94eccb1fb",
+	"uuid": "req2",
 	"source": {
 		"query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, k4, k43con, k27, k8, u2, k30, k36con, km23con, ka21, k5con, k13con, km19con, s101, k7, k53, k23con, k24con, k30con, km33con, uks, k35con, km67con, k22, km66, k14con, miv_u1, km43con, km65con, k41, i3_4, ka1, km65, k17, k25, k20con, k26, km53, s102, k36, s20_venti, iab_z, bp12, k32, k6con, u1, k47con, km1, v2, bp11, k19con, k11con, k32con, k2con, v4, k21con, k41con, fpsn_ain4bug, k23, k10con, q21avar, im21, im12, k15, s20_tok1, qf21, ib1_2, k44con, k31con, v3, k3con, k24, k42con, s20_tok2, i1_2, km17con, k33con, km53con, s20_bv, npf, s73, km1con, s76, k15con, km66con, npz, k18con, s74, k53con, k34, opnpz, k25con, opnpf, s104, k29con, k35, k31, s75, k42, k1con, fpsn_ain2bug, km17, k18, k34con, k27con, k61con, k17con, k9, k52con, qf11, km69con, k62, km23, tormoz, qf1, im22, k10, k4con, k1, k20, miv_u2, k51con, k16, k11, k43, k5, k28, k26con, k13, k14, k2, k51, ib3_4, k16con, k54, k9con, sxsobr, k28con, v1, im11, q11avar, k62con, km69, s20_vozb, k61, k33, km15con, s20_avt, k6, km68, km15, km68con, k12con, k7con, k21, k47, k52, u3, km19, u4, km67, k8con, km43, k44, k22con, ka11, km16, s103, k19, k54con, km33, k29, k12, k3, km16con \nFROM es4k_tmy_20180720_wide \nWHERE upload_id = '1697954' AND ts >= 1548979200.0 AND ts < 1551398400.0 ORDER BY ts",
 		"jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=A7qoFxdH8PadW5B",
