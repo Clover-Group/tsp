@@ -2,16 +2,17 @@ package ru.itclover.tsp.dsl.v2
 import org.scalactic.{Equality, TolerantNumerics}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
+import ru.itclover.tsp.v2.Result
 
 class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
   val funReg = DefaultFunctionRegistry
   implicit val doubleEq: Equality[Double] = TolerantNumerics.tolerantDoubleEquality(1e-6)
 
   "Function registry boolean functions" should "be callable" in {
-    funReg.functions(('and, Seq(BooleanASTType, BooleanASTType)))._1(Seq(true, false)) shouldBe false
-    //funReg.functions(('or, Seq(BooleanASTType, BooleanASTType)))._1(Seq(false, true)) shouldBe true
-    //funReg.functions(('xor, Seq(BooleanASTType, BooleanASTType)))._1(Seq(true, true)) shouldBe false
-    //funReg.functions(('not, Seq(BooleanASTType)))._1(Seq(true)) shouldBe false
+    funReg.functions(('and, Seq(BooleanASTType, BooleanASTType)))._1(Seq(true, false)) shouldBe Result.succ(false)
+    funReg.functions(('or, Seq(BooleanASTType, BooleanASTType)))._1(Seq(false, true)) shouldBe Result.succ(true)
+    funReg.functions(('xor, Seq(BooleanASTType, BooleanASTType)))._1(Seq(true, true)) shouldBe Result.succ(false)
+    funReg.functions(('not, Seq(BooleanASTType)))._1(Seq(true)) shouldBe Result.succ(false)
   }
 
 //  "Function registry arithmetic functions with double" should "be callable" in {
