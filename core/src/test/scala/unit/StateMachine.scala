@@ -32,6 +32,33 @@ class StateMachineTest extends FlatSpec with Matchers {
 
     true shouldBe true
   }
+  
+  "StateMachine" should "process SkipPattern correctly" in {
+    
+    def func[A] (e:Event[A]):Result[A]  = Result.succ(e.row)
+
+    val pat = new SimplePattern[Event[Int], Int] (_ => func(event))(extractor)
+    
+    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+
+    true shouldBe true
+  }
+  
+  "StateMachine" should "process ExtractingPattern correctly" in {
+
+    import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
+    //import ru.itclover.tsp.utils.RowOps.{RowSymbolExtractor}
+    
+    
+    //val dec = new Decoder ((v:Int) => 2*v )
+    //val ext = RowSymbolExtractor(0, 'and, true)
+    
+    //val pat = new ExtractingPattern[Event[Int], Int, Int, Int, Int] (0, 'and)(extractor, new Extractor(event), dec)
+    
+    //val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+
+    true shouldBe true
+  }
 
 }
 
