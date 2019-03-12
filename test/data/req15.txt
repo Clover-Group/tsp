@@ -1,0 +1,391 @@
+{
+                                "sink": {
+                                    "jdbcUrl": "jdbc:postgresql://192.168.1.127:30001/events?stringtype=unspecified",
+                                    "password": "clover",
+                                    "userName": "clover",
+                                    "rowSchema": {
+                                        "toTsField": "to_ts",
+                                        "fromTsField": "from_ts",
+                                        "contextField": "context",
+                                        "appIdFieldVal": [
+                                            "type",
+                                            1
+                                        ],
+                                        "sourceIdField": "series_storage",
+                                        "patternIdField": "entity_id",
+                                        "forwardedFields": [
+                                            "loco_num",
+                                            "Section",
+                                            "upload_id"
+                                        ],
+                                        "processingTsField": "processing_ts"
+                                    },
+                                    "tableName": "events_2te116u",
+                                    "driverName": "org.postgresql.Driver",
+                                    "parallelism": 1,
+                                    "batchInterval": 5000
+                                },
+                                "uuid": "e12e7368-f478-494d-a86f-7fb661d1acd2",
+                                "source": {
+                                    "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, CurrentCompressorMotor, SpeedWp6, Pboost, SpeedWp1, RelayFieldWeakStage2, CurrentArmTED4, CurrentExcitationGenerator, SwitchR3PlusFromDM, CurrentDistribution, SpeedWp5, TExGasCylinder3Right, RelayTWater, SpeedWp4, TExGasCylinder1Left, ContactorFuelPump, TExGasTurbineLeft, CurrentArmTED6, TExGasCylinder6Left, Boxing, PFuelTNVD, SwitchR3MinusFromDM, RelayFieldWeakStage1, PFuelFilter, TExGasTurbineRight, TExGasCylinder7Right, RelaySandFeed, TExGasCylinder4Right, PAirMainRes, SpeedEngine, PosKM, CurrentArmTED1, TExGasCylinder2Left, RelayTOil, PowerPolling, Speed, CurrentArmTED3, SensorBrakeRelease, TWaterOutDiesel, TExGasCylinder5Left, TExGasCylinder2Right, SpeedWp2, TWaterInChargeAirCooler, SpeedWp3, TExGasCylinder6Right, TExGasCylinder3Left, TExGasCylinder1Right, ContactorOilPump, TOilOutDiesel, CurrentArmTED5, CurrentStarterGenerator, TExGasCylinder7Left, TExGasCylinder8Left, TExGasCylinder5Right, CurrentArmTED2, TOilInDiesel, TExGasCylinder8Right, WaterRheostat, TExGasCylinder4Left, ContactorBlockOilPumpKMN, TColdJump \nFROM \"2te116u_tmy_20180518_wide\" \nWHERE upload_id = '1774817' AND ts >= 1551398400.0 AND ts < 1554076800.0 ORDER BY ts",
+                                    "jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=A7qoFxdH8PadW5B",
+                                    "password": "clover_pass",
+                                    "sourceId": 2,
+                                    "userName": "clover",
+                                    "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+                                    "parallelism": 1,
+                                    "datetimeField": "ts",
+                                    "eventsMaxGapMs": 60000,
+                                    "partitionFields": [
+                                        "loco_num",
+                                        "Section",
+                                        "upload_id"
+                                    ],
+                                    "defaultEventsGapMs": 2000,
+                                    "numParallelSources": 1,
+                                    "patternsParallelism": 1
+                                },
+                                "patterns": [
+                                    {
+                                        "id": "40",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "2"
+                                        },
+                                        "sourceCode": "SpeedEngine > 300 and PosKM > 0 and Speed < 22 and CurrentArmTED2 > 830 for  2 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "40",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "5"
+                                        },
+                                        "sourceCode": "SpeedEngine > 300 and PosKM > 0 and Speed < 22 and CurrentArmTED5 > 830 for  2 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "92",
+                                        "payload": {},
+                                        "sourceCode": "(lag(SpeedEngine) = 0 and TOilInDiesel < 45 and TOilInDiesel > 8 and (ContactorBlockOilPumpKMN = 1 for  7 min < 80 sec)) andThen SpeedEngine > 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "1"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Left, TExGasCylinder2Left, TExGasCylinder3Left, TExGasCylinder4Left, TExGasCylinder5Left, TExGasCylinder6Left, TExGasCylinder7Left, TExGasCylinder8Left) - TExGasCylinder1Left) > 100 and TExGasCylinder1Left > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "4"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Left, TExGasCylinder2Left, TExGasCylinder3Left, TExGasCylinder4Left, TExGasCylinder5Left, TExGasCylinder6Left, TExGasCylinder7Left, TExGasCylinder8Left) - TExGasCylinder4Left) > 100 and TExGasCylinder4Left > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "7"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Left, TExGasCylinder2Left, TExGasCylinder3Left, TExGasCylinder4Left, TExGasCylinder5Left, TExGasCylinder6Left, TExGasCylinder7Left, TExGasCylinder8Left) - TExGasCylinder7Left) > 100 and TExGasCylinder7Left > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "2"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Right, TExGasCylinder2Right, TExGasCylinder3Right, TExGasCylinder4Right, TExGasCylinder5Right, TExGasCylinder6Right, TExGasCylinder7Right, TExGasCylinder8Right) - TExGasCylinder2Right) > 100 and TExGasCylinder2Right > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "5"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Right, TExGasCylinder2Right, TExGasCylinder3Right, TExGasCylinder4Right, TExGasCylinder5Right, TExGasCylinder6Right, TExGasCylinder7Right, TExGasCylinder8Right) - TExGasCylinder5Right) > 100 and TExGasCylinder5Right > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "469",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "8"
+                                        },
+                                        "sourceCode": "SpeedEngine > 600 and PosKM > 4 and TColdJump > 0 and TColdJump < 80 and PowerPolling > 100 and abs(avgOf(TExGasCylinder1Right, TExGasCylinder2Right, TExGasCylinder3Right, TExGasCylinder4Right, TExGasCylinder5Right, TExGasCylinder6Right, TExGasCylinder7Right, TExGasCylinder8Right) - TExGasCylinder8Right) > 100 and TExGasCylinder8Right > 100 for  10 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "42",
+                                        "payload": {},
+                                        "sourceCode": "SensorBrakeRelease = 1 and SpeedEngine > 260 and PosKM > 3 and PosKM < 16 and Speed > 2 for  3 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "18",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine > 800 and PosKM = 15 and PowerPolling > 100 and Pboost < 1.6 and Pboost > 0.1 for  40 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "25",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine > 300 and PowerPolling > 50 and ((PFuelTNVD < 0.8 and PFuelTNVD > 0.1 and PosKM > 4 and PosKM < 14) or (PFuelTNVD < 1.5 and PFuelTNVD > 0.1 and PosKM = 15)) for  10 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "50",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine > 260 and (TOilOutDiesel > 87 or TWaterOutDiesel > 107) for  2 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "88",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine > 260 and PowerPolling > 50 and (PowerPolling < 289.5 and PosKM = 4 or PowerPolling < 570 and PosKM = 5 or PowerPolling < 712.5 and PosKM = 6 or PowerPolling < 788.5 and PosKM = 7 or PowerPolling < 902.5 and PosKM = 8 or PowerPolling < 950 and PosKM = 9 or PowerPolling < 1092.5 and PosKM = 10 or PowerPolling < 1235 and PosKM = 11 or PowerPolling < 1453.5 and PosKM = 12 or PowerPolling < 1662.5 and PosKM = 13 or PowerPolling < 1881 and PosKM = 14 or PowerPolling < 2052 and PosKM = 15) for  60 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "281",
+                                        "payload": {},
+                                        "sourceCode": "WaterRheostat = 1 and SpeedEngine > 260 and Speed > 5",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "41",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "2"
+                                        },
+                                        "sourceCode": "CurrentArmTED2 > 1150 for  2 sec  and PosKM > 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "41",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "5"
+                                        },
+                                        "sourceCode": "CurrentArmTED5 > 1150 for  2 sec  and PosKM > 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "48",
+                                        "payload": {},
+                                        "sourceCode": "lag(SpeedEngine) > 0 and SpeedEngine = 0 andThen SpeedEngine = 0 and TWaterOutDiesel > 72 for  3 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "54",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "3"
+                                        },
+                                        "sourceCode": "TExGasCylinder3Left > 620 and TColdJump > 0 and PowerPolling > 100 and TColdJump < 80 for  30 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "54",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "6"
+                                        },
+                                        "sourceCode": "TExGasCylinder6Left > 620 and TColdJump > 0 and PowerPolling > 100 and TColdJump < 80 for  30 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "54",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "1"
+                                        },
+                                        "sourceCode": "TExGasCylinder1Right > 620 and TColdJump > 0 and PowerPolling > 100 and TColdJump < 80 for  30 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "54",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "4"
+                                        },
+                                        "sourceCode": "TExGasCylinder4Right > 620 and TColdJump > 0 and PowerPolling > 100 and TColdJump < 80 for  30 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "54",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "7"
+                                        },
+                                        "sourceCode": "TExGasCylinder7Right > 620 and TColdJump > 0 and PowerPolling > 100 and TColdJump < 80 for  30 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "90",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine > 260 and (SpeedEngine < 340 and PosKM = 0 or SpeedEngine < 340 and PosKM = 1 or SpeedEngine < 460 and PosKM = 2 or SpeedEngine < 580 and PosKM = 3 or SpeedEngine < 670 and PosKM = 4 or SpeedEngine < 725 and PosKM = 5 or SpeedEngine < 760 and PosKM = 6 or SpeedEngine < 780 and PosKM = 7 or SpeedEngine < 800 and PosKM = 8 or SpeedEngine < 810 and PosKM = 9 or SpeedEngine < 835 and PosKM = 10 or SpeedEngine < 865 and PosKM = 11 or SpeedEngine < 895 and PosKM = 12 or SpeedEngine < 930 and PosKM = 13 or SpeedEngine < 960 and PosKM = 14 or SpeedEngine < 990 and PosKM = 15) for  60 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "98",
+                                        "payload": {
+                                            "NS": "2",
+                                            "_params_": "NS"
+                                        },
+                                        "sourceCode": "lag(SpeedEngine) = 0 and SpeedEngine > 10 for  220 sec > 3 times",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "458",
+                                        "payload": {},
+                                        "sourceCode": "SpeedEngine = 0 and ContactorBlockOilPumpKMN = 0 for  10 sec  andThen SpeedEngine > 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "33",
+                                        "payload": {},
+                                        "sourceCode": "TWaterInChargeAirCooler > 74 for  60 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "46",
+                                        "payload": {},
+                                        "sourceCode": "abs(CurrentExcitationGenerator) > 5400 for  5 min ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1147",
+                                        "payload": {
+                                            "_params_": "Number_Wp",
+                                            "Number_Wp": "3"
+                                        },
+                                        "sourceCode": "(Speed - SpeedWp3) > 20 for  2 sec  and SpeedEngine > 260 and PowerPolling > 100 and SpeedWp3 > 20",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1147",
+                                        "payload": {
+                                            "_params_": "Number_Wp",
+                                            "Number_Wp": "6"
+                                        },
+                                        "sourceCode": "(Speed - SpeedWp6) > 20 for  2 sec  and SpeedEngine > 260 and PowerPolling > 100 and SpeedWp6 > 20",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1251",
+                                        "payload": {
+                                            "_params_": "Number_Wp",
+                                            "Number_Wp": "3"
+                                        },
+                                        "sourceCode": "Speed - SpeedWp3 > 5 and Speed > 1 for  5 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1251",
+                                        "payload": {
+                                            "_params_": "Number_Wp",
+                                            "Number_Wp": "6"
+                                        },
+                                        "sourceCode": "Speed - SpeedWp6 > 5 and Speed > 1 for  5 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2521",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "3"
+                                        },
+                                        "sourceCode": "abs((maxOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6) - minOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6)) / maxOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6)) > 0.2 and (RelayFieldWeakStage1 = 1 or RelayFieldWeakStage2 = 1) and minOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6) > 50 for  3 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2521",
+                                        "payload": {
+                                            "_params_": "number_TED",
+                                            "number_TED": "6"
+                                        },
+                                        "sourceCode": "abs((maxOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6) - minOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6)) / maxOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6)) > 0.2 and (RelayFieldWeakStage1 = 1 or RelayFieldWeakStage2 = 1) and minOf(CurrentArmTED1, CurrentArmTED2, CurrentArmTED3, CurrentArmTED4, CurrentArmTED5, CurrentArmTED6) > 50 for  3 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "1"
+                                        },
+                                        "sourceCode": "TExGasCylinder1Left > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder1Left > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "4"
+                                        },
+                                        "sourceCode": "TExGasCylinder4Left > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder4Left > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Left",
+                                            "Number_Cilinder": "7"
+                                        },
+                                        "sourceCode": "TExGasCylinder7Left > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder7Left > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "2"
+                                        },
+                                        "sourceCode": "TExGasCylinder2Right > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder2Right > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "5"
+                                        },
+                                        "sourceCode": "TExGasCylinder5Right > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder5Right > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "2536",
+                                        "payload": {
+                                            "_params_": "Cilinder_Side Number_Cilinder",
+                                            "Cilinder_Side": "Right",
+                                            "Number_Cilinder": "8"
+                                        },
+                                        "sourceCode": "TExGasCylinder8Right > 110 and avgOf(TExGasCylinder1Left, TExGasCylinder1Right, TExGasCylinder2Left, TExGasCylinder2Right, TExGasCylinder3Left, TExGasCylinder3Right, TExGasCylinder4Left, TExGasCylinder4Right, TExGasCylinder5Left, TExGasCylinder5Right, TExGasCylinder6Left, TExGasCylinder6Right, TExGasCylinder7Left, TExGasCylinder7Right, TExGasCylinder8Left, TExGasCylinder8Right) - TExGasCylinder8Right > 100 and PowerPolling > 100 and PosKM > 4 for  300 sec ",
+                                        "forwardedFields": []
+                                    }
+                                ]
+                            }
