@@ -6,12 +6,12 @@ import cats.arrow.Arrow
 import ru.itclover.tsp.dsl.v2.{ASTType, PFunction}
 
 // Generic Arrow Mapper
-sealed abstract class ArrMap[F[_,_], A,B] extends Arrow[F] {
+abstract class ArrMap[F[_,_], A,B] extends Arrow[F] {
   def eval:F[A,B]
 }
 
 // Logical Functions Typeclass
-sealed abstract class TLogical extends ArrMap[Map, (Symbol, Seq[ASTType]), (PFunction, ASTType)]
+abstract class TLogical extends ArrMap[Map, (Symbol, Seq[ASTType]), (PFunction, ASTType)]
 
 final object TLogical {
 
