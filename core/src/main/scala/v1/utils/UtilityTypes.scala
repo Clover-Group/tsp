@@ -1,5 +1,5 @@
 package ru.itclover.tsp.utils
-
+//
 object UtilityTypes {
 
   type And[+L, +R] = (L, R)

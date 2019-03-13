@@ -101,8 +101,8 @@ lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flinkConnector, dsl, integrationCorrectness)
-  .dependsOn(core, config, http, flinkConnector, dsl, integrationCorrectness)
+  .aggregate(core, config, http, flink, dsl, integrationCorrectness)
+  .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -119,7 +119,7 @@ lazy val config = project.in(file("config"))
   )
   .dependsOn(core)
 
-lazy val flinkConnector = project.in(file("flink"))
+lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
@@ -133,7 +133,7 @@ lazy val http = project.in(file("http"))
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
       Library.akkaHttp ++ Library.twitterUtil
   )
-  .dependsOn(core, config, flinkConnector, dsl)
+  .dependsOn(core, config, flink, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
@@ -147,7 +147,7 @@ lazy val integrationCorrectness = project.in(file("integration/correctness"))
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
-  .dependsOn(core, flinkConnector, http, config)
+  .dependsOn(core, flink, http, config)
 
 lazy val integrationPerformance = project.in(file("integration/performance"))
   .settings(commonSettings)

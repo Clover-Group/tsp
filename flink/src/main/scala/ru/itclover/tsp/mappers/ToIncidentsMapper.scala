@@ -2,7 +2,7 @@ package ru.itclover.tsp.mappers
 
 import ru.itclover.tsp.core.Incident
 import ru.itclover.tsp.io.{Decoder, Extractor}
-import ru.itclover.tsp.{ResultMapper, Segment}
+import ru.itclover.tsp.{Segment}
 import ru.itclover.tsp.core.PatternResult.{Failure, Success, TerminalResult}
 
 final case class ToIncidentsMapper[E, EKey, EItem](

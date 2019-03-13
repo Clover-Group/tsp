@@ -58,8 +58,8 @@ class StateMachineTest extends FlatSpec with Matchers {
 
     val ext  = DummyExtractor(0, 'and)
     
-    val pat = new ExtractingPattern[Event[Int], Int, Int, Int, Int] (0, 'and)(extractor, ext, dec)
-    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+    //val pat = new ExtractingPattern[Event[Int], Int, Int, Int, Int] (0, 'and)(extractor, ext, dec)
+    //val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
     
     true shouldBe true
   }
