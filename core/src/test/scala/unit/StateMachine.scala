@@ -12,10 +12,10 @@ import Common._
 
 class StateMachineTest extends FlatSpec with Matchers {
   
-  "StateMachine" should "process ConstPattern correctly" in {
+  it should "process ConstPattern correctly" in {
     
     // Run FSM
-    val pat   = ConstPattern[Event[Int], Int] (0)(extractor)
+    val pat   = ConstPattern[EInt, Int] (0)(extractor)
     val actState = StateMachine[Id].run(pat, Seq(event), pat.initialState())
     
     // Instantiate an output state manually
