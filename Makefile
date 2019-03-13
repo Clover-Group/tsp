@@ -23,17 +23,17 @@ test:
 	@echo "Running all Scala tests ..."
 	@sbt test
 
-corecov:
+ccov:
 	@echo "Running Core Coverage. Output is in core/target/scala-2.12/scoverage-report"
 	@sbt clean coverage core/test
 	@sbt coverageReport 
 
-dslcov:
+dcov:
 	@echo "Running DSL Coverage. Output is in dsl/target/scala-2.12/scoverage-report"
 	@sbt clean coverage dsl/test
 	@sbt coverageReport 
 
-allcov:
+cov:
 	@echo "Running Coverage. Output is in */target/scala-2.12/scoverage-report"
 	@sbt clean coverage test
 	@sbt coverageReport 

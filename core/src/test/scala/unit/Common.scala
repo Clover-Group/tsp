@@ -9,6 +9,8 @@ sealed case class Event[A] (ts:Long, row:A, col:A)
 
 final object Common {
 
+  val event = Event[Int](0L, 0, 0)
+
   // Dummy event processing
   def procEvent(ev:Event[Int]):Long  = ev.ts 
 
