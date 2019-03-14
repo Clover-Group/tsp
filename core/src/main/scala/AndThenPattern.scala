@@ -67,10 +67,13 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             case Some(IdxValue(_, Fail)) =>
               inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(index1, Fail)); total })
             // if both first and second stages a Success then return Success
-            case Some(IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
+            case Some(IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) &&
+              idxOrd.lteqv(index2, first.lift(1).map(_.index).getOrElse(0)) =>
               inner({ first.dequeue; first }, { second.dequeue; second }, {
                 total.enqueue(IdxValue(index1, Succ(index1 -> index2))); total
               })
+            case Some(IdxValue(_, Succ(_))) =>
+              inner({ first.dequeue; first }, second, total)
           }
       }
     }
