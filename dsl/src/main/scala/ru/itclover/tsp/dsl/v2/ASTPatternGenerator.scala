@@ -71,7 +71,6 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             val p1 = generatePattern(fc.arguments(0))
             new MapPattern(p1)(
               (x: Any) =>
-                Result.succ(
                   registry.functions
                     .getOrElse(
                       (fc.functionName, fc.arguments.map(_.valueType)),
@@ -81,7 +80,6 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                       )
                     )
                     ._1(Seq(x))
-              )
             )
           case 2 =>
 
@@ -91,7 +89,6 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    Result.succ(
                       registry.functions
                         .getOrElse(
                           (fc.functionName, fc.arguments.map(_.valueType)),
@@ -103,7 +100,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                         ._1(
                           Seq(rx,ry) // <--- TSP-182 fails here
                         )
-                    )
+
                   case _ => Result.fail
                 }
               }
