@@ -5,27 +5,34 @@ import scala.language.reflectiveCalls
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalacheck.{Prop, Arbitrary, Gen}
 
+import cats.Id
 
-
-import cats._, cats.data._, cats.implicits._
 import Common._
 
 class ATPGTest extends FlatSpec with Matchers {
   
   it should "auto generate all patterns" in {
     
-    def func[A] (e:Event[A]):Result[A]  = Result.succ(e.row)
+    def getConstPat(num:Int):ConstPattern[EInt,Int] = ConstPattern[EInt,Int] (num)(extractor)
 
-    val patSeq  = Seq ( 
-                        ConstPattern[EInt,Int] (0)(extractor), 
-                        new SimplePattern[EInt, Int] (_ => func(event))(extractor) 
-                      )
-    
-    //val patgen = Gen.oneOf (patSeq)
-    
-    implicit val ArbPattern  = Arbitrary { Gen.oneOf (patSeq) }
-    
-    def checkAll():Prop = { Prop.forAll { (x:Int, y:Int) => x + y == y + x } }
+    // Checker property
+    def checkAll():Prop= { 
+
+      Prop.forAll { num:Int =>  
+
+        // Exp state
+        val eventsQueue  = scala.collection.mutable.Queue(IdxValue(num,Result.succ(0)))
+        val expState  = SimplePState[Int] (eventsQueue)
+
+        // Act state
+        val ev = Event[Int](0L, num, 0)
+        val pat = getConstPat (num)
+        
+        // Assertion
+        val actState = StateMachine[Id].run(pat, Seq(ev), pat.initialState())
+        actState === expState
+      }
+    }
 
     checkAll.check
 

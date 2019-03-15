@@ -15,7 +15,7 @@ final object Common {
   val event = Event[Int](0L, 0, 0)
 
   // Dummy event processing
-  def procEvent(ev:EInt):Long  = ev.ts 
+  def procEvent(ev:EInt):Long  = ev.row
 
   // Dummy extractor
   val extractor = new TsIdxExtractor(procEvent(_))
