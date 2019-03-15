@@ -3,7 +3,9 @@ package ru.itclover.tsp.v2
 import cats.{Foldable, Functor, Monad, Order}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import ru.itclover.tsp.v2.IdxValue.IdxValueSegment
 import ru.itclover.tsp.v2.Pattern.{Idx, QI}
+
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
@@ -48,11 +50,11 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
         // if any of parts is empty -> do nothing
         case (_, None)                                                => default
         case (None, _)                                                => default
-        case (Some(IdxValue(idx1, val1)), Some(IdxValue(idx2, val2))) =>
+        case (Some(iv1 @ IdxValue(idx1, val1)), Some(iv2 @ IdxValue(idx2, val2))) =>
           // we emit result only if results on left and right sides come at the same time
           if (idxOrd.eqv(idx1, idx2)) {
             val result: Result[T3] = func(val1, val2)
-            inner({ first.dequeue; first }, { second.dequeue; second }, { total.enqueue(IdxValue(idx1, result)); total })
+            inner({ first.dequeue; first }, { second.dequeue; second }, { total.enqueue(IdxValueSegment(idx1, iv1.start, iv2.end, result)); total })
             // otherwise skip results from one of sides
           } else if (idxOrd.lt(idx1, idx2)) {
             inner({ first.dequeue; first }, second, total)
