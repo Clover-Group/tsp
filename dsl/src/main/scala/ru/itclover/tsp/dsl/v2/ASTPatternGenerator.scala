@@ -164,7 +164,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           val exactly = fwi.exactly.getOrElse(false) || (
             fwi.interval match {
               case TimeInterval(_, max)    => max < fwi.window.toMillis
-              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) == Long.MaxValue
+              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
               case _                       => true
             })
           val isWindowEnded = stats.totalMillis >= fwi.window.toMillis || !exactly
