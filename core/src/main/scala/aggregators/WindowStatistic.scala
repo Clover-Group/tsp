@@ -151,4 +151,7 @@ case class WindowStatisticResult(
   successMillis: Long,
   failCount: Long,
   failMillis: Long
-)
+) {
+  def totalMillis: Idx = successMillis + failMillis
+  def totalCount: Idx = successCount + failCount
+}
