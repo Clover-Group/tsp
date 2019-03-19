@@ -1,0 +1,56 @@
+{
+                        "uuid": "req_entity_33",
+                        "source": {
+                            "sourceId": 2,
+                            "jdbcUrl": "jdbc:clickhouse://192.168.1.56:8123/default?user=clover&password=clover_pass",
+                            "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+                            "userName": "clover",
+                            "password": "clover_pass",
+                            "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, PosKM, SpeedEngine, TOilInDiesel, CurrentDistribution, TWaterOutDiesel, Speed, TExGasCylinder7Right, WaterRheostat, PAirMainRes, SpeedWp4, CurrentExcitationGenerator, TExGasCylinder1Left, CurrentCompressorMotor, TExGasCylinder3Left, TExGasCylinder8Left, SpeedWp1, PFuelFilter, CurrentStarterGenerator, RelaySandFeed, TWaterInChargeAirCooler, RelayFieldWeakStage2, CurrentArmTED4, SwitchR3PlusFromDM, SpeedWp6, TExGasCylinder5Left, RelayFieldWeakStage1, SensorBrakeRelease, Pboost, RelayTOil, TExGasCylinder1Right, TExGasCylinder3Right, CurrentArmTED5, CurrentArmTED3, ContactorOilPump, Boxing, SwitchR3MinusFromDM, SpeedWp2, SpeedWp5, TExGasCylinder6Left, ContactorBlockOilPumpKMN, CurrentArmTED6, TExGasTurbineRight, PowerPolling, TExGasCylinder4Left, TExGasCylinder7Left, TExGasCylinder2Right, CurrentArmTED1, CurrentArmTED2, TExGasCylinder4Right, TColdJump, PFuelTNVD, RelayTWater, TExGasTurbineLeft, TExGasCylinder8Right, TExGasCylinder5Right, TOilOutDiesel, TExGasCylinder2Left, ContactorFuelPump, SpeedWp3, TExGasCylinder6Right \nFROM \"2te116u_tmy_20180518_wide_test_tsp\" \nWHERE upload_id = '255658' AND ts >= 1536257138.0 AND ts < 1536257441.0 ORDER BY ts",
+                            "datetimeField": "ts",
+                            "partitionFields": [
+                                "loco_num",
+                                "Section",
+                                "upload_id"
+                            ],
+                            "eventsMaxGapMs": 60000,
+                            "defaultEventsGapMs": 2000,
+                            "parallelism": 1,
+                            "patternsParallelism": 1,
+                            "numParallelSources": 1
+                        },
+                        "sink": {
+                            "jdbcUrl": "jdbc:postgresql://192.168.1.127:30001/events?stringtype=unspecified",
+                            "driverName": "org.postgresql.Driver",
+                            "userName": "clover",
+                            "password": "clover",
+                            "tableName": "events_2te116u_test_tsp",
+                            "rowSchema": {
+                                "sourceIdField": "series_storage",
+                                "patternIdField": "entity_id",
+                                "appIdFieldVal": [
+                                    "type",
+                                    1
+                                ],
+                                "processingTsField": "processing_ts",
+                                "fromTsField": "from_ts",
+                                "toTsField": "to_ts",
+                                "contextField": "context",
+                                "forwardedFields": [
+                                    "loco_num",
+                                    "Section",
+                                    "upload_id"
+                                ]
+                            },
+                            "batchInterval": 5000,
+                            "parallelism": 1
+                        },
+                        "patterns": [
+                            {
+                                "id": "33",
+                                "payload": {},
+                                "sourceCode": "TWaterInChargeAirCooler >= 72 for  60 sec ",
+                                "forwardedFields": []
+                            }
+                        ]
+                    }
