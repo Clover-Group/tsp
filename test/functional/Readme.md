@@ -6,7 +6,6 @@
 #### Each file in this folder contains a REST message body with a request to TSP, which is expected to return some output data.
 
 ### Contents
-<br/> 
 #### rule135.txt - TBD
 #### req_entity_33.txt - TBD
 #### req_entity_1147.txt - TBD
