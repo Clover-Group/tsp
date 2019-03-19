@@ -2,7 +2,6 @@ package ru.itclover.tsp.v2
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.v2.IdxValue.IdxValueSegment
 import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
@@ -69,9 +68,9 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
               inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(index1, Fail)); total })
             // if both first and second stages a Success then return Success
             case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) &&
-              idxOrd.lteqv(index2, first.lift(1).map(_.index).getOrElse(0)) =>
+              idxOrd.lteqv(index2, first.lift(1).map(_.index).getOrElse(Long.MaxValue)) =>
               inner({ first.dequeue; first }, { second.dequeue; second }, {
-                total.enqueue(IdxValueSegment(index1, iv1.start, iv2.end, Succ(index1 -> index2))); total
+                total.enqueue(IdxValue.union(iv1, iv2, (_: Any, _: Any) => Succ(index1 -> index2))); total
               })
             // if both return success, but the second part is too late (i.e. not immediately following the first)
             case Some(IdxValue(_, Succ(_))) =>

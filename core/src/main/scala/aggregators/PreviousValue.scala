@@ -14,21 +14,39 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
   override val innerPattern: Pattern[Event, State, Out],
   override val window: Window
 ) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out]] {
+
   override def initialState() =
-    AggregatorPState(innerPattern.initialState(), PreviousValueAccumState(None), m.Queue.empty, m.Queue.empty)
+    AggregatorPState(
+      innerPattern.initialState(),
+      PreviousValueAccumState(m.Queue.empty, None),
+      m.Queue.empty,
+      m.Queue.empty
+    )
 }
 
-case class PreviousValueAccumState[T](lastTimeValue: Option[(Time, T)])
+case class PreviousValueAccumState[T](queue: QI[(Time, T)], lastTimeValue: Option[(Time, T)])
     extends AccumState[T, T, PreviousValueAccumState[T]] {
   override def updated(window: Window, idx: Idx, time: Time, value: Result[T]): (PreviousValueAccumState[T], QI[T]) = {
-    value match {
-      case Fail => this -> m.Queue(IdxValue(idx, Result.fail))
-      case Succ(newValue) =>
-        PreviousValueAccumState(Some(time -> newValue)) ->
-        this.lastTimeValue
-          .filter(_._1.plus(window) >= time)
-          .map(ab => m.Queue(IdxValue(idx, Result.succ(ab._2))))
-          .getOrElse(m.Queue.empty)
+    // Timestamp which was actual to the (time - window) moment
+    val actualQueue =
+      queue.map(iv => iv.value.map(_._1)).collect { case Succ(v) => v }.filter(t => t.plus(window) <= time)
+    val actualTs = if (actualQueue.nonEmpty) actualQueue.max else Time(Long.MinValue)
+    val newIdxValue = value match {
+      case Succ(t) => IdxValue(idx, Result.succ(time -> t))
+      case Fail    => IdxValue(idx, Result.fail)
     }
+    val newQueue = queue.filter(iv => iv.value.map(_._1 >= actualTs).getOrElse(false))
+    newQueue.enqueue(newIdxValue)
+    (
+      PreviousValueAccumState(newQueue, this.lastTimeValue),
+      newQueue
+        .map(
+          iv =>
+            IdxValue[T](index = idx, value = iv.value.map(_._2))
+              .asInstanceOf[IdxValue[T]] // for some reason it doesn't work without this line
+        )
+        .slice(0, 1)
+    )
+
   }
 }

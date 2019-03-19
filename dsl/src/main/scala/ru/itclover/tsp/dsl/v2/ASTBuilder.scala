@@ -50,7 +50,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   /*_*/
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (ForWithInterval(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
     (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
@@ -65,7 +65,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   /*_*/
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
-    Timer(Assert(phase.asInstanceOf[AST]), ti)
+    val nti = if (ti.min == ti.max) TimeInterval(Window(ti.min), MaxWindow) else ti
+    Timer(Assert(phase.asInstanceOf[AST]), nti)
   }
 
   // format: off

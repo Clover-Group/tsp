@@ -167,7 +167,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
               case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
               case _                       => true
             })
-          val isWindowEnded = stats.totalMillis >= fwi.window.toMillis || !exactly
+          val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)
             case ni: NumericInterval[Long] if ni.contains(stats.successCount) && isWindowEnded => Result.succ(true)
