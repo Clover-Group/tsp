@@ -1,23 +1,18 @@
 # Functional Testing User Guide
-<br/> 
 
 #### This folder contains directed functional tests, which stress Clover Group TSP engine functionality in a desired predefined way. All tests in this folder are expected to return a value, so make sure you get a valid data in the sink table after running each test.
-
-<br/> 
-  
+ 
 ### About 
-####Each file in this folder contains a REST message body with a request to TSP, which is expected to return some output data.
+#### Each file in this folder contains a REST message body with a request to TSP, which is expected to return some output data.
 
-<br/> 
 ### Contents
 <br/> 
-####rule135.txt - TBD
-####req_entity_33.txt - TBD
-####req_entity_1147.txt - TBD
+#### rule135.txt - TBD
+#### req_entity_33.txt - TBD
+#### req_entity_1147.txt - TBD
 
-<br/>
-###How to run the test
-<br/>
+### How to run the test
+
 #### 1. Checkout the latest version of TSP
 ```bash
 git clone https://github.com/Clover-Group/tsp -b v2core-refactoring 
@@ -40,5 +35,4 @@ cd ./tsp/test/functional
 #### 5. Validate output in the sink database
 ```sql
 select * from events_2te116u_test_tsp
-
 ```
