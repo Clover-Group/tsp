@@ -10,7 +10,7 @@ services:
       - "JOB_MANAGER_RPC_ADDRESS=jobmanager"
       - "TSP_JAVA_OPTS=-Xms2G -Xmx4G" 
     restart: always
-    image: clovergrp/tsp:0.14.0
+    image: clovergrp/tsp:0.14.1
     ports:
       - "8080:8080"
   jobmanager:
