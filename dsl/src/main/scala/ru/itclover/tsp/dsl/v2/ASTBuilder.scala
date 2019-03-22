@@ -65,8 +65,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   /*_*/
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
-    val nti = if (ti.min == ti.max) TimeInterval(Window(ti.min), MaxWindow) else ti
-    Timer(Assert(phase.asInstanceOf[AST]), nti)
+    Timer(Assert(phase.asInstanceOf[AST]), ti)
   }
 
   // format: off
