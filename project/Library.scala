@@ -38,7 +38,8 @@ object Version {
 
   val kindProjector = "0.9.8"
 
-  val simulacrum = "0.15.0"
+  val simulacrum = "0.15.0" 
+  val sentry     = "1.7.16"
 }
 
 object Library {
@@ -121,8 +122,9 @@ object Library {
   val shapeless = Seq(
     "com.chuusai" %% "shapeless" % Version.shapeless
   )
-
-  val monix = Seq(
-    "io.monix" %% "monix" % "3.0.0-RC2"
+  
+  val sentrylog = Seq(
+    "io.sentry" %% "sentry-logback" % Version.sentry
   )
+
 }

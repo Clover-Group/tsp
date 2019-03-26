@@ -107,7 +107,7 @@ lazy val root = (project in file("."))
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.monix
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
