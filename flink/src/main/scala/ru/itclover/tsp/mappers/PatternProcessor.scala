@@ -24,7 +24,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
 
 
   val log = Logger("PatternLogger")
-  log.info(s"pattern: $pattern, innter: $pattern.inner")
+  log.info(s"pattern: $pattern, inner: $pattern.inner")
 
   def process(
     key: String,

@@ -48,7 +48,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
     datetimeField = 'ts,
     eventsMaxGapMs = 2000L,
     defaultEventsGapMs = 2000L,
-    chunkSizeMs = Some(900000L),
+    chunkSize = Some(900000L),
     partitionFields = Seq('t1),
     patternsParallelism = Some(1)
   )

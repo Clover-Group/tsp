@@ -34,7 +34,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 10000L,
-    chunkSizeMs = Some(900000L),
+    chunkSize = Some(900000L),
     partitionFields = Seq('stock_num)
   )
 

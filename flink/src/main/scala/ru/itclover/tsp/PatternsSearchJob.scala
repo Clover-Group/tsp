@@ -101,7 +101,7 @@ case class PatternsSearchJob[In, InKey, InItem](
 //          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
 //      )
       .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-      .trigger(EventCounterTrigger[In, FlinkWindow](5000L))
+      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
       .process[Incident](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )

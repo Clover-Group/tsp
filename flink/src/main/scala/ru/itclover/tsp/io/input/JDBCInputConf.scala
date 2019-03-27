@@ -34,21 +34,21 @@ import scala.util.Try
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
 case class JDBCInputConf(
-  sourceId: Int,
-  jdbcUrl: String,
-  query: String,
-  driverName: String,
-  datetimeField: Symbol,
-  eventsMaxGapMs: Long,
-  defaultEventsGapMs: Long,
-  chunkSizeMs: Option[Long],
-  partitionFields: Seq[Symbol],
-  userName: Option[String] = None,
-  password: Option[String] = None,
-  dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
-  defaultToleranceFraction: Option[Double] = None,
-  parallelism: Option[Int] = None,
-  numParallelSources: Option[Int] = Some(1),
-  patternsParallelism: Option[Int] = Some(1),
-  timestampMultiplier: Option[Double] = Some(1000.0)
+                          sourceId: Int,
+                          jdbcUrl: String,
+                          query: String,
+                          driverName: String,
+                          datetimeField: Symbol,
+                          eventsMaxGapMs: Long,
+                          defaultEventsGapMs: Long,
+                          chunkSize: Option[Long],
+                          partitionFields: Seq[Symbol],
+                          userName: Option[String] = None,
+                          password: Option[String] = None,
+                          dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
+                          defaultToleranceFraction: Option[Double] = None,
+                          parallelism: Option[Int] = None,
+                          numParallelSources: Option[Int] = Some(1),
+                          patternsParallelism: Option[Int] = Some(1),
+                          timestampMultiplier: Option[Double] = Some(1000.0)
 ) extends InputConf[Row, Int, Any]

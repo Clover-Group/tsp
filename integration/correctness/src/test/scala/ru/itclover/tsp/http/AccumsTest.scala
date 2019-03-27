@@ -89,7 +89,7 @@ class AccumsTest
     datetimeField = 'ts,
     eventsMaxGapMs = 2000L,
     defaultEventsGapMs = 2000L,
-    chunkSizeMs = Some(900000L),
+    chunkSize = Some(900000L),
     partitionFields = Seq('t1)
   )
 
