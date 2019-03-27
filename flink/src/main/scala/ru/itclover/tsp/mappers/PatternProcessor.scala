@@ -3,17 +3,19 @@ package ru.itclover.tsp.mappers
 import cats.Id
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2.Pattern.QI
-import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ}
+ёёimport ru.itclover.tsp.v2.Pattern.{Idx, QI}
+import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ, WrappingPState}
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
-
 import com.typesafe.scalalogging.Logger
+
+import scala.collection.mutable
 
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner], //todo Why List?
+  patternMaxWindow: Long,
   mapResults: (E, Seq[Inner]) => Seq[Out],
   eventsMaxGapMs: Long,
   emptyEvent: E
@@ -21,7 +23,6 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   implicit timeExtractor: TimeExtractor[E]
 ) {
   var lastState = pattern.initialState()
-
 
   val log = Logger("PatternLogger")
   log.info(s"pattern: $pattern, inner: $pattern.inner")
@@ -40,7 +41,12 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
       .run(pattern, sequences.headOption.getOrElse(sys.error("Empty sequence list")), lastState) :: sequences.tail.map(
       StateMachine[Id].run(pattern, _, pattern.initialState())
     )
-    lastState = states.lastOption.getOrElse(sys.error("Empty state list"))
+    lastState = states.lastOption.getOrElse(sys.error("Empty state list")).copyWithQueue(mutable.Queue.empty)
+    lastState match {
+      case ls: WrappingPState[_, _, _] =>
+        lastState = ls.clearInnerQueue().asInstanceOf[State]
+      case _ =>
+    }
     val results = states.map(_.queue).foldLeft(List.empty[Inner]) { (acc: List[Inner], q: QI[Inner]) =>
       acc ++ q.map(_.value).collect { case Succ(v) => v }
     }
