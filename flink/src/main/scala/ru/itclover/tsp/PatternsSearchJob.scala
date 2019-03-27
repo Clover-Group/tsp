@@ -88,6 +88,7 @@ case class PatternsSearchJob[In, InKey, InItem](
         )
         PatternProcessor[In, S, Segment, Incident](
           pattern,
+          meta.sumWindowsMs,
           toIncidents.apply,
           source.conf.eventsMaxGapMs,
           source.emptyEvent

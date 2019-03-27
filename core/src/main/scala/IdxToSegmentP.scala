@@ -52,6 +52,8 @@ case class WrappingPState[Inner, S <: PState[Inner, S], T](inner: S, override va
     extends PState[T, WrappingPState[Inner, S, T]] {
 
   override def copyWithQueue(newQueue: QI[T]): WrappingPState[Inner, S, T] = this.copy(queue = newQueue)
+
+  def clearInnerQueue(): WrappingPState[Inner, S, T] = this.copy(inner = inner.copyWithQueue(m.Queue.empty))
 }
 
 object WrappingPState {
