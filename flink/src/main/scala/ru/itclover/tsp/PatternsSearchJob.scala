@@ -6,12 +6,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.api.windowing.assigners.{
-  EventTimeSessionWindows,
-  SessionWindowTimeGapExtractor,
-  TumblingEventTimeWindows,
-  WindowAssigner
-}
+import org.apache.flink.streaming.api.windowing.assigners._
 import cats.data.Validated
 import cats.{Foldable, Functor, Id, Monad, Traverse}
 import cats.implicits._
@@ -24,11 +19,11 @@ import ru.itclover.tsp.core.IncidentInstances.semigroup
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
-import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
+import org.apache.flink.streaming.api.windowing.windows.{GlobalWindow, Window => FlinkWindow}
 import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
 import ru.itclover.tsp.io._
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
-import ru.itclover.tsp.utils.Bucketizer
+import ru.itclover.tsp.utils.{Bucketizer, EventCounterTrigger}
 import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.v2._
@@ -101,10 +96,12 @@ case class PatternsSearchJob[In, InKey, InItem](
     stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.partitioner)
-      .window(
-        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-      )
+//      .window(
+//        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+//          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+//      )
+      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+      .trigger(EventCounterTrigger[In, FlinkWindow](5000L))
       .process[Incident](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )
