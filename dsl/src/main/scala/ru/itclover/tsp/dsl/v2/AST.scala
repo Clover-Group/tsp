@@ -81,9 +81,9 @@ case class AndThen(first: AST, second: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
-case class Timer(cond: AST, interval: TimeInterval) extends AST {
+case class Timer(cond: AST, interval: TimeInterval, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
-  override def metadata = cond.metadata |+| PatternMetadata(Set.empty, interval.max)
+  override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(interval.max))
 
   override val valueType: ASTType = BooleanASTType
 }
