@@ -97,12 +97,12 @@ case class PatternsSearchJob[In, InKey, InItem](
     stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.partitioner)
-//      .window(
-//        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-//          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-//      )
-      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
+      .window(
+        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+      )
+//      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+//      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
       .process[Incident](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )

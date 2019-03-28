@@ -46,7 +46,7 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
     datetimeField = 'ts,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 200L,
-    chunkSize = Some(900000L),
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('t1)
   )
 

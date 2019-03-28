@@ -13,7 +13,7 @@ trait InputConf[Event, EKey, EItem] extends Serializable {
 
   def eventsMaxGapMs: Long
   def defaultEventsGapMs: Long
-  def chunkSize: Option[Long]             // Chunk size
+  def chunkSizeMs: Option[Long]             // Chunk size
 
   def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
 

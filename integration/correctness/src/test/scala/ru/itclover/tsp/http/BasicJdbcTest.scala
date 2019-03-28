@@ -45,7 +45,7 @@ class BasicJdbcTest
     datetimeField = 'datetime,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
-    chunkSize = Some(900000L),
+    chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id)
   )
 

@@ -30,7 +30,7 @@ case class InfluxDBInputConf(
                               query: String,
                               eventsMaxGapMs: Long,
                               defaultEventsGapMs: Long,
-                              chunkSize: Option[Long],
+                              chunkSizeMs: Option[Long],
                               partitionFields: Seq[Symbol],
                               datetimeField: Symbol = 'time,
                               userName: Option[String] = None,
