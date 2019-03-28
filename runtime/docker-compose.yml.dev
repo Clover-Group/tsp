@@ -9,12 +9,12 @@ services:
       - "FLINK_MONITORING_PORT=8081"
       - "JOB_MANAGER_RPC_ADDRESS=jobmanager"
       - "TSP_JAVA_OPTS=-Xms2G -Xmx4G" 
-    restart: always
-    image: clovergrp/tsp:0.14.1
+    restart: on-failure
+    image: clovergrp/tsp:0.14.2-18-g45e4af2
     ports:
       - "8080:8080"
   jobmanager:
-    image: flink:1.7-scala_2.12-alpine
+    image: flink:1.7.2-scala_2.12-alpine
     expose:
       - "6123"
     ports:
@@ -24,7 +24,7 @@ services:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
 
   taskmanager:
-    image: flink:1.7-scala_2.12-alpine
+    image: flink:1.7.2-scala_2.12-alpine
     expose:
       - "6121"
       - "6122"

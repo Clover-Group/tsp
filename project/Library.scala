@@ -23,6 +23,8 @@ object Version {
 
   val scalaTest = "3.0.5"
   val scalaCheck = "1.14.0"
+  val jmh = "0.3.4"
+
   val testContainers = "0.20.0"
   val postgres = "42.2.5"
 
@@ -105,6 +107,10 @@ object Library {
     "org.scalactic" %% "scalactic" % Version.scalaTest,
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
+  )
+  
+  val perf = Seq(
+    "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
   )
 
   val testContainers = Seq(

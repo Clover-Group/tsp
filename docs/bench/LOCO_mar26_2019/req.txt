@@ -1033,10 +1033,10 @@ for i, rule in enumerate(rules):
 		"uuid": "1234",
                             "source": {
                             "sourceId": 138,
-                            "jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=A7qoFxdH8PadW5B",
+                            "jdbcUrl": "jdbc:clickhouse://192.168.40.42:8123/default?user=loco_user&password=pppp",
                             "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
                             "userName": "loco_user",
-                            "password": "A7qoFxdH8PadW5B",
+                            "password": "ppwasdfj",
                             "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, TExGasCylinder3Left, TExGasCylinder1Right, SwitchR3MinusFromDM, SwitchR3PlusFromDM, RelaySandFeed, SpeedEngine, ContactorFuelPump, ContactorOilPump, TExGasCylinder5Left, Pboost, TExGasCylinder7Right, TExGasCylinder4Right, SpeedWp1, SpeedWp5, CurrentExcitationGenerator, TExGasCylinder2Left, SpeedWp2, SpeedWp6, TExGasCylinder8Left, CurrentArmTED4, CurrentStarterGenerator, SpeedWp3, RelayFieldWeakStage1, TExGasTurbineRight, SpeedWp4, CurrentCompressorMotor, CurrentArmTED3, TExGasCylinder1Left, ContactorBlockOilPumpKMN, TWaterInChargeAirCooler, CurrentDistribution, PowerPolling, CurrentArmTED1, CurrentArmTED6, PosKM, PFuelTNVD, TExGasCylinder6Right, Boxing, TOilOutDiesel, RelayFieldWeakStage2, CurrentArmTED2, Speed, PAirMainRes, TExGasCylinder8Right, RelayTWater, TExGasCylinder6Left, TExGasCylinder4Left, TOilInDiesel, RelayTOil, TWaterOutDiesel, TExGasCylinder5Right, TExGasTurbineLeft, PFuelFilter, TColdJump, SensorBrakeRelease, TExGasCylinder3Right, WaterRheostat, CurrentArmTED5, TExGasCylinder7Left, TExGasCylinder2Right \nFROM \"2te116u_tmy_20180518_wide\" \nWHERE upload_id = '1693129' AND ts >= 1548979200.0 AND ts < 1551398400.0 ORDER BY ts",
                             "datetimeField": "ts",
                             "partitionFields": [
@@ -1054,7 +1054,7 @@ for i, rule in enumerate(rules):
                             "jdbcUrl": "jdbc:postgresql://192.168.40.101:30543/events?stringtype=unspecified",
                             "driverName": "org.postgresql.Driver",
                             "userName": "clover",
-                            "password": "clover",
+                            "password": "ppppp",
                             "tableName": "events_2te116u",
                             "rowSchema": {
                                 "sourceIdField": "series_storage",

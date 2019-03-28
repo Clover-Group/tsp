@@ -98,13 +98,14 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
 
 
 lazy val root = (project in file("."))
-  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
+  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
   .aggregate(core, config, http, flink, dsl, integrationCorrectness)
   .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
+  .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless

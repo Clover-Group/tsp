@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="127.0.0.1", help="IP address of TSP server, defaults to localhost")
     parser.add_argument("--port", default=8080, type=int, help="Port number, defaults to 8080")
     parser.add_argument("--batch-size", default=1, type=int, help="Request batch size, defaults to 1")
-    parser.add_argument("--timeout", default=180.0, type=float, help="Request timeout in seconds, defaults to 180")
+    parser.add_argument("--timeout", default=1000.0, type=float, help="Request timeout in seconds, defaults to 180")
     parser.add_argument("files", metavar="FILE", type=str, nargs="+", help="File name or mask")
     args = parser.parse_args()
 

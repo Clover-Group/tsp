@@ -6,6 +6,8 @@ import ru.itclover.tsp.v2.Pattern.{Idx, _}
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
+import org.openjdk.jmh.annotations.{Scope, State}
+
 /**
   * Main trait for all patterns, basically just a function from state and events chunk to new a state.
   *
@@ -13,6 +15,8 @@ import scala.language.higherKinds
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
+
+@State (Scope.Benchmark)
 trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
 
   /**
