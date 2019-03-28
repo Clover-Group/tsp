@@ -381,7 +381,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
             )
           case "lag" =>
             if (arguments.length > 1) throw ParseException("Lag should use only 1 argument when called without window")
-            AggregateCall(Lag, arguments.head, Window(1))
+            AggregateCall(Lag, arguments.head, Window(1), Some(Window(0)))
           case _ => FunctionCall(Symbol(normalisedFunction), arguments)
         }
       })

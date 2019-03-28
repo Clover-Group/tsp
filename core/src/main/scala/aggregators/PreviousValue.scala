@@ -40,12 +40,12 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)], lastTimeValue: Optio
     (
       PreviousValueAccumState(newQueue, this.lastTimeValue),
       newQueue
+        .slice(0, 1)
         .map(
           iv =>
             IdxValue[T](index = idx, value = iv.value.map(_._2))
               .asInstanceOf[IdxValue[T]] // for some reason it doesn't work without this line
         )
-        .slice(0, 1)
     )
 
   }

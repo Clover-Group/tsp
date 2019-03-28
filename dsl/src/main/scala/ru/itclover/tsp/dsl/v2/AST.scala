@@ -107,8 +107,8 @@ case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window,
   override val valueType = BooleanASTType
 }
 
-case class AggregateCall(function: AggregateFn, value: AST, window: Window) extends AST {
-  override def metadata = value.metadata |+| PatternMetadata(Set.empty, window.toMillis)
+case class AggregateCall(function: AggregateFn, value: AST, window: Window, gap: Option[Window] = None) extends AST {
+  override def metadata = value.metadata |+| PatternMetadata(Set.empty, gap.getOrElse(window).toMillis)
 
   override val valueType: ASTType = DoubleASTType //TODO: Customize return type
 }

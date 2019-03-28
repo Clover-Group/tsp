@@ -1,7 +1,7 @@
 package ru.itclover.tsp.v2
-import cats.{Foldable, Functor, Monad}
+import cats.{Foldable, Functor, Monad, Order}
 import cats.implicits._
-import ru.itclover.tsp.v2.Pattern.QI
+import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
@@ -13,8 +13,11 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   patterns: Seq[Pattern[Event, S, T1]]
 )(
   func: (Result[T2], Result[T1]) => Result[T2],
+  transform: Result[T2] => Result[T2],
   filterCond: Result[T1] => Boolean,
   initial: Result[T2]
+)(
+  implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
@@ -50,8 +53,8 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
           val values = ivs.map(_.value)
           val indices = ivs.map(_.index)
           // we emit result only if results on all sides come at the same time
-          if (indices.forall(_ == ivs.head.index)) {
-            val res: Result[T2] = values.filter(filterCond).foldLeft(initial)(func)
+          if (indices.forall(i => idxOrd.eqv(i, ivs.head.index))) {
+            val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
             inner(queues.map(q => { q.dequeue; q }), { result.enqueue(IdxValue(ivs.head.index, res)); result })
             // otherwise skip results from one of sides (with minimum index)
           } else {

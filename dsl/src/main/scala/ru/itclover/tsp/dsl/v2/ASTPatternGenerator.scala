@@ -116,11 +116,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             )
         val wrappedFunc = (x: Result[Any], y: Result[Any]) =>
           (x, y) match {
-            case (Fail, _)          => Result.fail
-            case (_, Fail)          => Result.fail
-            case (Succ(t), Succ(u)) => Result.succ(trans(func(t, u)))
-        }
-        new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, ffc.cond, Result.succ(initial))
+            case (_, Fail) => Result.fail
+            case (_, Succ(d)) => func(x, d)
+          }
+        new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, trans, ffc.cond, Result.succ(initial))
 
       // case AggregateCall(Count, inner, w) if inner.valueType == DoubleASTType => ??? // this way
 

@@ -36,6 +36,7 @@ object DefaultFunctions {
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] = {
     x match {
+      case value: Result[T] => value
       case value: T => Result.succ(value)
       case value if ct.runtimeClass.isAssignableFrom(value.getClass) => Result.succ(value.asInstanceOf[T])
       case v: Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
@@ -450,7 +451,7 @@ object DefaultFunctions {
       }
     }, DoubleASTType, {
       identity(_)
-    }, 0),
+    }, java.lang.Double.valueOf(0)),
     ('avgof, DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
       (toResult[(Double, Double)](acc), toResult[Double](x)) match {
         case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))
@@ -461,7 +462,7 @@ object DefaultFunctions {
         case Succ((sum: Double, count: Double)) => Result.succ(sum / count)
         case _                                  => Result.fail
       }
-    }, 0))
+    }, (0.0, 0.0)))
   )
 
   // Fractional type for Int and Long to allow division
