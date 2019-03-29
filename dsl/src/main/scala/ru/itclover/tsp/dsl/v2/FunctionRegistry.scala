@@ -111,7 +111,7 @@ object DefaultFunctions {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(f.minus(t0, t1))
               case _                    => Result.fail
           },
           astType1
@@ -121,7 +121,7 @@ object DefaultFunctions {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
           },
           astType1
@@ -131,7 +131,7 @@ object DefaultFunctions {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
           },
           astType1

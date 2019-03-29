@@ -9,6 +9,7 @@ import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ, WrappingPState}
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
 import com.typesafe.scalalogging.Logger
+import ru.itclover.tsp.core.Time
 
 import scala.collection.mutable
 
@@ -23,6 +24,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   implicit timeExtractor: TimeExtractor[E]
 ) {
   var lastState = pattern.initialState()
+  var lastTime: Time = Time(0)
 
   val log = Logger("PatternLogger")
   log.info(s"pattern: $pattern, inner: $pattern.inner")
@@ -32,6 +34,10 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
     elements: Iterable[E],
     out: Collector[Out]
   ): Unit = {
+    // if the last event occurred so long ago, clear the state
+    if (elements.headOption.map(timeExtractor(_)).getOrElse(Time(0)).toMillis - lastTime.toMillis > eventsMaxGapMs) {
+      lastState = pattern.initialState()
+    }
     // Split the different time sequences if they occurred in the same time window
     val sequences = PatternProcessor.splitByCondition(
       elements.toList,
@@ -47,6 +53,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
         lastState = ls.clearInnerQueue().asInstanceOf[State]
       case _ =>
     }
+    lastTime = elements.lastOption.map(timeExtractor(_)).getOrElse(Time(0))
     val results = states.map(_.queue).foldLeft(List.empty[Inner]) { (acc: List[Inner], q: QI[Inner]) =>
       acc ++ q.map(_.value).collect { case Succ(v) => v }
     }
