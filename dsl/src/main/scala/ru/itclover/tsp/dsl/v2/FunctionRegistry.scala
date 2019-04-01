@@ -427,7 +427,7 @@ object DefaultFunctions {
         DoubleASTType, {
           identity(_)
         },
-        java.lang.Double.valueOf(0)
+        java.lang.Double.valueOf(Double.MaxValue)
       )
     ),
     ('maxof, DoubleASTType) -> (
@@ -441,7 +441,7 @@ object DefaultFunctions {
         DoubleASTType, {
           identity(_)
         },
-        java.lang.Double.valueOf(0)
+        java.lang.Double.valueOf(Double.MinValue)
       )
     ),
     ('countof, DoubleASTType) -> ({ (acc: Result[Any], x: Any) =>
