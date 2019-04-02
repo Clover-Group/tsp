@@ -10,6 +10,7 @@ import ru.itclover.tsp.v2._
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
+import PQueue._
 
 /* Timer */
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
@@ -19,7 +20,7 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T
   override def initialState(): AggregatorPState[S, TimerAccumState[T], T] = AggregatorPState(
     innerPattern.initialState(),
     astate = TimerAccumState(m.Queue.empty),
-    queue = m.Queue.empty,
+    queue = PQueue.empty,
     indexTimeMap = m.Queue.empty
   )
 }
@@ -30,14 +31,14 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
       // clean queue in case of fail. Return fails for all events in queue
       case Fail =>
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_ => true)
-        val newResults: QI[T] = outputs.map { case (idx, _) => IdxValueSimple(idx, Result.fail[T]) }
+        val newResults: QI[T] = MutablePQueue( outputs.map { case (idx, _) => IdxValueSimple(idx, Result.fail[T]) })
         (TimerAccumState(updatedWindowQueue), newResults)
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue) { case (_, t) => t.plus(window) <= time }
 
         val windowQueueWithNewEvent = { updatedWindowQueue.enqueue((index, time)); updatedWindowQueue }
-        val newResults: QI[T] = outputs.map { case (idx, _) => IdxValueSegment(idx, idx, index, value) }
+        val newResults: QI[T] = MutablePQueue(outputs.map { case (idx, _) => IdxValueSegment(idx, idx, index, value) })
         (TimerAccumState(windowQueueWithNewEvent), newResults)
     }
   }

@@ -108,7 +108,7 @@ lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.jol
   )
 
 lazy val config = project.in(file("config"))
@@ -140,7 +140,7 @@ lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled ++ Library.scrum
+    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled ++ Library.scrum ++ Library.jol
   ).dependsOn(core)
 
 lazy val integrationCorrectness = project.in(file("integration/correctness"))

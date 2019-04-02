@@ -59,6 +59,6 @@ case class WrappingPState[Inner, S <: PState[Inner, S], T](inner: S, override va
 object WrappingPState {
 
   def empty[Inner, S <: PState[Inner, S], T](inner: S): WrappingPState[Inner, S, T] = {
-    new WrappingPState(inner, m.Queue.empty[IdxValue[T]])
+    new WrappingPState(inner, m.Queue.empty)
   }
 }

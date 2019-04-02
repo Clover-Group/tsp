@@ -45,6 +45,6 @@ abstract class AbstractStateMachine[Event, Out, State <: PState[Out, State], F[_
 
   def pattern: Pattern[Event, State, Out]
 
-  def initialState
+  def initialState()
 
 }

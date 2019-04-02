@@ -15,11 +15,11 @@ class SimplePattern[Event: IdxExtractor, T](f: Event => Result[T]) extends Patte
     oldState: SimplePState[T],
     events: Cont[Event]
   ): F[SimplePState[T]] = {
-    Monad[F].pure(SimplePState(events.map(e => IdxValueSimple(e.index, f(e))).foldLeft(oldState.queue) {
-      case (oldStateQ, b) => { oldStateQ.enqueue(b); oldStateQ } // .. style?
+    Monad[F].pure(SimplePState(events.map(e => IdxValue(e.index, f(e))).foldLeft(oldState.queue) {
+      case (oldStateQ, b) => oldStateQ.enqueue(b) // .. style?
     }))
   }
-  override def initialState(): SimplePState[T] = SimplePState(m.Queue.empty)
+  override def initialState(): SimplePState[T] = SimplePState(PQueue.empty)
 }
 
 case class SimplePState[T](override val queue: QI[T]) extends PState[T, SimplePState[T]] {

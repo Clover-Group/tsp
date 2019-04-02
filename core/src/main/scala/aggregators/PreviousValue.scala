@@ -18,8 +18,8 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
   override def initialState() =
     AggregatorPState(
       innerPattern.initialState(),
-      PreviousValueAccumState(m.Queue.empty, None),
-      m.Queue.empty,
+      PreviousValueAccumState(PQueue.empty, None),
+      PQueue.empty,
       m.Queue.empty
     )
 }

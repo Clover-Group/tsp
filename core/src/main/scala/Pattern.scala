@@ -16,7 +16,7 @@ import org.openjdk.jmh.annotations.{Scope, State}
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
 
-@State (Scope.Benchmark)
+@State(Scope.Benchmark)
 trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
 
   /**
@@ -45,20 +45,26 @@ trait IdxValue[+T] {
 
 object IdxValue {
 
-  def apply[T](index: Idx, value: Result[T]): IdxValue[T] = new IdxValueSimple[T](index, value)
+  def apply[T](index: Idx, value: Result[T]): IdxValue[T] = IdxValueSimple[T](index, value)
   def unapply[T](arg: IdxValue[T]): Option[(Idx, Result[T])] = Some(arg.index -> arg.value)
 
   /// Union the segments with a custom result
-  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2], func: (Result[T1], Result[T2]) => Result[T3]): IdxValue[T3] = IdxValueSegment(
+  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2])(
+    func: (Result[T1], Result[T2]) => Result[T3]
+  ): IdxValue[T3] = IdxValueSegment(
     index = Math.min(iv1.start, iv2.start),
     start = Math.min(iv1.start, iv2.start),
     end = Math.max(iv1.end, iv2.end),
     value = func(iv1.value, iv2.value)
   )
 
-  case class IdxValueSimple[T](index: Idx, value: Result[T]) extends IdxValue[T] {
+  class IdxValueSimple[T](val index: Idx, val value: Result[T]) extends IdxValue[T] {
     override def start: Idx = index
     override def end: Idx = index
+  }
+
+  object IdxValueSimple {
+    def apply[T](index: Idx, value: Result[T]): IdxValue[T] = new IdxValueSimple(index, value)
   }
 
   case class IdxValueSegment[T](index: Idx, start: Idx, end: Idx, value: Result[T]) extends IdxValue[T]
@@ -68,7 +74,9 @@ object Pattern {
 
   type Idx = Long
 
-  type QI[T] = m.Queue[IdxValue[T]]
+  case class Idx2(index: Long) extends AnyVal
+
+  type QI[T] = PQueue[T]
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx

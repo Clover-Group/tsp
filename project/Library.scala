@@ -40,8 +40,8 @@ object Version {
 
   val kindProjector = "0.9.8"
 
-  val simulacrum = "0.15.0" 
-  val sentry     = "1.7.16"
+  val simulacrum = "0.15.0"
+  val sentry = "1.7.16"
 }
 
 object Library {
@@ -96,10 +96,9 @@ object Library {
     "org.typelevel" %% "cats-core" % Version.cats
   )
 
-  val scrum  = Seq (
-    "com.github.mpilquist"  %% "simulacrum" % Version.simulacrum
+  val scrum = Seq(
+    "com.github.mpilquist" %% "simulacrum" % Version.simulacrum
   )
-  
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
 
@@ -117,6 +116,8 @@ object Library {
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
   )
 
+  val jol = Seq("org.openjdk.jol" % "jol-core" % "0.9" % "test")
+
   val kafka = Seq(
     "org.apache.avro" % "avro" % Version.avro
   )
@@ -128,7 +129,7 @@ object Library {
   val shapeless = Seq(
     "com.chuusai" %% "shapeless" % Version.shapeless
   )
-  
+
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
