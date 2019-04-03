@@ -4,7 +4,7 @@ import cats.Id
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.io.TimeExtractor
 import ru.itclover.tsp.v2.Pattern.{Idx, QI}
-import ru.itclover.tsp.v2.{PState, Pattern, StateMachine, Succ, WrappingPState}
+import ru.itclover.tsp.v2._
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
@@ -47,15 +47,10 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
       .run(pattern, sequences.headOption.getOrElse(sys.error("Empty sequence list")), lastState) :: sequences.tail.map(
       StateMachine[Id].run(pattern, _, pattern.initialState())
     )
-    lastState = states.lastOption.getOrElse(sys.error("Empty state list")).copyWithQueue(mutable.Queue.empty)
-    lastState match {
-      case ls: WrappingPState[_, _, _] =>
-        lastState = ls.clearInnerQueue().asInstanceOf[State]
-      case _ =>
-    }
+    lastState = states.lastOption.getOrElse(sys.error("Empty state list")).copyWithQueue(PQueue.empty)
     lastTime = elements.lastOption.map(timeExtractor(_)).getOrElse(Time(0))
     val results = states.map(_.queue).foldLeft(List.empty[Inner]) { (acc: List[Inner], q: QI[Inner]) =>
-      acc ++ q.map(_.value).collect { case Succ(v) => v }
+      acc ++ q.toSeq.map(_.value).collect { case Succ(v) => v }
     }
     if (elements.nonEmpty)
       mapResults(

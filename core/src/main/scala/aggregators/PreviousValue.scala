@@ -7,6 +7,7 @@ import ru.itclover.tsp.v2.Pattern._
 import ru.itclover.tsp.v2._
 
 import scala.Ordering.Implicits._
+import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
@@ -18,34 +19,37 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
   override def initialState() =
     AggregatorPState(
       innerPattern.initialState(),
-      PreviousValueAccumState(PQueue.empty, None),
+      PreviousValueAccumState(PQueue.empty),
       PQueue.empty,
       m.Queue.empty
     )
 }
 
-case class PreviousValueAccumState[T](queue: QI[(Time, T)], lastTimeValue: Option[(Time, T)])
-    extends AccumState[T, T, PreviousValueAccumState[T]] {
+case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
   override def updated(window: Window, idx: Idx, time: Time, value: Result[T]): (PreviousValueAccumState[T], QI[T]) = {
     // Timestamp which was actual to the (time - window) moment
-    val actualQueue =
-      queue.map(iv => iv.value.map(_._1)).collect { case Succ(v) => v }.filter(t => t.plus(window) <= time)
-    val actualTs = if (actualQueue.nonEmpty) actualQueue.max else Time(Long.MinValue)
-    val newIdxValue = value match {
-      case Succ(t) => IdxValue(idx, Result.succ(time -> t))
-      case Fail    => IdxValue(idx, Result.fail)
+    def splitAtActualTs(): (Time, QI[(Time, T)]) = {
+      @tailrec
+      def inner(prevBestTime: Time, q: QI[(Time, T)]): (Time, QI[(Time, T)]) = {
+        q.headOption match {
+          case Some(IdxValue(_, Succ((t, result)))) if t.plus(window) <= time => inner(t, q.behead())
+          case Some(IdxValue(_, Fail))                                        => inner(prevBestTime, q.behead())
+          case _                                                              => prevBestTime -> q
+        }
+      }
+
+      inner(Time(Long.MinValue), queue)
     }
-    val newQueue = queue.filter(iv => iv.value.map(_._1 >= actualTs).getOrElse(false))
-    newQueue.enqueue(newIdxValue)
+
+    val (actualTs, newQueue) = splitAtActualTs()
+    val newIdxValue = IdxValue(idx, value.map(time -> _))
+    // we return first element after the moment time - window. Probably, better instead return _last_ element before moment time - window?
+    val head = newQueue.headOption
+    val updatedQueue = newQueue.enqueue(newIdxValue)
+
     (
-      PreviousValueAccumState(newQueue, this.lastTimeValue),
-      newQueue
-        .slice(0, 1)
-        .map(
-          iv =>
-            IdxValue[T](index = idx, value = iv.value.map(_._2))
-              .asInstanceOf[IdxValue[T]] // for some reason it doesn't work without this line
-        )
+      PreviousValueAccumState(updatedQueue),
+      head.map(_.map(x => Succ(x._2))).foldLeft(PQueue.empty[T]) { case (q, x) => q.enqueue(x) }
     )
 
   }

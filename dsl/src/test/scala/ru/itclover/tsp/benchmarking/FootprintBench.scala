@@ -3,10 +3,7 @@ package ru.itclover.tsp.benchmarking
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.dsl.v2.{ASTPatternGenerator, TestEvents}
-import ru.itclover.tsp.dsl.v2.TestEvents.TestEvent
-import ru.itclover.tsp.v2.Common.EInt
 import ru.itclover.tsp.v2._
-import ru.itclover.tsp.v2.aggregators.AggregatorPatterns
 
 import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
@@ -39,7 +36,7 @@ class FootprintBench extends FlatSpec with Matchers {
 
     process(pattern)
     // Instantiate an output state manually
-    val eventsQueue = scala.collection.mutable.Queue(IdxValue(1, Result.succ(0)))
+    val eventsQueue = PQueue(IdxValue(1, Result.succ(0)))
     val expState = SimplePState[Int](eventsQueue)
 
     // Temporary, until custom Equality[IdxValue] is implemented

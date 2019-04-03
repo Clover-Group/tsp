@@ -19,11 +19,11 @@ class StateMachineTest extends FlatSpec with Matchers {
     val actState = StateMachine[Id].run(pat, Seq(event), pat.initialState())
     
     // Instantiate an output state manually
-    val eventsQueue  = scala.collection.mutable.Queue(IdxValue(1,Result.succ(0)))
+    val eventsQueue  = PQueue(IdxValue(1,Result.succ(0)))
     val expState  = SimplePState[Int] (eventsQueue)
 
     // Temporary, until custom Equality[IdxValue] is implemented
-    expState.queue.length shouldBe actState.queue.length
+    expState.queue.size shouldBe actState.size
   }
 
 }

@@ -41,6 +41,7 @@ trait IdxValue[+T] {
   def value: Result[T] // actual result
   def start: Idx
   def end: Idx
+  def map[B](f: T => Result[B]): IdxValue[B]
 }
 
 object IdxValue {
@@ -61,13 +62,16 @@ object IdxValue {
   class IdxValueSimple[T](val index: Idx, val value: Result[T]) extends IdxValue[T] {
     override def start: Idx = index
     override def end: Idx = index
+    override def map[B](f: T => Result[B]): IdxValue[B] = IdxValueSimple(index, value.flatMap(f))
   }
 
   object IdxValueSimple {
     def apply[T](index: Idx, value: Result[T]): IdxValue[T] = new IdxValueSimple(index, value)
   }
 
-  case class IdxValueSegment[T](index: Idx, start: Idx, end: Idx, value: Result[T]) extends IdxValue[T]
+  case class IdxValueSegment[T](index: Idx, start: Idx, end: Idx, value: Result[T]) extends IdxValue[T] {
+    override def map[B](f: T => Result[B]): IdxValue[B] = this.copy(value = value.flatMap(f))
+  }
 }
 
 object Pattern {
