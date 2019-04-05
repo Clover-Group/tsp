@@ -37,7 +37,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue) { case (_, t) => t.plus(window) <= time }
 
         val windowQueueWithNewEvent = { updatedWindowQueue.enqueue((index, time)); updatedWindowQueue }
-        val newResults: QI[T] = outputs.map { case (idx, _) => IdxValueSegment(idx, idx, index, value) }
+        val newResults: QI[T] = outputs.map { case (idx, _) => IdxValueSegment(index, idx, index, value) }
         (TimerAccumState(windowQueueWithNewEvent), newResults)
     }
   }
