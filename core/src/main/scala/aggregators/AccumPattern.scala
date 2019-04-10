@@ -44,7 +44,7 @@ abstract class AccumPattern[
   ): F[AggregatorPState[Inner, AState, Out]] = {
 
     val idxTimeMapWithNewEvents =
-      event.map(e => e.index -> e.time).foldLeft(state.indexTimeMap) { case (a, b) => { a.enqueue(b); a } }
+      event.map(e => e.index -> e.time).foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b); a }
 
     innerPattern
       .apply[F, Cont](state.innerState, event)
@@ -55,7 +55,8 @@ abstract class AccumPattern[
 
           AggregatorPState(
             newInnerState.copyWithQueue(newInnerQueue),
-            newAState, { state.queue.enqueue(newResults.toSeq: _*); state.queue },
+            newAState,
+            state.queue.enqueue(newResults.toSeq: _*),
             updatedIndexTimeMap
           )(idxOrd)
         }

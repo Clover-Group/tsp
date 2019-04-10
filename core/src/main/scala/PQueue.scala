@@ -62,7 +62,7 @@ object PQueue {
 
     }
     override def behead(): PQueue[T] = {
-      queue.tail
+      queue.dequeue()
       this
     }
     override def beheadOption(): Option[PQueue[T]] = if (queue.nonEmpty) { queue.dequeue(); Some(this) } else None
