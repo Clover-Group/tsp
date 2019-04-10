@@ -43,3 +43,12 @@ This packs requests from the **/tsp/test/reqs** folder into batches
  immediately and displays the error information. If the execution
  of a batch takes more than a given timeout (defaults to 180 seconds,
  or 3 minutes), a warning will be displayed.
+ 
+ 
+ ####Profiling
+ 
+ YourKit supports open source projects with innovative and intelligent tools
+for monitoring and profiling Java and .NET applications.
+YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/profiler/),
+[YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/),
+and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/).
