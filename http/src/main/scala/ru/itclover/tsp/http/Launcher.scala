@@ -19,14 +19,17 @@ object Launcher extends App with HttpService {
   private val log = Logger("Launcher")
 
   // bku: Increase the number of parallel connections 
-  val parallel  = 1024
-  
+  val parallel  = 1024 
+
+  // TSP-214 Fix
+  val req_timeout  = 1 // in mins
 
   implicit val system: ActorSystem = ActorSystem("TSP-system", ConfigFactory.parseString (
     s"""
             |akka {
             |    http {
             |        server {
+            |            request-timeout = $req_timeout min
             |            backlog = $parallel
             |            pipelining-limit = $parallel
             |        }
