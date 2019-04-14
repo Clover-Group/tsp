@@ -50,9 +50,10 @@ object IdxValue {
   def unapply[T](arg: IdxValue[T]): Option[(Idx, Result[T])] = Some(arg.index -> arg.value)
 
   /// Union the segments with a custom result
-  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2], func: (Result[T1], Result[T2]) => Result[T3]): IdxValue[T3] = IdxValueSegment(
+  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2])(
+    func: (Result[T1], Result[T2]) => Result[T3]
+  ): IdxValue[T3] = IdxValueSegment(
     index = Math.max(iv1.start, iv2.start),
-
     start = Math.min(iv1.start, iv2.start),
     end = Math.max(iv1.end, iv2.end),
     value = func(iv1.value, iv2.value)
