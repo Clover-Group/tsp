@@ -22,13 +22,13 @@ class FootprintBench extends FlatSpec with Matchers {
   )
 
   def process[T, S <: PState[T, S]](pattern: Pattern[TestEvent, S, T]): Unit = {
-    val events = (1 to 10000000).map(l => TestEvent(l.toLong * 1000, 1, 1, true, 1.0, 2.0)).seq
+    val events = (1 to 1000).map(l => TestEvent(l.toLong * 1000, 1, 1, true, 1.0, 2.0)).seq
     val sm = StateMachine[Id]
     val initialState = pattern.initialState()
     val collect = new ArrayBuffer[Long]()
     val actState = sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += x.index)
 
-    println(org.openjdk.jol.info.GraphLayout.parseInstance(actState).toFootprint)
+//    println(org.openjdk.jol.info.GraphLayout.parseInstance(actState).toFootprint)
   }
 
   it should "process ConstPattern correctly" in {
