@@ -55,11 +55,11 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
           // we emit result only if results on all sides come at the same time
           if (indices.forall(i => idxOrd.eqv(i, ivs.head.index))) {
             val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
-            inner(queues.map(q => { q.dequeue; q }), { result.enqueue(IdxValue(ivs.head.index, res)); result })
+            inner(queues.map(q => q.behead()), result.enqueue(IdxValue(ivs.head.index, res)))
             // otherwise skip results from one of sides (with minimum index)
           } else {
             val idxOfMinIndex = indices.zipWithIndex.minBy(_._1)._2
-            inner(queues.zipWithIndex.map { case (q, i) => if (i == idxOfMinIndex) { q.dequeue; q } else q }, result)
+            inner(queues.zipWithIndex.map { case (q, i) => if (i == idxOfMinIndex) q.behead() else q }, result)
           }
       }
     }
@@ -68,7 +68,7 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   }
 
   override def initialState(): ReducePState[S, T1, T2] =
-    ReducePState(patterns.map(_.initialState()), m.Queue.empty)
+    ReducePState(patterns.map(_.initialState()), PQueue.empty)
 }
 
 case class ReducePState[State <: PState[T1, State], T1, T2](

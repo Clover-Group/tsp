@@ -24,6 +24,8 @@ sealed trait Result[+A] {
 
   @inline final def getOrElse[B >: A](default: => B): B =
     if (isFail) default else this.get
+
+  @inline final def foreach(f: A => Unit): Unit = if (isSuccess) f(this.get)
 }
 
 object Result {

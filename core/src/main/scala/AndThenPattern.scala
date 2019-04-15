@@ -7,6 +7,7 @@ import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
+import PQueue._
 
 /** AndThen  */
 //We lose T1 and T2 in output for performance reason only. If needed outputs of first and second stages can be returned as well
@@ -41,7 +42,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
   }
 
   override def initialState(): AndThenPState[T1, T2, S1, S2] =
-    AndThenPState(first.initialState(), second.initialState(), m.Queue.empty)
+    AndThenPState(first.initialState(), second.initialState(), PQueue.empty)
 
   private def process(firstQ: QI[T1], secondQ: QI[T2], totalQ: QI[(Idx, Idx)]): (QI[T1], QI[T2], QI[(Idx, Idx)]) = {
 
@@ -55,26 +56,31 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
         case None => default
         // if first part is Failure (== None) then return None as a result
         case Some(x @ IdxValue(_, Fail)) =>
-          inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(x.index, Result.fail)); total })
+          inner(first.behead(), second, total.enqueue(x.index, Result.fail))
         case Some(iv1 @ IdxValue(index1, _)) =>
           second.headOption match {
             // if any of parts is empty -> do nothing
             case None => default
             // if that's an late event from second queue, just skip it
             case Some(IdxValue(index2, _)) if idxOrd.lteqv(index2, index1) => //todo lt or lteqv ?
-              inner(first, { second.dequeue; second }, total)
+              inner(first, second.behead(), total)
             // if second part is Failure return None as a result
             case Some(IdxValue(_, Fail)) =>
-              inner({ first.dequeue; first }, second, { total.enqueue(IdxValue(index1, Fail)); total })
+              inner(first.behead(), second, total.enqueue(index1, Fail))
             // if both first and second stages a Success then return Success
-            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) &&
-              idxOrd.lteqv(index2, first.lift(1).map(_.index).getOrElse(Long.MaxValue)) =>
-              inner({ first.dequeue; first }, { second.dequeue; second }, {
-                total.enqueue(IdxValue.union(iv1, iv2, (_: Any, _: Any) => Succ(index1 -> index2))); total
-              })
-            // if both return success, but the second part is too late (i.e. not immediately following the first)
-            case Some(IdxValue(_, Succ(_))) =>
-              inner({ first.dequeue; first }, second, total)
+            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
+              val newFirst = first.behead()
+              if (idxOrd.lteqv(index2, newFirst.headOption.map(_.index).getOrElse(Long.MaxValue))) {
+                inner(
+                  newFirst,
+                  second.behead(),
+                  total.enqueue(IdxValue.union(iv1, iv2)((_, _) => Succ(index1 -> index2)))
+                )
+              } else {
+                // if both return success, but the second part is too late (i.e. not immediately following the first)
+                inner(first.behead(), second, total)
+              }
+
           }
       }
     }

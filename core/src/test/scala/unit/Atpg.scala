@@ -21,7 +21,7 @@ class ATPGTest extends FlatSpec with Matchers {
       Prop.forAll { num:Int =>  
 
         // Exp state
-        val eventsQueue  = scala.collection.mutable.Queue(IdxValue(num,Result.succ(0)))
+        val eventsQueue  = PQueue(IdxValue(num,Result.succ(0)))
         val expState  = SimplePState[Int] (eventsQueue)
 
         // Act state

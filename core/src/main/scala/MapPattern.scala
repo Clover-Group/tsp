@@ -2,6 +2,7 @@ package ru.itclover.tsp.v2
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.v2.IdxValue.IdxValueSegment
+import ru.itclover.tsp.v2.PQueue.MapPQueue
 import ru.itclover.tsp.v2.Pattern.QI
 
 import scala.language.higherKinds
@@ -25,9 +26,7 @@ case class MapPState[InnerState <: PState[T1, InnerState], T1, T2](
   innerState: InnerState,
   func: T1 => Result[T2]
 ) extends PState[T2, MapPState[InnerState, T1, T2]] {
-  override def queue: QI[T2] = innerState.queue.map(
-    tv => IdxValueSegment(index = tv.index, start = tv.start, end = tv.end, value = tv.value.flatMap(func))
-  )
+  override def queue: QI[T2] = MapPQueue(innerState.queue, func)
   override def copyWithQueue(queue: QI[T2]): MapPState[InnerState, T1, T2] = {
     val prevSize = innerState.queue.size
     val toDrop = prevSize - queue.size

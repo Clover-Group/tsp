@@ -8,6 +8,7 @@ import ru.itclover.tsp.v2.Pattern.{Idx, QI}
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
+import PQueue._
 
 /** Couple Pattern */
 class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
@@ -47,18 +48,18 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
 
       (first.headOption, second.headOption) match {
         // if any of parts is empty -> do nothing
-        case (_, None)                                                => default
-        case (None, _)                                                => default
+        case (_, None)                                                            => default
+        case (None, _)                                                            => default
         case (Some(iv1 @ IdxValue(idx1, val1)), Some(iv2 @ IdxValue(idx2, val2))) =>
           // we emit result only if results on left and right sides come at the same time
           if (idxOrd.eqv(idx1, idx2)) {
             val result: Result[T3] = func(val1, val2)
-            inner({ first.dequeue; first }, { second.dequeue; second }, { total.enqueue(IdxValue.union(iv1, iv2, (_: Any, _: Any) => result)); total })
+            inner(first.behead(), second.behead(), total.enqueue(IdxValue.union(iv1, iv2)((_, _) => result)))
             // otherwise skip results from one of sides
           } else if (idxOrd.lt(idx1, idx2)) {
-            inner({ first.dequeue; first }, second, total)
+            inner(first.behead(), second, total)
           } else {
-            inner(first, { second.dequeue; second }, total)
+            inner(first, second.behead(), total)
           }
       }
     }
@@ -67,7 +68,7 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
   }
 
   override def initialState(): CouplePState[State1, State2, T1, T2, T3] =
-    CouplePState(left.initialState(), right.initialState(), m.Queue.empty)
+    CouplePState(left.initialState(), right.initialState(), MutablePQueue(m.Queue.empty))
 }
 
 case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
