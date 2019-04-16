@@ -133,5 +133,9 @@ object Library {
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
+  
+  val strawman = Seq(
+    "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
+  )
 
 }

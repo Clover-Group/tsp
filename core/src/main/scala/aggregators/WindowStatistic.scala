@@ -12,12 +12,12 @@ import scala.language.higherKinds
 
 // TOOD@fabura Docs? Rename?
 case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
-  override val innerPattern: Pattern[Event, S, T],
+  override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T]] {
   override def initialState(): AggregatorPState[S, WindowStatisticAccumState[T], WindowStatisticResult] =
     AggregatorPState(
-      innerState = innerPattern.initialState(),
+      innerState = inner.initialState(),
       astate = WindowStatisticAccumState(None, m.Queue.empty),
       queue = PQueue.empty,
       indexTimeMap = m.Queue.empty

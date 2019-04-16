@@ -6,14 +6,14 @@ import scala.language.implicitConversions
 trait PQueue[T] {
 
   def size: Int
-  def headOption: Option[IdxValue[T]]
-  def dequeue(): (IdxValue[T], PQueue[T])
-  def dequeueOption(): Option[(IdxValue[T], PQueue[T])]
-  def behead(): PQueue[T]
-  def beheadOption(): Option[PQueue[T]]
-  def enqueue(idxValues: IdxValue[T]*): PQueue[T]
-  def enqueue(idx: Idx, value: Result[T]): PQueue[T]
-  def clean(): PQueue[T]
+  @inline def headOption: Option[IdxValue[T]]
+  @inline def dequeue(): (IdxValue[T], PQueue[T])
+  @inline def dequeueOption(): Option[(IdxValue[T], PQueue[T])]
+  @inline def behead(): PQueue[T]
+  @inline def beheadOption(): Option[PQueue[T]]
+  @inline def enqueue(idxValues: IdxValue[T]*): PQueue[T]
+  @inline def enqueue(idx: Idx, value: Result[T]): PQueue[T]
+  @inline def clean(): PQueue[T]
   def drop(i: Long): PQueue[T] = (1l to i).foldLeft(this) { case (x, _) => x.behead() }
 
   def toSeq: Seq[IdxValue[T]]

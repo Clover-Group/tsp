@@ -33,7 +33,7 @@ trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
     * @tparam Cont Container for yet another chunk of Events
     * @return
     */
-  def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
+  @inline def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
 }
 
 trait IdxValue[+T] {
@@ -78,9 +78,11 @@ object Pattern {
 
   type Idx = Long
 
-  case class Idx2(index: Long) extends AnyVal
-
   type QI[T] = PQueue[T]
+
+  trait WithInner[Event, S <: PState[T, S], T] {
+    def inner: Pattern[Event, S, T]
+  }
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx

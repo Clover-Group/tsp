@@ -12,8 +12,8 @@ import PQueue._
 
 /** Couple Pattern */
 class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
-  left: Pattern[Event, State1, T1],
-  right: Pattern[Event, State2, T2]
+ val left: Pattern[Event, State1, T1],
+ val right: Pattern[Event, State2, T2]
 )(
   func: (Result[T1], Result[T2]) => Result[T3]
 )(

@@ -33,9 +33,8 @@ abstract class AccumPattern[
   Out,
   AState <: AccumState[InnerOut, Out, AState]
 ](implicit idxOrd: Order[Idx])
-    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out] {
+    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out]  with WithInner[Event, Inner,InnerOut]{
 
-  val innerPattern: Pattern[Event, Inner, InnerOut]
   val window: Window
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
@@ -44,19 +43,19 @@ abstract class AccumPattern[
   ): F[AggregatorPState[Inner, AState, Out]] = {
 
     val idxTimeMapWithNewEvents =
-      event.map(e => e.index -> e.time).foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b); a }
+      event.foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b.index -> b.time); a }
 
-    innerPattern
+    inner
       .apply[F, Cont](state.innerState, event)
       .map(
         newInnerState => {
           val (newInnerQueue, newAState, newResults, updatedIndexTimeMap) =
-            processQueue(newInnerState, state.astate, idxTimeMapWithNewEvents)
+            processQueue(newInnerState, state.astate, state.queue, idxTimeMapWithNewEvents)
 
           AggregatorPState(
             newInnerState.copyWithQueue(newInnerQueue),
             newAState,
-            state.queue.enqueue(newResults.toSeq: _*),
+            newResults,
             updatedIndexTimeMap
           )(idxOrd)
         }
@@ -66,6 +65,7 @@ abstract class AccumPattern[
   private def processQueue(
     innerS: Inner,
     accumState: AState,
+    results: QI[Out],
     indexTimeMap: m.Queue[(Idx, Time)]
   ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) = {
 
@@ -79,7 +79,7 @@ abstract class AccumPattern[
       innerQueue.headOption match {
         case None => (innerQueue, accumState, collectedNewResults, indexTimeMap)
         case Some(IdxValue(index, value)) =>
-          val updatedQueue = { innerQueue.dequeue(); innerQueue }
+          val updatedQueue = innerQueue.behead()
           val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)(idxOrd)
 
           val (newAState, newResults) = accumState.updated(window, index, newInnerResultTime, value)
@@ -87,13 +87,12 @@ abstract class AccumPattern[
           innerFunc(
             updatedQueue,
             newAState,
-            //todo check that .iterator.toSeq is efficient
-            { collectedNewResults.enqueue(newResults.toSeq: _*); collectedNewResults },
+            collectedNewResults.enqueue(newResults.toSeq: _*),
             updatedIdxTimeMap
           )
       }
 
-    innerFunc(innerS.queue, accumState, PQueue.empty, indexTimeMap)
+    innerFunc(innerS.queue, accumState, results, indexTimeMap)
   }
 
 }

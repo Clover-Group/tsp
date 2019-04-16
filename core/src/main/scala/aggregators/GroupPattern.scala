@@ -14,12 +14,12 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](
-  override val innerPattern: Pattern[Event, S, T],
+  override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, GroupAccumResult[T], GroupAccumState[T]] {
   override def initialState(): AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]] =
     AggregatorPState(
-      innerState = innerPattern.initialState(),
+      innerState = inner.initialState(),
       astate = GroupAccumState(None, m.Queue.empty),
       queue = PQueue.empty,
       indexTimeMap = m.Queue.empty

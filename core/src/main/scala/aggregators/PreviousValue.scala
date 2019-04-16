@@ -12,13 +12,13 @@ import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
-  override val innerPattern: Pattern[Event, State, Out],
+  override val inner: Pattern[Event, State, Out],
   override val window: Window
 ) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out]] {
 
   override def initialState() =
     AggregatorPState(
-      innerPattern.initialState(),
+      inner.initialState(),
       PreviousValueAccumState(PQueue.empty),
       PQueue.empty,
       m.Queue.empty
