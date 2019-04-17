@@ -20,7 +20,7 @@
 		"numParallelSources": 1
 	},
 	"sink": {
-		"jdbcUrl": "jdbc:postgresql://192.168.40.101:30543/events?stringtype=unspecified",
+    "jdbcUrl": "jdbc:postgresql://192.168.1.127:30001/events?stringtype=unspecified",
 		"driverName": "org.postgresql.Driver",
 		"userName": "clover",
 		"password": "clover",

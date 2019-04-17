@@ -123,8 +123,7 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
-      ++ Library.kafka ++ Library.jackson
+    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.jackson
   )
   .dependsOn(core, config, dsl)
 

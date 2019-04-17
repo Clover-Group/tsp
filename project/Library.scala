@@ -7,12 +7,10 @@ object Version {
 
   val config = "1.3.3"
 
-  val influx = "2.13"
-  val influxCli = "0.6.0"
-  val influxFlink = "1.0"
+  val influx = "2.15"
 
-  val clickhouse = "0.1.48"
-  val flink = "1.7.2"
+  val clickhouse = "0.1.52"
+  val flink = "1.8.0"
 
   val akka = "2.5.19"
   val akkaHttp = "10.1.5"
@@ -76,7 +74,6 @@ object Library {
   val flink = flinkCore ++ Seq(
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-    "org.apache.flink" %% "flink-connector-kafka-0.10" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
   )
@@ -117,10 +114,6 @@ object Library {
   )
 
   val jol = Seq("org.openjdk.jol" % "jol-core" % "0.9" % "test")
-
-  val kafka = Seq(
-    "org.apache.avro" % "avro" % Version.avro
-  )
 
   val parboiled = Seq(
     "org.parboiled" %% "parboiled" % Version.parboiled
