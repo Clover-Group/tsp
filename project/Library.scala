@@ -10,7 +10,7 @@ object Version {
   val influx = "2.15"
 
   val clickhouse = "0.1.52"
-  val flink = "1.8.0"
+  val flink = "1.7.2"
 
   val akka = "2.5.19"
   val akkaHttp = "10.1.5"

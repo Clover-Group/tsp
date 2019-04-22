@@ -71,7 +71,7 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:11-jre-slim"),
+  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -108,7 +108,7 @@ lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.jol
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
@@ -139,7 +139,7 @@ lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled ++ Library.scrum ++ Library.jol
+    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
 
 lazy val integrationCorrectness = project.in(file("integration/correctness"))
