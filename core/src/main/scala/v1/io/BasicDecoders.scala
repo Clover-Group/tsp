@@ -19,7 +19,8 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
           case e: Exception =>
             throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
         }
-      case null => Double.NaN
+      case null =>    // TSP-219 fix
+      case _    =>    // FIXME
     }
   }
 
