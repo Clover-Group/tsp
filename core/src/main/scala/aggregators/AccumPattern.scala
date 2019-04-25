@@ -23,7 +23,7 @@ case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Ou
 )(
   implicit idxOrd: Order[Idx]
 ) extends PState[Out, AggregatorPState[InnerState, AState, Out]] {
-  override def copyWithQueue(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
+  override def copyWith(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
 }
 
 abstract class AccumPattern[
@@ -53,7 +53,7 @@ abstract class AccumPattern[
             processQueue(newInnerState, state.astate, state.queue, idxTimeMapWithNewEvents)
 
           AggregatorPState(
-            newInnerState.copyWithQueue(newInnerQueue),
+            newInnerState.copyWith(newInnerQueue),
             newAState,
             newResults,
             updatedIndexTimeMap

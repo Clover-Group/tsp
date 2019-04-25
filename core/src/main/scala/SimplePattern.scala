@@ -23,7 +23,7 @@ class SimplePattern[Event: IdxExtractor, T](f: Event => Result[T]) extends Patte
 }
 
 case class SimplePState[T](override val queue: QI[T]) extends PState[T, SimplePState[T]] {
-  override def copyWithQueue(queue: QI[T]): SimplePState[T] = this.copy(queue = queue)
+  override def copyWith(queue: QI[T]): SimplePState[T] = this.copy(queue = queue)
 }
 
 case class ConstPattern[Event: IdxExtractor, T](value: T) extends SimplePattern[Event, T](_ => Result.succ(value))

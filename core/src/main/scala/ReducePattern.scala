@@ -32,7 +32,7 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
       val (updatedQueues, newFinalQueue) =
         processQueues(pG.map(_.queue), oldState.queue)
       ReducePState(
-        pG.zip(updatedQueues).map { case (p, q) => p.copyWithQueue(q) },
+        pG.zip(updatedQueues).map { case (p, q) => p.copyWith(q) },
         newFinalQueue
       )
     }
@@ -75,7 +75,7 @@ case class ReducePState[State <: PState[T1, State], T1, T2](
   states: Seq[State],
   override val queue: QI[T2]
 ) extends PState[T2, ReducePState[State, T1, T2]] {
-  override def copyWithQueue(queue: QI[T2]): ReducePState[State, T1, T2] = this.copy(queue = queue)
+  override def copyWith(queue: QI[T2]): ReducePState[State, T1, T2] = this.copy(queue = queue)
 }
 
 case object ReducePState {}

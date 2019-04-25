@@ -108,7 +108,7 @@ lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.jol ++ Library.strawman
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.jol
   )
 
 lazy val config = project.in(file("config"))

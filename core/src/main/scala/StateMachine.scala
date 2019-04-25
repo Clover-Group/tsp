@@ -51,7 +51,7 @@ object StateMachine {
                 {
 
                   val outputs = newState.queue.toSeq
-                  val drainedState = newState.copyWithQueue(PQueue.empty)
+                  val drainedState = newState.copyWith(PQueue.empty)
                   val allConsumed: F[Unit] = outputs.foldLeft(Monad[F].pure(())) {
                     case (t, out) => t.flatMap(_ => consume(out))
                   }

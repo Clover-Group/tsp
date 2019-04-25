@@ -27,10 +27,10 @@ case class MapPState[InnerState <: PState[T1, InnerState], T1, T2](
   func: T1 => Result[T2]
 ) extends PState[T2, MapPState[InnerState, T1, T2]] {
   override def queue: QI[T2] = MapPQueue(innerState.queue, func)
-  override def copyWithQueue(queue: QI[T2]): MapPState[InnerState, T1, T2] = {
+  override def copyWith(queue: QI[T2]): MapPState[InnerState, T1, T2] = {
     val prevSize = innerState.queue.size
     val toDrop = prevSize - queue.size
     assert(toDrop >= 0, "Illegal state, queue cannot grow in map")
-    this.copy(innerState = innerState.copyWithQueue(innerState.queue.drop(toDrop)))
+    this.copy(innerState = innerState.copyWith(innerState.queue.drop(toDrop)))
   }
 }

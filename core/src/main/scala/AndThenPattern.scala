@@ -34,8 +34,8 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
           process(newFirstState.queue, newSecondState.queue, oldState.queue)
 
         AndThenPState(
-          newFirstState.copyWithQueue(updatedFirstQueue),
-          newSecondState.copyWithQueue(updatedSecondQueue),
+          newFirstState.copyWith(updatedFirstQueue),
+          newSecondState.copyWith(updatedSecondQueue),
           finalQueue
         )
       }
@@ -95,7 +95,7 @@ case class AndThenPState[T1, T2, State1 <: PState[T1, State1], State2 <: PState[
   override val queue: QI[(Idx, Idx)]
 ) extends PState[(Idx, Idx), AndThenPState[T1, T2, State1, State2]] {
 
-  override def copyWithQueue(queue: QI[(Idx, Idx)]): AndThenPState[T1, T2, State1, State2] = this.copy(queue = queue)
+  override def copyWith(queue: QI[(Idx, Idx)]): AndThenPState[T1, T2, State1, State2] = this.copy(queue = queue)
 }
 
 object AndThenPState {}

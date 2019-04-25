@@ -15,7 +15,7 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
  val left: Pattern[Event, State1, T1],
  val right: Pattern[Event, State2, T2]
 )(
-  func: (Result[T1], Result[T2]) => Result[T3]
+ val func: (Result[T1], Result[T2]) => Result[T3]
 )(
   implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3] {
@@ -32,8 +32,8 @@ class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, St
         processQueues(newLeftState.queue, newRightState.queue, oldState.queue)
 
       CouplePState(
-        newLeftState.copyWithQueue(updatedLeftQueue),
-        newRightState.copyWithQueue(updatedRightQueue),
+        newLeftState.copyWith(updatedLeftQueue),
+        newRightState.copyWith(updatedRightQueue),
         newFinalQueue
       )
     }
@@ -76,7 +76,7 @@ case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State
   right: State2,
   override val queue: QI[T3]
 ) extends PState[T3, CouplePState[State1, State2, T1, T2, T3]] {
-  override def copyWithQueue(queue: QI[T3]): CouplePState[State1, State2, T1, T2, T3] = this.copy(queue = queue)
+  override def copyWith(queue: QI[T3]): CouplePState[State1, State2, T1, T2, T3] = this.copy(queue = queue)
 }
 
 case object CouplePState {}
