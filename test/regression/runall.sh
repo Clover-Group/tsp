@@ -6,5 +6,5 @@
 CPPKDIR=./cppk
 LOCODIR=./loco
 
-for i in $CPPKDIR/* ; do ./tester_cppk.py $i;done
+for i in $LOCODIR/* ; do ./tester_loco.py $i;done
 for i in $CPPKDIR/* ; do ./tester_cppk.py $i;done
