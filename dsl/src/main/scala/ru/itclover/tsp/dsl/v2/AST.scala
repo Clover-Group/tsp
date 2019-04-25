@@ -81,9 +81,9 @@ case class AndThen(first: AST, second: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
-case class Timer(cond: AST, interval: TimeInterval) extends AST {
+case class Timer(cond: AST, interval: TimeInterval, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
-  override def metadata = cond.metadata |+| PatternMetadata(Set.empty, interval.max)
+  override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(interval.max))
 
   override val valueType: ASTType = BooleanASTType
 }
@@ -107,8 +107,8 @@ case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window,
   override val valueType = BooleanASTType
 }
 
-case class AggregateCall(function: AggregateFn, value: AST, window: Window) extends AST {
-  override def metadata = value.metadata |+| PatternMetadata(Set.empty, window.toMillis)
+case class AggregateCall(function: AggregateFn, value: AST, window: Window, gap: Option[Window] = None) extends AST {
+  override def metadata = value.metadata |+| PatternMetadata(Set.empty, gap.getOrElse(window).toMillis)
 
   override val valueType: ASTType = DoubleASTType //TODO: Customize return type
 }

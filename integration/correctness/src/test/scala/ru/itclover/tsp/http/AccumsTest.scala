@@ -80,6 +80,10 @@ class AccumsTest
     RawPattern("466", s"gt1000Sens >= 5990 for $windowMin min")
   )
 
+  val (reducerMaxTimeSec, reducerPattern) = 100L -> List(
+    RawPattern("467", "avgOf(1.0, 0.0) < 200")
+  )
+
 
   val inputConf = JDBCInputConf(
     sourceId = 123,
@@ -206,6 +210,26 @@ class AccumsTest
       )
       // Performance
       execTimeS should be <= timedMaxTimeSec
+    }
+
+  }
+
+  "Reducer (.avgOf)" should "compute in time" in {
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("3", inputConf, outputConf, reducerPattern)) ~> route ~> check {
+
+      status shouldEqual StatusCodes.OK
+      val resp = unmarshal[FinishedJobResponse](responseEntity)
+      resp shouldBe a[Success[_]]
+      val execTimeS = resp.get.response.execTimeSec
+      log.info(s"Test job completed for $execTimeS sec.")
+
+      // Correctness
+      checkByQuery(
+        1 :: Nil,
+        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 467"
+      )
+      // Performance
+      execTimeS should be <= reducerMaxTimeSec
     }
 
   }

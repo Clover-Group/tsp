@@ -18,7 +18,31 @@ object Launcher extends App with HttpService {
   override val isDebug: Boolean = configs.getBoolean("general.is-debug")
   private val log = Logger("Launcher")
 
-  implicit val system: ActorSystem = ActorSystem("TSP-system")
+  // bku: Increase the number of parallel connections 
+  val parallel  = 1024 
+
+  // TSP-214 Fix
+  val req_timeout  = 1 // in mins
+
+  implicit val system: ActorSystem = ActorSystem("TSP-system", ConfigFactory.parseString (
+    s"""
+            |akka {
+            |    http {
+            |        server {
+            |            request-timeout = $req_timeout min
+            |            backlog = $parallel
+            |            pipelining-limit = $parallel
+            |        }
+            |
+            |        host-connection-pool {
+            |            max-connections = $parallel
+            |            max-open-requests = $parallel
+            |            max-connections = $parallel
+            |        }
+            |    }
+            |}
+          """.stripMargin))
+ 
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 

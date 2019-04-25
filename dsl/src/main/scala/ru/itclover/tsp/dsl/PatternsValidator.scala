@@ -1,6 +1,6 @@
 package ru.itclover.tsp.dsl
 
-import ru.itclover.tsp.core.{Pattern, RawPattern}
+import ru.itclover.tsp.core.{RawPattern}
 import ru.itclover.tsp.dsl.v2.{AST, ASTBuilder}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 

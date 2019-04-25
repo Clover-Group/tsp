@@ -50,14 +50,15 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   /*_*/
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~> (ForWithInterval(_, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
     (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     ((c: AST, b: AST, r: Option[Any]) => {
       val until = Assert(FunctionCall('not, Seq(b)))
-      val timedCondition = Timer(c, TimeInterval.MaxInterval)
+      //val window = Window(86400000) // 24 hours
+      val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), Some(MinWindow))
       FunctionCall('and, Seq(timedCondition, until))
     })
     | trileanFactor)
@@ -380,7 +381,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
             )
           case "lag" =>
             if (arguments.length > 1) throw ParseException("Lag should use only 1 argument when called without window")
-            AggregateCall(Lag, arguments.head, Window(1))
+            AggregateCall(Lag, arguments.head, Window(1), Some(Window(0)))
           case _ => FunctionCall(Symbol(normalisedFunction), arguments)
         }
       })

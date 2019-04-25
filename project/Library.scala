@@ -7,11 +7,9 @@ object Version {
 
   val config = "1.3.3"
 
-  val influx = "2.13"
-  val influxCli = "0.6.0"
-  val influxFlink = "1.0"
+  val influx = "2.15"
 
-  val clickhouse = "0.1.48"
+  val clickhouse = "0.1.52"
   val flink = "1.7.2"
 
   val akka = "2.5.19"
@@ -23,10 +21,10 @@ object Version {
 
   val scalaTest = "3.0.5"
   val scalaCheck = "1.14.0"
+  val jmh = "0.3.4"
+
   val testContainers = "0.20.0"
   val postgres = "42.2.5"
-
-  val spark = "2.4.0"
 
   val avro = "1.8.2"
 
@@ -41,6 +39,7 @@ object Version {
   val kindProjector = "0.9.8"
 
   val simulacrum = "0.15.0"
+  val sentry = "1.7.16"
 }
 
 object Library {
@@ -75,7 +74,6 @@ object Library {
   val flink = flinkCore ++ Seq(
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-    "org.apache.flink" %% "flink-connector-kafka-0.10" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
   )
@@ -95,10 +93,9 @@ object Library {
     "org.typelevel" %% "cats-core" % Version.cats
   )
 
-  val scrum  = Seq (
-    "com.github.mpilquist"  %% "simulacrum" % Version.simulacrum
+  val scrum = Seq(
+    "com.github.mpilquist" %% "simulacrum" % Version.simulacrum
   )
-  
 
   val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
 
@@ -107,23 +104,16 @@ object Library {
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
+  
+  val perf = Seq(
+    "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
+  )
 
   val testContainers = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
   )
 
-  val sparkStreaming = Seq(
-    "org.apache.spark" %% "spark-core" % Version.spark,
-    "org.apache.spark" %% "spark-streaming" % Version.spark,
-    "org.apache.spark" %% "spark-streaming-kafka-0-10" % Version.spark,
-    // Needed for structured streams
-    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark,
-    "org.apache.spark" %% "spark-sql" % Version.spark
-  )
-
-  val kafka = Seq(
-    "org.apache.avro" % "avro" % Version.avro
-  )
+  val jol = Seq("org.openjdk.jol" % "jol-core" % "0.9" % "test")
 
   val parboiled = Seq(
     "org.parboiled" %% "parboiled" % Version.parboiled
@@ -133,7 +123,8 @@ object Library {
     "com.chuusai" %% "shapeless" % Version.shapeless
   )
 
-  val monix = Seq(
-    "io.monix" %% "monix" % "3.0.0-RC2"
+  val sentrylog = Seq(
+    "io.sentry" %% "sentry-logback" % Version.sentry
   )
+
 }

@@ -1,3 +1,5 @@
+## 0.14.1
+- internal overhaul, some bug fixes
 ## 0.14.0
 - rules validator now requires field types
 - added `chunkSizeMs` parameter for chunk window size

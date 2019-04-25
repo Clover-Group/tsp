@@ -1,38 +1,29 @@
 package ru.itclover.tsp
 
-import org.apache.flink.api.common.JobExecutionResult
+import cats.Traverse
+import cats.data.Validated
+import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.api.windowing.assigners.{
-  EventTimeSessionWindows,
-  SessionWindowTimeGapExtractor,
-  TumblingEventTimeWindows,
-  WindowAssigner
-}
-import cats.data.Validated
-import cats.{Foldable, Functor, Id, Monad, Traverse}
-import cats.implicits._
-import ru.itclover.tsp.core.{Incident, RawPattern, Window}
-import ru.itclover.tsp.io.input.{InputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.io.output.OutputConf
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.core.IncidentInstances.semigroup
-import com.typesafe.scalalogging.Logger
-import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
+import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
+import ru.itclover.tsp.core.IncidentInstances.semigroup
+import ru.itclover.tsp.core.{Incident, RawPattern, Time}
+import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
 import ru.itclover.tsp.io._
-import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
+import ru.itclover.tsp.io.output.OutputConf
+import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.Bucketizer
-import ru.itclover.tsp.utils.Bucketizer.{Bucket, WeightExtractor}
+import ru.itclover.tsp.utils.Bucketizer.Bucket
+import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
-import ru.itclover.tsp.v2._
 import ru.itclover.tsp.v2.Pattern.TsIdxExtractor
+import ru.itclover.tsp.v2._
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag
@@ -42,9 +33,9 @@ case class PatternsSearchJob[In, InKey, InItem](
   decoders: BasicDecoders[InItem]
 ) {
 
-  import source.{timeExtractor, extractor}
-  import decoders._
   import PatternsSearchJob._
+  import decoders._
+  import source.{extractor, timeExtractor}
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
@@ -93,6 +84,7 @@ case class PatternsSearchJob[In, InKey, InItem](
         )
         PatternProcessor[In, S, Segment, Incident](
           pattern,
+          meta.sumWindowsMs,
           toIncidents.apply,
           source.conf.eventsMaxGapMs,
           source.emptyEvent
@@ -102,9 +94,12 @@ case class PatternsSearchJob[In, InKey, InItem](
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.partitioner)
       .window(
-        TumblingEventTimeWindows.of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+        TumblingEventTimeWindows
+          .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
           .asInstanceOf[WindowAssigner[In, FlinkWindow]]
       )
+//      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+//      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
       .process[Incident](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )
@@ -129,8 +124,18 @@ object PatternsSearchJob {
     getTime: TimeExtractor[E],
     dDecoder: Decoder[EItem, Double]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
-    implicit val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
+    val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
     implicit val impFIM = fieldsIdxMap
+
+//    Pattern that transforms IdxValue[T] into IdxValue[Segment(fromTime, toTime)],
+//     useful when you need not a single point, but the whole time-segment as the result.
+//     __Note__ - all inner patterns should be using exactly __TsIdxExtractor__, or segment bounds would be incorrect.
+    def segmentize[T](idxVal: IdxValue[T]): Result[Segment] = {
+      val fromTs = tsToIdx.idxToTs(idxVal.start)
+      val toTs = tsToIdx.idxToTs(idxVal.end)
+      Result.succ(Segment(Time(toMillis = fromTs), Time(toMillis = toTs)))
+    }
+
     val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap, tsToIdx)
     Traverse[List]
       .traverse(rawPatterns.toList)(
@@ -139,7 +144,7 @@ object PatternsSearchJob {
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
-              p => (new IdxToSegmentsP(p._1).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+              p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
           )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )

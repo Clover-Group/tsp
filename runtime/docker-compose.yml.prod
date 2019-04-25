@@ -9,7 +9,7 @@ services:
       - "FLINK_MONITORING_PORT=8081"
       - "JOB_MANAGER_RPC_ADDRESS=jobmanager"
       - "TSP_JAVA_OPTS=-Xms2G -Xmx4G" 
-    restart: always
+    restart: on-failure
     image: clovergrp/tsp:0.13.0-rc3
     ports:
       - "8080:8080"

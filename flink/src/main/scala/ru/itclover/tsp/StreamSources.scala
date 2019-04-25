@@ -13,7 +13,6 @@ import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
-import ru.itclover.tsp.utils.CollectionsOps.TryOps
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
 import scala.collection.JavaConverters._

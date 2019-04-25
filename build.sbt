@@ -6,7 +6,7 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 
-scalaVersion in ThisBuild := "2.12.8"
+scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -27,7 +27,8 @@ lazy val commonSettings = Seq(
 
   // don't release subprojects
   githubRelease := null,
-  skip in publish := true
+  skip in publish := true, 
+  maxErrors := 5
 )
 
 lazy val assemblySettings = Seq(
@@ -70,7 +71,7 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:11-jre-slim"),
+  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -97,16 +98,17 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
 
 
 lazy val root = (project in file("."))
-  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
+  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
-  .dependsOn(core, config, http, flinkConnector, spark, dsl, integrationCorrectness)
+  .aggregate(core, config, http, flink, dsl, integrationCorrectness)
+  .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
 
 lazy val core = project.in(file("core"))
+  .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless ++ Library.monix
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
@@ -118,11 +120,10 @@ lazy val config = project.in(file("config"))
   )
   .dependsOn(core)
 
-lazy val flinkConnector = project.in(file("flink"))
+lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
-      ++ Library.kafka ++ Library.jackson
+    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.jackson
   )
   .dependsOn(core, config, dsl)
 
@@ -132,30 +133,21 @@ lazy val http = project.in(file("http"))
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
       Library.akkaHttp ++ Library.twitterUtil
   )
-  .dependsOn(core, config, flinkConnector, dsl)
-
-lazy val spark = project.in(file("spark"))
-  .settings(commonSettings)
-  .settings(
-    fork in run := true,
-    libraryDependencies ++= Library.sparkStreaming
-  )
-  .dependsOn(core, config)
+  .dependsOn(core, config, flink, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.parboiled ++ Library.scrum
+    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
-
 
 lazy val integrationCorrectness = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
-  .dependsOn(core, flinkConnector, http, config)
+  .dependsOn(core, flink, http, config)
 
 lazy val integrationPerformance = project.in(file("integration/performance"))
   .settings(commonSettings)
