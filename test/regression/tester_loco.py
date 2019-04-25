@@ -48,7 +48,7 @@ if __name__ == "__main__":
     host = args.host
     port = args.port
     # TSP server. Localhost or production
-    url = f'http://{host}:{port}/streamJob/from-jdbc/to-jdbc/?run_async=0'
+    url = f'http://{host}:{port}/streamJob/from-jdbc/to-jdbc/?run_async=1'
     print(f"Sending to {url}")
 
     files = sum([glob.glob(p) for p in args.files], [])

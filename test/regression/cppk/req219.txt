@@ -1,0 +1,84 @@
+{
+                                "sink": {
+                                    "jdbcUrl": "jdbc:postgresql://192.168.1.127:30001/events?stringtype=unspecified",
+                                    "password": "clover",
+                                    "userName": "clover",
+                                    "rowSchema": {
+                                        "toTsField": "to_ts",
+                                        "fromTsField": "from_ts",
+                                        "contextField": "context",
+                                        "appIdFieldVal": [
+                                            "type",
+                                            1
+                                        ],
+                                        "sourceIdField": "series_storage",
+                                        "patternIdField": "entity_id",
+                                        "forwardedFields": [
+                                            "stock_num",
+                                            "upload_id"
+                                        ],
+                                        "processingTsField": "processing_ts"
+                                    },
+                                    "tableName": "events_ep2k",
+                                    "driverName": "org.postgresql.Driver",
+                                    "parallelism": 1,
+                                    "batchInterval": 5000
+                                },
+                                "uuid": "0c51f17d-4215-4688-8612-9026630cd0b5_1",
+                                "source": {
+                                    "url": "http://80.93.181.114:8086",
+                                    "query": "SELECT last(\"reverser\") AS \"reverser\" FROM \"ep2d_tmy_wide_actual\" WHERE ((\"stock_num\"::tag = '9') AND (\"upload_id\"::tag = '2027')) AND (\"time\" >= '2018-06-21 00:00:00') AND (\"time\" <= '2018-07-11 00:00:00')  GROUP BY \"stock_num\"::tag, \"upload_id\"::tag, time(1s) fill(previous)",
+                                    "dbName": "cppk_pmm",
+                                    "password": "clover",
+                                    "sourceId": 115,
+                                    "userName": "clover",
+                                    "parallelism": -1,
+                                    "datetimeField": "time",
+                                    "eventsMaxGapMs": 60000,
+                                    "partitionFields": [
+                                        "stock_num",
+                                        "upload_id"
+                                    ],
+                                    "defaultEventsGapMs": 2000,
+                                    "numParallelSources": 1,
+                                    "patternsParallelism": 1
+                                },
+                                "patterns": [
+                                    {
+                                        "id": "1074",
+                                        "payload": {
+                                            "_params_": "wagon_id",
+                                            "wagon_id": "1"
+                                        },
+                                        "sourceCode": "reverser != 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1074",
+                                        "payload": {
+                                            "_params_": "wagon_id",
+                                            "wagon_id": "2"
+                                        },
+                                        "sourceCode": "reverser != 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1074",
+                                        "payload": {
+                                            "_params_": "wagon_id",
+                                            "wagon_id": "5"
+                                        },
+                                        "sourceCode": "reverser != 0",
+                                        "forwardedFields": []
+                                    },
+                                    {
+                                        "id": "1074",
+                                        "payload": {
+                                            "_params_": "wagon_id",
+                                            "wagon_id": "8"
+                                        },
+                                        "sourceCode": "reverser != 0",
+                                        "forwardedFields": []
+                                    }
+                                ]
+                            }
