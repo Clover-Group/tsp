@@ -15,7 +15,7 @@ import ru.itclover.tsp.core._
 import ru.itclover.tsp.patterns.Ops.SymbolToPattern
 import ru.itclover.tsp.patterns.Constants.{const => constant}
 import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.io.DoubleDecoderInstances._
+import ru.itclover.tsp.core.io.DoubleDecoderInstances._
 import ru.itclover.tsp.patterns.Booleans.{Assert, ComparingPattern}
 import ru.itclover.tsp.patterns.Constants.ConstPattern
 import ru.itclover.tsp.patterns.{Constants, NoState}

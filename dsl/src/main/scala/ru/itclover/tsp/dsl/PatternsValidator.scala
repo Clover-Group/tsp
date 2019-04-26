@@ -1,8 +1,8 @@
 package ru.itclover.tsp.dsl
 
-import ru.itclover.tsp.core.{RawPattern}
+import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
 import ru.itclover.tsp.dsl.v2.{AST, ASTBuilder}
-import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
 import scala.reflect.ClassTag
 

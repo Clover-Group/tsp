@@ -1,19 +1,20 @@
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import com.dimafeng.testcontainers._
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.FlatSpec
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
+import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.utils.Files
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
-import com.dimafeng.testcontainers._
-import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.http.utils.{JDBCContainer, RangeMatchers, SqlMatchers}
-import ru.itclover.tsp.utils.Files
 
 class BasicJdbcTest
     extends FlatSpec

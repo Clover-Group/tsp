@@ -4,8 +4,8 @@ import cats.Id
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2._
+import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls

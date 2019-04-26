@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
@@ -12,10 +13,9 @@ import org.apache.flink.streaming.api.scala._
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
-import ru.itclover.tsp.io.output.{JDBCOutput, JDBCOutputConf, OutputConf, RowSchema}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
+
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import cats.implicits._
@@ -24,10 +24,12 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.types.Row
 import ru.itclover.tsp._
-import ru.itclover.tsp.core.{RawPattern}
+import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.io.{AnyDecodersInstances, BasicDecoders}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
+import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 //import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}

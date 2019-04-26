@@ -2,11 +2,11 @@ package ru.itclover.tsp.dsl.v2
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.io.AnyDecodersInstances._
 import ru.itclover.tsp.dsl.PatternsValidator
 
 class PatternsValidatorTest extends FlatSpec with Matchers with PropertyChecks {
   import TestEvents._
-  import ru.itclover.tsp.io.AnyDecodersInstances.decodeToDouble
 
   val patterns = Seq(
     "doubleSensor1 > doubleSensor2",

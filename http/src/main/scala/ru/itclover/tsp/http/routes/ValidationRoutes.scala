@@ -1,20 +1,16 @@
 package ru.itclover.tsp.http.routes
 import akka.actor.ActorSystem
-import akka.http.scaladsl.marshalling
-import akka.http.scaladsl.marshalling.{Marshaller, Marshalling, ToResponseMarshallable, ToResponseMarshaller}
-import akka.http.scaladsl.model.{HttpResponse, Uri}
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.util.FastFuture
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import cats.data.Reader
+import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
 import ru.itclover.tsp.core.{RawPattern, Time}
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
-import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
 import scala.concurrent.ExecutionContextExecutor
-import scala.reflect.ClassTag
 
 object ValidationRoutes {
 

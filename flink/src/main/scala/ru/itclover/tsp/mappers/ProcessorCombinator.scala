@@ -2,7 +2,7 @@ package ru.itclover.tsp.mappers
 import org.apache.flink.streaming.api.scala.function.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.Window
 import org.apache.flink.util.Collector
-import ru.itclover.tsp.v2.PState
+import ru.itclover.tsp.core.PState
 
 import scala.reflect.ClassTag
 

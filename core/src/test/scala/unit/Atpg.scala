@@ -1,5 +1,5 @@
 
-package ru.itclover.tsp.v2 
+package ru.itclover.tsp.core
 
 import scala.language.reflectiveCalls
 import org.scalatest.{FlatSpec, Matchers}

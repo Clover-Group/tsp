@@ -1,6 +1,6 @@
 // Common objects for Testing
 
-package ru.itclover.tsp.v2 
+package ru.itclover.tsp.core
 
 import Pattern._
 

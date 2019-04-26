@@ -5,12 +5,11 @@ import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core.{Time, Window}
-import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.v2.Pattern.IdxExtractor
-import ru.itclover.tsp.v2._
-import ru.itclover.tsp.v2.Patterns
-import ru.itclover.tsp.v2.aggregators._
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.Patterns
+import ru.itclover.tsp.core.aggregators._
 import cats.kernel.instances._
 import shapeless.{::, HNil}
 

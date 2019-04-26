@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.dsl.PatternMetadataInstances.monoid
 import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.v2.Result
+import ru.itclover.tsp.core.Result
 
 sealed trait AST extends Product with Serializable {
   val valueType: ASTType

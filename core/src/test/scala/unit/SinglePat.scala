@@ -1,12 +1,12 @@
 // This runs FSM for all patterns using a one-entry queues
 
-package ru.itclover.tsp.v2 
+package ru.itclover.tsp.core
 
 import scala.language.reflectiveCalls
 import org.scalatest.{FlatSpec, Matchers}
 import cats.Id
-
 import Common._
+import ru.itclover.tsp.core.io.{Decoder, Extractor}
 
 class SinglePatTest extends FlatSpec with Matchers {
   
@@ -34,9 +34,6 @@ class SinglePatTest extends FlatSpec with Matchers {
   }
   
   it should "process ExtractingPattern correctly" in {
-
-    import ru.itclover.tsp.io.{Decoder, Extractor}
-    
 
     // Decoder Instance
     implicit val dec: Decoder[Int, Int] =  ((v:Int) => 2*v )

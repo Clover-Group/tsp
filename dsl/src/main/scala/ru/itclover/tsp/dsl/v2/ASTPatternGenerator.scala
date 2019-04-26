@@ -1,21 +1,18 @@
 package ru.itclover.tsp.dsl.v2
 
 import cats.Order
-import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
-import ru.itclover.tsp.core.Window
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor}
-import ru.itclover.tsp.v2._
-import ru.itclover.tsp.v2.aggregators.{WindowStatistic, WindowStatisticResult}
-
-import scala.reflect.ClassTag
 import cats.instances.double._
-import ru.itclover.tsp.io.AnyDecodersInstances._
-import ru.itclover.tsp.v2.aggregators.TimerPattern
+import com.typesafe.scalalogging.Logger
+import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
+import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
+import ru.itclover.tsp.core.{Window, _}
+import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
+import ru.itclover.tsp.core.io.AnyDecodersInstances._
+import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
+import ru.itclover.tsp.dsl.PatternMetadata
 
 import scala.language.{higherKinds, implicitConversions}
-import com.typesafe.scalalogging.Logger
+import scala.reflect.ClassTag
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],

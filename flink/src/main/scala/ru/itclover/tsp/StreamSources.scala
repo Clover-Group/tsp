@@ -1,6 +1,5 @@
 package ru.itclover.tsp
 
-import java.util
 import cats.syntax.either._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.io.RichInputFormat
@@ -10,11 +9,12 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import ru.itclover.tsp.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.io.input._
+import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 

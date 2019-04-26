@@ -1,11 +1,11 @@
 // This instantiates a Core FSM and shows how to it processes an event queue
 // FSM operates 100% like a State Monad and should be rewritten as Cats/ScalaZ State Monad instead of a custom code
 
-package ru.itclover.tsp.v2
+package ru.itclover.tsp.core
 
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.v2.Common._
+import ru.itclover.tsp.core.Common._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls

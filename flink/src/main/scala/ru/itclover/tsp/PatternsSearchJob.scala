@@ -22,8 +22,9 @@ import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
-import ru.itclover.tsp.v2.Pattern.TsIdxExtractor
-import ru.itclover.tsp.v2._
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag

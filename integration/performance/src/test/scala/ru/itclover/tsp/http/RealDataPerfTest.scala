@@ -3,8 +3,6 @@ package ru.itclover.tsp.http
 import akka.http.scaladsl.model.StatusCodes
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.RawPattern
