@@ -87,7 +87,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   def field[T](f: E => T): SimplePattern[E, T] = new SimplePattern(f.andThen(Result.succ))
 
-  def const[T](a: T): ConstPattern[E, T] = ConstPattern(a)
+  def const[T](a: T): ConstPattern[E, T] = ConstPattern(Result.succ(a))
 
   def windowStatistic[T, S <: PState[T, S]](i: Pattern[E, S, T], w: Window): WindowStatistic[E, S, T] =
     WindowStatistic(i, w)

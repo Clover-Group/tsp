@@ -15,7 +15,7 @@ class StateMachineTest extends FlatSpec with Matchers {
   it should "process ConstPattern correctly" in {
 
     // Run FSM
-    val pat = ConstPattern[EInt, Int](0)(extractor)
+    val pat = ConstPattern[EInt, Int](Result.succ(0))(extractor)
     val collect = new ArrayBuffer[IdxValue[Int]]()
     val actState = StateMachine[Id].run(pat, Seq(event), pat.initialState(), (x: IdxValue[Int]) => collect += x)
 

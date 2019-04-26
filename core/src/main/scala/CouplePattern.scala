@@ -3,7 +3,7 @@ package ru.itclover.tsp.v2
 import cats.{Foldable, Functor, Monad, Order}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import ru.itclover.tsp.v2.Pattern.{Idx, QI}
+import ru.itclover.tsp.v2.Pattern.{Idx, IdxExtractor, QI}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
@@ -11,11 +11,11 @@ import scala.language.higherKinds
 import PQueue._
 
 /** Couple Pattern */
-class CouplePattern[Event, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
- val left: Pattern[Event, State1, T1],
- val right: Pattern[Event, State2, T2]
+case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
+  left: Pattern[Event, State1, T1],
+  right: Pattern[Event, State2, T2]
 )(
- val func: (Result[T1], Result[T2]) => Result[T3]
+  val func: (Result[T1], Result[T2]) => Result[T3]
 )(
   implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3] {

@@ -13,7 +13,7 @@ class ATPGTest extends FlatSpec with Matchers {
   
   it should "auto generate all patterns" in {
     
-    def getConstPat(num:Int):ConstPattern[EInt,Int] = ConstPattern[EInt,Int] (num)(extractor)
+    def getConstPat(num:Int):ConstPattern[EInt,Int] = ConstPattern[EInt,Int] (Result.succ(num))(extractor)
 
     // Checker property
     def checkAll():Prop= { 

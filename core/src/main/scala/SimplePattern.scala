@@ -26,4 +26,4 @@ case class SimplePState[T](override val queue: QI[T]) extends PState[T, SimplePS
   override def copyWith(queue: QI[T]): SimplePState[T] = this.copy(queue = queue)
 }
 
-case class ConstPattern[Event: IdxExtractor, T](value: T) extends SimplePattern[Event, T](_ => Result.succ(value))
+case class ConstPattern[Event: IdxExtractor, T](value: Result[T]) extends SimplePattern[Event, T](_ => value)
