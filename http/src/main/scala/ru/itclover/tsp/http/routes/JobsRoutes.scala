@@ -33,24 +33,6 @@ import ru.itclover.tsp.utils.UtilityTypes.ParseException
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 import scala.util.Try
 
-object JobsRoutes {
-
-  def fromExecutionContext(monitoringUrl: Uri)(
-    implicit strEnv: StreamExecutionEnvironment,
-    as: ActorSystem,
-    am: ActorMaterializer
-  ): Reader[ExecutionContextExecutor, Route] =
-    Reader { execContext =>
-      new JobsRoutes {
-        implicit val executionContext: ExecutionContextExecutor = execContext
-        implicit val streamEnv: StreamExecutionEnvironment = strEnv
-        implicit val actorSystem = as
-        implicit val materializer = am
-        override val monitoringUri = monitoringUrl
-      }.route
-    }
-}
-
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
   implicit val streamEnv: StreamExecutionEnvironment
@@ -99,6 +81,9 @@ trait JobsRoutes extends RoutesProtocols {
     source: StreamSource[E, EKey, EItem]
   )(implicit decoders: BasicDecoders[EItem]) = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+
+    log.debug ("createStream started")
+
     val searcher = PatternsSearchJob(source, decoders)
     val strOrErr = searcher.patternsSearchStream(
       patterns,
@@ -109,21 +94,34 @@ trait JobsRoutes extends RoutesProtocols {
       case (parsedPatterns, stream) =>
         // .. patternV2.format
         val strPatterns = parsedPatterns.map { case ((p, meta), _) => /*p.format(source.emptyEvent) +*/ s" ;; Meta=$meta" }
-        log.info(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
+        log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
         stream
     }
+    
+    log.debug ("createStream finished")
+
+    strOrErr
   }
 
-  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] =
-    if (isAsync) { // Just detach job thread in case of async run
+  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] = {
+    log.debug ("runStream started")
+
+    val res = if (isAsync) { // Just detach job thread in case of async run
       Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
       Right(None)
     } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
+    
+    log.debug ("runStream finished")
+    res
+  }
 
-  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route =
-    result match {
+  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route = {
+    
+    log.debug ("matchResultToResponse started")
+
+    val res = result match {
       case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
       case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
       // Async job - response with message about successful start
@@ -135,5 +133,37 @@ trait JobsRoutes extends RoutesProtocols {
         complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
       }
     }
+    log.debug ("matchResultToResponse finished")
 
+    res
+  
+  }
+
+}
+
+object JobsRoutes {
+
+  private val log  = Logger[JobsRoutes]
+
+  def fromExecutionContext(monitoringUrl: Uri)(
+    implicit strEnv: StreamExecutionEnvironment,
+    as: ActorSystem,
+    am: ActorMaterializer
+  ): Reader[ExecutionContextExecutor, Route] = {
+    
+    log.debug ("fromExecutionContext started")
+
+    Reader { execContext =>
+      new JobsRoutes {
+        implicit val executionContext: ExecutionContextExecutor = execContext
+        implicit val streamEnv: StreamExecutionEnvironment = strEnv
+        implicit val actorSystem = as
+        implicit val materializer = am
+        override val monitoringUri = monitoringUrl
+      }.route
+    }
+  
+  }
+
+  log.debug ("fromExecutionContext finished")
 }

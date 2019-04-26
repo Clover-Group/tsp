@@ -21,11 +21,18 @@ import ru.itclover.tsp.utils.Exceptions
 import spray.json.PrettyPrinter
 import scala.util.{Failure, Success}
 
+import com.typesafe.scalalogging.Logger
+
 object MonitoringRoutes {
+  
+  private val log  = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
     monitoringUri: Uri
-  )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
+  )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
+    
+    log.debug ("fromExecutionContext started")
+    
     Reader { execContext =>
       new MonitoringRoutes {
         implicit override val executionContext = execContext
@@ -34,6 +41,9 @@ object MonitoringRoutes {
         override val uri = monitoringUri
       }.route
     }
+  
+  }
+    log.debug ("fromExecutionContext finished")
 }
 
 trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {

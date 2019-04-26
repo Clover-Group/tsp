@@ -39,24 +39,47 @@ trait HttpService extends RoutesProtocols {
 
   private val log = Logger[HttpService]
 
-  def composeRoutes: Reader[ExecutionContextExecutor, Route] = for {
-    jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
-    monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-    validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
-  } yield jobs ~ monitoring ~ validation
+  def composeRoutes: Reader[ExecutionContextExecutor, Route] = {
+    log.debug ("composeRoutes started")
 
-  def route = (logRequestAndResponse & handleErrors) {
+    val res = for {
+      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
+      monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
+      validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
+    } yield jobs ~ monitoring ~ validation
+    
+    log.debug ("composeRoutes finished")
+    res
+  }
+    
+
+  def route = {
+    log.debug ("route started")
+    val res = (logRequestAndResponse & handleErrors) {
     ignoreTrailingSlash {
       composeRoutes.run(executionContext).andThen { futureRoute =>
         futureRoute.onComplete { _ => System.gc() } // perform full GC after each route
         futureRoute
+        }
       }
     }
+    log.debug ("route finished")
+    res
   }
 
-  def logRequestAndResponse: Directive[Unit] = logRequest(log.info(_)) & logResponse(log.info(_))
+  def logRequestAndResponse: Directive[Unit] = {
+    log.debug("logRequestAndResponse started")
+    val res = logRequest(log.info(_)) & logResponse(log.info(_))
+    log.debug("logRequestAndResponse finished")
+    res
+  }
 
-  def handleErrors: Directive[Unit] = handleRejections(rejectionsHandler) & handleExceptions(exceptionsHandler)
+  def handleErrors: Directive[Unit] = {
+    log.debug ("handleErrors started")
+    val res = handleRejections(rejectionsHandler) & handleExceptions(exceptionsHandler)
+    log.debug ("handleErrors finished")
+    res
+  }
 
   implicit def rejectionsHandler: RejectionHandler = RejectionHandler
     .newBuilder()
