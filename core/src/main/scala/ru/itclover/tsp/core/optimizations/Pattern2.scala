@@ -3,7 +3,7 @@ package ru.itclover.tsp.core.optimizations
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.{IdxExtractor, QI}
 import ru.itclover.tsp.core.{IdxValue, PQueue, PState, Result}
-
+import scala.language.higherKinds
 
 trait Pattern2[Event, T] extends Serializable {
 

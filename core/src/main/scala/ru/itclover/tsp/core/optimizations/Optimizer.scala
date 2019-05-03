@@ -1,6 +1,7 @@
 package ru.itclover.tsp.core.optimizations
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.optimizations.Pat.Pat
 
 import scala.language.reflectiveCalls
 
@@ -8,23 +9,39 @@ trait WithInner[E, S <: PState[T, S], T, P <: Pattern[E, S, T]] extends Replacab
 
 class Optimizer[E: IdxExtractor] {
 
-  def optimize[S <: PState[T, S], T](pattern: Pattern[E, S, T]): Pattern[E, S, T] = {
+  def optimize[S <: PState[T, S], T](pattern: Pattern[E, S, T]): Pat[E, T] = {
 
-    coupleOfTwoConst(pattern.asInstanceOf[Pat[T]])._2.asInstanceOf[Pattern[E, S, T]]
+    if (coupleOfTwoConst.isDefinedAt(Pat(pattern))) {
+      coupleOfTwoConst(Pat(pattern))
+    } else if (mapOfConst.isDefinedAt(Pat(pattern))) {
+      mapOfConst(Pat(pattern))
+    } else Pat(pattern)
+
   }
 
-  type Pat[T] = ({
+  type OptimizeRule[T] = PartialFunction[Pat[E, T], Pat[E, T]]
+
+  private def coupleOfTwoConst[T]: OptimizeRule[T] = {
+    case Pat(x @ CouplePattern(Pat(left @ ConstPattern(a)), Pat(right @ ConstPattern(b)))) =>
+      Pat(ConstPattern[E, T](x.func.apply(a, b)))
+  }
+
+  private def mapOfConst[T]: OptimizeRule[T] = {
+    case Pat(map @ MapPattern(Pat(ConstPattern(x)))) => Pat(ConstPattern[E, T](x.flatMap(map.func)))
+  }
+
+}
+
+object Pat {
+
+  type Pat[E, T] = ({
     type S <: PState[T, S]
     type Inner = Pattern[E, S, T]
   })#Inner
 
-  type OptimizeRule[T] = PartialFunction[Pat[T], (Boolean, Pat[T])]
+  def apply[E, T](pattern: Pattern[E, _, T]): Pat[E, T] = pattern.asInstanceOf[Pat[E, T]]
 
-  private def coupleOfTwoConst[S1, S2, T1, T2, T]: OptimizeRule[T] = {
-    case x: CouplePattern[E, S1, S2, T1, T2, T]
-        if x.left.isInstanceOf[ConstPattern[_, _]] && x.right.isInstanceOf[ConstPattern[_, _]] =>
-      true -> ConstPattern(
-        x.func.apply(x.left.asInstanceOf[ConstPattern[E, T1]].value, x.right.asInstanceOf[ConstPattern[E, T2]].value)
-      ).asInstanceOf[Pat[T]]
+  def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
+    case x: Pattern[E, _, T] => Some(x)
   }
 }

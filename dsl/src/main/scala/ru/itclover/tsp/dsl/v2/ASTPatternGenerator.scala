@@ -65,7 +65,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         fc.arguments.length match {
           case 1 =>
             val p1 = generatePattern(fc.arguments(0))
-            new MapPattern(p1)(
+            MapPattern(p1)(
               (x: Any) =>
                 registry.functions
                   .getOrElse(
@@ -147,13 +147,13 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         }
       case at: AndThen =>
         // Pair of indices indicates success, so we convert it to true
-        new MapPattern(AndThenPattern(generatePattern(at.first), generatePattern(at.second)))(
+        MapPattern(AndThenPattern(generatePattern(at.first), generatePattern(at.second)))(
           v => if (v.isInstanceOf[(Idx, Idx)]) true else v
         )
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
       case fwi: ForWithInterval =>
-        new MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
+        MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
             case TimeInterval(_, max)    => max < fwi.window.toMillis
@@ -170,16 +170,16 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
 
       case c: Cast =>
         c.to match {
-          case IntASTType     => new MapPattern(generatePattern(c.inner))(decodeToInt(_))
-          case LongASTType    => new MapPattern(generatePattern(c.inner))(decodeToLong(_))
-          case BooleanASTType => new MapPattern(generatePattern(c.inner))(decodeToBoolean(_))
-          case StringASTType  => new MapPattern(generatePattern(c.inner))(decodeToString(_))
-          case DoubleASTType  => new MapPattern(generatePattern(c.inner))(decodeToDouble(_))
-          case AnyASTType     => new MapPattern(generatePattern(c.inner))(decodeToAny(_))
+          case IntASTType     => MapPattern(generatePattern(c.inner))(decodeToInt(_))
+          case LongASTType    => MapPattern(generatePattern(c.inner))(decodeToLong(_))
+          case BooleanASTType => MapPattern(generatePattern(c.inner))(decodeToBoolean(_))
+          case StringASTType  => MapPattern(generatePattern(c.inner))(decodeToString(_))
+          case DoubleASTType  => MapPattern(generatePattern(c.inner))(decodeToDouble(_))
+          case AnyASTType     => MapPattern(generatePattern(c.inner))(decodeToAny(_))
         }
 
       case Assert(inner) if inner.valueType == BooleanASTType =>
-        new MapPattern(generatePattern(inner))({ innerBool =>
+        MapPattern(generatePattern(inner))({ innerBool =>
           if (innerBool.asInstanceOf[Boolean]) Result.succ(innerBool) else Result.fail
         })
       case Assert(inner) if inner.valueType != BooleanASTType =>

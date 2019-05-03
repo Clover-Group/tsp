@@ -12,8 +12,8 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   type Pat[State <: PState[Out, State], Out] = Pattern[E, State, Out]
 
   implicit class MapSyntax[S <: PState[T, S], T](pattern: Pat[S, T]) {
-    def map[A](f: T => A): MapPattern[E, T, A, S] = new MapPattern(pattern)(f.andThen(Result.succ))
-    def flatMap[A](f: T => Result[A]) = new MapPattern(pattern)(f)
+    def map[A](f: T => A): MapPattern[E, T, A, S] = MapPattern(pattern)(f.andThen(Result.succ))
+    def flatMap[A](f: T => Result[A]): MapPattern[E, T, A, S] = MapPattern(pattern)(f)
   }
 
   implicit class AndThenSyntax[S <: PState[T, S], T](pattern: Pat[S, T]) {
@@ -25,28 +25,28 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   implicit class OrderingPatternSyntax[S <: PState[T, S], T: Ordering](pattern: Pat[S, T]) {
 
     def lteq[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].lteq(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].lteq(x, y))
 
     def gteq[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].gteq(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].gteq(x, y))
 
     def lt[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].lt(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].lt(x, y))
 
     def gt[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].gt(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].gt(x, y))
 
     def equiv[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].equiv(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].equiv(x, y))
 
     def notEquiv[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield !implicitly[Ordering[T]].equiv(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield !implicitly[Ordering[T]].equiv(x, y))
 
     def max[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].max(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].max(x, y))
 
     def min[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].min(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].min(x, y))
 
     //aliases
     def >=[S2 <: PState[T, S2]](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = gteq(second)
@@ -61,23 +61,23 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   implicit class GroupPatternSyntax[S <: PState[T, S], T: Group](pattern: Pat[S, T]) {
 
     def plus[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Group[T]].combine(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Group[T]].combine(x, y))
 
     def minus[S2 <: PState[T, S2]](second: Pat[S2, T]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Group[T]].remove(x, y))
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Group[T]].remove(x, y))
 
   }
 
   implicit class BooleanPatternSyntax[S <: PState[Boolean, S]](pattern: Pat[S, Boolean]) {
 
     def and[S2 <: PState[Boolean, S2]](second: Pat[S2, Boolean]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x & y)
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x & y)
 
     def or[S2 <: PState[Boolean, S2]](second: Pat[S2, Boolean]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x | y)
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x | y)
 
     def xor[S2 <: PState[Boolean, S2]](second: Pat[S2, Boolean]) =
-      new CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x ^ y)
+      CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield x ^ y)
 
   }
 

@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.Pattern.{QI, WithInner}
 import scala.language.higherKinds
 
 //todo optimize Map(Simple) => Simple
-class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val inner: Pattern[Event, InnerState, T1])(
+case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val inner: Pattern[Event, InnerState, T1])(
  val func: T1 => Result[T2]
 ) extends Pattern[Event, MapPState[InnerState, T1, T2], T2] with WithInner[Event, InnerState,T1]{
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
