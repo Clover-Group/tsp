@@ -80,7 +80,8 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
                 // if both return success, but the second part is too late (i.e. not immediately following the first)
                 inner(first.behead(), second, total)
               }
-
+            case _ =>
+              inner(first.behead(), second, total)
           }
       }
     }
