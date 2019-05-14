@@ -68,7 +68,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             case Some(IdxValue(_, Fail)) =>
               inner(first.behead(), second, total.enqueue(index1, Fail))
             // if both first and second stages a Success then return Success
-            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
+            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(iv2.start, iv1.end) =>
               val newFirst = first.behead()
               if (idxOrd.lteqv(index2, newFirst.headOption.map(_.index).getOrElse(Long.MaxValue))) {
                 inner(
