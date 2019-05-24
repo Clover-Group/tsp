@@ -210,6 +210,7 @@ object PatternsSearchJob {
   def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]) = {
     log.debug ("saveStream started")
     val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
+    outputConf.getOutputFormat.close()
     log.debug ("saveStream finished")
     res
   }
