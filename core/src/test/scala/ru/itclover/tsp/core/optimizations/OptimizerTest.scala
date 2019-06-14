@@ -29,7 +29,7 @@ class OptimizerTest extends FlatSpec with Matchers {
 
     val pat = field(_.col).map(_ + 2)
 
-//    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.SimplePattern[EInt, _]]
+    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.SimplePattern[EInt, _]]
   }
 
   it should "optimize couple(simple, const) to simple" in {}
