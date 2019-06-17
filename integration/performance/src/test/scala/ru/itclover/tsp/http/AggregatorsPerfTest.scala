@@ -8,6 +8,8 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
+import ru.itclover.tsp.io.input.JDBCInputConf
+import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
 class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {

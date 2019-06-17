@@ -51,6 +51,10 @@ class Optimizer[E: IdxExtractor] {
       Pat(SimplePattern[E, T](simple.f.andThen(map.func)))
   }
 
+  private def optimizeInners[T]: OptimizeRule[T] = {
+    case x : WithInner[_]
+  }
+
 }
 
 object Pat {

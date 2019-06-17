@@ -33,9 +33,14 @@ abstract class AccumPattern[
   Out,
   AState <: AccumState[InnerOut, Out, AState]
 ](implicit idxOrd: Order[Idx])
-    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out]  with WithInner[Event, Inner,InnerOut]{
+    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out]
+    with WithInners[Event] {
 
   val window: Window
+
+  def inner: Pattern[Event, Inner, InnerOut]
+
+  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(inner)
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     state: AggregatorPState[Inner, AState, Out],

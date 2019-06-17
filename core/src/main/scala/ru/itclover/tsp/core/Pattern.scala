@@ -78,8 +78,8 @@ object Pattern {
 
   type QI[T] = PQueue[T]
 
-  trait WithInner[Event, S <: PState[T, S], T] {
-    def inner: Pattern[Event, S, T]
+  trait WithInners[Event] {
+    def innerPatterns: Seq[Pattern[Event, _, _]]
   }
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {

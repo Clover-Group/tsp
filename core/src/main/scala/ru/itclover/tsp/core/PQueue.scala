@@ -48,6 +48,7 @@ object PQueue {
     override def size: Int = queue.size
   }
 
+  // PQueue with mutable queue backend. This is the default implementation used in the majority of patterns
   case class MutablePQueue[T](queue: scala.collection.mutable.Queue[IdxValue[T]]) extends PQueue[T] {
 
     override def headOption: Option[IdxValue[T]] = queue.headOption
@@ -77,6 +78,7 @@ object PQueue {
     override def size: Int = queue.size
   }
 
+  // Lazy variant of PQueue with func
   case class IdxMapPQueue[A, T](queue: PQueue[A], func: IdxValue[A] => Result[T]) extends PQueue[T] {
     override def size: Int = queue.size
     override def headOption: Option[IdxValue[T]] = queue.headOption.map(x => x.map(_ => func(x)))
@@ -106,4 +108,27 @@ object PQueue {
         idx.value.flatMap(func)
     })
   }
+
+//  case class ConstantPQueue[T](value: IdxValue[T], size: Int) extends PQueue[T] {
+//    override def headOption: Option[IdxValue[T]] = if (size >= 0) Some(value) else None
+//
+//    override def dequeue(): (IdxValue[T], PQueue[T]) =
+//      if (size >= 0) value -> this.copy(size = size - 1) else throw new IllegalStateException("dequeue on empty queue")
+//
+//    override def dequeueOption(): Option[(IdxValue[T], PQueue[T])] =
+//      if (size >= 0) Some(value -> this.copy(size = size - 1)) else None
+//
+//    override def behead(): PQueue[T] =
+//      if (size >= 0) this.copy(size = size - 1) else throw new IllegalStateException("behead on empty queue")
+//
+//    override def beheadOption(): Option[PQueue[T]] = if (size >= 0) Some(this.copy(size = size - 1)) else None
+//
+//    override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = throw new AssertionError("Must not be called")
+//
+//    override def enqueue(idx: Idx, value: Result[T]): PQueue[T] = throw new AssertionError("Must not be called")
+//
+//    override def clean(): PQueue[T] = this.copy(size = 0)
+//
+//    override def toSeq: Seq[IdxValue[T]] = Iterator.fill(size)(value).toSeq
+//  }
 }

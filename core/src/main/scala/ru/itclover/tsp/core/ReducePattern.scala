@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core
 import cats.implicits._
 import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.Pattern.{Idx, QI}
+import ru.itclover.tsp.core.Pattern.{Idx, QI, WithInners}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -17,7 +17,8 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   initial: Result[T2]
 )(
   implicit idxOrd: Order[Idx]
-) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
+) extends Pattern[Event, ReducePState[S, T1, T2], T2]
+    with WithInners[Event] {
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: ReducePState[S, T1, T2],
@@ -68,6 +69,7 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
 
   override def initialState(): ReducePState[S, T1, T2] =
     ReducePState(patterns.map(_.initialState()), PQueue.empty)
+  override def innerPatterns: Seq[Pattern[Event, _, _]] = patterns
 }
 
 case class ReducePState[State <: PState[T1, State], T1, T2](

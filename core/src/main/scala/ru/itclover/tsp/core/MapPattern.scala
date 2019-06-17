@@ -2,14 +2,15 @@ package ru.itclover.tsp.core
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
-import ru.itclover.tsp.core.Pattern.{QI, WithInner}
+import ru.itclover.tsp.core.Pattern.{QI, WithInners}
 
 import scala.language.higherKinds
 
 //todo optimize Map(Simple) => Simple
-case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val inner: Pattern[Event, InnerState, T1])(
- val func: T1 => Result[T2]
-) extends Pattern[Event, MapPState[InnerState, T1, T2], T2] with WithInner[Event, InnerState,T1]{
+case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: Pattern[Event, InnerState, T1])(
+  val func: T1 => Result[T2]
+) extends Pattern[Event, MapPState[InnerState, T1, T2], T2]
+    with WithInners[Event] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: MapPState[InnerState, T1, T2],
     event: Cont[Event]
@@ -19,6 +20,7 @@ case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val i
     })
 
   override def initialState(): MapPState[InnerState, T1, T2] = MapPState(innerState = inner.initialState(), func)
+  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(inner)
 }
 
 case class MapPState[InnerState <: PState[T1, InnerState], T1, T2](

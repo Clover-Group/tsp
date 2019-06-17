@@ -4,7 +4,7 @@ import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.PQueue._
-import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
+import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI, WithInners}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
@@ -18,7 +18,8 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
   val func: (Result[T1], Result[T2]) => Result[T3]
 )(
   implicit idxOrd: Order[Idx]
-) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3] {
+) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3]
+    with WithInners[Event] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: CouplePState[State1, State2, T1, T2, T3],
     events: Cont[Event]
@@ -69,6 +70,7 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
 
   override def initialState(): CouplePState[State1, State2, T1, T2, T3] =
     CouplePState(left.initialState(), right.initialState(), MutablePQueue(m.Queue.empty))
+  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(left, right)
 }
 
 case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
