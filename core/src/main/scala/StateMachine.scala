@@ -9,7 +9,7 @@ import scala.language.higherKinds
 
 object StateMachine {
 
-  def apply[F[_]: Monad: cats.Traverse] = new {
+  def apply[F[_]: Monad] = new {
 
     private val log = Logger("StateMachineV2")
 

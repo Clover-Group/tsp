@@ -1,6 +1,4 @@
-
 /*** Settings ***/
-
 name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 maintainer in Docker := "Clover Group"
@@ -8,8 +6,11 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
 scalaVersion in ThisBuild := "2.12.7"
-resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
-    "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
+resolvers in ThisBuild ++= Seq(
+  "Apache Development Snapshot Repository" at
+  "https://repository.apache.org/content/repositories/snapshots/",
+  Resolver.mavenLocal
+)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 scalacOptions in ThisBuild += "-target:jvm-1.8"
 
@@ -19,16 +20,15 @@ lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation",          // warn about use of deprecated APIs
-    "-feature"               // warn about feature warnings
+    "-deprecation", // warn about use of deprecated APIs
+    "-feature" // warn about feature warnings
   ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-
   // don't release subprojects
   githubRelease := null,
-  skip in publish := true, 
+  skip in publish := true,
   maxErrors := 5
 )
 
@@ -38,7 +38,7 @@ lazy val assemblySettings = Seq(
 )
 
 // make run command include the provided dependencies (for sbt run)
-run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
+run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
 
 // make native packager use only the fat jar
 mappings in Universal := {
@@ -78,10 +78,10 @@ dockerCommands := Seq(
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
-
 /*** Projects configuration ***/
-
-lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
+lazy val mainRunner = project
+  .in(file("mainRunner"))
+  .dependsOn(http)
   .settings(commonSettings)
   .settings(
     // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
@@ -97,7 +97,6 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
     inTask(assembly)(assemblySettings)
   )
 
-
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
   .settings(commonSettings)
@@ -105,14 +104,22 @@ lazy val root = (project in file("."))
   .aggregate(core, config, http, flink, dsl, integrationCorrectness)
   .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
 
-lazy val core = project.in(file("core"))
+lazy val core = project
+  .in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
   )
 
-lazy val config = project.in(file("config"))
+lazy val zioCore = project
+  .in(file("zio"))
+  .settings(commonSettings)
+  .settings(libraryDependencies ++= Library.zio)
+  .dependsOn(core)
+
+lazy val config = project
+  .in(file("config"))
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
@@ -121,50 +128,53 @@ lazy val config = project.in(file("config"))
   )
   .dependsOn(core)
 
-lazy val flink = project.in(file("flink"))
+lazy val flink = project
+  .in(file("flink"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.jackson
   )
   .dependsOn(core, config, dsl)
 
-lazy val http = project.in(file("http"))
+lazy val http = project
+  .in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.twitterUtil
+    Library.akkaHttp ++ Library.twitterUtil
   )
   .dependsOn(core, config, flink, dsl)
 
-lazy val dsl = project.in(file("dsl"))
+lazy val dsl = project
+  .in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
-  ).dependsOn(core)
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.parboiled
+  )
+  .dependsOn(core)
 
-lazy val integrationCorrectness = project.in(file("integration/correctness"))
+lazy val integrationCorrectness = project
+  .in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(core, flink, http, config)
 
-lazy val integrationPerformance = project.in(file("integration/performance"))
+lazy val integrationPerformance = project
+  .in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(integrationCorrectness)
 
-
 /*** Other settings ***/
-
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
-
 
 // Git-specific settings
 import sbtrelease.Version.Bump
@@ -177,16 +187,15 @@ val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 def nextVersion(v: String): String = Bump.Next.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
 
 git.gitTagToVersionNumber := {
-  case VersionRegex(v, "") => Some(v)
-  case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
+  case VersionRegex(v, "")                        => Some(v)
+  case VersionRegex(v, "SNAPSHOT")                => Some(s"${nextVersion(v)}-SNAPSHOT")
   case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-$s")
-  case VersionRegex(v, s) => Some(s"$v-$s")
-  case _ => None
+  case VersionRegex(v, s)                         => Some(s"$v-$s")
+  case _                                          => None
 }
 
 // Release specific settings
 import ReleaseTransformations.{setReleaseVersion => _, _}
-
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
 lazy val commitChangelogs: ReleaseStep = Utils.commitChangelogs
@@ -195,20 +204,19 @@ releaseVersionFile := file("./VERSION")
 releaseUseGlobalVersion := false
 
 releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,              // prevents the release if any dependencies are SNAPSHOT
-  inquireVersions,                        // ask the user for version tag to be released
-  runClean,                               // performs cleaning task
-  setReleaseVersion,                      // sets the version and transfers notes to CHANGELOG
-  commitReleaseVersion,                   // performs the initial git checks
-  commitChangelogs,                       // commits the changes in CHANGELOG files
-  tagRelease,                             // tags the prepared release
-  pushChanges                             // pushes into upstream, also checks that an upstream branch is properly configured
+  checkSnapshotDependencies, // prevents the release if any dependencies are SNAPSHOT
+  inquireVersions, // ask the user for version tag to be released
+  runClean, // performs cleaning task
+  setReleaseVersion, // sets the version and transfers notes to CHANGELOG
+  commitReleaseVersion, // performs the initial git checks
+  commitChangelogs, // commits the changes in CHANGELOG files
+  tagRelease, // tags the prepared release
+  pushChanges // pushes into upstream, also checks that an upstream branch is properly configured
 )
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
 
-githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated 
-
+githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 
 // Lint
 scapegoatVersion in ThisBuild := "1.3.8"

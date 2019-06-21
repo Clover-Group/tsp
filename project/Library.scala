@@ -16,6 +16,7 @@ object Version {
   val akkaHttp = "10.1.5"
 
   val cats = "1.6.0"
+  val catsEffect = "1.3.1"
 
   val twitterUtilVersion = "6.43.0"
 
@@ -40,6 +41,8 @@ object Version {
 
   val simulacrum = "0.15.0"
   val sentry = "1.7.16"
+  
+  val zio = "1.0-RC5"
 }
 
 object Library {
@@ -104,7 +107,7 @@ object Library {
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
-  
+
   val perf = Seq(
     "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
   )
@@ -125,6 +128,12 @@ object Library {
 
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
+  )
+
+  val zio = Seq(
+    "org.scalaz" %% "scalaz-zio" % Version.zio,
+    "org.scalaz" %% "scalaz-zio-interop-cats" % Version.zio,
+    "org.typelevel" %% "cats-effect" % Version.catsEffect
   )
 
 }
