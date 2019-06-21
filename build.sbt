@@ -115,8 +115,8 @@ lazy val core = project
 lazy val zioCore = project
   .in(file("zio"))
   .settings(commonSettings)
-  .settings(libraryDependencies ++= Library.zio)
-  .dependsOn(core)
+  .settings(libraryDependencies ++= Library.zio ++ Library.scalaTest)
+  .dependsOn(core % "test->test;compile->compile")
 
 lazy val config = project
   .in(file("config"))

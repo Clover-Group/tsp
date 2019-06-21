@@ -59,7 +59,7 @@ object IdxValue {
     value = func(iv1.value, iv2.value)
   )
 
-  class IdxValueSimple[T](val index: Idx, val value: Result[T]) extends IdxValue[T] {
+  case class IdxValueSimple[T](index: Idx, value: Result[T]) extends IdxValue[T] {
     override def start: Idx = index
     override def end: Idx = index
     override def map[B](f: T => Result[B]): IdxValue[B] = IdxValueSimple(index, value.flatMap(f))
