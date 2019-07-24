@@ -6,6 +6,8 @@ import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.language.higherKinds
 
+trait Pat[Event]
+
 /**
   * Main trait for all patterns, basically just a function from state and events chunk to new a state.
   *
@@ -13,9 +15,8 @@ import scala.language.higherKinds
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
-
 @State(Scope.Benchmark)
-trait Pattern[Event, S <: PState[T, S], T] extends Serializable {
+trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event] with Serializable {
 
   /**
     * Creates initial state. Has to be called only once
@@ -79,7 +80,7 @@ object Pattern {
   type QI[T] = PQueue[T]
 
   trait WithInners[Event] {
-    def innerPatterns: Seq[Pattern[Event, _, _]]
+    def innerPatterns: Seq[Pat[Event]]
   }
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {

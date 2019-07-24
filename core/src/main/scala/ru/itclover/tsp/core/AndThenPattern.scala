@@ -86,7 +86,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
 
     inner(firstQ, secondQ, totalQ)
   }
-  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(first, second)
+  override def innerPatterns: Seq[Pat[Event]] = Seq[Pat[Event]](first, second)
 }
 
 case class AndThenPState[T1, T2, State1 <: PState[T1, State1], State2 <: PState[T2, State2]](

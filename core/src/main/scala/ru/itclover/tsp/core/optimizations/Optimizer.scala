@@ -2,6 +2,8 @@ package ru.itclover.tsp.core.optimizations
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.optimizations.Pat.Pat
+import ru.itclover.tsp.core.Pattern.WithInners
+import scala.language.existentials
 
 import scala.language.reflectiveCalls
 
@@ -18,7 +20,7 @@ class Optimizer[E: IdxExtractor] {
     }
   }
 
-  def optimize[S <: PState[T, S], T](pattern: Pattern[E, S, T]): Pat[E, T] = {
+  def optimize[S <: PState[T, S], T](pattern: Pattern[E, S, T]): Pat[E] = {
 
     val optimizedPatternIterator = Iterator.iterate(Pat(pattern) -> true) { case (p, _) => applyOptimizations(p) }
 
@@ -26,7 +28,7 @@ class Optimizer[E: IdxExtractor] {
     optimizedPatternIterator.takeWhile(_._2).take(10).map(_._1).toSeq.last
   }
 
-  type OptimizeRule[T] = PartialFunction[Pat[E, T], Pat[E, T]]
+  type OptimizeRule[T] = PartialFunction[Pat[E], Pat[E]]
 
   private def coupleOfTwoConst[T]: OptimizeRule[T] = {
     case Pat(x @ CouplePattern(Pat(ConstPattern(a)), Pat(ConstPattern(b)))) =>
@@ -51,22 +53,23 @@ class Optimizer[E: IdxExtractor] {
       Pat(SimplePattern[E, T](simple.f.andThen(map.func)))
   }
 
-  private def optimizeInners[T]: OptimizeRule[T] = {
-    case x : WithInner[_]
-  }
+  // private def optimizeInners[T]: OptimizeRule[T] = {
+    // case x : WithInners[E] => x.innerPatterns
+  // }
 
 }
 
 object Pat {
 
-  type Pat[E, T] = ({
+  type Pat[E] = ({
+    type T
     type S <: PState[T, S]
     type Inner = Pattern[E, S, T]
   })#Inner
 
-  def apply[E, T](pattern: Pattern[E, _, T]): Pat[E, T] = pattern.asInstanceOf[Pat[E, T]]
+  def apply[E, T](pattern: Pattern[E, _, T]): Pat[E] = pattern.asInstanceOf[Pat[E]]
 
-  def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
+  def unapply[E, _, T](arg: Pat[E]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
   }
 }

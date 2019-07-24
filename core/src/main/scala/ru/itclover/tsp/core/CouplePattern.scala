@@ -70,7 +70,7 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
 
   override def initialState(): CouplePState[State1, State2, T1, T2, T3] =
     CouplePState(left.initialState(), right.initialState(), MutablePQueue(m.Queue.empty))
-  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(left, right)
+  override def innerPatterns: Seq[Pat[Event]] = Seq[Pat[Event]](left, right)
 }
 
 case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](
