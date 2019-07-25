@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.Pattern.{Idx, QI, WithInners}
+import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -14,8 +14,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
   second: Pattern[Event, S2, T2]
 )(
   implicit idxOrd: Order[Idx]
-) extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)]
-    with WithInners[Event] {
+) extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)] {
 
   def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: AndThenPState[T1, T2, S1, S2],
@@ -86,7 +85,6 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
 
     inner(firstQ, secondQ, totalQ)
   }
-  override def innerPatterns: Seq[Pat[Event]] = Seq[Pat[Event]](first, second)
 }
 
 case class AndThenPState[T1, T2, State1 <: PState[T1, State1], State2 <: PState[T2, State2]](

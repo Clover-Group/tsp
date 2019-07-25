@@ -3,7 +3,7 @@ package ru.itclover.tsp.core
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.IdxMapPQueue
-import ru.itclover.tsp.core.Pattern.{QI, WithInners}
+import ru.itclover.tsp.core.Pattern.QI
 
 import scala.language.higherKinds
 
@@ -15,10 +15,9 @@ import scala.language.higherKinds
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
 
-class IdxMapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: Pattern[Event, InnerState, T1])(
-  func: IdxValue[T1] => Result[T2]
-) extends Pattern[Event, IdxMapPState[InnerState, T1, T2], T2]
-    with WithInners[Event] {
+class IdxMapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val inner: Pattern[Event, InnerState, T1])(
+  val func: IdxValue[T1] => Result[T2]
+) extends Pattern[Event, IdxMapPState[InnerState, T1, T2], T2] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: IdxMapPState[InnerState, T1, T2],
     event: Cont[Event]
@@ -26,7 +25,6 @@ class IdxMapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: 
     inner.apply(oldState.innerState, event).map(innerResult => oldState.copy(innerState = innerResult))
 
   override def initialState(): IdxMapPState[InnerState, T1, T2] = IdxMapPState(innerState = inner.initialState(), func)
-  override def innerPatterns: Seq[Pattern[Event, _, _]] = Seq(inner)
 }
 
 case class IdxMapPState[InnerState <: PState[T1, InnerState], T1, T2](

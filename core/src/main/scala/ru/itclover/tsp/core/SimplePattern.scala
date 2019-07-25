@@ -41,19 +41,3 @@ case class ConstPattern[Event: IdxExtractor, T](value: Result[T]) extends Simple
 
   override def idxExtractor: IdxExtractor[Event] = implicitly
 }
-
-//case class ConstPState[T](override val queue: ConstantPQueue[T])
-//
-//case class ConstPattern[Event: IdxExtractor, T](value: Result[T]) extends Pattern[Event,S, T]{
-//
-//  override def idxExtractor: IdxExtractor[Event] = implicitly
-//
-//  override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-//    oldState: SimplePState[T],
-//    events: Cont[Event]
-//  ): F[SimplePState[T]] = {
-//    Monad[F].pure(oldState.copy())
-//  }
-//
-//  override val f: Event => Result[T] =
-//}

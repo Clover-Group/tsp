@@ -17,6 +17,9 @@ case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, GroupAccumResult[T], GroupAccumState[T]] {
+
+  val group: Group[T] = implicitly[Group[T]]
+
   override def initialState(): AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]] =
     AggregatorPState(
       innerState = inner.initialState(),

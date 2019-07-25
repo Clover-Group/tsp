@@ -6,10 +6,10 @@ import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.language.higherKinds
 
-trait Pat[Event]
+trait Pat[Event, +T]
 
 object Pat{
-    def unapply[E, _, T](arg: Pat[E]): Option[Pattern[E, _, T]] = arg match {
+    def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
   }
 }
@@ -22,7 +22,7 @@ object Pat{
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
 @State(Scope.Benchmark)
-trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event] with Serializable {
+trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializable {
 
   /**
     * Creates initial state. Has to be called only once
@@ -84,10 +84,6 @@ object Pattern {
   type Idx = Long
 
   type QI[T] = PQueue[T]
-
-  trait WithInners[Event] {
-    def innerPatterns: Seq[Pat[Event]]
-  }
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
