@@ -1,75 +1,61 @@
 package ru.itclover.tsp.core.optimizations
 import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.Pat
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.optimizations.Pat.Pat
 import ru.itclover.tsp.core.Pattern.WithInners
 import scala.language.existentials
 
 import scala.language.reflectiveCalls
 
-trait WithInner[E, S <: PState[T, S], T, P <: Pattern[E, S, T]] extends Replacable[P, P]
-
 class Optimizer[E: IdxExtractor] {
 
-  def optimizations[T] = Seq(coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T])
+  def optimizations = Seq(coupleOfTwoSimple, coupleOfTwoConst, mapOfConst, mapOfSimple)
 
-  def applyOptimizations[S <: PState[T, S], T](pat: Pattern[E, S, T]): (Pattern[E, S, T], Boolean) = {
-    optimizations[T].foldLeft(pat -> false) {
-      case ((p, _), rule) if rule.isDefinedAt(Pat(p)) => rule.apply(Pat(p)).asInstanceOf[Pattern[E, S, T]] -> true
-      case (x, _)                                     => x
+  def optimizable(pat: Pat[E]): Boolean =
+    optimizations.foldLeft(false) {
+      case (collect, rule) => collect || rule.isDefinedAt(pat)
+    }
+
+  def applyOptimizations(pat: Pat[E]): (Pat[E], Boolean) = {
+    optimizations.foldLeft(pat -> false) {
+      case ((p, _), rule) if rule.isDefinedAt(p) => rule.apply(p).asInstanceOf[Pat[E]] -> true
+      case (x, _)                                => x
     }
   }
 
-  def optimize[S <: PState[T, S], T](pattern: Pattern[E, S, T]): Pat[E] = {
+  def optimize(pattern: Pat[E]): Pat[E] = {
 
-    val optimizedPatternIterator = Iterator.iterate(Pat(pattern) -> true) { case (p, _) => applyOptimizations(p) }
+    val optimizedPatternIterator = Iterator.iterate(pattern -> true) { case (p, _) => applyOptimizations(p) }
 
     // try no more than 10 cycles of optimizations to avoid infinite recursive loops in case of wrong rule.
     optimizedPatternIterator.takeWhile(_._2).take(10).map(_._1).toSeq.last
   }
 
-  type OptimizeRule[T] = PartialFunction[Pat[E], Pat[E]]
+  type OptimizeRule = PartialFunction[Pat[E], Pat[E]]
 
-  private def coupleOfTwoConst[T]: OptimizeRule[T] = {
+  private def coupleOfTwoConst[T]: OptimizeRule = {
     case Pat(x @ CouplePattern(Pat(ConstPattern(a)), Pat(ConstPattern(b)))) =>
-      Pat(ConstPattern[E, T](x.func.apply(a, b)))
+      ConstPattern[E, T](x.func.apply(a, b))
   }
 
-  private def coupleOfTwoSimple[T]: OptimizeRule[T] = {
+  private def coupleOfTwoSimple[T]: OptimizeRule = {
     case Pat(x @ CouplePattern(Pat(left @ SimplePattern(fleft)), Pat(right @ SimplePattern(fright)))) =>
-      Pat(
-        SimplePattern[E, T](
-          event => x.func.apply(fleft.apply(event.asInstanceOf[Nothing]), fright.apply(event.asInstanceOf[Nothing]))
-        )
+      SimplePattern[E, T](
+        event => x.func.apply(fleft.apply(event.asInstanceOf[Nothing]), fright.apply(event.asInstanceOf[Nothing]))
       )
   }
 
-  private def mapOfConst[T]: OptimizeRule[T] = {
-    case Pat(map @ MapPattern(Pat(ConstPattern(x)))) => Pat(ConstPattern[E, T](x.flatMap(map.func)))
+  private def mapOfConst[T]: OptimizeRule = {
+    case Pat(map @ MapPattern(Pat(ConstPattern(x)))) => ConstPattern[E, T](x.flatMap(map.func))
   }
 
-  private def mapOfSimple[T]: OptimizeRule[T] = {
+  private def mapOfSimple[T]: OptimizeRule = {
     case Pat(map @ MapPattern(Pat(simple: SimplePattern[E, _]))) =>
-      Pat(SimplePattern[E, T](simple.f.andThen(map.func)))
+      SimplePattern[E, T](simple.f.andThen(map.func))
   }
 
-  // private def optimizeInners[T]: OptimizeRule[T] = {
-    // case x : WithInners[E] => x.innerPatterns
-  // }
-
-}
-
-object Pat {
-
-  type Pat[E] = ({
-    type T
-    type S <: PState[T, S]
-    type Inner = Pattern[E, S, T]
-  })#Inner
-
-  def apply[E, T](pattern: Pattern[E, _, T]): Pat[E] = pattern.asInstanceOf[Pat[E]]
-
-  def unapply[E, _, T](arg: Pat[E]): Option[Pattern[E, _, T]] = arg match {
-    case x: Pattern[E, _, T] => Some(x)
+  private def optimizeInners[T]: OptimizeRule[T] = {
+  case x : WithInners[E] if x.innerPatterns.any(optimizable) => 
   }
+
 }

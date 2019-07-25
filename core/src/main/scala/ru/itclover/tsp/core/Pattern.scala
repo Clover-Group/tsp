@@ -8,6 +8,12 @@ import scala.language.higherKinds
 
 trait Pat[Event]
 
+object Pat{
+    def unapply[E, _, T](arg: Pat[E]): Option[Pattern[E, _, T]] = arg match {
+    case x: Pattern[E, _, T] => Some(x)
+  }
+}
+
 /**
   * Main trait for all patterns, basically just a function from state and events chunk to new a state.
   *
