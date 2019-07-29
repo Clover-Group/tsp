@@ -39,6 +39,7 @@ object Result {
 
   def fail[T]: Result[T] = Fail
   def succ[T](t: T): Result[T] = Succ(t)
+  val succUnit: Result[Unit] = Succ(())
 }
 
 case class Succ[T](t: T) extends Result[T]

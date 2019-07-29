@@ -22,8 +22,10 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   implicit timeExtractor: TimeExtractor[E]
 ) {
 
+  implicit val tsToIdx = new TsIdxExtractor[E](timeExtractor(_).toMillis)
+  val optimizer:Optimizer[E] = new Optimizer[E]()
   val log = Logger("PatternLogger")
-  var lastState: MapPState[State, Inner, Out] = _
+  var lastState: Optimizer.S[Out] = _
   var lastTime: Time = Time(0)
   log.info(s"pattern: $pattern, inner: $pattern.inner")
 
@@ -40,8 +42,6 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
     val firstElement = elements.head
     val mapFunction = mapResults(firstElement) // do not inline!
     val mappedPattern: MapPattern[E, Inner, Out, State] = new MapPattern(pattern)(in => Result.succ(mapFunction(in)))
-
-    implicit val tsToIdx = new TsIdxExtractor[E](timeExtractor(_).toMillis)
 
     val optimizedPattern = new Optimizer[E].optimize(mappedPattern)
     val initialState = optimizedPattern.initialState()

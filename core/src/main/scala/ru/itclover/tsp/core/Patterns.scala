@@ -82,7 +82,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   }
 
   def assert[S <: PState[Boolean, S]](inner: Pattern[E, S, Boolean]): MapPattern[E, Boolean, Unit, S] =
-    inner.flatMap(innerBool => if (innerBool) Result.succ(()) else Result.fail)
+    inner.flatMap(innerBool => if (innerBool) Result.succUnit else Result.fail)
 
   def field[T](f: E => T): SimplePattern[E, T] = new SimplePattern(f.andThen(Result.succ))
 
