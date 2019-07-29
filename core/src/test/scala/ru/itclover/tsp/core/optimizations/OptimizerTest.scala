@@ -65,4 +65,5 @@ class OptimizerTest extends FlatSpec with Matchers {
 
     new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.MapPattern[EInt, _, _, _]]
   }
+
 }
