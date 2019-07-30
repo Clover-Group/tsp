@@ -5,6 +5,7 @@ name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
+dockerUpdateLatest := true
 
 scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at

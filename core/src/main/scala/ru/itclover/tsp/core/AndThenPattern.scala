@@ -66,9 +66,9 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             case Some(IdxValue(_, Fail)) =>
               inner(first.behead(), second, total.enqueue(index1, Fail))
             // if both first and second stages a Success then return Success
-            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(index2, index1) =>
+            case Some(iv2 @ IdxValue(index2, Succ(_))) if idxOrd.gt(iv2.start, iv1.end) =>
               val newFirst = first.behead()
-              if (idxOrd.lteqv(index2, newFirst.headOption.map(_.index).getOrElse(Long.MaxValue))) {
+              if (idxOrd.lteqv(iv2.start, newFirst.headOption.map(_.end).getOrElse(Long.MaxValue))) {
                 inner(
                   newFirst,
                   second.behead(),
@@ -78,7 +78,9 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
                 // if both return success, but the second part is too late (i.e. not immediately following the first)
                 inner(first.behead(), second, total)
               }
-
+            case Some(iv2 @ IdxValue(_, Succ(_))) =>
+              // if the second Success starts not after the first part end, we must skip it
+              inner(first, second.behead(), total)
           }
       }
     }
