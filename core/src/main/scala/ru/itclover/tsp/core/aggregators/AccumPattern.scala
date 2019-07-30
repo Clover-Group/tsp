@@ -78,10 +78,9 @@ abstract class AccumPattern[
       collectedNewResults: QI[Out],
       indexTimeMap: m.Queue[(Idx, Time)]
     ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) =
-      innerQueue.headOption match {
-        case None => (innerQueue, accumState, collectedNewResults, indexTimeMap)
-        case Some(IdxValue(index, value)) =>
-          val updatedQueue = innerQueue.behead()
+      innerQueue.dequeueOption match {
+        case None                                         => (innerQueue, accumState, collectedNewResults, indexTimeMap)
+        case Some((IdxValue(index, value), updatedQueue)) =>
           val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)(idxOrd)
 
           val (newAState, newResults) = accumState.updated(window, index, newInnerResultTime, value)

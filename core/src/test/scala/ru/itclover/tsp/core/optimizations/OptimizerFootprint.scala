@@ -31,27 +31,27 @@ class OptimizerFootprint extends FlatSpec with Matchers {
     ts / times
   }
 
-  it should "optimize couple(const, const) to const" in {
+  // it should "run footprint benchmarks" in {
 
-//    val patternString = timer(field((e: EInt) => e.row) > const(0), Window(720 * 1000))
-//    println("String pattern: " + repeat(5, 1000000, patternString))
+  //  val patternString = timer(field((e: EInt) => e.row) > const(0), Window(720 * 1000))
+  //  println("String pattern: " + repeat(5, 1000000, patternString))
 
-//    val patternCouple = timer(patterns.assert(field(e => e.row).gt(const(0))), Window(720000))
-//    println("Couple pattern: " + repeat(5, 1000000, patternCouple))
-//
-//    val patternMap = timer(patterns.assert(field(e => e.row).map(_ > 0)), Window(720000))
-//    println("Map pattern: " + repeat(5, 1000000, patternMap))
-//
-    val success = Result.succ(())
-//    val patternMap2 =
-//      timer(new SimplePattern((e: EInt) => if (e.row > 0) success else Result.fail), Window(720000))
-//    println("Map pattern: " + repeat(5, 1000000, patternMap2))
+  //  val patternCouple = timer(patterns.assert(field(e => e.row).gt(const(0))), Window(720000))
+  //  println("Couple pattern: " + repeat(5, 1000000, patternCouple))
 
-    val patternMap3 = timer(new SimplePattern((e: EInt) => if (e.row > 0) success else Result.fail), Window(720000))
-    println("Map pattern3: " + repeat(10, 1000000, patternMap3))
+  //  val patternMap = timer(patterns.assert(field(e => e.row).map(_ > 0)), Window(720000))
+  //  println("Map pattern: " + repeat(5, 1000000, patternMap))
 
-//    val optimizedPattern = new Optimizer[EInt].optimize(patternMap)
-//    println("Optimized pattern: " + repeat(5, 1000000, optimizedPattern))
-  }
+  //   val success = Result.succ(())
+  //  val patternMap2 =
+  //    timer(new SimplePattern((e: EInt) => if (e.row > 0) success else Result.fail), Window(720000))
+  //  println("Map pattern: " + repeat(5, 1000000, patternMap2))
+
+  //   val patternMap3 = timer(new SimplePattern((e: EInt) => if (e.row > 0) success else Result.fail), Window(720000))
+  //   println("Map pattern3: " + repeat(10, 1000000, patternMap3))
+
+  //  val optimizedPattern = new Optimizer[EInt].optimize(patternMap)
+  //  println("Optimized pattern: " + repeat(5, 1000000, optimizedPattern))
+  // }
 
 }

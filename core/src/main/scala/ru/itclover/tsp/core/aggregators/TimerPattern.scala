@@ -32,7 +32,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
     value match {
       // clean queue in case of fail. Return fails for all events in queue
       case Fail =>
-        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_ => true)
+        val (outputs, updatedWindowQueue) = (windowQueue, m.Queue.empty[(Idx, Time)])
         val newResults: QI[T] = MutablePQueue(outputs.map { case (idx, _) => IdxValueSimple(idx, Result.fail[T]) })
         (TimerAccumState(updatedWindowQueue), newResults)
       // in case of Success we need to return Success for all events in window older than window size.
