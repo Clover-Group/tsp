@@ -1,9 +1,10 @@
 package ru.itclover.tsp.utils
 
 import java.time.Instant
+
 import org.apache.flink.types.Row
+import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Time => CoreTime}
-import ru.itclover.tsp.io.{Decoder, Extractor, TimeExtractor}
 
 object RowOps {
   implicit class RowOps(val row: Row) extends AnyVal {

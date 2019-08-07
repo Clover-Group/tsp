@@ -1,7 +1,8 @@
 package ru.itclover.tsp.mappers
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, ZonedDateTime, ZoneId}
+import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident

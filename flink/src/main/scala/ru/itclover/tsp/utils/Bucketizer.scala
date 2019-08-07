@@ -1,8 +1,8 @@
 package ru.itclover.tsp.utils
 
 import ru.itclover.tsp.PatternsSearchJob.RichPattern
-import ru.itclover.tsp.v2.PState
-import ru.itclover.tsp.Segment
+import ru.itclover.tsp.core.PState
+import ru.itclover.tsp.core.Segment
 
 import scala.collection.immutable
 

@@ -10,7 +10,7 @@ import org.apache.flink.streaming.api.scala.{DataStream, KeyedStream, WindowedSt
 import org.apache.flink.streaming.api.windowing.assigners.{EventTimeSessionWindows, SessionWindowTimeGapExtractor}
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.io.TimeExtractor
+import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers.{FlatMappersCombinator, StatefulFlatMapper}
 import scala.reflect.ClassTag

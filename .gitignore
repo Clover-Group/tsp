@@ -5,6 +5,8 @@ tmp
 logs
 
 .github
+.metals/
+.bloop/
 
 # Jekyll
 docs/_site

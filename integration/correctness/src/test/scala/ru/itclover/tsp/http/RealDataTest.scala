@@ -6,8 +6,7 @@ import akka.http.scaladsl.model.StatusCodes
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import com.dimafeng.testcontainers._
@@ -15,7 +14,10 @@ import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
+import ru.itclover.tsp.io.input.JDBCInputConf
+import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
+
 import scala.util.Success
 
 class RealDataTest

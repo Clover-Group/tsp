@@ -1,7 +1,7 @@
 package ru.itclover.tsp.dsl.v2
 import java.io.Serializable
 
-import ru.itclover.tsp.v2.{Fail, Result, Succ}
+import ru.itclover.tsp.core.{Fail, Result, Succ}
 
 //import scala.collection.mutable
 import scala.reflect.ClassTag

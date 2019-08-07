@@ -1,8 +1,7 @@
 package ru.itclover.tsp.mappers
 
-import ru.itclover.tsp.Segment
-import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.io.{Decoder, Extractor}
+import ru.itclover.tsp.core.{Incident, Segment}
+import ru.itclover.tsp.core.io.{Decoder, Extractor}
 
 final case class ToIncidentsMapper[E, EKey, EItem](
   patternId: String,

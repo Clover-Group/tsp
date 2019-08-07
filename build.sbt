@@ -7,7 +7,7 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
 
   // don't release subprojects
   githubRelease := null,
-  skip in publish := true, 
+  skip in publish := true,
   maxErrors := 5
 )
 
@@ -207,7 +207,7 @@ releaseProcess := Seq[ReleaseStep](
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
 
-githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated 
+githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 
 
 // Lint

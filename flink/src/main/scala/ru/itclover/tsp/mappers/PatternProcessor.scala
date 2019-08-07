@@ -4,11 +4,13 @@ import cats.Id
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.io.TimeExtractor
-import ru.itclover.tsp.v2._
+import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
+import ru.itclover.tsp.core.optimizations.Optimizer
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner],
@@ -20,8 +22,10 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   implicit timeExtractor: TimeExtractor[E]
 ) {
 
+  implicit val tsToIdx = new TsIdxExtractor[E](timeExtractor(_).toMillis)
+  val optimizer:Optimizer[E] = new Optimizer[E]()
   val log = Logger("PatternLogger")
-  var lastState: MapPState[State, Inner, Out] = _
+  var lastState: Optimizer.S[Out] = _
   var lastTime: Time = Time(0)
   log.info(s"pattern: $pattern, inner: $pattern.inner")
 
@@ -39,9 +43,12 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
     val mapFunction = mapResults(firstElement) // do not inline!
     val mappedPattern: MapPattern[E, Inner, Out, State] = new MapPattern(pattern)(in => Result.succ(mapFunction(in)))
 
+    val optimizedPattern = new Optimizer[E].optimize(mappedPattern)
+    val initialState = optimizedPattern.initialState()
+
     // if the last event occurred so long ago, clear the state
     if (lastState == null || timeExtractor(firstElement).toMillis - lastTime.toMillis > eventsMaxGapMs) {
-      lastState = mappedPattern.initialState()
+      lastState = initialState
     }
 
     // Split the different time sequences if they occurred in the same time window
@@ -53,12 +60,12 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
 
     val consume: IdxValue[Out] => Unit = x => x.value.foreach(out.collect)
 
-    val seedStates = lastState +: Stream.continually(mappedPattern.initialState())
+    val seedStates = lastState +: Stream.continually(initialState)
 
     // this step has side-effect = it calls `consume` for each output event. We need to process
     // events sequentually, that's why I use foldLeft here
-    lastState = sequences.zip(seedStates).foldLeft(mappedPattern.initialState()) {
-      case (_, (events, seedState)) => machine.run(mappedPattern, events, seedState, consume)
+    lastState = sequences.zip(seedStates).foldLeft(initialState) {
+      case (_, (events, seedState)) => machine.run(optimizedPattern, events, seedState, consume)
     }
 
     lastTime = elements.lastOption.map(timeExtractor(_)).getOrElse(Time(0))
