@@ -14,7 +14,7 @@ import cats.kernel.Group
 import scala.language.higherKinds
 import Optimizer.S
 
-class Optimizer[E: IdxExtractor: TimeExtractor]() {
+class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
   def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T])
 
