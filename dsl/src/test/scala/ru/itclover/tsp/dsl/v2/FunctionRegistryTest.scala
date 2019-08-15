@@ -77,6 +77,15 @@ class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
 //    funReg.functions(('eq, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](4.0, 4)) shouldBe true
 //    funReg.functions(('ne, Seq(DoubleASTType, IntASTType)))._1(Seq[Any](21.0, 6)) shouldBe true
 //  }
+
+  "Function registry comparison functions with string" should "be callable" in {
+    funReg.functions(('lt, Seq(StringASTType, StringASTType)))._1(Seq[Any]("abc", "abd")) shouldBe Result.succ(true)
+    funReg.functions(('le, Seq(StringASTType, StringASTType)))._1(Seq[Any]("abc", "aba")) shouldBe Result.succ(false)
+    funReg.functions(('gt, Seq(StringASTType, StringASTType)))._1(Seq[Any]("ghi", "def")) shouldBe Result.succ(true)
+    funReg.functions(('ge, Seq(StringASTType, StringASTType)))._1(Seq[Any]("ghi", "gkl")) shouldBe Result.succ(false)
+    funReg.functions(('eq, Seq(StringASTType, StringASTType)))._1(Seq[Any]("mno", "mno")) shouldBe Result.succ(true)
+    funReg.functions(('ne, Seq(StringASTType, StringASTType)))._1(Seq[Any]("pqr", "stu")) shouldBe Result.succ(true)
+  }
 //
 //  "Function registry concatenation" should "work" in {
 //    // currently no other registries exist

@@ -505,6 +505,7 @@ object DefaultFunctionRegistry
       comparingFunctions[Long, Long] ++
       comparingFunctions[Double, Double] ++
       comparingFunctions[Double, Long] ++
-      comparingFunctions[Double, Int],
+      comparingFunctions[Double, Int] ++
+      comparingFunctions[String, String],
       reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
     )
