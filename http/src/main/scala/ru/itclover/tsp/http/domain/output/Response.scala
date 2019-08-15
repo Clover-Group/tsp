@@ -4,18 +4,15 @@ import akka.http.scaladsl.model.StatusCodes.ServerError
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, RuntimeErr}
 import ru.itclover.tsp.utils.Exceptions
 
+sealed trait Response[T] extends Product with Serializable
 
-sealed  trait Response[T] extends Product with Serializable
-
-
-final case class SuccessfulResponse[T](response: T, messages: Seq[String]=Seq.empty) extends Response[T]
+final case class SuccessfulResponse[T](response: T, messages: Seq[String] = Seq.empty) extends Response[T]
 
 object SuccessfulResponse {
   case class ExecInfo(execTimeSec: Long, extraMetrics: Map[String, Option[Long]])
 
   type FinishedJobResponse = SuccessfulResponse[ExecInfo]
 }
-
 
 final case class FailureResponse(errorCode: Int, message: String, errors: Seq[String]) extends Response[Unit]
 

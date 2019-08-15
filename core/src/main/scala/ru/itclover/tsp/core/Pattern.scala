@@ -8,8 +8,9 @@ import scala.language.higherKinds
 
 trait Pat[Event, +T]
 
-object Pat{
-    def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
+object Pat {
+
+  def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
   }
 }

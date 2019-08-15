@@ -41,30 +41,54 @@ class MonitoringMockTest
 
   "Monitoring service" should "work with mocked Flink service" in {
     val monitoringService = MonitoringService(s"http://127.0.0.1:$port")
-    monitoringService.queryJobsOverview.map { res => assert(res.jobs.length == 2) }
+    monitoringService.queryJobsOverview.map { res =>
+      assert(res.jobs.length == 2)
+    }
 
-    monitoringService.queryJobByName("job1").map { res => assert(res.isDefined) }
-    monitoringService.queryJobByName("job2").map { res => assert(res.isDefined) }
-    monitoringService.queryJobByName("job3").map { res => assert(res.isEmpty) }
+    monitoringService.queryJobByName("job1").map { res =>
+      assert(res.isDefined)
+    }
+    monitoringService.queryJobByName("job2").map { res =>
+      assert(res.isDefined)
+    }
+    monitoringService.queryJobByName("job3").map { res =>
+      assert(res.isEmpty)
+    }
 
-    monitoringService.queryJobExceptions("one").map { res => assert(res.isEmpty) }
-    monitoringService.queryJobInfo("job1").map { res => assert(res.map(x => x.jid).getOrElse("error") == "1") }
-    monitoringService.queryJobAllMetrics("job1").map { res => assert(res.map(_ == Map.empty).getOrElse(false)) }
-    monitoringService.queryJobAllMetrics("job3").map { res => assert(res.isLeft) }
-    monitoringService.queryJobDetailsWithMetrics("job1", List(MetricInfo(0, "metric1.1", "metric1.1"))).map { res => assert(res.isDefined) }
+    monitoringService.queryJobExceptions("one").map { res =>
+      assert(res.isEmpty)
+    }
+    monitoringService.queryJobInfo("job1").map { res =>
+      assert(res.map(x => x.jid).getOrElse("error") == "1")
+    }
+    monitoringService.queryJobAllMetrics("job1").map { res =>
+      assert(res.map(_ == Map.empty).getOrElse(false))
+    }
+    monitoringService.queryJobAllMetrics("job3").map { res =>
+      assert(res.isLeft)
+    }
+    monitoringService.queryJobDetailsWithMetrics("job1", List(MetricInfo(0, "metric1.1", "metric1.1"))).map { res =>
+      assert(res.isDefined)
+    }
 
-    monitoringService.sendStopQuery("job1").map { res => assert(res.isDefined) }
-    monitoringService.sendStopQuery("job2").map { res => assert(res.isDefined) }
-    monitoringService.sendStopQuery("job3").map { res => assert(res.isEmpty) }
+    monitoringService.sendStopQuery("job1").map { res =>
+      assert(res.isDefined)
+    }
+    monitoringService.sendStopQuery("job2").map { res =>
+      assert(res.isDefined)
+    }
+    monitoringService.sendStopQuery("job3").map { res =>
+      assert(res.isEmpty)
+    }
   }
 
   "Monitoring routes" should "work" in {
     val monitoringRoutes = new MonitoringRoutes {
-      override implicit val actors: ActorSystem = ActorSystem("TSP-monitoring-test")
-      override implicit val materializer: ActorMaterializer = ActorMaterializer()(actors)
-      override implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+      implicit override val actors: ActorSystem = ActorSystem("TSP-monitoring-test")
+      implicit override val materializer: ActorMaterializer = ActorMaterializer()(actors)
+      implicit override val executionContext: ExecutionContextExecutor = system.dispatcher
       override val uri: Uri = s"http://127.0.0.1:$port"
-}
+    }
     Get("/metainfo/getVersion") ~> monitoringRoutes.route ~> check {
       response.status shouldBe StatusCodes.OK
     }

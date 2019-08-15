@@ -178,7 +178,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
           case Some(value) => Cast(f, value)
           case None        => f
         }
-    )
+      )
   }
   /*_*/
 
@@ -286,7 +286,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
           Window((d1.value * u).toLong),
           Window((d2.value * u).toLong)
         )
-    ))
+      ))
   }
 
   def repetitionRange: Rule1[NumericInterval[Long]] = rule {
@@ -308,7 +308,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
         Window(ts.foldLeft(0L) { (acc, t) =>
           acc + t.toMillis
         })
-    )
+      )
   }
 
   def timeWithTolerance: Rule1[TimeInterval] = rule {

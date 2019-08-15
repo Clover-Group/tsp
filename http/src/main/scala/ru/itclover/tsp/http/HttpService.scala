@@ -40,30 +40,31 @@ trait HttpService extends RoutesProtocols {
   private val log = Logger[HttpService]
 
   def composeRoutes: Reader[ExecutionContextExecutor, Route] = {
-    log.debug ("composeRoutes started")
+    log.debug("composeRoutes started")
 
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
       monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
       validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
     } yield jobs ~ monitoring ~ validation
-    
-    log.debug ("composeRoutes finished")
+
+    log.debug("composeRoutes finished")
     res
   }
-    
 
   def route = {
-    log.debug ("route started")
+    log.debug("route started")
     val res = (logRequestAndResponse & handleErrors) {
-    ignoreTrailingSlash {
-      composeRoutes.run(executionContext).andThen { futureRoute =>
-        futureRoute.onComplete { _ => System.gc() } // perform full GC after each route
-        futureRoute
+      ignoreTrailingSlash {
+        composeRoutes.run(executionContext).andThen { futureRoute =>
+          futureRoute.onComplete { _ =>
+            System.gc()
+          } // perform full GC after each route
+          futureRoute
         }
       }
     }
-    log.debug ("route finished")
+    log.debug("route finished")
     res
   }
 
@@ -75,9 +76,9 @@ trait HttpService extends RoutesProtocols {
   }
 
   def handleErrors: Directive[Unit] = {
-    log.debug ("handleErrors started")
+    log.debug("handleErrors started")
     val res = handleRejections(rejectionsHandler) & handleExceptions(exceptionsHandler)
-    log.debug ("handleErrors finished")
+    log.debug("handleErrors finished")
     res
   }
 
@@ -147,7 +148,6 @@ trait HttpService extends RoutesProtocols {
         FailureResponse(5008, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
       )
   }
-
 
   def getEnvVarOrConfig(envVarName: String, configPath: String): String = {
     Properties.envOrNone(envVarName).getOrElse(configs.getString(configPath))

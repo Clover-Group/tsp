@@ -11,15 +11,16 @@ object JDBCOutput {
   def getOutputFormat(config: JDBCOutputConf): JDBCOutputFormat = {
     val insertQuery = getInsertQuery(config.tableName, config.rowSchema)
     log.info(s"Configure ClickhouseOutput with insertQuery = `$insertQuery`")
-    JDBCOutputFormat.buildJDBCOutputFormat()
-        .setDrivername(config.driverName)
-        .setDBUrl(config.jdbcUrl)
-        .setUsername(config.userName.getOrElse(""))
-        .setPassword(config.password.getOrElse(""))
-        .setQuery(insertQuery)
-        .setSqlTypes(config.rowSchema.fieldTypes.toArray)
-        .setBatchInterval(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))
-        .finish()
+    JDBCOutputFormat
+      .buildJDBCOutputFormat()
+      .setDrivername(config.driverName)
+      .setDBUrl(config.jdbcUrl)
+      .setUsername(config.userName.getOrElse(""))
+      .setPassword(config.password.getOrElse(""))
+      .setQuery(insertQuery)
+      .setSqlTypes(config.rowSchema.fieldTypes.toArray)
+      .setBatchInterval(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))
+      .finish()
   }
 
   private def getInsertQuery(tableName: String, rowSchema: RowSchema) = {

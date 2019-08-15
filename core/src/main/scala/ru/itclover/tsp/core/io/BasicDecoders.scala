@@ -15,7 +15,9 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
       case d: Double           => d
       case n: java.lang.Number => n.doubleValue()
       case s: String =>
-        try { Helper.strToDouble(s) } catch {
+        try {
+          Helper.strToDouble(s)
+        } catch {
           case e: Exception =>
             throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
         }
@@ -28,7 +30,9 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
       case i: Int              => i
       case n: java.lang.Number => n.intValue()
       case s: String =>
-        try { Helper.strToInt(s) } catch {
+        try {
+          Helper.strToInt(s)
+        } catch {
           case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
       case null => throw new RuntimeException(s"Cannot parse null to Int")
@@ -41,7 +45,9 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
       case l: Long             => l
       case n: java.lang.Number => n.longValue()
       case s: String =>
-        try { Helper.strToInt(s) } catch {
+        try {
+          Helper.strToInt(s)
+        } catch {
           case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
       case null => throw new RuntimeException(s"Cannot parse null to Long")

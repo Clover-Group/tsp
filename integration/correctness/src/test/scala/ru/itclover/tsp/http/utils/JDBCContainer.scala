@@ -9,19 +9,19 @@ import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericCo
 
 import collection.JavaConverters._
 
+class JDBCContainer(
+  imageName: String,
+  val portsBindings: List[(Int, Int)] = List.empty,
+  val driverName: String,
+  val jdbcUrl: String,
+  env: Map[String, String] = Map(),
+  command: Seq[String] = Seq(),
+  classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
+  waitStrategy: Option[WaitStrategy] = None
+) extends SingleContainer[OTCGenericContainer[_]] {
 
-class JDBCContainer(imageName: String,
-                    val portsBindings: List[(Int, Int)] = List.empty,
-                    val driverName: String,
-                    val jdbcUrl: String,
-                    env: Map[String, String] = Map(),
-                    command: Seq[String] = Seq(),
-                    classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
-                    waitStrategy: Option[WaitStrategy] = None
-                      ) extends SingleContainer[OTCGenericContainer[_]] {
-
-  type OTCContainer = OTCGenericContainer[T] forSome {type T <: OTCGenericContainer[T]}
-  override implicit val container: OTCContainer = new OTCGenericContainer(imageName)
+  type OTCContainer = OTCGenericContainer[T] forSome { type T <: OTCGenericContainer[T] }
+  implicit override val container: OTCContainer = new OTCGenericContainer(imageName)
 
   if (portsBindings.nonEmpty) {
     val bindings = portsBindings.map { case (out, in) => s"${out.toString}:${in.toString}" }

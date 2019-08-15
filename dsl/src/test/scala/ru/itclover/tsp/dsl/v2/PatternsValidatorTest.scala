@@ -25,7 +25,7 @@ class PatternsValidatorTest extends FlatSpec with Matchers with PropertyChecks {
     "byteSensor"    -> "int8",
     "boolSensor"    -> "boolean",
     "stringSensor"  -> "string",
-    "anySensor"  -> "any",
+    "anySensor"     -> "any"
   )
 
   "Pattern validator" should "validate patterns" in {

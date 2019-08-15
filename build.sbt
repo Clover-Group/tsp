@@ -7,7 +7,7 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.8"
+scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -213,3 +213,7 @@ githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 // Lint
 scapegoatVersion in ThisBuild := "1.3.8"
 scalaBinaryVersion in ThisBuild := "2.12"
+
+addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
+addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
+addCommandAlias("cvr", "; clean; coverage; test; coverageReport")

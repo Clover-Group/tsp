@@ -19,12 +19,7 @@ import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
-class AccumsTest
-    extends FlatSpec
-    with SqlMatchers
-    with ScalatestRouteTest
-    with HttpService
-    with ForAllTestContainer {
+class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
@@ -85,7 +80,6 @@ class AccumsTest
     RawPattern("467", "avgOf(1.0, 0.0) < 200")
   )
 
-
   val inputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
@@ -108,7 +102,6 @@ class AccumsTest
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-
   override def afterStart(): Unit = {
     super.beforeAll()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
@@ -116,7 +109,10 @@ class AccumsTest
   }
 
   "Count window (count)" should "compute in time" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, countWindowPattern)) ~> route ~> check {
+    Post(
+      "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+      FindPatternsRequest("1", inputConf, outputConf, countWindowPattern)
+    ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
@@ -133,7 +129,6 @@ class AccumsTest
       execTimeS should be <= countWindowMaxTimeSec
     }
   }
-
 
   "Time window (truthMillis)" should "compute in time" in {
     Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, timeWindowPattern)) ~> route ~> check {
@@ -155,7 +150,10 @@ class AccumsTest
   }
 
   "Nested time window (truthMillis)" should "compute in time" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, nestedTimeWindowPattern)) ~> route ~> check {
+    Post(
+      "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+      FindPatternsRequest("1", inputConf, outputConf, nestedTimeWindowPattern)
+    ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)

@@ -38,7 +38,7 @@ object MockServer extends HttpApp with MonitoringServiceProtocols {
           JobDetails("2", "job2", "FINISHED", 0, 1, Vector(Vertex("201", "v201", VertexMetrics(100, 100, Some(0)))))
         )
       }
-    }  ~ path("jobs" / "1"./) {
+    } ~ path("jobs" / "1"./) {
       patch {
         complete(EmptyResponse())
       }

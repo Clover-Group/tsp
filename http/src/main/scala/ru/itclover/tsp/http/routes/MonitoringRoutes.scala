@@ -24,15 +24,15 @@ import scala.util.{Failure, Success}
 import com.typesafe.scalalogging.Logger
 
 object MonitoringRoutes {
-  
-  private val log  = Logger[MonitoringRoutes]
+
+  private val log = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
     monitoringUri: Uri
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
-    
-    log.debug ("fromExecutionContext started")
-    
+
+    log.debug("fromExecutionContext started")
+
     Reader { execContext =>
       new MonitoringRoutes {
         implicit override val executionContext = execContext
@@ -41,9 +41,9 @@ object MonitoringRoutes {
         override val uri = monitoringUri
       }.route
     }
-  
+
   }
-    log.debug ("fromExecutionContext finished")
+  log.debug("fromExecutionContext finished")
 }
 
 trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {

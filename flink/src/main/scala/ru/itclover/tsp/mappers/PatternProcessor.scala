@@ -23,7 +23,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
 ) {
 
   implicit val tsToIdx = new TsIdxExtractor[E](timeExtractor(_).toMillis)
-  val optimizer:Optimizer[E] = new Optimizer[E]()
+  val optimizer: Optimizer[E] = new Optimizer[E]()
   val log = Logger("PatternLogger")
   var lastState: Optimizer.S[Out] = _
   var lastTime: Time = Time(0)

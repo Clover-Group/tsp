@@ -84,7 +84,7 @@ trait JobsRoutes extends RoutesProtocols {
   )(implicit decoders: BasicDecoders[EItem]) = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
-    log.debug ("createStream started")
+    log.debug("createStream started")
 
     val searcher = PatternsSearchJob(source, decoders)
     val strOrErr = searcher.patternsSearchStream(
@@ -95,18 +95,22 @@ trait JobsRoutes extends RoutesProtocols {
     strOrErr.map {
       case (parsedPatterns, stream) =>
         // .. patternV2.format
-        val strPatterns = parsedPatterns.map { case ((p, meta), _) => /*p.format(source.emptyEvent) +*/ s" ;; Meta=$meta" }
+        val strPatterns = parsedPatterns.map {
+          case ((p, meta), _) =>
+            /*p.format(source.emptyEvent) +*/
+            s" ;; Meta=$meta"
+        }
         log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
         stream
     }
-    
-    log.debug ("createStream finished")
+
+    log.debug("createStream finished")
 
     strOrErr
   }
 
   def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] = {
-    log.debug ("runStream started")
+    log.debug("runStream started")
 
     val res = if (isAsync) { // Just detach job thread in case of async run
       Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
@@ -114,14 +118,14 @@ trait JobsRoutes extends RoutesProtocols {
     } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
-    
-    log.debug ("runStream finished")
+
+    log.debug("runStream finished")
     res
   }
 
   def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route = {
-    
-    log.debug ("matchResultToResponse started")
+
+    log.debug("matchResultToResponse started")
 
     val res = result match {
       case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
@@ -135,25 +139,25 @@ trait JobsRoutes extends RoutesProtocols {
         complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
       }
     }
-    log.debug ("matchResultToResponse finished")
+    log.debug("matchResultToResponse finished")
 
     res
-  
+
   }
 
 }
 
 object JobsRoutes {
 
-  private val log  = Logger[JobsRoutes]
+  private val log = Logger[JobsRoutes]
 
   def fromExecutionContext(monitoringUrl: Uri)(
     implicit strEnv: StreamExecutionEnvironment,
     as: ActorSystem,
     am: ActorMaterializer
   ): Reader[ExecutionContextExecutor, Route] = {
-    
-    log.debug ("fromExecutionContext started")
+
+    log.debug("fromExecutionContext started")
 
     Reader { execContext =>
       new JobsRoutes {
@@ -164,8 +168,8 @@ object JobsRoutes {
         override val monitoringUri = monitoringUrl
       }.route
     }
-  
+
   }
 
-  log.debug ("fromExecutionContext finished")
+  log.debug("fromExecutionContext finished")
 }

@@ -50,7 +50,7 @@ object Library {
     "javax.xml.bind" % "jaxb-api" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
-    "com.sun.activation" % "javax.activation" % Version.activation,
+    "com.sun.activation" % "javax.activation" % Version.activation
   )
 
   val logging = Seq(
@@ -104,7 +104,7 @@ object Library {
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
-  
+
   val perf = Seq(
     "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
   )
@@ -126,7 +126,7 @@ object Library {
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
-  
+
   val strawman = Seq(
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )

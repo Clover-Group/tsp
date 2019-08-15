@@ -44,7 +44,7 @@ class BucketizerTest extends WordSpec with Matchers {
       oneResult.map(_.totalWeight).sum shouldBe one.sum
 
       val zero = Seq(2, 2, 2, 2, 2).map(_.toLong)
-      an [IllegalArgumentException] shouldBe thrownBy(Bucketizer.bucketizeByWeight(zero, 0))
+      an[IllegalArgumentException] shouldBe thrownBy(Bucketizer.bucketizeByWeight(zero, 0))
     }
   }
 

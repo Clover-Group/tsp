@@ -16,12 +16,7 @@ import ru.itclover.tsp.utils.Files
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
 
-class BasicJdbcTest
-    extends FlatSpec
-    with SqlMatchers
-    with ScalatestRouteTest
-    with HttpService
-    with ForAllTestContainer {
+class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =

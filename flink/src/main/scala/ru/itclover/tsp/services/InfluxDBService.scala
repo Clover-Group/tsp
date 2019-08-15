@@ -12,7 +12,6 @@ import scala.util.{Failure, Success, Try}
 import ru.itclover.tsp.utils.CollectionsOps.StringOps
 import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, TryOps}
 
-
 object InfluxDBService {
   case class InfluxConf(
     url: String,
@@ -23,13 +22,15 @@ object InfluxDBService {
   )
 
   def fetchFieldsTypesInfo(query: String, conf: InfluxConf): Try[Seq[(Symbol, Class[_])]] = for {
-    db <- connectDb(conf)
+    db     <- connectDb(conf)
     series <- fetchFirstSeries(db, query, conf.dbName)
     values <- series.getValues.asScala.headOption.toTry(whenNone = emptyValuesException(query))
     tags = if (series.getTags != null) series.getTags.asScala.toSeq.sortBy(_._1) else Seq.empty
   } yield {
     val fields = tags.map(_._1) ++ series.getColumns.asScala
-    val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(v => if (v != null) v.getClass else classOf[Double])
+    val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(
+      v => if (v != null) v.getClass else classOf[Double]
+    )
     fields.map(Symbol(_)).zip(classes)
   }
 
@@ -55,7 +56,7 @@ object InfluxDBService {
       .connectTimeout(timeoutSec, TimeUnit.SECONDS)
     for {
       connection <- Try(InfluxDBFactory.connect(url, userName.orNull, password.orNull, extraConf))
-      db <- Try(connection.setDatabase(dbName))
+      db         <- Try(connection.setDatabase(dbName))
     } yield db
   }
 

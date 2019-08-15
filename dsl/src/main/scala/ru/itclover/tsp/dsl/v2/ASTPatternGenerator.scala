@@ -113,7 +113,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           (x, y) match {
             case (_, Fail)    => Result.fail
             case (_, Succ(d)) => func(x, d)
-        }
+          }
         new ReducePattern(ffc.arguments.map(generatePattern))(wrappedFunc, trans, ffc.cond, Result.succ(initial))
 
       // case AggregateCall(Count, inner, w) if inner.valueType == DoubleASTType => ??? // this way
