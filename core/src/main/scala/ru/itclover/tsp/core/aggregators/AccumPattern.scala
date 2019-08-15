@@ -80,7 +80,7 @@ abstract class AccumPattern[
     ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) =
       innerQueue.dequeueOption match {
         case None                                         => (innerQueue, accumState, collectedNewResults, indexTimeMap)
-        case Some((IdxValue(index, value), updatedQueue)) =>
+        case Some((IdxValue(start, end, value), updatedQueue)) =>
           val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)(idxOrd)
 
           val (newAState, newResults) = accumState.updated(window, index, newInnerResultTime, value)

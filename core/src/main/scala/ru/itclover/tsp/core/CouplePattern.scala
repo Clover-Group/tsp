@@ -17,7 +17,7 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
 )(
   val func: (Result[T1], Result[T2]) => Result[T3]
 )(
-  implicit idxOrd: Order[Idx]
+  implicit idxOrd: Order[Idx] // ???
 ) extends Pattern[Event, CouplePState[State1, State2, T1, T2, T3], T3] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: CouplePState[State1, State2, T1, T2, T3],
@@ -39,27 +39,46 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
     }
   }
 
+  // todo test
   private def processQueues(firstQ: QI[T1], secondQ: QI[T2], totalQ: QI[T3]): (QI[T1], QI[T2], QI[T3]) = {
 
     @tailrec
     def inner(first: QI[T1], second: QI[T2], total: QI[T3]): (QI[T1], QI[T2], QI[T3]) = {
 
       def default: (QI[T1], QI[T2], QI[T3]) = (first, second, total)
-
       (first.headOption, second.headOption) match {
         // if any of parts is empty -> do nothing
-        case (_, None)                                                            => default
-        case (None, _)                                                            => default
-        case (Some(iv1 @ IdxValue(idx1, val1)), Some(iv2 @ IdxValue(idx2, val2))) =>
+        case (_, None)                                                                            => default
+        case (None, _)                                                                            => default
+        case (Some(iv1 @ IdxValue(start1, end1, val1)), Some(iv2 @ IdxValue(start2, end2, val2))) =>
           // we emit result only if results on left and right sides come at the same time
-          if (idxOrd.eqv(idx1, idx2)) {
+          if (idxOrd.eqv(start1, start2)) {
             val result: Result[T3] = func(val1, val2)
-            inner(first.behead(), second.behead(), total.enqueue(IdxValue.union(iv1, iv2)((_, _) => result)))
-            // otherwise skip results from one of sides
-          } else if (idxOrd.lt(idx1, idx2)) {
-            inner(first.behead(), second, total)
+            val minEnd = idxOrd.min(end1, end2)
+
+            val newResult = IdxValue(start1, minEnd, result)
+            val newTotal = total.enqueue(newResult)
+
+            val newStart = minEnd + 1 //todo ???
+            val newFirst = if (idxOrd.eqv(minEnd, end1)) {
+              first.behead()
+            } else {
+              first.changeFirst(newStart)
+            }
+
+            val newSecond = if (idxOrd.eqv(minEnd, end2)) {
+              second.behead()
+            } else {
+              second.changeFirst(newStart)
+            }
+
+            inner(newFirst, newSecond, newTotal)
           } else {
-            inner(first, second.behead(), total)
+            // otherwise skip results from one of sides
+            val cutTo = idxOrd.max(start1, start2)
+            val newFirst = iv1.removeBefore(cutTo).map(x => first.changeFirst(cutTo)).getOrElse(first.behead())
+            val newSecond = iv2.removeBefore(cutTo).map(x => second.changeFirst(cutTo)).getOrElse(second.behead())
+            inner(newFirst, newSecond, total)
           }
       }
     }
@@ -68,7 +87,7 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
   }
 
   override def initialState(): CouplePState[State1, State2, T1, T2, T3] =
-    CouplePState(left.initialState(), right.initialState(), MutablePQueue(m.Queue.empty))
+    CouplePState(left.initialState(), right.initialState(), PQueue.empty)
 }
 
 case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State2], T1, T2, T3](

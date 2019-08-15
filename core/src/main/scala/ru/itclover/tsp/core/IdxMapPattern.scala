@@ -7,14 +7,7 @@ import ru.itclover.tsp.core.Pattern.QI
 
 import scala.language.higherKinds
 
-/**
-  *
-  * @param extractor special kind of extractor for Segments creation
-  * @tparam E Event
-  * @tparam Inner Inner result
-  * @tparam S Holds State for the next step AND results (wrong named `queue`)
-  */
-
+/** Special pattern to create segments. To be removed. */
 class IdxMapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](val inner: Pattern[Event, InnerState, T1])(
   val func: IdxValue[T1] => Result[T2]
 ) extends Pattern[Event, IdxMapPState[InnerState, T1, T2], T2] {

@@ -53,7 +53,7 @@ trait HttpService extends RoutesProtocols {
   }
     
 
-  def route = {
+  def route: Route = {
     log.debug ("route started")
     val res = (logRequestAndResponse & handleErrors) {
     ignoreTrailingSlash {

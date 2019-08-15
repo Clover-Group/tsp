@@ -2,7 +2,6 @@ package ru.itclover.tsp.core.aggregators
 
 import cats.Group
 import ru.itclover.tsp.core.{Time, Window}
-import ru.itclover.tsp.core.PQueue.MutablePQueue
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.Result._
@@ -56,8 +55,8 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
 
         val finalWindowQueue = { updatedWindowQueue.enqueue(GroupAccumValue(idx, time, t)); updatedWindowQueue }
 
-        GroupAccumState(finalNewLastValue, finalWindowQueue) -> MutablePQueue(
-          m.Queue(IdxValue(idx, finalNewLastValue.toResult))
+        GroupAccumState(finalNewLastValue, finalWindowQueue) -> PQueue.empty.enqueue(
+          IdxValue(idx, idx, finalNewLastValue.toResult)  // todo change
         )
       }
       .getOrElse(this -> PQueue.empty)
