@@ -4,7 +4,7 @@ import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import org.scalatest.EitherValues._
-import ru.itclover.tsp.dsl.PatternMetadata
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, Assert, Constant, PatternMetadata}
 import ru.itclover.tsp.core.Pattern
 
 import scala.reflect.ClassTag

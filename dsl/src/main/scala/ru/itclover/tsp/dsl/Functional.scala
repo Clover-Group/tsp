@@ -1,9 +1,8 @@
-package Functional
+package ru.itclover.tsp.dsl
 
-import scala.language.higherKinds
 import cats.arrow.Arrow
 
-import ru.itclover.tsp.dsl.v2.{ASTType, PFunction}
+import scala.language.higherKinds
 
 // Generic Arrow Mapper
 abstract class ArrMap[F[_, _], A, B] extends Arrow[F] {

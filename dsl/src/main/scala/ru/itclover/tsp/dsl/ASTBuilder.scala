@@ -1,17 +1,10 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
 
-import cats.{Foldable, Functor, Monad}
 import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
-import ru.itclover.tsp.core.{Time, Window}
+import ru.itclover.tsp.core.{Time, Window, _}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.Patterns
-import ru.itclover.tsp.core.aggregators._
-import cats.kernel.instances._
-import shapeless.{::, HNil}
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag

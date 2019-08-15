@@ -48,14 +48,14 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   private def coupleOfTwoSimple[T]: OptimizeRule[T] = {
     // couple(simple, simple) => simple
     case Pat(
-        x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[T]))), Pat(SimplePattern(fright: (E => Result[T]))))
+        x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(SimplePattern(fright: (E => Result[_]))))
         ) =>
       SimplePattern[E, T](event => x.func.apply(fleft.apply(event), fright.apply(event)))
     // couple(simple, const) => simple
-    case Pat(x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[T]))), Pat(ConstPattern(r)))) =>
+    case Pat(x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(ConstPattern(r)))) =>
       SimplePattern[E, T](event => x.func.apply(fleft.apply(event), r))
     // couple(const, simple) => simple
-    case Pat(x @ CouplePattern(Pat(ConstPattern(l)), Pat(SimplePattern(fright: (E => Result[T]))))) =>
+    case Pat(x @ CouplePattern(Pat(ConstPattern(l)), Pat(SimplePattern(fright: (E => Result[_]))))) =>
       SimplePattern[E, T](event => x.func.apply(l, fright.apply(event)))
     // couple(some, const) => map(some)
     case Pat(x @ CouplePattern(left, Pat(ConstPattern(r)))) =>

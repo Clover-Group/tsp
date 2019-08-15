@@ -1,17 +1,14 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
 
 import cats.Order
-import cats.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
-import ru.itclover.tsp.core.{Window, _}
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances._
+import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.dsl.PatternMetadata
+import ru.itclover.tsp.core._
 
-import scala.language.{higherKinds, implicitConversions}
 import scala.reflect.ClassTag
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(

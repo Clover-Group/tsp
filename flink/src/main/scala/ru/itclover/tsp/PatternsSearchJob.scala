@@ -13,8 +13,7 @@ import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.{Incident, RawPattern, Time}
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
 import ru.itclover.tsp.io._
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers._

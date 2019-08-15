@@ -3,10 +3,11 @@ package ru.itclover.tsp.benchmarking
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.{Time, Window}
-import ru.itclover.tsp.dsl.v2.{ASTPatternGenerator, TestEvents}
+import ru.itclover.tsp.dsl.v2.TestEvents
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.TimerPattern
+import ru.itclover.tsp.dsl.ASTPatternGenerator
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls

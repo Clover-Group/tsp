@@ -3,6 +3,7 @@ import org.scalactic.{Equality, TolerantNumerics}
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.Result
+import ru.itclover.tsp.dsl.{BooleanASTType, DefaultFunctionRegistry, StringASTType}
 
 class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
   val funReg = DefaultFunctionRegistry
