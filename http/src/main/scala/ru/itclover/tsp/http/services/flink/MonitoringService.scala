@@ -128,8 +128,8 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     case Some(job) => {
       val raw = Http().singleRequest(HttpRequest(uri = uri + s"/jobs/${job.jid}/exceptions/"))
       val details = raw flatMap { rs =>
-        Unmarshal(rs.entity).to[Either[MonitoringError, JobExceptions]]
-      }
+          Unmarshal(rs.entity).to[Either[MonitoringError, JobExceptions]]
+        }
       details flatMap {
         case Right(r)  => Future.successful(Some(r))
         case Left(err) => Future.failed(err.toThrowable)

@@ -72,11 +72,12 @@ object Library {
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink = flinkCore ++ Seq(
-    "org.apache.flink" %% "flink-runtime-web" % Version.flink,
-    "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-    "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
-  )
+      "org.apache.flink" %% "flink-runtime-web" % Version.flink,
+      "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
+      "org.apache.flink" %% "flink-connector-kafka-0.11" % Version.flink,
+      "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
+      "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
+    )
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,

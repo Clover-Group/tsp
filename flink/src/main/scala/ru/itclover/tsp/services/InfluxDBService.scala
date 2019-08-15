@@ -29,8 +29,8 @@ object InfluxDBService {
   } yield {
     val fields = tags.map(_._1) ++ series.getColumns.asScala
     val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(
-      v => if (v != null) v.getClass else classOf[Double]
-    )
+        v => if (v != null) v.getClass else classOf[Double]
+      )
     fields.map(Symbol(_)).zip(classes)
   }
 

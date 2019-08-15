@@ -492,20 +492,20 @@ import DefaultFunctions._
 object DefaultFunctionRegistry
     extends FunctionRegistry(
       functions = arithmeticFunctions[Int, Int] ++
-      arithmeticFunctions[Long, Long] ++
-      arithmeticFunctions[Long, Int] ++
-      arithmeticFunctions[Double, Double] ++
-      arithmeticFunctions[Double, Long] ++
-      arithmeticFunctions[Double, Int] ++
-      mathFunctions[Int] ++
-      mathFunctions[Long] ++
-      mathFunctions[Double] ++
-      logicalFunctions ++
-      comparingFunctions[Int, Int] ++
-      comparingFunctions[Long, Long] ++
-      comparingFunctions[Double, Double] ++
-      comparingFunctions[Double, Long] ++
-      comparingFunctions[Double, Int] ++
-      comparingFunctions[String, String],
+        arithmeticFunctions[Long, Long] ++
+        arithmeticFunctions[Long, Int] ++
+        arithmeticFunctions[Double, Double] ++
+        arithmeticFunctions[Double, Long] ++
+        arithmeticFunctions[Double, Int] ++
+        mathFunctions[Int] ++
+        mathFunctions[Long] ++
+        mathFunctions[Double] ++
+        logicalFunctions ++
+        comparingFunctions[Int, Int] ++
+        comparingFunctions[Long, Long] ++
+        comparingFunctions[Double, Double] ++
+        comparingFunctions[Double, Long] ++
+        comparingFunctions[Double, Int] ++
+        comparingFunctions[String, String],
       reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
     )
