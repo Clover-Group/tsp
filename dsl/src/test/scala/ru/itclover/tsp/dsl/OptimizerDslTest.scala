@@ -1,4 +1,5 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
+
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.Time

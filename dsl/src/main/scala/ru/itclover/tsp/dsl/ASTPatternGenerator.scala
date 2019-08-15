@@ -1,6 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import cats.Order
+import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
