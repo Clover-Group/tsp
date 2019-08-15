@@ -62,7 +62,7 @@ object DefaultFunctions {
         (toResult[T1](xs.head), toResult[T2](xs(1))) match {
           case (Succ(t0), Succ(t1)) => Result.succ(f(t0, t1))
           case _                    => Result.fail
-      },
+        },
       astType1
     )
     Map(
@@ -74,7 +74,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       ),
@@ -84,7 +84,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       ),
@@ -94,7 +94,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       ),
@@ -104,7 +104,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.minus(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       ),
@@ -114,7 +114,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       ),
@@ -124,7 +124,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
-          },
+            },
           astType1
         )
       )
@@ -211,7 +211,7 @@ object DefaultFunctions {
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.toRadians(Math.tan(x))),
           astType
         )
-      ),
+      )
     )
   }
 
@@ -273,7 +273,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -283,7 +283,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -293,7 +293,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -303,7 +303,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -313,7 +313,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -323,7 +323,7 @@ object DefaultFunctions {
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -333,7 +333,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -343,7 +343,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -353,7 +353,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -363,7 +363,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -373,7 +373,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       ),
@@ -383,7 +383,7 @@ object DefaultFunctions {
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
-          },
+            },
           BooleanASTType
         )
       )

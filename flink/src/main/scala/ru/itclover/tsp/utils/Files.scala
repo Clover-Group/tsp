@@ -5,8 +5,8 @@ import java.io.{File, FileNotFoundException, FileWriter}
 import scala.io.Source
 import scala.util.Try
 
-
 object Files {
+
   def writeToFile(path: String, content: String, overwrite: Boolean = false): Try[Unit] = {
     val pw = new FileWriter(new File(path), !overwrite)
     Try {

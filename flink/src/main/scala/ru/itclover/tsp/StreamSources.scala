@@ -18,7 +18,8 @@ import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTs
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-/*sealed*/ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
+/*sealed*/
+trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def createStream: DataStream[Event]
 
   def conf: InputConf[Event, EKey, EItem]
@@ -37,26 +38,28 @@ import scala.collection.mutable
 }
 
 object StreamSource {
+
   def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
-    allFields.find { field => !excludedFields.contains(field) }
+    allFields.find { field =>
+      !excludedFields.contains(field)
+    }
   }
 }
-
 
 object JdbcSource {
 
   def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
     for {
-      types <- JdbcService.fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
+      types <- JdbcService
+        .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => JdbcSource(conf, types, nullField).asRight
-        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
-  } yield source
+    } yield source
 }
-
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
@@ -73,8 +76,10 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
-  private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
+  private val badPartitions = partitionFields
+    .map(fieldsIdxMap.get)
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
+    .flatten
     .map(p => fieldsClasses(p)._1)
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
@@ -104,8 +109,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     r
   }
 
-  override def fieldToEKey = {
-    fieldId: Symbol => fieldsIdxMap(fieldId)
+  override def fieldToEKey = { fieldId: Symbol =>
+    fieldsIdxMap(fieldId)
   }
 
   override def partitioner = {
@@ -132,16 +137,17 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       .finish()
 }
 
-
 object InfluxDBSource {
+
   def create(conf: InfluxDBInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
     for {
-      types <- InfluxDBService.fetchFieldsTypesInfo(conf.query, conf.influxConf)
+      types <- InfluxDBService
+        .fetchFieldsTypesInfo(conf.query, conf.influxConf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => InfluxDBSource(conf, types, nullField).asRight
-        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
@@ -163,8 +169,10 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
-  private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
+  private val badPartitions = partitionFields
+    .map(fieldsIdxMap.get)
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
+    .flatten
     .map(p => fieldsClasses(p)._1)
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 

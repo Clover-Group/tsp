@@ -19,7 +19,6 @@ object Intervals {
   final case object GreaterThanEnd extends IntervalPosition
   final case object Inside extends IntervalPosition
 
-
   /** Inclusive-exclusive interval of time */
   case class TimeInterval(min: Long, max: Long) extends Interval[Long] {
     assert(

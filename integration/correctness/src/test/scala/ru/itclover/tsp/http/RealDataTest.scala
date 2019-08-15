@@ -20,19 +20,13 @@ import ru.itclover.tsp.utils.Files
 
 import scala.util.Success
 
-class RealDataTest
-    extends FlatSpec
-    with SqlMatchers
-    with ScalatestRouteTest
-    with HttpService
-    with ForAllTestContainer {
+class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
-
 
   private val log = Logger("RealDataTest")
 

@@ -18,8 +18,7 @@ object ValidationRoutes {
     monitoringUri: Uri
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
     Reader { execContext =>
-      new ValidationRoutes {
-      }.route
+      new ValidationRoutes {}.route
     }
 }
 

@@ -11,11 +11,7 @@ import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 
 import scala.concurrent.ExecutionContextExecutor
 
-class NonExistentBaseTest
-    extends FlatSpec
-    with SqlMatchers
-    with ScalatestRouteTest
-    with HttpService {
+class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService {
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()

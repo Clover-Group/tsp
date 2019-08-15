@@ -33,7 +33,7 @@ class OptimizerDslTest extends FlatSpec with Matchers with PropertyChecks {
     val nonOptPattern = gen.build("doubleSensor1 > 1.0 or longSensor = 2.0", 0.0, fieldsClasses).right.value._1
     nonOptPattern shouldBe a[MapPattern[_, _, _, _]]
     val inner: Pat[_, _] = nonOptPattern match {
-        case Pat(MapPattern(inner)) => inner
+      case Pat(MapPattern(inner)) => inner
     }
     inner shouldBe a[CouplePattern[_, _, _, _, _, _]]
 

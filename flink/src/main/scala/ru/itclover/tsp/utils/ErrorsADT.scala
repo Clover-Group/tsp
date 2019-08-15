@@ -12,7 +12,6 @@ object ErrorsADT {
     */
   sealed trait ConfigErr extends Err
 
-
   case class InvalidRequest(error: String, errorCode: Int = 4010) extends ConfigErr
 
   case class InvalidPatternsCode(errors: Seq[String], errorCode: Int = 4020) extends ConfigErr {

@@ -14,7 +14,7 @@ trait PQueue[T] {
   @inline def enqueue(idxValues: IdxValue[T]*): PQueue[T]
   @inline def enqueue(idx: Idx, value: Result[T]): PQueue[T]
   @inline def clean(): PQueue[T]
-  def drop(i: Long): PQueue[T] = (1l to i).foldLeft(this) { case (x, _) => x.behead() }
+  def drop(i: Long): PQueue[T] = (1L to i).foldLeft(this) { case (x, _) => x.behead() }
 
   def toSeq: Seq[IdxValue[T]]
 }
@@ -66,7 +66,9 @@ object PQueue {
       queue.dequeue()
       this
     }
-    override def beheadOption(): Option[PQueue[T]] = if (queue.nonEmpty) { queue.dequeue(); Some(this) } else None
+    override def beheadOption(): Option[PQueue[T]] = if (queue.nonEmpty) {
+      queue.dequeue(); Some(this)
+    } else None
     override def enqueue(idx: Idx, value: Result[T]): PQueue[T] = { queue.enqueue(IdxValue(idx, value)); this }
 
     override def clean(): PQueue[T] = MutablePQueue(collection.mutable.Queue.empty)

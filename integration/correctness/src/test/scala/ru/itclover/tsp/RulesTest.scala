@@ -160,7 +160,7 @@ class RulesTest extends WordSpec with Matchers {
       segmentLengthOpt.get should be > 12000L
       segmentLengthOpt.get should be < 20000L
     }
-    
+
     "Segment Increasing" in {
       val phase: Phase[Row] = ToSegments(Increasing(_.speed, 35.0, 50.0))
       val rows = (
@@ -194,4 +194,4 @@ class RulesTest extends WordSpec with Matchers {
   }
 
 }
-*/
+ */

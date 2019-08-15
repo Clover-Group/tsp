@@ -21,7 +21,7 @@ object TimeExtractor {
     def time(implicit te: TimeExtractor[T]): Time = te.apply(event)
   }
 
-  def of[E](f: E => Time ): TimeExtractor[E] = new TimeExtractor[E] {
+  def of[E](f: E => Time): TimeExtractor[E] = new TimeExtractor[E] {
     override def apply(e: E): Time = f(e)
   }
 }

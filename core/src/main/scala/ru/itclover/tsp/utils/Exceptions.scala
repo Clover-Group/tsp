@@ -9,9 +9,9 @@ object Exceptions {
   case class SourceException(msg: String) extends RuntimeException(msg)
 
   def getStackTrace(t: Throwable): String = {
-      val sw = new StringWriter()
-      val pw = new PrintWriter(sw)
-      t.printStackTrace(pw)
-      sw.toString
+    val sw = new StringWriter()
+    val pw = new PrintWriter(sw)
+    t.printStackTrace(pw)
+    sw.toString
   }
 }

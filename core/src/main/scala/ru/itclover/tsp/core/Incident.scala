@@ -20,7 +20,6 @@ case class Incident(
 ) extends Product
     with Serializable
 
-
 object IncidentInstances {
 
   implicit def semigroup = new Semigroup[Incident] {

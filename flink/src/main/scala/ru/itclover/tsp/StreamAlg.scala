@@ -71,4 +71,4 @@ case class FlinkStreamAlg() extends StreamAlg[DataStream, KeyedStream, TypeInfor
     stream
   }
 }
-*/
+ */

@@ -113,7 +113,6 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     FailureResponse(5011, new Exception()).errorCode shouldBe 5011
     FailureResponse(GenericRuntimeErr(new Exception(), 5012)).errorCode shouldBe 5012
     FailureResponse(GenericConfigError(new Exception(), 4013)).errorCode shouldBe 4013
-    FailureResponse(Seq(GenericConfigError(new Exception(), 4014), GenericConfigError(new Exception(), 4015)))
-      .errorCode shouldBe 4000
+    FailureResponse(Seq(GenericConfigError(new Exception(), 4014), GenericConfigError(new Exception(), 4015))).errorCode shouldBe 4000
   }
 }

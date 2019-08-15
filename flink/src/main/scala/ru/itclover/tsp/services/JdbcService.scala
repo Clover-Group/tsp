@@ -4,6 +4,7 @@ import java.sql.DriverManager
 import scala.util.Try
 
 object JdbcService {
+
   def fetchFieldsTypesInfo(driverName: String, jdbcUrl: String, query: String): Try[Seq[(Symbol, Class[_])]] = {
     val classTry: Try[Class[_]] = Try(Class.forName(driverName))
 

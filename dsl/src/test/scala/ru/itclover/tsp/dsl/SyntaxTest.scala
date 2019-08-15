@@ -249,4 +249,4 @@ class SyntaxTest extends FlatSpec with Matchers with PropertyChecks {
     processedResult.get.format(event) shouldBe result.format(event)
   }
 }
-*/
+ */
