@@ -53,6 +53,8 @@ mappings in Universal := {
   filtered :+ (fatJar -> ("lib/" + fatJar.getName))
 }
 
+dockerPackageMappings in Docker += (baseDirectory.value / "docker-app") -> "docker-app"
+
 mappings in Docker := {
   // universalMappings: Seq[(File,String)]
   val universalMappings = (mappings in Universal).value
@@ -63,6 +65,7 @@ mappings in Docker := {
   }
   // add the fat jar
   filtered :+ (fatJar -> ("lib/" + fatJar.getName))
+  universalMappings :+ (file("../../../docker-app") -> "docker-app")
 }
 
 scriptClasspath := Seq((assemblyJarName in (assembly in mainRunner)).value)
@@ -74,8 +77,9 @@ import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
   Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
+  Cmd("EXPOSE", "10001"),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
+  ExecCmd("ENTRYPOINT", "/opt/docker/conf/docker-entrypoint.sh")
 )
 
 

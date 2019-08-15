@@ -15,3 +15,7 @@ docs/Gemfile
 docs/Gemfile.lock
 docs/vendor
 docs/vendor/**
+
+# Test files
+runtime/docker-compose.yml
+*_env
