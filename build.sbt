@@ -65,7 +65,6 @@ mappings in Docker := {
   }
   // add the fat jar
   filtered :+ (fatJar -> ("lib/" + fatJar.getName))
-  universalMappings :+ (file("../../../docker-app") -> "docker-app")
 }
 
 scriptClasspath := Seq((assemblyJarName in (assembly in mainRunner)).value)
