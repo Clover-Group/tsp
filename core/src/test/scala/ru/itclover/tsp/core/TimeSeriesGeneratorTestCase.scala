@@ -53,16 +53,66 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
         yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
-        .foreach(event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor)))
+        .foreach(
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+        )
 
-      val result = (patterns, events).zipped.map{
-        (p, e) => StateMachine[Id].run(p, Seq(e), p.initialState())
+      val result = (patterns, events).zipped.map { (p, e) =>
+        StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
       println(result)
 
       true shouldBe true
 
+    }
+
+    "match for valid-2" in {
+      val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
+      val events = (for (time <- Timer(from = Instant.now());
+                         pump <- RandomInRange(1, 100)(random)
+                           .map(_.toDouble)
+                           .timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(Constant(0));
+                         speed <- Change(
+                           from = 1.0,
+                           to = 261,
+                           Duration.fromNanos(
+                             JavaDuration.of(15, ChronoUnit.SECONDS).toNanos
+                           )
+                         ).timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(
+                             Change(
+                               from = 260.0,
+                               to = 0.0,
+                               howLong = Duration.fromNanos(
+                                 JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
+                               )
+                             )
+                           )
+                           .after(Constant(0.0)))
+        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+
+      events
+        .foreach(
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+        )
+
+      val result = (patterns, events).zipped.map { (p, e) =>
+        StateMachine[Id].run(p, Seq(e), p.initialState())
+      }
+
+      println(result)
+
+      true shouldBe true
     }
 
   }
