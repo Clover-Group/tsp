@@ -17,7 +17,7 @@ import scala.util.Random
 
 case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 
-class RulesTest extends WordSpec with Matchers {
+class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
 
   import ru.itclover.tsp.core.Time._
   import Predef.{any2stringadd => _, assert => _, _}
