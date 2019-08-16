@@ -28,7 +28,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 //import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
@@ -73,22 +73,21 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
-
-      // path("streamJob" / "from-kafka" / "to-jdbc"./) {
-      //   entity(as[FindPatternsRequest[KafkaConf, JDBCOutputConf]]) { request =>
-      //     import request._
-
-      //     val resultOrErr = for {
-      //       source <- InfluxDBSource.create(inputConf)
-      //       _      <- createStream(patterns, inputConf, outConf, source)
-      //       result <- runStream(uuid, isAsync)
-      //     } yield result
-
-      //     matchResultToResponse(resultOrErr, uuid)
-
-      //   }
-      // }
     }
+
+  // path("streamJob" / "from-kafka" / "to-jdbc"./) {
+  //   entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
+  //     import request._
+
+  //     val resultOrErr = for {
+  //       source <- InfluxDBSource.create(inputConf)
+  //       _      <- createStream(patterns, inputConf, outConf, source)
+  //       result <- runStream(uuid, isAsync)
+  //     } yield result
+
+  //     matchResultToResponse(resultOrErr, uuid)
+  //   }
+  // }
   }
 
   def createStream[E, EKey, EItem](

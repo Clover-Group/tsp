@@ -4,7 +4,7 @@ import java.util.{Properties, UUID}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer010, FlinkKafkaConsumerBase}
 import org.apache.flink.api.common.serialization.{TypeInformationSerializationSchema, DeserializationSchema}
 
-case class KafkaConf(
+case class KafkaInputConf(
   brokers: String,
   topic: String,
   group: String = UUID.randomUUID().toString,
@@ -13,7 +13,9 @@ case class KafkaConf(
 
 object KafkaSource {
 
-  def getSource[Event: TypeInformationSerializationSchema](kafkaConfig: KafkaConf): FlinkKafkaConsumerBase[Event] = {
+  def getSource[Event: TypeInformationSerializationSchema](
+    kafkaConfig: KafkaInputConf
+  ): FlinkKafkaConsumerBase[Event] = {
 
     val kafkaProps = new Properties()
     kafkaProps.setProperty("bootstrap.servers", kafkaConfig.brokers)

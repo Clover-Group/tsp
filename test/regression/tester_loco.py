@@ -1,4 +1,4 @@
-#!python3
+#!/usr/bin/env python3.6
 
 # This script implements a regression testing the the REST API
 # It sends several requests in parallel threads to the TSP backend, checks responses and measures the execution timeouts

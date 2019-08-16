@@ -215,11 +215,6 @@ ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.valu
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 
-
-// Lint
-scapegoatVersion in ThisBuild := "1.3.8"
-scalaBinaryVersion in ThisBuild := "2.12"
-
 addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
 addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
 addCommandAlias("cov", "; clean; coverage; test; coverageReport")
