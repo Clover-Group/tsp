@@ -7,10 +7,10 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
-javaOptions in ThisBuild += "--add-modules=java.xml.bind"
+//javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 scalacOptions in ThisBuild += "-target:jvm-1.8"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
@@ -97,6 +97,12 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
     inTask(assembly)(assemblySettings)
   )
 
+
+lazy val runTask = taskKey[Unit]("App runner")
+
+//runTask := {
+// (http/runMain ${TSP_LAUNCHER:-ru.itclover.tsp.http.Launcher} ${TSP_LAUNCHER_ARGS:-flink-local})
+//}
 
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
@@ -216,4 +222,4 @@ scalaBinaryVersion in ThisBuild := "2.12"
 
 addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
 addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
-addCommandAlias("cvr", "; clean; coverage; test; coverageReport")
+addCommandAlias("cov", "; clean; coverage; test; coverageReport")

@@ -73,6 +73,21 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
+
+      // path("streamJob" / "from-kafka" / "to-jdbc"./) {
+      //   entity(as[FindPatternsRequest[KafkaConf, JDBCOutputConf]]) { request =>
+      //     import request._
+
+      //     val resultOrErr = for {
+      //       source <- InfluxDBSource.create(inputConf)
+      //       _      <- createStream(patterns, inputConf, outConf, source)
+      //       result <- runStream(uuid, isAsync)
+      //     } yield result
+
+      //     matchResultToResponse(resultOrErr, uuid)
+
+      //   }
+      // }
     }
   }
 

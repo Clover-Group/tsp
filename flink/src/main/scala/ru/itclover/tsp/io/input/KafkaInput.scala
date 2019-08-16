@@ -11,7 +11,7 @@ case class KafkaConf(
   offsetReset: String = "largest"
 )
 
-object KafkaInputConf {
+object KafkaSource {
 
   def getSource[Event: TypeInformationSerializationSchema](kafkaConfig: KafkaConf): FlinkKafkaConsumerBase[Event] = {
 
