@@ -76,7 +76,7 @@ trait JobsRoutes extends RoutesProtocols {
   //     import request._
 
   //     val resultOrErr = for {
-  //       source <- InfluxDBSource.create(inputConf)
+  //       source <- KafkaSource.create(inputConf)
   //       _      <- createStream(patterns, inputConf, outConf, source)
   //       result <- runStream(uuid, isAsync)
   //     } yield result

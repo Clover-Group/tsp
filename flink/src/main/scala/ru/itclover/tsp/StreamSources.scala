@@ -17,6 +17,7 @@ import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTs
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import ru.itclover.tsp.io.input.{KafkaInputConf}
 
 /*sealed*/
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -237,4 +238,23 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .query(query)
       .and()
       .buildIt()
+}
+
+object KafkaSource {
+
+  def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] = ???
+
+}
+
+case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+  implicit @transient streamEnv: StreamExecutionEnvironment
+) extends StreamSource[Row, Int, Any] {
+
+  def createStream: org.apache.flink.streaming.api.scala.DataStream[org.apache.flink.types.Row] = ???
+  def emptyEvent: org.apache.flink.types.Row = ???
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = ???
+  def fieldToEKey: Symbol => Int = ???
+  def partitioner: org.apache.flink.types.Row => String = ???
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] = ???
+
 }
