@@ -4,13 +4,11 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import collection.JavaConverters._
 import okhttp3.OkHttpClient
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import cats.syntax.either._
 import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
 import org.influxdb.dto.Query
 import scala.util.{Failure, Success, Try}
 import ru.itclover.tsp.utils.CollectionsOps.StringOps
-import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, TryOps}
+import ru.itclover.tsp.utils.CollectionsOps.OptionOps
 
 object InfluxDBService {
   case class InfluxConf(

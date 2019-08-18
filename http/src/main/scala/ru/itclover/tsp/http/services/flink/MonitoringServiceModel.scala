@@ -1,11 +1,9 @@
 package ru.itclover.tsp.http.services.flink
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json.{DefaultJsonProtocol, _}
-import akka.http.scaladsl.model._
+import spray.json.DefaultJsonProtocol
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import ru.itclover.tsp.mappers.PatternProcessor
-import scala.language.implicitConversions
 
 object MonitoringServiceModel {
 

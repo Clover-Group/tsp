@@ -8,7 +8,6 @@ import ru.itclover.tsp.core.{PState, Pattern, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 // TOOD@fabura Docs? Rename?
 case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](

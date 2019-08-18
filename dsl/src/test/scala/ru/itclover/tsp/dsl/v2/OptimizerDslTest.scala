@@ -1,15 +1,10 @@
 package ru.itclover.tsp.dsl.v2
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
-import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import org.scalatest.EitherValues._
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.core.Pattern
 
 import scala.reflect.ClassTag
 import ru.itclover.tsp.core.CouplePattern
-import org.scalacheck.Test
 import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.SimplePattern
 import ru.itclover.tsp.core.MapPattern

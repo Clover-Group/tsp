@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core.optimizations
 
-import org.scalatest.{FlatSpec, FunSuite, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.Common._
-import ru.itclover.tsp.core.{Event, Patterns, SimplePattern}
+import ru.itclover.tsp.core.Patterns
 import ru.itclover.tsp.core.Window
 
 class OptimizerTest extends FlatSpec with Matchers {

@@ -11,7 +11,7 @@ import ru.itclover.tsp.core.io.AnyDecodersInstances._
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.dsl.PatternMetadata
 
-import scala.language.{higherKinds, implicitConversions}
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(

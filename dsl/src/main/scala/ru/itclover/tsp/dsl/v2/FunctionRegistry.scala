@@ -217,7 +217,7 @@ object DefaultFunctions {
 
   def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
     import Functional._
-    val log = Logger("LogicalLogger")
+    Logger("LogicalLogger")
 
     // TSP-182 - Workaround for correct type inference
 
@@ -435,14 +435,14 @@ object DefaultFunctions {
         java.lang.Double.valueOf(Double.MinValue)
       )
     ),
-    ('countof, DoubleASTType) -> ({ (acc: Result[Any], x: Any) =>
+    ('countof, DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
       (toResult[Double](acc), toResult[Double](x)) match {
         case (Succ(da), Succ(_)) => Result.succ(da + 1)
         case _                   => Result.fail
       }
     }, DoubleASTType, {
       identity(_)
-    }, java.lang.Double.valueOf(0)),
+    }, java.lang.Double.valueOf(0))),
     ('avgof, DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
       (toResult[(Double, Double)](acc), toResult[Double](x)) match {
         case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))

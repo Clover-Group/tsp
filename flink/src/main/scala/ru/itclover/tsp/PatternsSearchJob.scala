@@ -15,7 +15,6 @@ import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.{Incident, RawPattern, Time}
 import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
-import ru.itclover.tsp.io._
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.Bucketizer
@@ -26,7 +25,6 @@ import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 case class PatternsSearchJob[In, InKey, InItem](

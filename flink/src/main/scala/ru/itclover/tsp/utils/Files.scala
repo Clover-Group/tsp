@@ -1,8 +1,7 @@
 package ru.itclover.tsp.utils
 
 import CollectionsOps._
-import java.io.{File, FileNotFoundException, FileWriter}
-import scala.io.Source
+import java.io.{File, FileWriter}
 import scala.util.Try
 
 object Files {

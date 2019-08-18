@@ -3,7 +3,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.core.Window
-import ru.itclover.tsp.dsl.{PatternMetadata, v2}
+import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
 import scala.reflect.ClassTag

@@ -1,8 +1,6 @@
 package ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Idx
 
-import scala.language.implicitConversions
-
 trait PQueue[T] {
 
   def size: Int

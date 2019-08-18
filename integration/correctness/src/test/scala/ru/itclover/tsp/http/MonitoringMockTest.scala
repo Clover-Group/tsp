@@ -1,22 +1,17 @@
 package ru.itclover.tsp.http
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, model}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, StatusCodes, Uri}
+import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, BeforeAndAfterAll, Matchers}
+import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, Matchers}
 import ru.itclover.tsp.http.routes.MonitoringRoutes
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.{JobBrief, JobsOverview, MetricInfo}
+import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.http.utils.MockServer
-import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.concurrent._
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 class MonitoringMockTest
     extends AsyncFlatSpec

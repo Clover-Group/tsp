@@ -4,7 +4,6 @@ import ru.itclover.tsp.core.Pat
 import ru.itclover.tsp.core._
 import scala.language.existentials
 
-import scala.language.reflectiveCalls
 import ru.itclover.tsp.core.aggregators.GroupPattern
 import ru.itclover.tsp.core.aggregators.PreviousValue
 import ru.itclover.tsp.core.aggregators.TimerPattern

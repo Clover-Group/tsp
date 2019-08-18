@@ -107,7 +107,7 @@ object Pattern {
   }
 
   object IdxExtractor {
-    implicit class GetIdx[T](val event: T) extends AnyVal {
+    implicit class GetIdx[T](private val event: T) extends AnyVal {
       def index(implicit te: IdxExtractor[T]): Idx = te.apply(event)
     }
 

@@ -9,7 +9,6 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
   override val inner: Pattern[Event, State, Out],

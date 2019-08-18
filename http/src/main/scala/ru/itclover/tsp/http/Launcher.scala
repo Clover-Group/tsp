@@ -1,6 +1,5 @@
 package ru.itclover.tsp.http
 
-import scala.util.{Failure, Properties, Success, Try}
 import java.net.URLDecoder
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http

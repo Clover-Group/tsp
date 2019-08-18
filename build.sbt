@@ -11,25 +11,32 @@ scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
-scalacOptions in ThisBuild += "-target:jvm-1.8"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
+ 
 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  scalacOptions ++= Seq(
-    "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation",          // warn about use of deprecated APIs
-    "-feature"               // warn about feature warnings
-  ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-
+//scalacOptions --= Seq(
+//  "-Xfatal-warnings",
+//),
+//scalacOptions ++= Seq(
+//  "-language:reflectiveCalls"
+//),
+  scalacOptions ++= Seq(
+    "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
+    "-deprecation",          // warn about use of deprecated APIs
+    "-feature",               // warn about feature warnings 
+    "-Ywarn-unused"
+  ),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
-  maxErrors := 5
+  maxErrors := 5, 
+addCompilerPlugin(scalafixSemanticdb)
 )
 
 lazy val assemblySettings = Seq(
@@ -215,6 +222,10 @@ ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.valu
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 
+
+addCommandAlias("com", "all compile test:compile it:compile")
+addCommandAlias("lint", "; compile:scalafix --check ; test:scalafix --check")
+addCommandAlias("fix", "all compile:scalafix test:scalafix")
 addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
 addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
 addCommandAlias("cov", "; clean; coverage; test; coverageReport")

@@ -2,11 +2,8 @@ package ru.itclover.tsp.benchmarking
 
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.dsl.v2.{ASTPatternGenerator, TestEvents}
-import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.aggregators.TimerPattern
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
@@ -44,7 +41,6 @@ class FootprintBench extends FlatSpec with Matchers {
   it should "process ConstPattern correctly" in {
 
     implicit val patterns = new Patterns[TestEvent] {}
-    import patterns._
 
     val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
     val patternString = gen.build("intSensor > 0 for 720 sec", 0.0, fieldsClasses).right.get._1

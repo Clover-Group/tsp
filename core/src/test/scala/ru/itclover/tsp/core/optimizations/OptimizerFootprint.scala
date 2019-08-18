@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core.optimizations
 
-import org.scalatest.{FlatSpec, FunSuite, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.Common._
-import ru.itclover.tsp.core.{Event, IdxValue, PState, Pattern, Patterns, Result, SimplePattern, StateMachine, Window}
+import ru.itclover.tsp.core.{Event, IdxValue, PState, Pattern, Patterns, StateMachine}
 
 import scala.collection.mutable
 import cats.Id
@@ -10,9 +10,6 @@ import cats.Id
 class OptimizerFootprint extends FlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}
-  import patterns._
-
-  import cats.instances.int._
 
   def process[T, S <: PState[T, S]](pattern: Pattern[EInt, S, T], events: Seq[EInt]): Long = {
     val start = System.nanoTime()

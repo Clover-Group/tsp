@@ -12,7 +12,6 @@ import cats.implicits._
 import cats._
 
 import scala.concurrent.duration.Duration
-import scala.reflect.macros.whitebox
 
 case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMaterializer, ec: ExecutionContext)
     extends MonitoringServiceProtocols {

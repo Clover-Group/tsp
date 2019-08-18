@@ -1,17 +1,14 @@
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
-import akka.event.Logging
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
-import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.routes._
 import scala.concurrent.ExecutionContextExecutor
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -112,6 +109,7 @@ trait HttpService extends RoutesProtocols {
       complete(
         InternalServerError,
         FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        // FailureResponse(5001, "Job execution failure")
       )
 
     case ex: JobExecutionException =>

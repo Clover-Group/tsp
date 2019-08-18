@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Time => CoreTime}
 
 object RowOps {
-  implicit class RowOps(val row: Row) extends AnyVal {
+  implicit class RowOps(private val row: Row) extends AnyVal {
 
     def getFieldOrThrow(i: Int): AnyRef =
       if (row.getArity > i) row.getField(i)

@@ -1,17 +1,11 @@
 package ru.itclover.tsp.http
 
-import akka.event.LoggingAdapter
-import akka.event.Logging.LogLevel
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.{Directive, RejectionHandler, Route}
-import akka.http.scaladsl.server.directives.{DebuggingDirectives, LogEntry, LoggingMagnet}
-import akka.http.scaladsl.server.RouteResult.Complete
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.http.scaladsl.server.{Directive, RejectionHandler}
+import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
-import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import akka.http.scaladsl.server.Directives._
-import com.typesafe.scalalogging.Logger
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 object UtilsDirectives {
 

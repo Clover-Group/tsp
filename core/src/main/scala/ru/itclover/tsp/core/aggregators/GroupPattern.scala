@@ -11,7 +11,6 @@ import ru.itclover.tsp.core.{PState, Pattern, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](
   override val inner: Pattern[Event, S, T],

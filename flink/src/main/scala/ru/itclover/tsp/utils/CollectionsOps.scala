@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 object CollectionsOps {
-  implicit class TryOps[T](val t: Try[T]) extends AnyVal {
+  implicit class TryOps[T](private val t: Try[T]) extends AnyVal {
     def eventually[Ignore](effect: => Ignore): Try[T] = t.transform(_ => { effect; t }, _ => { effect; t })
 
     def toEither: Either[Throwable, T] = t match {
@@ -19,7 +19,7 @@ object CollectionsOps {
     }
   }
 
-  implicit class OptionOps[T](val o: Option[T]) extends AnyVal {
+  implicit class OptionOps[T](private val o: Option[T]) extends AnyVal {
 
     def toEither[L](whenNone: => L): Either[L, T] = o match {
       case Some(s) => Right(s)
@@ -37,7 +37,7 @@ object CollectionsOps {
     }
   }
 
-  implicit class StringOps(val s: String) extends AnyVal {
+  implicit class StringOps(private val s: String) extends AnyVal {
 
     def replaceLast(regex: String, replacement: String, patternFlags: Int = 0) = {
       Pattern.compile("(?s)(.*)" + regex, patternFlags).matcher(s).replaceFirst("$1" + replacement)
@@ -46,7 +46,7 @@ object CollectionsOps {
     def toSymbol = Symbol(s)
   }
 
-  implicit class MutableQueueOps[A](val queue: mutable.Queue[A]) extends AnyVal {
+  implicit class MutableQueueOps[A](private val queue: mutable.Queue[A]) extends AnyVal {
 
     /** Hot-spot!
       * Dequeue first elements while predicate succeeding and don'd bother with rest of queue
