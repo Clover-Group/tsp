@@ -30,7 +30,8 @@ lazy val commonSettings = Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
     "-feature",               // warn about feature warnings 
-    "-Ywarn-unused"
+    "-Ywarn-unused",
+    "-language:reflectiveCalls"
   ),
   // don't release subprojects
   githubRelease := null,

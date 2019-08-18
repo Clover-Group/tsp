@@ -8,8 +8,8 @@ import org.apache.flink.types.Row
 case class KafkaInputConf(
   brokers: String,
   topic: String,
-  group: String = UUID.randomUUID().toString,
-  offsetReset: String = "largest"
+  group: String = UUID.randomUUID().toString
+  // offsetReset: String = "largest"
 ) extends InputConf[Row, Int, Any] {
 
   def chunkSizeMs: Option[Long] = ???
@@ -38,7 +38,7 @@ object KafkaSource {
     kafkaProps.setProperty("bootstrap.servers", kafkaConfig.brokers)
     kafkaProps.setProperty("group.id", kafkaConfig.group)
     kafkaProps.setProperty("auto.commit.enable", "false")
-    kafkaProps.setProperty("auto.offset.reset", kafkaConfig.offsetReset)
+    // kafkaProps.setProperty("auto.offset.reset", kafkaConfig.offsetReset)
 
     val deserializer: DeserializationSchema[Event] = implicitly[DeserializationSchema[Event]]
 

@@ -7,6 +7,8 @@ import ru.itclover.tsp.core.{Event, IdxValue, PState, Pattern, Patterns, StateMa
 import scala.collection.mutable
 import cats.Id
 
+import scala.language.reflectiveCalls
+
 class OptimizerFootprint extends FlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}

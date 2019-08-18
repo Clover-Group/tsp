@@ -118,6 +118,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "patternsParallelism"
   )
 
+  implicit val kafkaInpConfFmt = jsonFormat3(
+    KafkaInputConf.apply
+  )
+
   implicit val rowSchemaFmt = jsonFormat(
     RowSchema.apply,
     "sourceIdField",
@@ -136,5 +140,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
+
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 }

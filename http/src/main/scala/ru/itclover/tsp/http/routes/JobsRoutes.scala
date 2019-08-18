@@ -30,6 +30,7 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.JDBCOutputConf
 //import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
+import ru.itclover.tsp.io.input.{KafkaInputConf}
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -69,21 +70,20 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
+    } ~
+    path("streamJob" / "from-kafka" / "to-jdbc"./) {
+      entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
+        import request._
+
+        val resultOrErr = for {
+          source <- KafkaSource.create(inputConf)
+          _      <- createStream(patterns, inputConf, outConf, source)
+          result <- runStream(uuid, isAsync)
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
+      }
     }
-
-  // path("streamJob" / "from-kafka" / "to-jdbc"./) {
-  //   entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
-  //     import request._
-
-  //     val resultOrErr = for {
-  //       source <- KafkaSource.create(inputConf)
-  //       _      <- createStream(patterns, inputConf, outConf, source)
-  //       result <- runStream(uuid, isAsync)
-  //     } yield result
-
-  //     matchResultToResponse(resultOrErr, uuid)
-  //   }
-  // }
   }
 
   def createStream[E, EKey, EItem](
