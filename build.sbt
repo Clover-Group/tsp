@@ -116,8 +116,8 @@ lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, dsl, integrationCorrectness)
-  .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
+  .aggregate(core, config, http, flink, dsl, itValid)
+  .dependsOn(core, config, http, flink, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
@@ -157,19 +157,19 @@ lazy val dsl = project.in(file("dsl"))
     libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
 
-lazy val integrationCorrectness = project.in(file("integration/correctness"))
+lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(core, flink, http, config)
 
-lazy val integrationPerformance = project.in(file("integration/performance"))
+lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
-  .dependsOn(integrationCorrectness)
+  .dependsOn(itValid)
 
 
 /*** Other settings ***/

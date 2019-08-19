@@ -13,7 +13,7 @@ object Version {
   val flink = "1.7.2"
 
   val akka = "2.5.19"
-  val akkaHttp = "10.1.5"
+  val akkaHttp = "10.1.9"
 
   val cats = "1.6.0"
 
