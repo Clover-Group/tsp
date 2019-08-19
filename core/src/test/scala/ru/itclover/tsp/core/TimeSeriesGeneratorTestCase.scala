@@ -115,30 +115,32 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
     "not to match" in {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
 
-      val events = (
-        for (time <- Timer(from = Instant.now());
-             pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(
-               Duration.fromNanos(
-                 JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-               )
-             )
-               .after(Constant(0));
-             speed <- Constant(250d).timed(
-               Duration.fromNanos(
-                 JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-               )
-             )
-               .after(
-                 Change(
-                   from = 250.0,
-                   to = 0.0,
-                   howLong = Duration.fromNanos(
-                     JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
-                   )
-                 )
-               )
-               .after(Constant(0.0))
-             ) yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+      val events = (for (time <- Timer(from = Instant.now());
+                         pump <- RandomInRange(1, 100)(random)
+                           .map(_.toDouble)
+                           .timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(Constant(0));
+                         speed <- Constant(250d)
+                           .timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(
+                             Change(
+                               from = 250.0,
+                               to = 0.0,
+                               howLong = Duration.fromNanos(
+                                 JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
+                               )
+                             )
+                           )
+                           .after(Constant(0.0)))
+        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(
@@ -162,31 +164,32 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
     "match" in {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
 
-      val events = (
-        for (time <- Timer(from = Instant.now());
-             pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(
-               Duration.fromNanos(
-                 JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-               )
-             )
-               .after(Constant(0));
-             speed <- Constant(250d).timed(
-               Duration.fromNanos(
-                 JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-               )
-             )
-
-               .after(
-                 Change(
-                   from = 250.0,
-                   to = 0.0,
-                   howLong = Duration.fromNanos(
-                     JavaDuration.of(30, ChronoUnit.SECONDS).toNanos
-                   )
-                 )
-               )
-               .after(Constant(0.0))
-             ) yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+      val events = (for (time <- Timer(from = Instant.now());
+                         pump <- RandomInRange(1, 100)(random)
+                           .map(_.toDouble)
+                           .timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(Constant(0));
+                         speed <- Constant(250d)
+                           .timed(
+                             Duration.fromNanos(
+                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
+                             )
+                           )
+                           .after(
+                             Change(
+                               from = 250.0,
+                               to = 0.0,
+                               howLong = Duration.fromNanos(
+                                 JavaDuration.of(30, ChronoUnit.SECONDS).toNanos
+                               )
+                             )
+                           )
+                           .after(Constant(0.0)))
+        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(
