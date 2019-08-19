@@ -17,9 +17,11 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
 
   def process(e: EInt): Long = e.row
 
-  "stopWithoutOilPumping" should {
+  "first-test-series" should {
 
     implicit val random: Random = new Random(100)
+
+    val expectedData = SimplePState(PQueue.empty)
 
     "match-for-valid-1" in {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
@@ -60,9 +62,7 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      println(result)
-
-      true shouldBe true
+      result(0) shouldBe expectedData
 
     }
 
@@ -109,9 +109,7 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      println(result)
-
-      true shouldBe true
+      result(0) shouldBe expectedData
     }
 
     "not to match" in {
