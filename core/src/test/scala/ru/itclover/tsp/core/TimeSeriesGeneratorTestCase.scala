@@ -17,7 +17,7 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
 
   def process(e: EInt): Long = e.row
 
-  "first-test-series" should {
+  "test-time-series" should {
 
     implicit val random: Random = new Random(100)
 
@@ -149,16 +149,15 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      println(result)
-
-      false shouldBe false
+      result(0) shouldBe expectedData
     }
 
   }
 
   "customTest" should {
 
-    implicit val random: Random = new java.util.Random(345l)
+    implicit val random: Random = new java.util.Random(345L)
+    val expectedData = SimplePState(PQueue.empty)
 
     "match" in {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
@@ -189,14 +188,16 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
                .after(Constant(0.0))
              ) yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
 
+      events
+        .foreach(
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+        )
 
       val result = (patterns, events).zipped.map { (p, e) =>
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      println(result)
-
-      true shouldBe true
+      result(0) shouldBe expectedData
     }
   }
 
