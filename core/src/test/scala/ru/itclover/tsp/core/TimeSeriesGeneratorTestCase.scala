@@ -158,6 +158,50 @@ class TimeSeriesGeneratorTestCase extends WordSpec with Matchers {
 
   }
 
+  "customTest" should {
+
+    implicit val random: Random = new java.util.Random(345l)
+
+    "match" in {
+      val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
+
+      val events = (
+        for (time <- Timer(from = Instant.now());
+             pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(
+               Duration.fromNanos(
+                 JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
+               )
+             )
+               .after(Constant(0));
+             speed <- Constant(250d).timed(
+               Duration.fromNanos(
+                 JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
+               )
+             )
+
+               .after(
+                 Change(
+                   from = 250.0,
+                   to = 0.0,
+                   howLong = Duration.fromNanos(
+                     JavaDuration.of(30, ChronoUnit.SECONDS).toNanos
+                   )
+                 )
+               )
+               .after(Constant(0.0))
+             ) yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+
+
+      val result = (patterns, events).zipped.map { (p, e) =>
+        StateMachine[Id].run(p, Seq(e), p.initialState())
+      }
+
+      println(result)
+
+      true shouldBe true
+    }
+  }
+
 }
 
 object TimeSeriesGeneratorTestCase extends App {}
