@@ -35,7 +35,8 @@ class KafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with H
   val inputConf = KafkaInputConf(
     brokers = "37.228.115.243:9092",
     topic = "batch_record_small_stream_writer",
-    group = "group5"
+    group = "group5",
+    partitionFields = Seq('series_id, 'mechanism_id)
   )
 
   // val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
@@ -71,28 +72,6 @@ class KafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with H
     route ~> check {
       status shouldEqual StatusCodes.OK
 
-      // checkByQuery(
-      //   2 :: Nil,
-      //   "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and " +
-      //   "visitParamExtractString(context, 'mechanism_id') = '65001'"
-      // )
-
-      // checkByQuery(
-      //   1 :: Nil,
-      //   "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
-      //   "visitParamExtractString(context, 'mechanism_id') = '65001'"
-      // )
-      // checkByQuery(
-      //   1 :: Nil,
-      //   "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
-      //   "visitParamExtractString(context, 'mechanism_id') = '65002'"
-      // )
-
-      // checkByQuery(
-      //   1 :: Nil,
-      //   "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 and " +
-      //   "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
-      // )
     }
   }
 
@@ -104,16 +83,6 @@ class KafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with H
   //   route ~> check {
   //     status shouldEqual StatusCodes.OK
 
-  //     checkByQuery(
-  //       0 :: Nil,
-  //       "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 10 AND " +
-  //       "visitParamExtractString(context, 'mechanism_id') = '65001'"
-  //     )
-  //     checkByQuery(
-  //       2 :: Nil,
-  //       "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
-  //       "visitParamExtractString(context, 'mechanism_id') = '65001'"
-  //     )
   //   }
   // }
 }

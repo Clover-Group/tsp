@@ -8,7 +8,24 @@ import org.apache.flink.types.Row
 case class KafkaInputConf(
   brokers: String,
   topic: String,
-  group: String = UUID.randomUUID().toString
+  group: String = UUID.randomUUID().toString,
+  // sourceId: Int,
+  // jdbcUrl: String,
+  // query: String,
+  // driverName: String,
+  // datetimeField: Symbol,
+  // eventsMaxGapMs: Long,
+  // defaultEventsGapMs: Long,
+  // chunkSizeMs: Option[Long],
+  partitionFields: Seq[Symbol]
+  // userName: Option[String] = None,
+  // password: Option[String] = None,
+  // dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
+  // defaultToleranceFraction: Option[Double] = None,
+  // parallelism: Option[Int] = None,
+  // numParallelSources: Option[Int] = Some(1),
+  // patternsParallelism: Option[Int] = Some(1),
+  // timestampMultiplier: Option[Double] = Some(1000.0)
   // offsetReset: String = "largest"
 ) extends InputConf[Row, Int, Any] {
 
@@ -22,7 +39,7 @@ case class KafkaInputConf(
   def eventsMaxGapMs: Long = ???
   def numParallelSources: Option[Int] = ???
   def parallelism: Option[Int] = ???
-  def partitionFields: Seq[Symbol] = ???
+  // def partitionFields: Seq[Symbol] = ???
   def patternsParallelism: Option[Int] = ???
   def sourceId: Int = ???
 
