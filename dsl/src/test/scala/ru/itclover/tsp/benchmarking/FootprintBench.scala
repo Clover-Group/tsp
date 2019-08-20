@@ -41,11 +41,15 @@ class FootprintBench extends FlatSpec with Matchers {
     val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
     val expectedTime = 3000
 
-    val patternString = gen.build(
-      "intSensor > 0 for 720 sec",
-      0.0,
-      fieldsClasses
-    ).right.get._1
+    val patternString = gen
+      .build(
+        "intSensor > 0 for 720 sec",
+        0.0,
+        fieldsClasses
+      )
+      .right
+      .get
+      ._1
     val actualTime = repeat(5, 1000000, patternString)
     assert(actualTime > expectedTime)
 
