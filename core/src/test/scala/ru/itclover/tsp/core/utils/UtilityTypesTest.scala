@@ -33,5 +33,3 @@ class UtilityTypesTest extends WordSpec with Matchers {
   }
 
 }
-
-object UtilityTypesTest extends App {}
