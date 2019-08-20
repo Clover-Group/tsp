@@ -11,7 +11,7 @@ import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
 
@@ -242,7 +242,19 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
 object KafkaSource {
 
-  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] = ???
+  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
+    // Either.left(InvalidRequest("Not implemented"))
+    for {
+      types <- KafkaService
+        .fetchFieldsTypesInfo(conf)
+        .toEither
+        .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
+      source <- Either.left(InvalidRequest("Not implemented"))
+      // source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
+      //   case Some(nullField) => JdbcSource(conf, types, nullField).asRight
+      //   case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+      // }
+    } yield source
 
 }
 
