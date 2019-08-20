@@ -2,7 +2,8 @@ package ru.itclover.tsp.core
 
 import cats.Id
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.Common._
+import ru.itclover.tsp.core.fixtures.Common._
+import ru.itclover.tsp.core.fixtures.Event
 
 import scala.language.reflectiveCalls
 

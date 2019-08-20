@@ -1,10 +1,10 @@
 // Common objects for Testing
 
-package ru.itclover.tsp.core
+package ru.itclover.tsp.core.fixtures
 
 import ru.itclover.tsp.core.Pattern._
-import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.Time
+import ru.itclover.tsp.core.io.TimeExtractor
 
 // Dummy event
 sealed case class Event[A](ts: Long, row: A, col: A)
