@@ -23,12 +23,12 @@ lazy val commonSettings = Seq(
 //scalacOptions --= Seq(
 //  "-Xfatal-warnings",
 //),
-scalacOptions ++= Seq(
-  //"-language:reflectiveCalls"
-    "-Yrangepos",
-    "-Ywarn-unused-import",
-),
-  addCompilerPlugin(scalafixSemanticdb),
+//scalacOptions ++= Seq(
+//  //"-language:reflectiveCalls"
+//    "-Yrangepos",
+//    "-Ywarn-unused-import",
+//),
+//  addCompilerPlugin(scalafixSemanticdb),
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
