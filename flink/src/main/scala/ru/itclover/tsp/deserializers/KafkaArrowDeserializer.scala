@@ -52,6 +52,7 @@ object KafkaArrowDeserializer extends DeserializationSchema[InputData]{
 
             val fieldType = vector.getMinorType
 
+            //TODO: add fabric of types
             if (fieldType == Types.MinorType.INT) {
 
               val intVector = vector.asInstanceOf[IntVector]
