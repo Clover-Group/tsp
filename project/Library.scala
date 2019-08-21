@@ -40,6 +40,8 @@ object Version {
 
   val simulacrum = "0.15.0"
   val sentry = "1.7.16"
+
+  val arrow = "0.14.1"
 }
 
 object Library {
@@ -75,7 +77,13 @@ object Library {
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
+    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
+    "org.apache.flink" %% "flink-connector-kafka-0.11" % Version.flink
+  )
+
+  val arrow = Seq(
+    "org.apache.arrow" %% "arrow-vector" % Version.arrow,
+    "org.apache.arrow" %% "arrow-memory" % Version.arrow
   )
 
   val akka = Seq(

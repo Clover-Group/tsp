@@ -29,7 +29,12 @@ lazy val commonSettings = Seq(
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
-  maxErrors := 5
+  maxErrors := 5,
+
+  libraryDependencies += "org.apache.arrow" % "arrow-memory" % "0.14.1",
+  libraryDependencies += "org.apache.arrow" % "arrow-vector" % "0.14.1"
+
+
 )
 
 lazy val assemblySettings = Seq(
@@ -109,7 +114,8 @@ lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
+      ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
@@ -124,7 +130,8 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.jackson
+    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
+      ++ Library.jackson
   )
   .dependsOn(core, config, dsl)
 
