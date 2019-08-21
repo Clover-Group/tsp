@@ -12,23 +12,23 @@ object Version {
   val clickhouse = "0.1.52"
   val flink = "1.8.1"
 
-  val akka = "2.5.19"
+  val akka = "2.5.25"
   val akkaHttp = "10.1.9"
 
-  val cats = "1.6.0"
+  val cats = "2.0.0-RC1"
 
   val twitterUtilVersion = "6.43.0"
 
-  val scalaTest = "3.0.5"
+  val scalaTest = "3.0.8"
   val scalaCheck = "1.14.0"
   val jmh = "0.3.4"
 
   val testContainers = "0.20.0"
   val postgres = "42.2.5"
 
-  val avro = "1.8.2"
+  val arrow = "0.14.1"
 
-  val parboiled = "2.1.5"
+  val parboiled = "2.1.8"
 
   val shapeless = "2.3.3"
 
@@ -78,6 +78,10 @@ object Library {
       "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
       "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
     )
+
+  val arrow = Seq(
+    "org.apache.arrow" % "arrow-vector" % Version.arrow
+  )
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,

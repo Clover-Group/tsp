@@ -2,21 +2,16 @@ package ru.itclover.tsp.http.kafka
 
 import java.util.Properties
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
-import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
-import org.apache.flink.api.common.serialization.{SimpleStringEncoder, AbstractDeserializationSchema}
+
+import ru.itclover.tsp.http.kafka.Serdes._
 
 object KafkaMain extends App {
-  type BArr = Array[Byte]
-
-  class BytesDeserializator extends AbstractDeserializationSchema[BArr] {
-    override def deserialize(bytes: BArr): BArr = bytes
-  }
 
   val env = StreamExecutionEnvironment.getExecutionEnvironment
-  env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+  // env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
   // generate a Watermark every second
-  env.getConfig.setAutoWatermarkInterval(1000)
+  // env.getConfig.setAutoWatermarkInterval(1000)
   env.setParallelism(1)
 
   val properties = new Properties()
@@ -26,9 +21,14 @@ object KafkaMain extends App {
   properties.setProperty("group.id", "group5")
 
   // val consumer = new FlinkKafkaConsumer[String]("batch_record_small_stream_writer", new SimpleStringSchema, properties)
-  val consumer = new FlinkKafkaConsumer("batch_record_small_stream_writer", new BytesDeserializator, properties)
-
+  val consumer = new FlinkKafkaConsumer("batch_record_small_stream_writer", new StringDeserializer, properties)
   val stream = env.addSource(consumer).print
+
+  // val out = for {
+  //   cons <- new FlinkKafkaConsumer("batch_record_small_stream_writer", new ArrowDeserializer, properties)
+  //   stream <- env.addSource(cons).print
+
+  // } yield stream
 
   env.execute()
 
