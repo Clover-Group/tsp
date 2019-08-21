@@ -22,7 +22,8 @@ import scala.util.Success
 class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-  implicit override val streamEnvironment: StreamExecutionEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
+  implicit override val streamEnvironment: StreamExecutionEnvironment =
+    StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   private val log = Logger("AccumsTest")
