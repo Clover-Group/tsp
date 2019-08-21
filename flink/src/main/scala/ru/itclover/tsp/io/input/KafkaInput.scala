@@ -1,7 +1,7 @@
 package ru.itclover.tsp.io.input
 
 import java.util.{Properties, UUID}
-import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer010, FlinkKafkaConsumerBase}
+import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaConsumerBase}
 import org.apache.flink.api.common.serialization.{TypeInformationSerializationSchema, DeserializationSchema}
 import org.apache.flink.types.Row
 
@@ -59,7 +59,7 @@ object KafkaSource {
 
     val deserializer: DeserializationSchema[Event] = implicitly[DeserializationSchema[Event]]
 
-    new FlinkKafkaConsumer010[Event](kafkaConfig.topic, deserializer, kafkaProps)
+    new FlinkKafkaConsumer[Event](kafkaConfig.topic, deserializer, kafkaProps)
   }
 
 }

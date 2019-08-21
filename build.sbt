@@ -23,21 +23,22 @@ lazy val commonSettings = Seq(
 //scalacOptions --= Seq(
 //  "-Xfatal-warnings",
 //),
-//scalacOptions ++= Seq(
-//  "-language:reflectiveCalls"
-//),
+scalacOptions ++= Seq(
+  //"-language:reflectiveCalls"
+    "-Yrangepos",
+    "-Ywarn-unused-import",
+),
+  addCompilerPlugin(scalafixSemanticdb),
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
     "-feature",               // warn about feature warnings 
-    "-Ywarn-unused",
-    "-language:reflectiveCalls"
+    //"-language:reflectiveCalls"
   ),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
   maxErrors := 5, 
-addCompilerPlugin(scalafixSemanticdb)
 )
 
 lazy val assemblySettings = Seq(
@@ -176,7 +177,7 @@ lazy val itPerf = project.in(file("integration/performance"))
 
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
-addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
+//addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 
