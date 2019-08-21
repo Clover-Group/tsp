@@ -1,10 +1,10 @@
 package ru.itclover.tsp.dsl.v2
 import org.scalactic.{Equality, TolerantNumerics}
 import org.scalatest.{FlatSpec, Matchers}
-import org.scalatest.prop.PropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import ru.itclover.tsp.core.Result
 
-class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
+class FunctionRegistryTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
   val funReg = DefaultFunctionRegistry
   implicit val doubleEq: Equality[Double] = TolerantNumerics.tolerantDoubleEquality(1e-6)
 
