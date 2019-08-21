@@ -10,7 +10,7 @@ import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironm
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, KafkaConf, KafkaInputConf}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
@@ -237,4 +237,21 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .query(query)
       .and()
       .buildIt()
+}
+
+case class KafkaSource(conf: KafkaConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+  implicit @transient streamEnv: StreamExecutionEnvironment
+) extends StreamSource[Row, Int, Any] {
+  override def createStream: DataStream[Row] = ???
+  //streamEnv.addSource(KafkaInputConf.getSource(conf)) - there must be a Row instance
+
+  override def emptyEvent: Row = ???
+
+  override def fieldToEKey: Symbol => Int = ???
+
+  override def partitioner: Row => String = ???
+
+  override implicit def timeExtractor: TimeExtractor[Row] = ???
+
+  override implicit def extractor: Extractor[Row, Int, Any] = ???
 }
