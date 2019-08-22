@@ -110,7 +110,7 @@ class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {
 
     val output = List(
       1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, -0.01724440495424737, -0.01662274234697675, 0.028270410217108907,
-      35.372673842377154, -28.716804167892423
+      0.0, -28.716804167892423
     )
 
     (input, output).zipped.map { (in, out) =>

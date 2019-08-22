@@ -30,8 +30,8 @@ class OptimizerFootprint extends FlatSpec with Matchers {
 
   it should "run footprint benchmarks" in {
 
-    val expectedTimeForStringAndCouple = 2100
-    val expectedTimeForMapAndOptimize = 1600
+    val expectedTimeForStringAndCouple = 1500
+    val expectedTimeForMapAndOptimize = 1000
 
     val patternString = timer(field((e: EInt) => e.row) > const(0), Window(720 * 1000))
     val actualStringTime = repeat(5, 1000000, patternString)
