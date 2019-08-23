@@ -10,6 +10,9 @@ import org.apache.arrow.vector.VectorUnloader
 import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 
+import org.apache.arrow.vector.types.Types.MinorType.{INT, BIGINT, VARCHAR, FLOAT8}
+import ArrowPkg.ArrowOps._
+
 object KafkaMain extends App {
 
   val env = StreamExecutionEnvironment.getExecutionEnvironment
@@ -31,17 +34,28 @@ object KafkaMain extends App {
   val topic = "batch_record_100_285"
   val consumer = new FlinkKafkaConsumer(topic, new ArrowDeserializer, props)
 
-  val stream:DataStream[ArrowStreamReader] = env.addSource(consumer)
+  val stream: DataStream[ArrowStreamReader] = env.addSource(consumer)
 
-  val out:DataStream[Unit] = stream.map(str => {
+  val out: DataStream[Unit] = stream.map(str => {
 
-    val root = str.getVectorSchemaRoot
-    val schema = root.getSchema
-    val vectors = root.getFieldVectors
+    while (str.loadNextBatch) {
 
-    for (i <- 0 to vectors.size - 1)
-      println(vectors.get(i).getMinorType)
+      val root = str.getVectorSchemaRoot
+      val schema = root.getSchema
+      val vectors = root.getFieldVectors
 
+      println(s"Total vectors = ${vectors.size}")
+
+      vectors.forEach(
+        v =>
+          v.getMinorType match {
+            case BIGINT  => BigIntOps.unpack(v)
+            case VARCHAR => VCharOps.unpack(v)
+            case FLOAT8  => Float8Ops.unpack(v)
+            case unknown => println(s"Unknown vector type: $unknown")
+          }
+      )
+    }
   })
 
   env.execute()
