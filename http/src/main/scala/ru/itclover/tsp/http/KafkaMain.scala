@@ -1,14 +1,20 @@
 package ru.itclover.tsp.http.kafka
 
 import java.util.Properties
+import org.apache.flink.streaming.api
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
 
 import ru.itclover.tsp.http.kafka.Serdes._
+import org.apache.arrow.vector.VectorUnloader
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
+import org.apache.arrow.vector.ipc.ArrowStreamReader
 
 object KafkaMain extends App {
 
   val env = StreamExecutionEnvironment.getExecutionEnvironment
+  env.setRestartStrategy(RestartStrategies.noRestart)
+  // env.enableCheckpointing(5000)
   // env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
   // generate a Watermark every second
@@ -25,7 +31,18 @@ object KafkaMain extends App {
   val topic = "batch_record_100_285"
   val consumer = new FlinkKafkaConsumer(topic, new ArrowDeserializer, props)
 
-  val stream = env.addSource(consumer).map(r => println(r.getVectorSchemaRoot.getSchema))
+  val stream:DataStream[ArrowStreamReader] = env.addSource(consumer)
+
+  val out:DataStream[Unit] = stream.map(str => {
+
+    val root = str.getVectorSchemaRoot
+    val schema = root.getSchema
+    val vectors = root.getFieldVectors
+
+    for (i <- 0 to vectors.size - 1)
+      println(vectors.get(i).getMinorType)
+
+  })
 
   env.execute()
 }
