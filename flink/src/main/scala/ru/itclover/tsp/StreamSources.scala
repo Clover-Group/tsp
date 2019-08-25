@@ -263,11 +263,27 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Int, Any] {
 
+  val log = Logger[KafkaSource]
+
+  def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
+  def fieldsIdxMap = fieldsIdx.toMap
+
+  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
+    fieldsIdxMap(fieldId)
+  }
+
+  def timeIndex = fieldsIdxMap(conf.datetimeField)
+  def tsMultiplier = conf.timestampMultiplier.getOrElse {
+    log.info("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
+    1000.0
+  }
+
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = RowIdxExtractor ()
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] = RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+
+  // Unimplemented
   def createStream: org.apache.flink.streaming.api.scala.DataStream[org.apache.flink.types.Row] = ???
   def emptyEvent: org.apache.flink.types.Row = ???
-  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = ???
-  def fieldToEKey: Symbol => Int = ???
   def partitioner: org.apache.flink.types.Row => String = ???
-  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] = ???
-
+  
 }

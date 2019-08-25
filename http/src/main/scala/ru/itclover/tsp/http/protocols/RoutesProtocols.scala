@@ -118,7 +118,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "patternsParallelism"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat5(
+  implicit val kafkaInpConfFmt = jsonFormat6(
     KafkaInputConf.apply
   )
 
