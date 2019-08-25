@@ -13,11 +13,11 @@ case class KafkaInputConf(
   // jdbcUrl: String,
   // query: String,
   // driverName: String,
-  // datetimeField: Symbol,
+  datetimeField: Symbol,
   // eventsMaxGapMs: Long,
   // defaultEventsGapMs: Long,
   // chunkSizeMs: Option[Long],
-  partitionFields: Seq[Symbol]
+  partitionFields: Seq[Symbol],
   // userName: Option[String] = None,
   // password: Option[String] = None,
   // dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
@@ -33,15 +33,15 @@ case class KafkaInputConf(
 
   def dataTransformation
     : Option[ru.itclover.tsp.io.input.SourceDataTransformation[org.apache.flink.types.Row, Int, Any]] = ???
-  def datetimeField: Symbol = ???
-  def defaultEventsGapMs: Long = ???
-  def defaultToleranceFraction: Option[Double] = ???
-  def eventsMaxGapMs: Long = ???
-  def numParallelSources: Option[Int] = ???
-  def parallelism: Option[Int] = ???
-  // def partitionFields: Seq[Symbol] = ???
-  def patternsParallelism: Option[Int] = ???
-  def sourceId: Int = ???
+  // def datetimeField: Symbol = 'or
+  def defaultEventsGapMs: Long = 0L
+  def defaultToleranceFraction: Option[Double] = Some(0.1)
+  def eventsMaxGapMs: Long = 1L
+  def numParallelSources: Option[Int] = Some(1)
+  def parallelism: Option[Int] = Some(1)
+  // def partitionFields: Seq[Symbol] = Some('xor)
+  def patternsParallelism: Option[Int] = Some(1)
+  def sourceId: Int = 1
 
 }
 

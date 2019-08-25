@@ -77,8 +77,11 @@ trait JobsRoutes extends RoutesProtocols {
 
         val resultOrErr = for {
           source <- KafkaSource.create(inputConf)
-          _      <- createStream(patterns, inputConf, outConf, source)
+          _ = log.info("Kafka create done")
+          _ <- createStream(patterns, inputConf, outConf, source)
+          _ = log.info("Kafka createStream done")
           result <- runStream(uuid, isAsync)
+          _ = log.info("Kafka runStream done")
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
