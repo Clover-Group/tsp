@@ -29,7 +29,7 @@ case class KafkaInputConf(
   // offsetReset: String = "largest"
 ) extends InputConf[Row, Int, Any] {
 
-  def chunkSizeMs: Option[Long] = ???
+  def chunkSizeMs: Option[Long] = Some(10L)
 
   def dataTransformation
     : Option[ru.itclover.tsp.io.input.SourceDataTransformation[org.apache.flink.types.Row, Int, Any]] = ???

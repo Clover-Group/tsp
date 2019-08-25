@@ -244,13 +244,13 @@ object KafkaSource {
 
   val log = Logger[KafkaSource]
 
-  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] = 
+  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
     for {
       types <- KafkaService
         .fetchFieldsTypesInfo(conf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
-      _ = log.info (s"Kafka types found: $types")
+      _ = log.info(s"Kafka types found: $types")
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => KafkaSource(conf, types, nullField).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
@@ -273,17 +273,37 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
   }
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
+
   def tsMultiplier = conf.timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
     1000.0
   }
 
-  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = RowIdxExtractor ()
-  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] = RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = RowIdxExtractor()
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] =
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
 
-  // Unimplemented
-  def createStream: org.apache.flink.streaming.api.scala.DataStream[org.apache.flink.types.Row] = ???
-  def emptyEvent: org.apache.flink.types.Row = ???
-  def partitioner: org.apache.flink.types.Row => String = ???
-  
+  val stageName = "Kafka input processing stage"
+
+  def createStream: DataStream[Row] = streamEnv
+    .addSource(KafkaService.consumer(conf))
+    .name(stageName)
+    .map(r => {
+      val row = new Row(0)
+      row
+    })
+
+  val emptyEvent = {
+    val r = new Row(fieldsIdx.length)
+    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
+    r
+  }
+
+  def partitionsIdx = conf.partitionFields.map(fieldsIdxMap)
+
+  def partitioner = {
+    val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
 }
