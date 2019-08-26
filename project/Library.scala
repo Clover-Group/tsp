@@ -39,14 +39,14 @@ object Version {
 
 object Library {
 
-  //val jackson = Seq(
-  //  "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
-  //  "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
-  //  "javax.xml.bind" % "jaxb-api" % Version.jaxbApi,
-  //  "com.sun.xml.bind" % "jaxb-core" % Version.jaxbCore,
-  //  "com.sun.xml.bind" % "jaxb-impl" % Version.jaxbImpl,
-  //  "com.sun.activation" % "javax.activation" % Version.activation
-  //)
+  val jackson = Seq(
+    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson
+    //"javax.xml.bind" % "jaxb-api" % Version.jaxbApi,
+    //"com.sun.xml.bind" % "jaxb-core" % Version.jaxbCore,
+    //"com.sun.xml.bind" % "jaxb-impl" % Version.jaxbImpl,
+    //"com.sun.activation" % "javax.activation" % Version.activation
+  )
 
   val logging = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
@@ -60,33 +60,57 @@ object Library {
   val influx = Seq(
     "org.influxdb" % "influxdb-java" % Version.influx
   )
-  val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
+
+  val clickhouse = Seq(
+    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse % "compile"
+    exclude ("net.jpountz.lz4", "lz4")
+  )
+
   val postgre = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers = influx ++ clickhouse ++ postgre
 
   val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink = flinkCore ++ Seq(
-      "org.apache.flink" %% "flink-runtime-web" % Version.flink,
+      //"org.apache.flink" %% "flink-runtime-web" % Version.flink,
       "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
       "org.apache.flink" %% "flink-connector-kafka" % Version.flink,
-      "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-      "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
+      "org.apache.flink" % "flink-jdbc_2.12" % Version.flink
+      //"org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
     )
 
   val arrow = Seq(
+    //"org.apache.arrow" % "arrow-format" % Version.arrow,
+    //"org.apache.arrow" % "arrow-memory" % Version.arrow
+    //exclude ("io.netty", "netty-common")
+    //exclude ("io.netty", "netty-buffer"),
     "org.apache.arrow" % "arrow-vector" % Version.arrow
+    excludeAll (ExclusionRule("io.netty", "netty-common"))
+    excludeAll (ExclusionRule("io.netty", "netty-buffer"))
+    //exclude ("com.fasterxml.jackson.core", "jackson-databind")
+    //exclude ("io.netty", "netty-common")
+    //exclude ("io.netty", "netty-buffer")
+    //exclude ("org.apache.arrow", "arrow-format")
+    //exclude ("org.apache.arrow", "arrow-memory")
   )
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
-    "com.typesafe.akka" %% "akka-stream" % Version.akka
+    //"com.typesafe.akka" %% "akka-slf4j" % Version.akka,
+    "com.typesafe.akka" %% "akka-stream" % Version.akka % "compile"
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory"))
   )
 
   val akkaHttp = Seq(
-    "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
-    "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
-    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
+    "com.typesafe.akka" %% "akka-http" % Version.akkaHttp % "compile"
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory")),
+    "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp % "compile"
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory")),
+    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp % "compile"
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
+    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory"))
   )
 
   val cats = Seq(

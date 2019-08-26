@@ -14,26 +14,21 @@ resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
  
-
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-//scalacOptions --= Seq(
-//  "-Xfatal-warnings",
-//),
-//scalacOptions ++= Seq(
-//  //"-language:reflectiveCalls"
-//    "-Yrangepos",
-//    "-Ywarn-unused-import",
-//),
-//  addCompilerPlugin(scalafixSemanticdb),
+  //scalacOptions ++= Seq(
+  //  //"-language:reflectiveCalls"
+  //    "-Yrangepos",
+  //    "-Ywarn-unused-import",
+  //),
+  //addCompilerPlugin(scalafixSemanticdb),
   scalacOptions ++= Seq(
     "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
     "-deprecation",          // warn about use of deprecated APIs
     "-feature",               // warn about feature warnings 
-    //"-language:reflectiveCalls"
   ),
   // don't release subprojects
   githubRelease := null,
@@ -81,7 +76,8 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  Cmd("FROM", "openjdk:11-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -124,7 +120,7 @@ lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats ++ Library.shapeless
+    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
   )
 
 lazy val config = project.in(file("config"))
@@ -139,7 +135,7 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.jackson
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers
   )
   .dependsOn(core, config, dsl)
 
@@ -147,7 +143,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.twitterUtil ++ Library.arrow
+      Library.akkaHttp ++ Library.arrow
   )
   .dependsOn(core, config, flink, dsl)
 
@@ -231,3 +227,5 @@ addCommandAlias("fix", "all compile:scalafix test:scalafix")
 addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
 addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
 addCommandAlias("cov", "; clean; coverage; test; coverageReport")
+addCommandAlias("tree", "dependencyTree::toFile target/tree.txt -f")
+addCommandAlias("pub", "docker:publish")

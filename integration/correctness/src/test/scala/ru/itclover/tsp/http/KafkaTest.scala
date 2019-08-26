@@ -37,7 +37,7 @@ class KafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with H
     topic = "batch_record_small_stream_writer",
     group = "group5",
     datetimeField = 'and,
-    partitionFields = Seq('series_id, 'mechanism_id),
+    partitionFields = Seq('series_id, 'mechanism_id)
   )
 
   // val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")

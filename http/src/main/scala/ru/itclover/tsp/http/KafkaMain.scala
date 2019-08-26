@@ -1,16 +1,14 @@
 package ru.itclover.tsp.http.kafka
 
 import java.util.Properties
-import org.apache.flink.streaming.api
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
 
 import ru.itclover.tsp.http.kafka.Serdes._
-import org.apache.arrow.vector.VectorUnloader
 import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 
-import org.apache.arrow.vector.types.Types.MinorType.{INT, BIGINT, VARCHAR, FLOAT8}
+import org.apache.arrow.vector.types.Types.MinorType.{BIGINT, VARCHAR, FLOAT8}
 import ArrowPkg.ArrowOps._
 
 object KafkaMain extends App {
