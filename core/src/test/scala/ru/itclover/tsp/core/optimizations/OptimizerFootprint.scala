@@ -8,8 +8,6 @@ import scala.collection.mutable
 import cats.Id
 import ru.itclover.tsp.core.fixtures.Event
 
-import scala.language.reflectiveCalls
-
 class OptimizerFootprint extends FlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}
