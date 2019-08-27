@@ -1,4 +1,5 @@
 package ru.itclover.tsp.dsl.v2
+
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import ru.itclover.tsp.core.RawPattern

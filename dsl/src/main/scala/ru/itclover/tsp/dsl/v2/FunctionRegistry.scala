@@ -177,37 +177,37 @@ object DefaultFunctions {
       ),
       ('sind, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.toRadians(Math.sin(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.sin(Math.toRadians(x))),
           astType
         )
       ),
       ('cosd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.toRadians(Math.cos(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.cos(Math.toRadians(x))),
           astType
         )
       ),
       ('tand, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.toRadians(Math.tan(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('tgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.toRadians(Math.sin(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('cotd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.toRadians(Math.tan(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('ctgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.toRadians(Math.tan(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       )

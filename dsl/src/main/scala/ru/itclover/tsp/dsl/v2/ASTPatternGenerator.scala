@@ -78,7 +78,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                   ._1(Seq(x))
             )
           case 2 =>
-            log.debug(s"Case 2 called: Arg0 = $fc.arguments(0), Arg1 = $fc.arguments(1)")
+            log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             CouplePattern(p1, p2)(
               { (x, y) =>

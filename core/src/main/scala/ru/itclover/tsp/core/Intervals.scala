@@ -5,7 +5,7 @@ object Intervals {
 
   /** Interval abstraction for time measurment in accumulators and some other patterns */
   sealed trait Interval[T] {
-    def contains(item: T) = getRelativePosition(item) == Inside
+    def contains(item: T): Boolean = getRelativePosition(item) == Inside
 
     def isInfinite: Boolean
 
@@ -28,9 +28,9 @@ object Intervals {
 
     override def contains(w: Long): Boolean = w >= min && w <= max
 
-    override def isInfinite = max == MaxWindow.toMillis
+    override def isInfinite: Boolean = max == MaxWindow.toMillis
 
-    override def getRelativePosition(item: Long) =
+    override def getRelativePosition(item: Long): IntervalPosition = {
       if (item < min) {
         LessThanBegin
       } else if (item >= max) {
@@ -38,6 +38,8 @@ object Intervals {
       } else {
         Inside
       }
+
+    }
 
     def midpoint: Long = (min + max) / 2
   }
@@ -51,7 +53,7 @@ object Intervals {
   /** Simple inclusive-exclusive numeric interval */
   case class NumericInterval[T](start: T, end: Option[T])(implicit numeric: Numeric[T]) extends Interval[T] {
 
-    override def contains(item: T) = numeric.gteq(item, start) && (end.isEmpty || numeric.lteq(item, end.get))
+    override def contains(item: T): Boolean = numeric.gteq(item, start) && (end.isEmpty || numeric.lteq(item, end.get))
 
     override def isInfinite: Boolean = end.isEmpty
 

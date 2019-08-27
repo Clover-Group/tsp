@@ -1,7 +1,6 @@
 package ru.itclover.tsp.core
 
 import cats.{Foldable, Functor, Monad, Order}
-import org.openjdk.jmh.annotations.{Scope, State}
 import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.language.higherKinds
@@ -22,7 +21,6 @@ object Pat {
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
-@State(Scope.Benchmark)
 trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializable {
 
   /**

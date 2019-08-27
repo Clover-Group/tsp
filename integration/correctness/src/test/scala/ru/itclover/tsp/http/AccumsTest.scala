@@ -22,15 +22,16 @@ import scala.util.Success
 class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-  implicit override val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
+  implicit override val streamEnvironment: StreamExecutionEnvironment =
+    StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   private val log = Logger("AccumsTest")
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8137
-  implicit override val container = new JDBCContainer(
+  implicit override val container: JDBCContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9089 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
@@ -41,7 +42,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   val windowMin = 10
 
   // format: off
-  val realWorkloadQuery = """SELECT * FROM (
+  val realWorkloadQuery: String = """SELECT * FROM (
       |	SELECT toFloat64(number * 1 + 100000000) as ts, toString(rand() % 2) as t1, toFloat32(rand() % 300) as lt300Sens,       toUInt8(rand() % 10) as lt10Sens,      1000 + (rand() % 5000) as gt1000Sens   FROM numbers(1000)
       |   union all -- 499 1
       |	SELECT toFloat64(number * 1 + 100001000) as ts, toString(1) as t1, 		      toFloat32(1 + (rand() % 299)) as lt300Sens, toUInt8(8 + (rand() % 2)) as lt10Sens, 1000 + (rand() % 5000) as gt1000Sens   FROM numbers(1000)
