@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core.optimizations
 
-import org.scalatest.{FlatSpec, FunSuite, Matchers}
-import ru.itclover.tsp.core.Common._
-import ru.itclover.tsp.core.{Event, Patterns, SimplePattern}
+import org.scalatest.{FlatSpec, Matchers}
+import ru.itclover.tsp.core.fixtures.Common._
+import ru.itclover.tsp.core.Patterns
 import ru.itclover.tsp.core.Window
 
 class OptimizerTest extends FlatSpec with Matchers {
@@ -15,13 +15,13 @@ class OptimizerTest extends FlatSpec with Matchers {
   it should "optimize couple(const, const) to const" in {
     val pat = const(3).plus(const(2))
 
-    new Optimizer[EInt].optimize(pat) should be(const(5))
+    new Optimizer[EInt].optimize(pat) shouldBe (const(5))
   }
 
   it should "optimize map(const) to const" in {
     val pat = const(3).map(_ + 2)
 
-    new Optimizer[EInt].optimize(pat) should be(const(5))
+    new Optimizer[EInt].optimize(pat) shouldBe (const(5))
   }
 
   it should "optimize map(simple) to simple" in {

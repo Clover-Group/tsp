@@ -23,38 +23,28 @@ class PatternGeneratorTest extends FlatSpec with Matchers with PropertyChecks {
   val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
 
   "Pattern generator" should "build valid patterns" in {
-    gen.build("doubleSensor1 > 0 for 30 sec", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
-    gen.build("doubleSensor1 > 0 or longSensor = 0", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
-    gen.build("doubleSensor1 > 0 and intSensor = 0", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("(doubleSensor1 + intSensor as float64) >= 10", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("(doubleSensor1 + intSensor as float64) >= 10", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("avgOf(doubleSensor1, doubleSensor2) >= 10 for 5 min >= 100 ms", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("sin(doubleSensor1) >= 0.5 for 5 min andThen intSensor > 42", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("tan(doubleSensor1) >= 1 for 5 hr andThen avg(doubleSensor2, 3 sec) > 42", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("count(doubleSensor1, 4 sec) * sum(doubleSensor2, 3 sec) < 9", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    gen
-      .build("lag(doubleSensor1, 10 sec) > doubleSensor1", 0.0, fieldsClasses)
-      .right
-      .value shouldBe a[(_, PatternMetadata)]
-    //gen.build("boolSensor = true andThen boolSensor != false", 0.0, fieldsClasses).right.value shouldBe a[(Pattern[TestEvent, _, _], PatternMetadata)]
+
+    val patternsList = List(
+      "doubleSensor1 > 0 for 30 sec",
+      "doubleSensor1 > 0 or longSensor = 0",
+      "doubleSensor1 > 0 and intSensor = 0",
+      "(doubleSensor1 + intSensor as float64) >= 10",
+      "avgOf(doubleSensor1, doubleSensor2) >= 10 for 5 min >= 100 ms",
+      "sin(doubleSensor1) >= 0.5 for 5 min andThen intSensor > 42",
+      "tan(doubleSensor1) >= 1 for 5 hr andThen avg(doubleSensor2, 3 sec) > 42",
+      "count(doubleSensor1, 4 sec) * sum(doubleSensor2, 3 sec) < 9",
+      "lag(doubleSensor1, 10 sec) > doubleSensor1"
+      //"boolSensor = true andThen boolSensor != false"
+    )
+
+    patternsList
+      .foreach(
+        pattern =>
+          gen
+            .build(pattern, 0.0, fieldsClasses)
+            .right
+            .value shouldBe a[(_, PatternMetadata)]
+      )
   }
 
   "Pattern generator" should "not generate invalid patterns" in {
@@ -67,8 +57,20 @@ class PatternGeneratorTest extends FlatSpec with Matchers with PropertyChecks {
   }
 
   "Casts" should "be performed" in {
-    gen.build("doubleSensor1 as int32 > 0", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
-    gen.build("doubleSensor1 as int64 > 0", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
-    gen.build("doubleSensor1 as boolean = true", 0.0, fieldsClasses).right.value shouldBe a[(_, PatternMetadata)]
+
+    val patternsList = List(
+      "doubleSensor1 as int32 > 0",
+      "doubleSensor1 as int64 > 0",
+      "doubleSensor1 as boolean = true"
+    )
+
+    patternsList
+      .foreach(
+        pattern =>
+          gen
+            .build(pattern, 0.0, fieldsClasses)
+            .right
+            .value shouldBe a[(_, PatternMetadata)]
+      )
   }
 }
