@@ -166,6 +166,15 @@ lazy val itPerf = project.in(file("integration/performance"))
 
 /*** Other settings ***/
 
+// Exclude sources 
+//excludeFilter in unmanagedResources := {
+//  val public = ((resourceDirectory in Compile).value / "com" / "example" / "export" / "dev").getCanonicalPath
+//  new SimpleFileFilter(_.getCanonicalPath startsWith public)
+//}
+//(unmanagedResourceDirectories in Compile) := (unmanagedResourceDirectories in Compile).value.filter(_.getName.startsWith("dev"))
+unmanagedResourceDirectories in Compile -= (resourceDirectory in Compile).value / "com/example/export/dev"
+
+
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 //addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
