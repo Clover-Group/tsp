@@ -7,3 +7,4 @@
 -Dfile.encoding=UTF8 
 -XX:+TieredCompilation
 -XX:+CMSClassUnloadingEnabled
+-XX:+UseParallelGC

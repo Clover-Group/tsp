@@ -85,7 +85,7 @@ object PatternProcessor {
     * @tparam T Element type
     * @return List of chunks
     */
-  def splitByCondition[T](elements: List[T])(pred: (T, T) => Boolean): List[Seq[T]] = {
+  def splitByCondition[T](elements: List[T])(pred: (T, T) => Boolean): List[Seq[T]] =
     if (elements.length < 2) {
       List(elements)
     } else {
@@ -101,5 +101,4 @@ object PatternProcessor {
       }
       results.map(_.toSeq).toList
     }
-  }
 }

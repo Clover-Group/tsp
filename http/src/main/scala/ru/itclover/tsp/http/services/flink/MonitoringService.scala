@@ -19,7 +19,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
   import ru.itclover.tsp.http.services.AkkaHttpUtils._
 
   def queryJobDetailsWithMetrics(name: String, metricsInf: List[MetricInfo]): Future[Option[JobDetailsWithMetrics]] =
-    queryJobInfo(name) flatMap {
+    queryJobInfo(name).flatMap {
       case Some(details) =>
         queryJobMetrics(details, metricsInf).map(
           metrics => Some(JobDetailsWithMetrics(details, metrics.map({ case (inf, value) => inf.name -> value }).toMap))
@@ -27,10 +27,10 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
       case _ => Future.successful(None)
     }
 
-  def queryJobInfo(name: String): Future[Option[JobDetails]] = queryJobByName(name) flatMap {
+  def queryJobInfo(name: String): Future[Option[JobDetails]] = queryJobByName(name).flatMap {
     case Some(job) => {
       val details = queryToEither[MonitoringError, JobDetails](uri + s"/jobs/${job.jid}/")
-      details flatMap {
+      details.flatMap {
         case Right(r)  => Future.successful(Some(r))
         case Left(err) => Future.failed(err.toThrowable)
       }
@@ -38,12 +38,12 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     case None => Future.successful(None)
   }
 
-  def queryJobMetrics(job: JobDetails, metricsInfo: List[MetricInfo]): Future[List[(MetricInfo, String)]] = {
+  def queryJobMetrics(job: JobDetails, metricsInfo: List[MetricInfo]): Future[List[(MetricInfo, String)]] =
     Traverse[List].flatTraverse(metricsInfo)({ m =>
       val vertexInd = if (m.vertexIndex == Int.MaxValue) job.vertices.length - 1 else m.vertexIndex
       if (vertexInd < job.vertices.length) {
         val mUri = uri + s"/jobs/${job.jid}/vertices/${job.vertices(vertexInd).id}/metrics?get=${m.id}"
-        queryToEither[MonitoringError, List[Metric]](mUri) flatMap {
+        queryToEither[MonitoringError, List[Metric]](mUri).flatMap {
           case Right(metrics) if metrics.nonEmpty => Future.successful(metrics.map(m -> _.value))
           case Right(_)                           => Future.successful(List(m        -> "0"))
 
@@ -53,7 +53,6 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
         Future.failed(new IndexOutOfBoundsException("There is no such metric with index"))
       }
     })
-  }
 
 //  def queryJobAllRootMetrics(name: String): Future[Either[Throwable, Map[String, String]]] =
 //    queryJobInfo(name) flatMap {
@@ -93,7 +92,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
 //      case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
 //    }
 
-  def queryJobAllMetrics(name: String): Future[Either[Throwable, Map[String, String]]] = queryJobInfo(name) flatMap {
+  def queryJobAllMetrics(name: String): Future[Either[Throwable, Map[String, String]]] = queryJobInfo(name).flatMap {
     case Some(job) =>
       Future(
         Right(
@@ -101,11 +100,11 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
             .map { v =>
               val metricNamesUri = uri + s"/jobs/${job.jid}/vertices/${v.id}/metrics"
               Await.result(
-                queryToEither[MonitoringError, List[MetricName]](metricNamesUri) map {
+                queryToEither[MonitoringError, List[MetricName]](metricNamesUri).map {
                   case Right(metricNames) =>
                     val metricsUri = metricNamesUri + s"?get=${metricNames.map(_.id).mkString(",")}"
                     Await.result(
-                      queryToEither[MonitoringError, List[Metric]](metricsUri) map {
+                      queryToEither[MonitoringError, List[Metric]](metricsUri).map {
                         case Right(metrics) => Right(metrics.map(m => m.id -> m.value).toMap)
                         case Left(err)      => Left(err.toThrowable)
                       },
@@ -123,13 +122,13 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     case None => Future(Left(new IllegalArgumentException(s"Job $name not found")))
   }
 
-  def queryJobExceptions(name: String): Future[Option[JobExceptions]] = queryJobByName(name) flatMap {
+  def queryJobExceptions(name: String): Future[Option[JobExceptions]] = queryJobByName(name).flatMap {
     case Some(job) => {
       val raw = Http().singleRequest(HttpRequest(uri = uri + s"/jobs/${job.jid}/exceptions/"))
-      val details = raw flatMap { rs =>
-          Unmarshal(rs.entity).to[Either[MonitoringError, JobExceptions]]
-        }
-      details flatMap {
+      val details = raw.flatMap { rs =>
+        Unmarshal(rs.entity).to[Either[MonitoringError, JobExceptions]]
+      }
+      details.flatMap {
         case Right(r)  => Future.successful(Some(r))
         case Left(err) => Future.failed(err.toThrowable)
       }
@@ -137,13 +136,13 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     case None => Future.successful(None)
   }
 
-  def sendStopQuery(jobName: String): Future[Option[Unit]] = queryJobByName(jobName) flatMap {
+  def sendStopQuery(jobName: String): Future[Option[Unit]] = queryJobByName(jobName).flatMap {
     case Some(job) =>
       val resp = for {
         response     <- Http().singleRequest(HttpRequest(uri = uri + s"/jobs/${job.jid}", method = HttpMethods.PATCH))
         successOrErr <- Unmarshal(response.entity).to[Either[MonitoringError, EmptyResponse]]
       } yield successOrErr
-      resp flatMap {
+      resp.flatMap {
         case Right(_)  => Future.successful(Some(Unit))
         case Left(err) => Future.failed(err.toThrowable)
       }
@@ -154,7 +153,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
     val response = Http()
       .singleRequest(HttpRequest(uri = uri + "/jobs/overview/"))
       .flatMap(resp => Unmarshal(resp.entity).to[Either[MonitoringError, JobsOverview]])
-    response flatMap {
+    response.flatMap {
       case Right(r)  => Future.successful(r)
       case Left(err) => Future.failed(err.toThrowable)
     }

@@ -8,7 +8,7 @@ import ru.itclover.tsp.http.kafka.Serdes._
 import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 
-import org.apache.arrow.vector.types.Types.MinorType.{BIGINT, VARCHAR, FLOAT8}
+import org.apache.arrow.vector.types.Types.MinorType.{BIGINT, FLOAT8, VARCHAR}
 import ArrowPkg.ArrowOps._
 
 object KafkaMain extends App {

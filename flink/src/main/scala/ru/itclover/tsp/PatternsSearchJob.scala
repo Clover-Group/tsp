@@ -46,7 +46,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
-    ) map { patterns =>
+    ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
       val mapped = incidents.map(x => x.map(resultMapper))

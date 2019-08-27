@@ -19,17 +19,11 @@ lazy val commonSettings = Seq(
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-  //scalacOptions ++= Seq(
-  //  //"-language:reflectiveCalls"
-  //    "-Yrangepos",
-  //    "-Ywarn-unused-import",
-  //),
-  //addCompilerPlugin(scalafixSemanticdb),
-  scalacOptions ++= Seq(
-    "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation",          // warn about use of deprecated APIs
-    "-feature",               // warn about feature warnings 
+  // Comment for production builds
+  scalacOptions --= Seq(
+    "-Xfatal-warnings"
   ),
+  addCompilerPlugin(scalafixSemanticdb),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,

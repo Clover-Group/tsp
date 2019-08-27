@@ -39,9 +39,8 @@ object CollectionsOps {
 
   implicit class StringOps(private val s: String) extends AnyVal {
 
-    def replaceLast(regex: String, replacement: String, patternFlags: Int = 0) = {
+    def replaceLast(regex: String, replacement: String, patternFlags: Int = 0) =
       Pattern.compile("(?s)(.*)" + regex, patternFlags).matcher(s).replaceFirst("$1" + replacement)
-    }
 
     def toSymbol = Symbol(s)
   }

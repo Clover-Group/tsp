@@ -1,6 +1,6 @@
 package ArrowPkg
 
-import org.apache.arrow.vector.types.Types.MinorType.{INT, BIGINT, FLOAT8, VARCHAR}
+import org.apache.arrow.vector.types.Types.MinorType.{BIGINT, FLOAT8, INT, VARCHAR}
 import org.apache.arrow.vector.{FieldVector}
 
 trait ArrowOps[A] {

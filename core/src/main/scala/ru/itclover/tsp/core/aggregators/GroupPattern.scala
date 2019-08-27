@@ -35,7 +35,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
     idx: Idx,
     time: Time,
     value: Result[T]
-  ): (GroupAccumState[T], QI[GroupAccumResult[T]]) = {
+  ): (GroupAccumState[T], QI[GroupAccumResult[T]]) =
     value
       .map { t =>
         // add new element to queue
@@ -60,7 +60,6 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
         )
       }
       .getOrElse(this -> PQueue.empty)
-  }
 
 }
 

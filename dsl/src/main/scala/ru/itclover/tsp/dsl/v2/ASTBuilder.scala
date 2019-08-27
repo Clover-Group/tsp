@@ -57,9 +57,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
   /*_*/
 
-  protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
+  protected def buildForExpr(phase: AST, ti: TimeInterval): AST =
     Timer(Assert(phase.asInstanceOf[AST]), ti)
-  }
 
   // format: off
 

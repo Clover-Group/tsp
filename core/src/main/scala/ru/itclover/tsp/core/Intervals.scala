@@ -30,7 +30,7 @@ object Intervals {
 
     override def isInfinite = max == MaxWindow.toMillis
 
-    override def getRelativePosition(item: Long) = {
+    override def getRelativePosition(item: Long) =
       if (item < min) {
         LessThanBegin
       } else if (item >= max) {
@@ -38,7 +38,6 @@ object Intervals {
       } else {
         Inside
       }
-    }
 
     def midpoint: Long = (min + max) / 2
   }
@@ -56,7 +55,7 @@ object Intervals {
 
     override def isInfinite: Boolean = end.isEmpty
 
-    override def getRelativePosition(item: T): IntervalPosition = {
+    override def getRelativePosition(item: T): IntervalPosition =
       if (numeric.lt(item, start)) {
         LessThanBegin
       } else if (end.isDefined && numeric.gteq(item, end.get)) {
@@ -64,7 +63,6 @@ object Intervals {
       } else {
         Inside
       }
-    }
   }
 
   object NumericInterval {

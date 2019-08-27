@@ -90,7 +90,7 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
       // Performance
       val fromT = timeRangeSec.head.toLong
       val toT = timeRangeSec.last.toLong
-      execTimeS should (be >= fromT and be <= toT)
+      execTimeS should ((be >= fromT).and(be <= toT))
     }
   }
 }

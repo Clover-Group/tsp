@@ -58,9 +58,8 @@ object InfluxDBService {
     } yield db
   }
 
-  def makeLimit1Query(query: String) = {
+  def makeLimit1Query(query: String) =
     query.replaceLast("""LIMIT \d+""", "", Pattern.CASE_INSENSITIVE) + " LIMIT 1"
-  }
 
   def emptyValuesException(query: String) = new InfluxDBException(s"Empty/Null values or tags in query - `$query`.")
 }

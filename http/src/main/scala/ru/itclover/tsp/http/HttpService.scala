@@ -81,22 +81,22 @@ trait HttpService extends RoutesProtocols {
 
   implicit def rejectionsHandler: RejectionHandler = RejectionHandler
     .newBuilder()
-    .handleNotFound {
+    .handleNotFound({
       extractUnmatchedPath { p =>
-        complete(NotFound, FailureResponse(4004, s"Path not found: `$p`", Seq.empty))
+        complete((NotFound, FailureResponse(4004, s"Path not found: `$p`", Seq.empty)))
       }
-    }
+    })
     .handleAll[MalformedFormFieldRejection] { x =>
-      complete(BadRequest, FailureResponse(4001, "Malformed field.", x.map(_.toString)))
+      complete((BadRequest, FailureResponse(4001, "Malformed field.", x.map(_.toString))))
     }
     .handleAll[MalformedQueryParamRejection] { x =>
-      complete(BadRequest, FailureResponse(4002, "Malformed query.", x.map(_.toString)))
+      complete((BadRequest, FailureResponse(4002, "Malformed query.", x.map(_.toString))))
     }
     .handleAll[MalformedRequestContentRejection] { x =>
-      complete(BadRequest, FailureResponse(4003, "Malformed request content.", x.map(_.toString)))
+      complete((BadRequest, FailureResponse(4003, "Malformed request content.", x.map(_.toString))))
     }
     .handleAll[Rejection] { _ =>
-      complete(InternalServerError, FailureResponse(5003, "Unknown rejection.", Seq.empty))
+      complete((InternalServerError, FailureResponse(5003, "Unknown rejection.", Seq.empty)))
     }
     .result()
 
@@ -107,9 +107,11 @@ trait HttpService extends RoutesProtocols {
       val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
       complete(
-        InternalServerError,
-        FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
-        // FailureResponse(5001, "Job execution failure")
+        (
+          InternalServerError,
+          FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+          // FailureResponse(5001, "Job execution failure")
+        )
       )
 
     case ex: JobExecutionException =>
@@ -118,13 +120,15 @@ trait HttpService extends RoutesProtocols {
       val error = s"Uncaught error during job execution, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
       complete(
-        InternalServerError,
-        FailureResponse(5002, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        (
+          InternalServerError,
+          FailureResponse(5002, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        )
       )
 
     case InvalidRequest(msg) =>
       log.error(msg)
-      complete(BadRequest, FailureResponse(4005, "Invalid request", Seq(msg)))
+      complete((BadRequest, FailureResponse(4005, "Invalid request", Seq(msg))))
 
     case ex @ (_: RuntimeException | _: java.io.IOException) =>
       val stackTrace = Exceptions.getStackTrace(ex)
@@ -132,8 +136,10 @@ trait HttpService extends RoutesProtocols {
       val error = s"Uncaught error during request handling, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
       complete(
-        InternalServerError,
-        FailureResponse(5005, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        (
+          InternalServerError,
+          FailureResponse(5005, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        )
       )
 
     case ex: Exception =>
@@ -142,12 +148,13 @@ trait HttpService extends RoutesProtocols {
       val error = s"Uncaught error during request handling, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
       complete(
-        InternalServerError,
-        FailureResponse(5008, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        (
+          InternalServerError,
+          FailureResponse(5008, "Request handling failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        )
       )
   }
 
-  def getEnvVarOrConfig(envVarName: String, configPath: String): String = {
+  def getEnvVarOrConfig(envVarName: String, configPath: String): String =
     Properties.envOrNone(envVarName).getOrElse(configs.getString(configPath))
-  }
 }

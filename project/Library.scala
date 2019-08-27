@@ -62,8 +62,8 @@ object Library {
   )
 
   val clickhouse = Seq(
-    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse % "compile"
-    exclude ("net.jpountz.lz4", "lz4")
+    ("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse % "compile")
+      .exclude("net.jpountz.lz4", "lz4")
   )
 
   val postgre = Seq("org.postgresql" % "postgresql" % Version.postgres)
@@ -84,9 +84,9 @@ object Library {
     //"org.apache.arrow" % "arrow-memory" % Version.arrow
     //exclude ("io.netty", "netty-common")
     //exclude ("io.netty", "netty-buffer"),
-    "org.apache.arrow" % "arrow-vector" % Version.arrow
-    excludeAll (ExclusionRule("io.netty", "netty-common"))
-    excludeAll (ExclusionRule("io.netty", "netty-buffer"))
+    ("org.apache.arrow" % "arrow-vector" % Version.arrow)
+      .excludeAll(ExclusionRule("io.netty", "netty-common"))
+      .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
     //exclude ("com.fasterxml.jackson.core", "jackson-databind")
     //exclude ("io.netty", "netty-common")
     //exclude ("io.netty", "netty-buffer")
@@ -96,21 +96,21 @@ object Library {
 
   val akka = Seq(
     //"com.typesafe.akka" %% "akka-slf4j" % Version.akka,
-    "com.typesafe.akka" %% "akka-stream" % Version.akka % "compile"
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory"))
+    ("com.typesafe.akka" %% "akka-stream" % Version.akka % "compile")
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-vector"))
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-memory"))
   )
 
   val akkaHttp = Seq(
-    "com.typesafe.akka" %% "akka-http" % Version.akkaHttp % "compile"
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory")),
-    "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp % "compile"
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory")),
-    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp % "compile"
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-vector"))
-    excludeAll (ExclusionRule("org.apache.arrow", "arrow-memory"))
+    ("com.typesafe.akka" %% "akka-http" % Version.akkaHttp % "compile")
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-vector"))
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-memory")),
+    ("com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp % "compile")
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-vector"))
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-memory")),
+    ("com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp % "compile")
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-vector"))
+      .excludeAll(ExclusionRule("org.apache.arrow", "arrow-memory"))
   )
 
   val cats = Seq(

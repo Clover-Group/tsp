@@ -15,7 +15,7 @@ object JdbcService {
       resultSet  <- Try(connection.createStatement().executeQuery(s"SELECT * FROM (${query}) as mainQ LIMIT 1"))
       metaData   <- Try(resultSet.getMetaData)
     } yield {
-      (1 to metaData.getColumnCount) map { i: Int =>
+      (1 to metaData.getColumnCount).map { i: Int =>
         val className = metaData.getColumnClassName(i)
         (Symbol(metaData.getColumnName(i)), Class.forName(className))
       }

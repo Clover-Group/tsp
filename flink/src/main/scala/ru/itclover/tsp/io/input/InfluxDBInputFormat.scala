@@ -54,19 +54,16 @@ object InfluxDBInputFormat {
       this
     }
 
-    def and() = {
+    def and() =
       new Actions()
-    }
 
     class Actions {
 
-      def buildIt() = {
+      def buildIt() =
         obj
-      }
 
-      def consumeIt(consumer: Consumer[InfluxDBInputFormat]) = {
+      def consumeIt(consumer: Consumer[InfluxDBInputFormat]) =
         consumer.accept(buildIt())
-      }
     }
   }
 }

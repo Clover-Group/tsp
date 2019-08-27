@@ -40,11 +40,10 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
 object StreamSource {
 
-  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
+  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) =
     allFields.find { field =>
       !excludedFields.contains(field)
     }
-  }
 }
 
 object JdbcSource {

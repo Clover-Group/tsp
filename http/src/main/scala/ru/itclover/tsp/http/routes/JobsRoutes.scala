@@ -141,8 +141,8 @@ trait JobsRoutes extends RoutesProtocols {
     log.debug("matchResultToResponse started")
 
     val res = result match {
-      case Left(err: ConfigErr)  => complete(BadRequest, FailureResponse(err))
-      case Left(err: RuntimeErr) => complete(InternalServerError, FailureResponse(err))
+      case Left(err: ConfigErr)  => complete((BadRequest, FailureResponse(err)))
+      case Left(err: RuntimeErr) => complete((InternalServerError, FailureResponse(err)))
       // Async job - response with message about successful start
       case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
       // Sync job - response with message about successful ending

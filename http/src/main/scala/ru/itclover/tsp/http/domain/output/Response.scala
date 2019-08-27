@@ -25,12 +25,11 @@ object FailureResponse {
     FailureResponse(code, "Internal server error", Seq(message, stackTrace))
   }
 
-  // def apply(code: Int, msg: String, errs: Seq[ConfigErr]): FailureResponse = {
-  //   apply (code, msg, errs)
-  //   // val stackTrace = Exceptions.getStackTrace(ex)
-  //   // val message = if (ex != null && ex.getCause != null) ex.getCause.getMessage else ex.getMessage
-  //   // FailureResponse(code, msg, errs)
-  // }
+  def apply(code: Int, msg: String, errs: Seq[String]): FailureResponse = {
+    // apply (code, msg, errs)
+    val ex = new Throwable("Ex")
+    apply(500, ex)
+  }
 
   def apply(ex: Throwable): FailureResponse = apply(5000, ex)
 

@@ -14,8 +14,7 @@ class ATPGTest extends FlatSpec with Matchers {
     def getConstPat(num: Int): ConstPattern[EInt, Int] = ConstPattern[EInt, Int](Result.succ(num))(extractor)
 
     // Checker property
-    def checkAll(): Prop = {
-
+    def checkAll(): Prop =
       Prop.forAll { num: Int =>
         // Exp state
         val eventsQueue = PQueue(IdxValue(num, Result.succ(0)))
@@ -29,7 +28,6 @@ class ATPGTest extends FlatSpec with Matchers {
         val actState = StateMachine[Id].run(pat, Seq(ev), pat.initialState())
         actState === expState
       }
-    }
 
     checkAll.check
 

@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.{HttpApp, RejectionHandler, Route}
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel._
 import ru.itclover.tsp.http.services.flink.MonitoringServiceProtocols
 
-import scala.concurrent.{ExecutionContext, Future, Promise, blocking}
+import scala.concurrent.{blocking, ExecutionContext, Future, Promise}
 
 object MockServer extends HttpApp with MonitoringServiceProtocols {
   private var shouldStop = false
@@ -79,7 +79,7 @@ object MockServer extends HttpApp with MonitoringServiceProtocols {
     .newBuilder()
     .handleNotFound {
       extractUnmatchedPath { p =>
-        complete(StatusCodes.NotFound, List(`Content-Type`(`application/json`)), "Path not found: `$p`")
+        complete((StatusCodes.NotFound, List(`Content-Type`(`application/json`)), "Path not found: `$p`"))
       }
     }
     .result()
@@ -109,5 +109,5 @@ object MockServer extends HttpApp with MonitoringServiceProtocols {
     super.startServer(host, port)
   }
 
-  def stop(): Unit = { shouldStop = true }
+  def stop(): Unit = shouldStop = true
 }

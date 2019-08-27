@@ -35,7 +35,7 @@ object DefaultFunctions {
 
   val log = Logger("DefaultFunctionRegistry")
 
-  private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] = {
+  private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
       case value: Result[T]                                          => value
       case value: T                                                  => Result.succ(value)
@@ -49,7 +49,6 @@ object DefaultFunctions {
         log.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
         Result.fail
     }
-  }
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
     implicit f: Fractional[T1],
@@ -223,8 +222,7 @@ object DefaultFunctions {
 
     val btype = BooleanASTType
 
-    def func(sym: Symbol, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] = {
-
+    def func(sym: Symbol, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] =
       //log.debug(s"func($sym): Arg0 = $xs(0), Arg1 = $xs(1)")
       //log.info(s"Args = ${(xs(0), xs.lift(1).getOrElse(Unit))}")
       //log.info(s"Arg results = ${(toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
@@ -246,7 +244,6 @@ object DefaultFunctions {
           }
         case _ => Result.fail
       }
-    }
 
     Map(
       //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),

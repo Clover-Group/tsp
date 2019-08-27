@@ -16,7 +16,7 @@ object AkkaHttpUtils {
     ec: ExecutionContext
   ): Future[Either[L, R]] = {
     val raw = Http().singleRequest(HttpRequest(uri = fullUri, method = method))
-    raw flatMap { rs =>
+    raw.flatMap { rs =>
       Unmarshal(rs.entity).to[Either[L, R]]
     }
   }

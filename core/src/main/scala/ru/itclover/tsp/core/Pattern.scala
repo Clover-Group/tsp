@@ -99,7 +99,7 @@ object Pattern {
       tsToIdx(eventToTs(e))
     }
 
-    override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
+    override def compare(x: Idx, y: Idx) = idxToTs(x).compare(idxToTs(y))
 
     def idxToTs(idx: Idx): Long = idx / maxCounter
 
@@ -114,7 +114,7 @@ object Pattern {
     def of[E](f: E => Idx): IdxExtractor[E] = new IdxExtractor[E] {
       override def apply(e: E): Idx = f(e)
 
-      override def compare(x: Idx, y: Idx) = x compare y
+      override def compare(x: Idx, y: Idx) = x.compare(y)
     }
   }
 }

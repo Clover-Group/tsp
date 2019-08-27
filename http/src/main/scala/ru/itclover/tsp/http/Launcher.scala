@@ -49,22 +49,22 @@ object Launcher extends App with HttpService {
 
   val streamEnvOrError = createLocalEnv
 
-  // val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
-  //   val (host, port) = getClusterHostPort match {
-  //     case Right(hostAndPort) => hostAndPort
-  //     case Left(err)          => throw new RuntimeException(err)
-  //   }
-  //   log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
-  //   Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
-  // } else if (args.length != 1) {
-  //   Left("You need to provide one arg: `flink-local` or `flink-cluster` to specify Flink execution mode.")
-  // } else if (args(0) == "flink-local") {
-  //   createLocalEnv
-  // } else if (args(0) == "flink-cluster") {
-  //   createClusterEnv
-  // } else {
-  //   Left(s"Unknown argument: `${args(0)}`.")
-  // }
+  //val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
+  //  val (host, port) = getClusterHostPort match {
+  //    case Right(hostAndPort) => hostAndPort
+  //    case Left(err)          => throw new RuntimeException(err)
+  //  }
+  //  log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
+  //  Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
+  //} else if (args.length != 1) {
+  //  Left("You need to provide one arg: `flink-local` or `flink-cluster` to specify Flink execution mode.")
+  //} else if (args(0) == "flink-local") {
+  //  createLocalEnv
+  //} else if (args(0) == "flink-cluster") {
+  //  createClusterEnv
+  //} else {
+  //  Left(s"Unknown argument: `${args(0)}`.")
+  //}
 
   implicit override val streamEnvironment = streamEnvOrError match {
     case Right(env) => env
@@ -104,7 +104,7 @@ object Launcher extends App with HttpService {
     port.map(p => (host, p))
   }
 
-  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort flatMap {
+  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort.flatMap {
     case (clusterHost, clusterPort) =>
       log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
       val rawJarPath = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
