@@ -36,9 +36,7 @@ object RowOps {
     def apply(r: Row) = {
       val isoTime = r.getField(timeIndex).toString
       if (isoTime == null || isoTime == "")
-        sys.error(
-          sys.error(s"Cannot parse time `$isoTime` from field $fieldId, should be in ISO 8601 format")
-        )
+        sys.error(s"Cannot parse time `$isoTime` from field $fieldId, should be in ISO 8601 format")
       CoreTime(toMillis = Instant.parse(isoTime).toEpochMilli)
     }
   }

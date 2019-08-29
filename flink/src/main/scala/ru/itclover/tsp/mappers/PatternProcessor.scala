@@ -30,7 +30,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   log.info(s"pattern: $pattern, inner: $pattern.inner")
 
   def process(
-    key: String,
+    // key: String,
     elements: Iterable[E],
     out: Collector[Out]
   ): Unit = {

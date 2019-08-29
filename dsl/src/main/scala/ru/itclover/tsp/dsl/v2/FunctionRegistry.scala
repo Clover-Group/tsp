@@ -388,7 +388,7 @@ object DefaultFunctions {
   }
 
   def reducers[T: ClassTag](
-    implicit conv: T => Double
+    // implicit conv: T => Double
   ): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
     ('sumof, DoubleASTType) -> (
       (
@@ -463,10 +463,10 @@ object DefaultFunctions {
     override def negate(x: Int): Int = -x
     override def fromInt(x: Int): Int = x
     override def toInt(x: Int): Int = x
-    override def toLong(x: Int): Long = x
+    override def toLong(x: Int): Long = x.toLong
     override def toFloat(x: Int): Float = x.toFloat
     override def toDouble(x: Int): Double = x.toDouble
-    override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x, y)
+    override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x.toLong, y.toLong)
   }
 
   implicit val fractionalLong: Fractional[Long] = new Fractional[Long] {
@@ -475,7 +475,7 @@ object DefaultFunctions {
     override def minus(x: Long, y: Long): Long = x - y
     override def times(x: Long, y: Long): Long = x * y
     override def negate(x: Long): Long = -x
-    override def fromInt(x: Int): Long = x
+    override def fromInt(x: Int): Long = x.toLong
     override def toInt(x: Long): Int = x.toInt
     override def toLong(x: Long): Long = x
     override def toFloat(x: Long): Float = x.toFloat

@@ -15,7 +15,7 @@ object Version {
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
 
-  val cats = "2.0.0-RC1"
+  val cats = "2.0.0-RC2"
 
   val scalaTest = "3.0.8"
   val scalaCheck = "1.14.0"
@@ -35,6 +35,8 @@ object Version {
   val activation = "1.2.0"
 
   val sentry = "1.7.27"
+
+  val SemanticDB = "4.2.4"
 }
 
 object Library {
@@ -138,5 +140,9 @@ object Library {
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
+
+  //val semantic = Seq(
+  //  "org.scalameta" %% "semanticdb-scalac" % "4.2.3"
+  //)
 
 }

@@ -23,7 +23,7 @@ import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 
 import scala.reflect.ClassTag
 
@@ -126,14 +126,14 @@ object PatternsSearchJob {
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
-    getTime: TimeExtractor[E],
-    dDecoder: Decoder[EItem, Double]
+    getTime: TimeExtractor[E]
+    // dDecoder: Decoder[EItem, Double]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
 
     val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
-    implicit val impFIM = fieldsIdxMap
+    // implicit val impFIM = fieldsIdxMap
 
 //    Pattern that transforms IdxValue[T] into IdxValue[Segment(fromTime, toTime)],
 //     useful when you need not a single point, but the whole time-segment as the result.
@@ -144,7 +144,7 @@ object PatternsSearchJob {
       Result.succ(Segment(Time(toMillis = fromTs), Time(toMillis = toTs)))
     }
 
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap, tsToIdx)
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap /*, tsToIdx*/ )
     val res = Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>

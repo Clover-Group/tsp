@@ -23,7 +23,10 @@ lazy val commonSettings = Seq(
   scalacOptions --= Seq(
     "-Xfatal-warnings"
   ),
-  addCompilerPlugin(scalafixSemanticdb),
+  //libraryDependencies ++= Seq(
+  //  "org.scalameta" %% "semanticdb-scalac" % "4.2.3"
+  //),
+  //addCompilerPlugin(scalafixSemanticdb),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
@@ -106,6 +109,7 @@ lazy val runTask = taskKey[Unit]("App runner")
 
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
+
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
   .aggregate(core, config, http, flink, dsl, itValid)
