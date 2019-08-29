@@ -1,5 +1,5 @@
 package ru.itclover.tsp.http.routes
-import akka.actor.ActorSystem
+// import akka.actor.ActorSystem
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -16,10 +16,8 @@ object ValidationRoutes {
 
   def fromExecutionContext(
     monitoringUri: Uri
-  )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
-    Reader { execContext =>
-      new ValidationRoutes {}.route
-    }
+  )(implicit am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
+    Reader(_ => new ValidationRoutes {}.route)
 }
 
 trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {

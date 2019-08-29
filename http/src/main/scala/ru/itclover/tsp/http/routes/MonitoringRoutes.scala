@@ -64,7 +64,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
 
   val noSuchJobWarn = "No such job or no connection to the FlinkMonitoring"
 
-  private val log = Logger[MonitoringRoutes]
+  // private val log = Logger[MonitoringRoutes]
 
   val route: Route = path("job" / Segment / "statusAndMetrics") { uuid =>
       onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {

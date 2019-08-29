@@ -109,7 +109,7 @@ trait JobsRoutes extends RoutesProtocols {
       case (parsedPatterns, stream) =>
         // .. patternV2.format
         val strPatterns = parsedPatterns.map {
-          case ((p, meta), _) =>
+          case ((_, meta), _) =>
             /*p.format(source.emptyEvent) +*/
             s" ;; Meta=$meta"
         }
