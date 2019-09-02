@@ -72,7 +72,7 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  Cmd("FROM", "openjdk:8-jre"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")

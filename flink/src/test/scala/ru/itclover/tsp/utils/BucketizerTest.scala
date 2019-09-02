@@ -7,8 +7,8 @@ class BucketizerTest extends WordSpec with Matchers {
   import Bucketizer._
 
   "Bucketizer" should {
-    implicit val straightWeightExtractor = new WeightExtractor[Long] {
-      override def apply(item: Long) = item
+    implicit val straightWeightExtractor: WeightExtractor[Long] = new WeightExtractor[Long] {
+      override def apply(item: Long): Long = item
     }
 
     "work on simple cases" in {
