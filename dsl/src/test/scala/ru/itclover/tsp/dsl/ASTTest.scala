@@ -4,7 +4,6 @@ import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.core.Window
-import ru.itclover.tsp.dsl.{ASTType, AggregateFn, AnyASTType, Avg, BooleanASTType, Constant, Count, DefaultFunctionRegistry, DoubleASTType, ForWithInterval, FunctionCall, Identifier, IntASTType, Lag, LongASTType, PatternMetadata, StringASTType, Sum, v2}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
