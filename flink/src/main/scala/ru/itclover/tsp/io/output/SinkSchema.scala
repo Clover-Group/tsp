@@ -1,9 +1,10 @@
 package ru.itclover.tsp.io.output
 
-import java.sql.{Timestamp, Types}
+import java.sql.Types
+
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
-import ru.itclover.tsp.core.Segment
+
 import scala.collection.mutable
 
 /**

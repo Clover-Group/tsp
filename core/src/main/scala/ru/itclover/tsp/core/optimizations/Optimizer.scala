@@ -1,18 +1,12 @@
 package ru.itclover.tsp.core.optimizations
-import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core.Pat
-import ru.itclover.tsp.core._
-import scala.language.existentials
-
-import scala.language.reflectiveCalls
-import ru.itclover.tsp.core.aggregators.GroupPattern
-import ru.itclover.tsp.core.aggregators.PreviousValue
-import ru.itclover.tsp.core.aggregators.TimerPattern
-import ru.itclover.tsp.core.aggregators.WindowStatistic
-import ru.itclover.tsp.core.io.TimeExtractor
 import cats.kernel.Group
-import scala.language.higherKinds
-import Optimizer.S
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.{Pat, _}
+import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
+import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.optimizations.Optimizer.S
+
+import scala.language.{existentials, higherKinds, reflectiveCalls}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 

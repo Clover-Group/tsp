@@ -1,13 +1,14 @@
 package ru.itclover.tsp.http.utils
 
 import java.sql.{Connection, DriverManager, ResultSet}
-import scala.language.existentials
+
 import com.dimafeng.testcontainers.SingleContainer
 import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 
-import collection.JavaConverters._
+import scala.collection.JavaConverters._
+import scala.language.existentials
 
 class JDBCContainer(
   imageName: String,

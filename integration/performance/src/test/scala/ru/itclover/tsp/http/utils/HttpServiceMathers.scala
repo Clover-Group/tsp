@@ -8,9 +8,10 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{Matchers, Suite}
 import ru.itclover.tsp.http.HttpService
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
+
 import scala.concurrent.ExecutionContextExecutor
-import scala.util.Success
 import scala.concurrent.duration.DurationInt
+import scala.util.Success
 
 trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpService { self: Suite =>
 

@@ -1,5 +1,4 @@
 package ru.itclover.tsp.utils
-import java.lang.Exception
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.utils.ErrorsADT._
 

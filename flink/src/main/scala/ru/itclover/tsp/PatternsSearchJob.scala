@@ -12,18 +12,16 @@ import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import ru.itclover.tsp.core.IncidentInstances.semigroup
-import ru.itclover.tsp.core.{Incident, RawPattern, Time}
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
-import ru.itclover.tsp.io._
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
-import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag

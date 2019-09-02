@@ -1,7 +1,7 @@
 package ru.itclover.tsp.dsl
 
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.core.Window
 import ru.itclover.tsp.utils.UtilityTypes.ParseException

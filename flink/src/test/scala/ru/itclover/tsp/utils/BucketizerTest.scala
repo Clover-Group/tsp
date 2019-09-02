@@ -1,7 +1,6 @@
 package ru.itclover.tsp.utils
 
-import org.scalatest.WordSpec
-import org.scalatest.Matchers
+import org.scalatest.{Matchers, WordSpec}
 
 class BucketizerTest extends WordSpec with Matchers {
   import Bucketizer._

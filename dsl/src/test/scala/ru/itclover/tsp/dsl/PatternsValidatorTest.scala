@@ -1,10 +1,9 @@
 package ru.itclover.tsp.dsl
 
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.AnyDecodersInstances._
-import ru.itclover.tsp.dsl.PatternsValidator
 
 class PatternsValidatorTest extends FlatSpec with Matchers with PropertyChecks {
   import TestEvents._

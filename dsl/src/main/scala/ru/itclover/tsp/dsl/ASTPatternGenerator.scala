@@ -5,11 +5,12 @@ import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
+import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.core._
 
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(

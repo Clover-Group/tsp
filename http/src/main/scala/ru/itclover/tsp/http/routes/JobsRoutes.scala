@@ -3,37 +3,32 @@ package ru.itclover.tsp.http.routes
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ExceptionHandler, Route, StandardRoute}
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.Logger
-import org.apache.flink.streaming.api.scala._
-import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output._
-import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
-
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.JobExecutionResult
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.TimeCharacteristic
-import org.apache.flink.types.Row
+import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import ru.itclover.tsp._
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
+import ru.itclover.tsp.http.domain.output._
+import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.JDBCOutputConf
-import ru.itclover.tsp.utils.UtilityTypes.ParseException
+import ru.itclover.tsp.mappers._
+
+import scala.concurrent.{ExecutionContextExecutor, Future}
 //import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-import scala.util.Try
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor

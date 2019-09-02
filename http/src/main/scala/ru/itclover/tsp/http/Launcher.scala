@@ -1,17 +1,18 @@
 package ru.itclover.tsp.http
 
-import scala.util.{Failure, Properties, Success, Try}
 import java.net.URLDecoder
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import cats.implicits._
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import scala.concurrent.{Await, ExecutionContextExecutor}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
-import cats.implicits._
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
