@@ -7,7 +7,7 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.8"
+scalaVersion in ThisBuild := "2.12.9"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -26,13 +26,12 @@ lazy val commonSettings = Seq(
   //libraryDependencies ++= Seq(
   //  "org.scalameta" %% "semanticdb-scalac" % "4.2.3"
   //),
-  addCompilerPlugin(scalafixSemanticdb),
+  //addCompilerPlugin(scalafixSemanticdb),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
   maxErrors := 5, 
 )
-
 
 
 lazy val assemblySettings = Seq(
@@ -78,7 +77,7 @@ import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
   //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
   //Cmd("FROM", "openjdk:11-jre-slim"),
-  Cmd("FROM", "openjdk:8-jre"),
+  Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -253,7 +252,6 @@ releaseProcess := Seq[ReleaseStep](
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
-
 
 addCommandAlias("com", "all compile test:compile it:compile")
 addCommandAlias("lint", "; compile:scalafix --check ; test:scalafix --check")

@@ -97,7 +97,7 @@ object Library {
   )
 
   val akka = Seq(
-    //"com.typesafe.akka" %% "akka-slf4j" % Version.akka,
+    "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     ("com.typesafe.akka" %% "akka-stream" % Version.akka % "compile")
       .excludeAll(ExclusionRule("org.apache.arrow", "arrow-vector"))
       .excludeAll(ExclusionRule("org.apache.arrow", "arrow-memory"))
