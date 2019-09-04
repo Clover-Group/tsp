@@ -5,6 +5,7 @@ import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKaf
 import org.apache.flink.api.common.serialization.{DeserializationSchema, TypeInformationSerializationSchema}
 import org.apache.flink.types.Row
 
+@SerialVersionUID(91000L)
 case class KafkaInputConf(
   brokers: String,
   topic: String,

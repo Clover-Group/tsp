@@ -18,7 +18,7 @@ class OptimizerFootprint extends FlatSpec with Matchers {
     val sm = StateMachine[Id]
     val initialState = pattern.initialState()
     val collect = new mutable.ArrayBuffer[Long](events.size)
-    val actState = sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += x.index, 1000)
+    sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += x.index, 1000)
     (System.nanoTime() - start) / 1000000
   }
 

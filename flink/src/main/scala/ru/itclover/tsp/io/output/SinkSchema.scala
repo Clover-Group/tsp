@@ -45,6 +45,9 @@ case class RowSchema(
   contextField: Symbol,
   forwardedFields: Seq[Symbol] = List.empty
 ) extends Serializable {
+
+  java.util.UUID.randomUUID
+
   val fieldsCount: Int = 7
 
   val fieldsNames: List[Symbol] =

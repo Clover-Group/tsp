@@ -22,6 +22,7 @@ import ru.itclover.tsp.services.InfluxDBService
   * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
+@SerialVersionUID(91001L)
 case class InfluxDBInputConf(
   sourceId: Int,
   dbName: String,

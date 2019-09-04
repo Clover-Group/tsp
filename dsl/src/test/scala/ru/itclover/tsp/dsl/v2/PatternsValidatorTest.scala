@@ -30,7 +30,7 @@ class PatternsValidatorTest extends FlatSpec with Matchers with ScalaCheckProper
   )
 
   "Pattern validator" should "validate patterns" in {
-    val results = PatternsValidator
+    PatternsValidator
       .validate[TestEvent](patterns.zipWithIndex.map(pi => RawPattern(pi._2.toString, pi._1)), fieldsTypes)
   }
 }
