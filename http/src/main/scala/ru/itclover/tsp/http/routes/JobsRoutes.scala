@@ -12,6 +12,7 @@ import cats.data.Reader
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.JobExecutionResult
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import ru.itclover.tsp._
@@ -71,7 +72,7 @@ trait JobsRoutes extends RoutesProtocols {
     }
   }
 
-  def createStream[E, EKey, EItem](
+  def createStream[E: TypeInformation, EKey, EItem](
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
     outConf: JDBCOutputConf,

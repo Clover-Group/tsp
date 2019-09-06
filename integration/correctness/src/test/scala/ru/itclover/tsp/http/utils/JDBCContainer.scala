@@ -38,7 +38,7 @@ class JDBCContainer(
   var connection: Connection = _
 
   override def starting()(implicit description: Description): Unit = {
-    super.starting()
+    super.start()
     Thread.sleep(8000)
     connection = {
       Class.forName(driverName)
@@ -47,7 +47,7 @@ class JDBCContainer(
   }
 
   override def finished()(implicit description: Description): Unit = {
-    super.finished()
+    super.stop()
     connection.close()
   }
 

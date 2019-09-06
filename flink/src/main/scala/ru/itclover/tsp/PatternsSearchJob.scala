@@ -16,9 +16,12 @@ import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
+import ru.itclover.tsp.io.EventCreator
+import ru.itclover.tsp.io.input.NarrowDataUnfolding
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.utils.Bucketizer
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -26,7 +29,7 @@ import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-case class PatternsSearchJob[In, InKey, InItem](
+case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
@@ -109,6 +112,19 @@ case class PatternsSearchJob[In, InKey, InItem](
     log.debug("incidentsFromPatterns finished")
     res
   }
+
+  def applyTransformation(dataStream: DataStream[In])(
+    implicit extractKeyValue: In => (InKey, Any),
+    extractor: Extractor[In, InKey, Any],
+    eventCreator: EventCreator[In, InKey],
+    keyCreator: KeyCreator[InKey]
+  ): DataStream[In] = source.conf.dataTransformation match {
+    case Some(_) =>
+      dataStream.flatMap(
+        SparseRowsDataAccumulator[In, InKey, Any, In](source.asInstanceOf[StreamSource[In, InKey, Any]])
+      )
+    case _ => dataStream
+  }
 }
 
 object PatternsSearchJob {
@@ -152,7 +168,7 @@ object PatternsSearchJob {
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
               p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
-            )
+          )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))

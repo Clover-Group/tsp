@@ -30,6 +30,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def fieldToEKey: Symbol => EKey
 
+  def fieldsIdxMap: Map[Symbol, Int]
+
   def partitioner: Event => String
 
   implicit def timeExtractor: TimeExtractor[Event]
