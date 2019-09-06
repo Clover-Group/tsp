@@ -70,23 +70,23 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
-    } 
-    // path("streamJob" / "from-kafka" / "to-jdbc"./) {
-    //   entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
-    //     import request._
+    } ~
+    path("streamJob" / "from-kafka" / "to-jdbc"./) {
+      entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
+        import request._
 
-    //     val resultOrErr = for {
-    //       source <- KafkaSource.create(inputConf)
-    //       _ = log.info("Kafka create done")
-    //       _ <- createStream(patterns, inputConf, outConf, source)
-    //       _ = log.info("Kafka createStream done")
-    //       result <- runStream(uuid, isAsync)
-    //       _ = log.info("Kafka runStream done")
-    //     } yield result
+        val resultOrErr = for {
+          source <- KafkaSource.create(inputConf)
+          _ = log.info("Kafka create done")
+          _ <- createStream(patterns, inputConf, outConf, source)
+          _ = log.info("Kafka createStream done")
+          result <- runStream(uuid, isAsync)
+          _ = log.info("Kafka runStream done")
+        } yield result
 
-    //     matchResultToResponse(resultOrErr, uuid)
-    //   }
-    // }
+        matchResultToResponse(resultOrErr, uuid)
+      }
+    }
   }
 
   def createStream[E, EKey, EItem](

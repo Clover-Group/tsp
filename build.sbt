@@ -7,7 +7,7 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.9"
+scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -23,10 +23,6 @@ lazy val commonSettings = Seq(
   scalacOptions --= Seq(
     "-Xfatal-warnings"
   ),
-  //libraryDependencies ++= Seq(
-  //  "org.scalameta" %% "semanticdb-scalac" % "4.2.3"
-  //),
-  //addCompilerPlugin(scalafixSemanticdb),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,

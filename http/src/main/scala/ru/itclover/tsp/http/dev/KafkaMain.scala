@@ -39,7 +39,7 @@ object KafkaMain extends App {
     while (str.loadNextBatch) {
 
       val root = str.getVectorSchemaRoot
-      val schema = root.getSchema
+      root.getSchema
       val vectors = root.getFieldVectors
 
       println(s"Total vectors = ${vectors.size}")
