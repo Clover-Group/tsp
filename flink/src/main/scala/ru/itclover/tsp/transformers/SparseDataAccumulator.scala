@@ -40,7 +40,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
-  extractAny: Extractor[InEvent, InKey, Any],
+  extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
   keyCreator: KeyCreator[InKey]
 ) extends RichFlatMapFunction[InEvent, OutEvent]
@@ -68,7 +68,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       event(key) = (value, time)
     } else {
       allFieldsIndexesMap.keySet.foreach { key =>
-        val newValue = Try(extractAny(item, key))
+        val newValue = Try(extractValue(item, key))
         newValue match {
           case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
         }
@@ -84,7 +84,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       }
       if (defaultTimeout.isEmpty) {
         extraFieldNames.foreach { name =>
-          val value = extractAny(item, name)
+          val value = extractValue(item, name)
           if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
         }
       }
@@ -102,10 +102,10 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, InKey, Value, OutEvent](streamSource: StreamSource[InEvent, InKey, Any])(
+  def apply[InEvent, InKey, Value, OutEvent](streamSource: StreamSource[InEvent, InKey, Value])(
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
-    extractAny: Extractor[InEvent, InKey, Any],
+    extractAny: Extractor[InEvent, InKey, Value],
     rowTypeInfo: TypeInformation[OutEvent],
     eventCreator: EventCreator[OutEvent, InKey],
     keyCreator: KeyCreator[InKey]
@@ -168,6 +168,6 @@ object SparseRowsDataAccumulator {
     streamSource: StreamSource[InEvent, InKey, Any]
   )(implicit eventCreator: EventCreator[InEvent, InKey]): InEvent = {
     val toKey = streamSource.fieldToEKey
-    eventCreator.emptyEvent(streamSource.fieldsIdxMap.map{ case (k, v) => (toKey(k), v) })
+    eventCreator.emptyEvent(streamSource.fieldsIdxMap.map { case (k, v) => (toKey(k), v) })
   }
 }

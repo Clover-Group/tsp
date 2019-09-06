@@ -17,7 +17,7 @@ import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import ru.itclover.tsp._
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
+import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders, Extractors}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._

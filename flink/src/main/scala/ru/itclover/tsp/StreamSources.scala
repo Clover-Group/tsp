@@ -9,11 +9,14 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf}
+import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.ErrorsADT._
+import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -37,6 +40,27 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def timeExtractor: TimeExtractor[Event]
 
   implicit def extractor: Extractor[Event, EKey, EItem]
+
+  implicit def trivialEItemDecoder: Decoder[EItem, EItem] = (v1: EItem) => v1
+
+  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(key, value, _, _)) =>
+      (r: Event) =>
+        (key, extractor.apply[EItem](r, key)) // TODO: See that place better
+    case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
+      (r: Event) =>
+        sys.error("Wide data filling does not need K-V extractor")
+    case Some(_) =>
+      (r: Event) =>
+        sys.error("Unsupported data transformation")
+    case None =>
+      (r: Event) =>
+        sys.error("No K-V extractor without data transformation")
+  }
+
+  implicit def eventCreator: EventCreator[Event, EKey]
+
+  implicit def keyCreator: KeyCreator[EKey]
 }
 
 object StreamSource {
@@ -117,7 +141,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
   val tsMultiplier = timestampMultiplier.getOrElse {
@@ -137,6 +162,10 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       .setQuery(query)
       .setRowTypeInfo(rowTypesInfo)
       .finish()
+
+  implicit override def eventCreator: EventCreator[Row, Int] = EventCreatorInstances.rowIntEventCreator
+
+  implicit override def keyCreator: KeyCreator[Int] = KeyCreatorInstances.intKeyCreator
 }
 
 object InfluxDBSource {
@@ -222,7 +251,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
@@ -239,4 +269,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .query(query)
       .and()
       .buildIt()
+
+  implicit override def eventCreator: EventCreator[Row, Int] = EventCreatorInstances.rowIntEventCreator
+
+  implicit override def keyCreator: KeyCreator[Int] = KeyCreatorInstances.intKeyCreator
 }

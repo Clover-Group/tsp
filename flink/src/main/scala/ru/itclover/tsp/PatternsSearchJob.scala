@@ -36,7 +36,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   import PatternsSearchJob._
   import decoders._
-  import source.{extractor, timeExtractor}
+  import source.{extractor, kvExtractor, timeExtractor, eventCreator, keyCreator}
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
@@ -64,7 +64,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
-      val singleIncidents = incidentsFromPatterns(stream, patternsBucket.items, forwardedFields)
+      val singleIncidents = incidentsFromPatterns(applyTransformation(stream), patternsBucket.items, forwardedFields)
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
@@ -113,15 +113,10 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     res
   }
 
-  def applyTransformation(dataStream: DataStream[In])(
-    implicit extractKeyValue: In => (InKey, Any),
-    extractor: Extractor[In, InKey, Any],
-    eventCreator: EventCreator[In, InKey],
-    keyCreator: KeyCreator[InKey]
-  ): DataStream[In] = source.conf.dataTransformation match {
+  def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
       dataStream.flatMap(
-        SparseRowsDataAccumulator[In, InKey, Any, In](source.asInstanceOf[StreamSource[In, InKey, Any]])
+        SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]])
       )
     case _ => dataStream
   }

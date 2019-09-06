@@ -7,7 +7,7 @@ trait EventCreator[Event, Key] extends Serializable {
 }
 
 object EventCreatorInstances {
-  implicit val rowEventCreator: EventCreator[Row, Symbol] = new EventCreator[Row, Symbol] {
+  implicit val rowSymbolEventCreator: EventCreator[Row, Symbol] = new EventCreator[Row, Symbol] {
     override def create(kv: Seq[(Symbol, AnyRef)]): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>
@@ -16,6 +16,23 @@ object EventCreatorInstances {
       row
     }
     override def emptyEvent(fieldsIdxMap: Map[Symbol, Int]): Row = {
+      val row = new Row(fieldsIdxMap.keySet.toSeq.length)
+      fieldsIdxMap.foreach { case (_, i) =>
+        row.setField(i, 0)
+      }
+      row
+    }
+  }
+
+  implicit val rowIntEventCreator: EventCreator[Row, Int] = new EventCreator[Row, Int] {
+    override def create(kv: Seq[(Int, AnyRef)]): Row = {
+      val row = new Row(kv.length)
+      kv.zipWithIndex.foreach { kvWithIndex =>
+        row.setField(kvWithIndex._2, kvWithIndex._1._2)
+      }
+      row
+    }
+    override def emptyEvent(fieldsIdxMap: Map[Int, Int]): Row = {
       val row = new Row(fieldsIdxMap.keySet.toSeq.length)
       fieldsIdxMap.foreach { case (_, i) =>
         row.setField(i, 0)
