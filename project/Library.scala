@@ -11,8 +11,8 @@ object Version {
   val clickhouse = "0.1.55"
   val flink = "1.9.0"
 
-  val akka = "2.5.21"
-  val akkaHttp = "10.1.8"
+  val akka = "2.5.25"
+  val akkaHttp = "10.1.9"
 
   val cats = "1.6.0"
 
@@ -22,7 +22,7 @@ object Version {
   val scalaCheck = "1.14.0"
   val jmh = "0.3.4"
 
-  val testContainers = "0.27.0"
+  val testContainers = "0.26.0"
   val postgres = "42.2.5"
 
   val avro = "1.8.2"

@@ -60,7 +60,7 @@ class BasicInfluxToJdbcTest
 
   val fillingInputConf = inputConf.copy(
     query = """select * from SM_sparse_wide""",
-    dataTransformation = Some(WideDataFilling(Map(0 -> 2000L, 1 -> 2000L), None))
+    dataTransformation = Some(WideDataFilling(Map('_0 -> 2000L, '_1 -> 2000L), None))
   )
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
