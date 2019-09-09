@@ -15,7 +15,7 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputCo
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 
 import scala.collection.JavaConverters._
@@ -90,7 +90,7 @@ object JdbcSource {
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -136,7 +136,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   }
 
   override def fieldToEKey = { fieldId: Symbol =>
-    fieldsIdxMap(fieldId)
+    fieldId
+    // fieldsIdxMap(fieldId)
   }
 
   override def partitioner = {
@@ -150,7 +151,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     1000.0
   }
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
 
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
@@ -163,9 +164,9 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       .setRowTypeInfo(rowTypesInfo)
       .finish()
 
-  implicit override def eventCreator: EventCreator[Row, Int] = EventCreatorInstances.rowIntEventCreator
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
 
-  implicit override def keyCreator: KeyCreator[Int] = KeyCreatorInstances.intKeyCreator
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }
 
 object InfluxDBSource {
@@ -185,7 +186,7 @@ object InfluxDBSource {
 
 case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -247,7 +248,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
     }
   }
 
-  override def fieldToEKey = (fieldId: Symbol) => fieldsIdxMap(fieldId)
+  override def fieldToEKey = (fieldId: Symbol) => fieldId // fieldsIdxMap(fieldId)
 
   override def partitioner = {
     val serializablePI = partitionsIdx
@@ -256,7 +257,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   }
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
 
   val inputFormat =
     InfluxDBInputFormat
@@ -270,7 +271,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .and()
       .buildIt()
 
-  implicit override def eventCreator: EventCreator[Row, Int] = EventCreatorInstances.rowIntEventCreator
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
 
-  implicit override def keyCreator: KeyCreator[Int] = KeyCreatorInstances.intKeyCreator
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }

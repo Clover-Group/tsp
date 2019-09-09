@@ -32,31 +32,31 @@ trait SparseDataAccumulator
   * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param extraFieldNames - will be added to every emitting event
   */
-case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
-  fieldsKeysTimeoutsMs: Map[InKey, Long],
-  extraFieldNames: Seq[InKey],
+case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
+  fieldsKeysTimeoutsMs: Map[Symbol, Long],
+  extraFieldNames: Seq[Symbol],
   useUnfolding: Boolean,
   defaultTimeout: Option[Long]
 )(
   implicit extractTime: TimeExtractor[InEvent],
-  extractKeyAndVal: InEvent => (InKey, Value),
-  extractValue: Extractor[InEvent, InKey, Value],
-  eventCreator: EventCreator[OutEvent, InKey],
-  keyCreator: KeyCreator[InKey]
+  extractKeyAndVal: InEvent => (Symbol, Value),
+  extractValue: Extractor[InEvent, Symbol, Value],
+  eventCreator: EventCreator[OutEvent, Symbol],
+  keyCreator: KeyCreator[Symbol]
 ) extends RichFlatMapFunction[InEvent, OutEvent]
     with Serializable {
   // potential event values with receive time
-  val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
-  val targetKeySet: Set[InKey] = fieldsKeysTimeoutsMs.keySet
-  val keysIndexesMap: Map[InKey, Int] = targetKeySet.zip(0 until targetKeySet.size).toMap
+  val event: mutable.Map[Symbol, (Value, Time)] = mutable.Map.empty
+  val targetKeySet: Set[Symbol] = fieldsKeysTimeoutsMs.keySet
+  val keysIndexesMap: Map[Symbol, Int] = targetKeySet.zip(0 until targetKeySet.size).toMap
 
-  val extraFieldsIndexesMap: Map[InKey, Int] = extraFieldNames
+  val extraFieldsIndexesMap: Map[Symbol, Int] = extraFieldNames
     .zip(
       targetKeySet.size until
       targetKeySet.size + extraFieldNames.size
     )
     .toMap
-  val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
+  val allFieldsIndexesMap: Map[Symbol, Int] = keysIndexesMap ++ extraFieldsIndexesMap
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
   val log = Logger("SparseDataAccumulator")
@@ -76,7 +76,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     }
     dropExpiredKeys(event, time)
     if (!useUnfolding || (targetKeySet subsetOf event.keySet)) {
-      val list = mutable.ListBuffer.tabulate[(InKey, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
+      val list = mutable.ListBuffer.tabulate[(Symbol, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
       val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
       event.foreach {
         case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
@@ -93,7 +93,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     }
   }
 
-  private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
+  private def dropExpiredKeys(event: mutable.Map[Symbol, (Value, Time)], currentRowTime: Time): Unit = {
     event.retain(
       (k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
     )
@@ -102,17 +102,17 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, InKey, Value, OutEvent](streamSource: StreamSource[InEvent, InKey, Value])(
+  def apply[InEvent, Value, OutEvent](streamSource: StreamSource[InEvent, Symbol, Value])(
     implicit timeExtractor: TimeExtractor[InEvent],
-    extractKeyVal: InEvent => (InKey, Value),
-    extractAny: Extractor[InEvent, InKey, Value],
+    extractKeyVal: InEvent => (Symbol, Value),
+    extractAny: Extractor[InEvent, Symbol, Value],
     rowTypeInfo: TypeInformation[OutEvent],
-    eventCreator: EventCreator[OutEvent, InKey],
-    keyCreator: KeyCreator[InKey]
-  ): SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent] = {
+    eventCreator: EventCreator[OutEvent, Symbol],
+    keyCreator: KeyCreator[Symbol]
+  ): SparseRowsDataAccumulator[InEvent, Value, OutEvent] = {
     streamSource.conf.dataTransformation
       .map({
-        case ndu: NarrowDataUnfolding[InEvent, InKey, _] =>
+        case ndu: NarrowDataUnfolding[InEvent, Symbol, _] =>
           val sparseRowsConf = ndu
           val fim = streamSource.fieldsIdxMap
           val extraFields = fim
@@ -133,7 +133,7 @@ object SparseRowsDataAccumulator {
             eventCreator,
             keyCreator
           )
-        case wdf: WideDataFilling[InEvent, InKey, _] =>
+        case wdf: WideDataFilling[InEvent, Symbol, _] =>
           val sparseRowsConf = wdf
           val fim = streamSource.fieldsIdxMap
           val toKey = streamSource.fieldToEKey
@@ -164,9 +164,9 @@ object SparseRowsDataAccumulator {
       .getOrElse(sys.error("No data transformation config specified"))
   }
 
-  def emptyEvent[InEvent, InKey](
-    streamSource: StreamSource[InEvent, InKey, Any]
-  )(implicit eventCreator: EventCreator[InEvent, InKey]): InEvent = {
+  def emptyEvent[InEvent](
+    streamSource: StreamSource[InEvent, Symbol, Any]
+  )(implicit eventCreator: EventCreator[InEvent, Symbol]): InEvent = {
     val toKey = streamSource.fieldToEKey
     eventCreator.emptyEvent(streamSource.fieldsIdxMap.map { case (k, v) => (toKey(k), v) })
   }

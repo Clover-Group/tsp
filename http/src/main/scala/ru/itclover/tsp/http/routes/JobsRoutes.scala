@@ -72,7 +72,10 @@ trait JobsRoutes extends RoutesProtocols {
     }
   }
 
-  def createStream[E: TypeInformation, EKey, EItem](
+  // TODO: Restore EKey type parameter
+  type EKey = Symbol
+
+  def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
     outConf: JDBCOutputConf,

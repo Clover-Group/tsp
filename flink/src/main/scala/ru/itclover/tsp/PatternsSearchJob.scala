@@ -29,10 +29,14 @@ import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
-  source: StreamSource[In, InKey, InItem],
+
+
+case class PatternsSearchJob[In: TypeInformation, InItem](
+  source: StreamSource[In, Symbol, InItem],
   decoders: BasicDecoders[InItem]
 ) {
+  // TODO: Restore InKey as a type parameter
+  type InKey = Symbol
 
   import PatternsSearchJob._
   import decoders._
@@ -116,7 +120,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
       dataStream.flatMap(
-        SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]])
+        SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]])
       )
     case _ => dataStream
   }
