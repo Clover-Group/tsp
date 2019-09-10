@@ -52,7 +52,7 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_narrow_patterns",
+    "Test.SM_basic_wide_patterns",
     rowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
