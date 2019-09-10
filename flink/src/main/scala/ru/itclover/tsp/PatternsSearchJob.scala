@@ -43,8 +43,10 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
   import source.{transformedExtractor, kvExtractor, timeExtractor, eventCreator, keyCreator}
 
   // Compute transformed indexes map at init
-  private def acc: SparseRowsDataAccumulator[In, InItem, In] = SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]])
-  source.transformedFieldsIdxMap = acc.allFieldsIndexesMap // TODO: How to achieve this without using var?
+  if (source.conf.dataTransformation.isDefined) {
+    val acc = SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]])
+    source.transformedFieldsIdxMap = acc.allFieldsIndexesMap // TODO: How to achieve this without using var?
+  }
 
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
@@ -124,7 +126,7 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
 
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
-      dataStream.flatMap(acc)
+      dataStream.flatMap(SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]]))
     case _ => dataStream
   }
 }
