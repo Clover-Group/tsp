@@ -1,12 +1,16 @@
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers.ForAllTestContainer
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.types.Row
 import org.scalatest.FlatSpec
+import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.JDBCInputConf
+import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
@@ -25,10 +29,12 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   val port = 8151
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9087 -> 9000 :: Nil,
+    port -> 8123 :: 9088 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
+
+  val transformation = NarrowDataUnfolding[Row, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
 
   val inputConf = JDBCInputConf(
     sourceId = 123,
@@ -39,7 +45,8 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
-    partitionFields = Seq('series_id, 'mechanism_id)
+    partitionFields = Seq('series_id, 'mechanism_id),
+    dataTransformation = Some(transformation)
   )
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
@@ -51,15 +58,24 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
+  val basicAssertions = Seq(
+    RawPattern("1", "speed1 < 15"),
+    RawPattern("2", """"speed2" > 10""")
+  )
+
   override def afterStart(): Unit = {
     super.afterStart()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    //Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").map(container.executeUpdate)
-    //Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/narrow/source-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/narrow/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
-  "Test" should "run" in {
-    1 shouldBe 1
+  "Basic assertions and forwarded fields" should "work for wide dense table" in {
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
+      route ~> check {
+      entityAs[String] shouldBe ""
+      status shouldEqual StatusCodes.OK
+    }
   }
 }

@@ -42,7 +42,7 @@ class InfluxDBContainer(imageName: String,
   var db: InfluxDB = _
 
   override def starting()(implicit description: Description): Unit = {
-    super.start()
+    super.starting()
     val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L)
     db = InfluxDBService.connectDb(conf) match {
       case Success(database) => database
@@ -51,7 +51,7 @@ class InfluxDBContainer(imageName: String,
   }
 
   override def finished()(implicit description: Description): Unit = {
-    super.stop()
+    super.finished()
     db.close()
   }
 

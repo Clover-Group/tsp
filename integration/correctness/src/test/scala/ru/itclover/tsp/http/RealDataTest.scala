@@ -69,7 +69,7 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
     super.beforeAll()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
   "Basic assertions" should "work for wide dense table" in {

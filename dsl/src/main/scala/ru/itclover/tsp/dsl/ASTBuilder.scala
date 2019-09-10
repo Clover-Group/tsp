@@ -404,7 +404,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     anyWord ~> ((id: String) => {
       fieldsTags.get(Symbol(id)) match {
         case Some(tag) => Identifier(Symbol(id), tag)
-        case None      => throw ParseException(s"Unknown identifier (field) $id")
+        case None      => Identifier(Symbol(id), ClassTag.Double)
+        // case None      => throw ParseException(s"Unknown identifier (field) $id")
       }
     })
   }

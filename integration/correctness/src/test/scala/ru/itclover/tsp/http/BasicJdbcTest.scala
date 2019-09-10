@@ -69,7 +69,7 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
