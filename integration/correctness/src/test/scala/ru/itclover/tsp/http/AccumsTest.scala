@@ -97,7 +97,7 @@
 //    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 //
 //  val outputConf = JDBCOutputConf(
-//    "Test.SM_basic_wide_patterns",
+//    "Test.SM_basic_patterns",
 //    sinkSchema,
 //    s"jdbc:clickhouse://localhost:$port/default",
 //    "ru.yandex.clickhouse.ClickHouseDriver"
@@ -124,7 +124,7 @@
 //      // Correctness
 //      checkByQuery(
 //        1 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4990 AND to - from > 900"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4990 AND to - from > 900"
 //      )
 //      // Performance
 //      execTimeS should be <= countWindowMaxTimeSec
@@ -143,7 +143,7 @@
 //      // Correctness
 //      checkByQuery(
 //        1 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 499 AND to - from > 990"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND to - from > 990"
 //      )
 //      // Performance
 //      execTimeS should be <= timeWindowMaxTimeSec
@@ -165,7 +165,7 @@
 //      // Correctness
 //      checkByQuery(
 //        1 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4991 AND to - from > 990"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND to - from > 990"
 //      )
 //      // Performance
 //      execTimeS should be <= nestedTimeWindowMaxTimeSec
@@ -187,7 +187,7 @@
 //      // Correctness
 //      checkByQuery(
 //        1 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 988 AND to - from > 990"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND to - from > 990"
 //      )
 //      // Performance
 //      execTimeS should be <= timeWindowCountMaxTimeSec
@@ -206,7 +206,7 @@
 //      // Correctness
 //      checkByQuery(
 //        2 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 466 AND to - from > 990"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND to - from > 990"
 //      )
 //      // Performance
 //      execTimeS should be <= timedMaxTimeSec
@@ -226,7 +226,7 @@
 //      // Correctness
 //      checkByQuery(
 //        1 :: Nil,
-//        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 467"
+//        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 467"
 //      )
 //      // Performance
 //      execTimeS should be <= reducerMaxTimeSec

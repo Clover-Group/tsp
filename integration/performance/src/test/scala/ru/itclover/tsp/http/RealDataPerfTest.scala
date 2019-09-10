@@ -43,7 +43,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -72,8 +72,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 6")
-      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4")
+      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
+      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
       // Performance
       execTimeS should be <= realDataMaxTimeSec
     }

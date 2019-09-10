@@ -117,7 +117,7 @@ object SparseRowsDataAccumulator {
           val fim = streamSource.fieldsIdxMap
           val extraFields = fim
             .filterNot {
-              case (name, _) => name == sparseRowsConf.key || name == sparseRowsConf.value
+              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.valueColumn
             }
             .keys
             .toSeq

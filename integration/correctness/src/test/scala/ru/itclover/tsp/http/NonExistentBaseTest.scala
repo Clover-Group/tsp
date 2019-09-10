@@ -33,7 +33,7 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     rowSchema,
     s"jdbc:clickhouse://localhost:$dummyPort/default",
     "ru.yandex.clickhouse.ClickHouseDriver"

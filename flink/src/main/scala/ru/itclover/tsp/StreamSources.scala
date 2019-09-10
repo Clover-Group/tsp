@@ -35,18 +35,24 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def fieldsIdxMap: Map[Symbol, Int]
 
+  var transformedFieldsIdxMap: Map[Symbol, Int]
+
   def partitioner: Event => String
 
   implicit def timeExtractor: TimeExtractor[Event]
 
   implicit def extractor: Extractor[Event, EKey, EItem]
 
+  implicit def transformedExtractor: Extractor[Event, EKey, EItem]
+
   implicit def trivialEItemDecoder: Decoder[EItem, EItem] = (v1: EItem) => v1
+
+  implicit def itemToKeyDecoder: Decoder[EItem, EKey]  // for narrow data widening
 
   implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(key, value, _, _)) =>
       (r: Event) =>
-        (key, extractor.apply[EItem](r, key)) // TODO: See that place better
+        (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
     case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
       (r: Event) =>
         sys.error("Wide data filling does not need K-V extractor")
@@ -98,6 +104,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val log = Logger[JdbcSource]
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
+  // TODO: Remove that nasty hack
+  var transformedFieldsIdxMap = fieldsIdxMap
   val partitionsIdx = partitionFields.map(fieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
@@ -152,6 +160,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   }
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
   override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
@@ -167,6 +176,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 }
 
 object InfluxDBSource {
@@ -197,6 +208,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
+  // TODO: Remove that nasty hack here too
+  var transformedFieldsIdxMap = fieldsIdxMap
   val partitionsIdx = partitionFields.map(fieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
@@ -258,6 +271,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
   override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat =
     InfluxDBInputFormat
@@ -274,4 +288,6 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 }

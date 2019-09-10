@@ -50,7 +50,7 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     rowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -80,24 +80,24 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
 
       checkByQuery(
         2 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
 
       checkByQuery(
         1 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
         1 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 2 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65002'"
       )
 
       checkByQuery(
         1 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
       )
     }
@@ -113,12 +113,12 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
 
       checkByQuery(
         0 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 10 AND " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
         2 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
     }
