@@ -106,7 +106,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val fieldsIdxMap = fieldsIdx.toMap
   // TODO: Remove that nasty hack
   var transformedFieldsIdxMap = fieldsIdxMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -210,7 +210,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   val fieldsIdxMap = fieldsIdx.toMap
   // TODO: Remove that nasty hack here too
   var transformedFieldsIdxMap = fieldsIdxMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
