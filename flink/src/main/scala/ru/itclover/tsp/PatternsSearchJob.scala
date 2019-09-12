@@ -40,20 +40,16 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
 
   import PatternsSearchJob._
   import decoders._
-  import source.{transformedExtractor, kvExtractor, timeExtractor, eventCreator, keyCreator}
+  import source.{kvExtractor, eventCreator, keyCreator}
 
-  // Compute transformed indexes map at init
-  if (source.conf.dataTransformation.isDefined) {
-    val acc = SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]])
-    source.transformedFieldsIdxMap = acc.allFieldsIndexesMap // TODO: How to achieve this without using var?
-  }
 
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] =
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
+    import source.{transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
@@ -65,6 +61,7 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
       val mapped = incidents.map(x => x.map(resultMapper))
       (patterns, mapped.map(m => saveStream(m, outputConf)))
     }
+  }
 
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
@@ -84,6 +81,8 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
     patterns: Seq[RichPattern[In, Segment, S]],
     forwardedFields: Seq[(Symbol, InKey)]
   ): DataStream[Incident] = {
+
+    import source.{transformedExtractor, transformedTimeExtractor => timeExtractor}
 
     log.debug("incidentsFromPatterns started")
 
@@ -126,6 +125,7 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
 
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
+      import source.{extractor, timeExtractor}
       dataStream.flatMap(SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]]))
     case _ => dataStream
   }

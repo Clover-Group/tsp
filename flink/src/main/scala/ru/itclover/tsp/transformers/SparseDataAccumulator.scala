@@ -102,11 +102,10 @@ case class SparseRowsDataAccumulator[InEvent, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, Value, OutEvent](streamSource: StreamSource[InEvent, Symbol, Value])(
+  def apply[InEvent, Value, OutEvent: TypeInformation](streamSource: StreamSource[InEvent, Symbol, Value])(
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (Symbol, Value),
     extractAny: Extractor[InEvent, Symbol, Value],
-    rowTypeInfo: TypeInformation[OutEvent],
     eventCreator: EventCreator[OutEvent, Symbol],
     keyCreator: KeyCreator[Symbol]
   ): SparseRowsDataAccumulator[InEvent, Value, OutEvent] = {
