@@ -19,6 +19,8 @@ import ru.itclover.tsp._
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders, Extractors}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
+import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
@@ -28,11 +30,15 @@ import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import ru.itclover.tsp.mappers._
+
+import scala.concurrent.{ExecutionContextExecutor, Future}
 //import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
+  val blockingExecutionContext: ExecutionContextExecutor
   implicit val streamEnv: StreamExecutionEnvironment
   implicit val actorSystem: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -112,7 +118,7 @@ trait JobsRoutes extends RoutesProtocols {
     log.debug("runStream started")
 
     val res = if (isAsync) { // Just detach job thread in case of async run
-      Future { streamEnv.execute(uuid) } // TODO: possible deadlocks for big jobs amount! Custom thread pool or something
+      Future { streamEnv.execute(uuid) }(blockingExecutionContext)
       Right(None)
     } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
@@ -150,7 +156,7 @@ object JobsRoutes {
 
   private val log = Logger[JobsRoutes]
 
-  def fromExecutionContext(monitoringUrl: Uri)(
+  def fromExecutionContext(monitoringUrl: Uri, blocking: ExecutionContextExecutor)(
     implicit strEnv: StreamExecutionEnvironment,
     as: ActorSystem,
     am: ActorMaterializer
@@ -160,6 +166,7 @@ object JobsRoutes {
 
     Reader { execContext =>
       new JobsRoutes {
+        val blockingExecutionContext = blocking
         implicit val executionContext: ExecutionContextExecutor = execContext
         implicit val streamEnv: StreamExecutionEnvironment = strEnv
         implicit val actorSystem = as
