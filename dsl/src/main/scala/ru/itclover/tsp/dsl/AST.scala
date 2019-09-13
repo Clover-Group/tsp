@@ -1,13 +1,12 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
 
-import scala.reflect.ClassTag
 import cats.implicits._
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
-import ru.itclover.tsp.core.Window
+import ru.itclover.tsp.core.{Result, Window}
 import ru.itclover.tsp.dsl.PatternMetadataInstances.monoid
-import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
-import ru.itclover.tsp.core.Result
+
+import scala.reflect.ClassTag
 
 sealed trait AST extends Product with Serializable {
   val valueType: ASTType

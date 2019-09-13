@@ -1,13 +1,12 @@
-import sbt.Keys._
-import sbt.{Def, _}
-import sbtrelease.ReleasePlugin.autoImport._
-import sbtrelease._
-import ReleaseTransformations._
-import ohnosequences.sbt.GithubRelease.DefTask
-import ohnosequences.sbt.GithubRelease.keys.TagName
 import ohnosequences.sbt.GithubRelease.defs.githubRelease
+import ohnosequences.sbt.GithubRelease.keys.TagName
 import ohnosequences.sbt.SbtGithubReleasePlugin.tagNameArg
 import org.kohsuke.github.GHRelease
+import sbt.Keys._
+import sbt.{Def, _}
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
+import sbtrelease.ReleasePlugin.autoImport._
+import sbtrelease._
 
 object Utils {
 

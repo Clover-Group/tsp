@@ -4,10 +4,10 @@ package ru.itclover.tsp.core.patterns
 
 import cats.Id
 import org.scalatest.{FlatSpec, Matchers}
+import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.fixtures.Common._
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
-import ru.itclover.tsp.core._
 
 import scala.language.reflectiveCalls
 

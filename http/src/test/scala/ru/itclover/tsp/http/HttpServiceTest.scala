@@ -1,23 +1,25 @@
 package ru.itclover.tsp.http
+import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.StatusCodes.ServerError
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.api.common.JobID
 import org.apache.flink.runtime.client.JobExecutionException
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.Inspectors._
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.utils.ErrorsADT.{GenericConfigError, GenericRuntimeErr}
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
-import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
 class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest with RoutesProtocols {
 
@@ -27,6 +29,19 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
     implicit override val streamEnvironment: StreamExecutionEnvironment =
       StreamExecutionEnvironment.createLocalEnvironment()
+
+    // to run blocking tasks.
+    val blockingExecutorContext: ExecutionContextExecutor =
+      ExecutionContext.fromExecutor(
+        new ThreadPoolExecutor(
+          0, // corePoolSize
+          Int.MaxValue, // maxPoolSize
+          1000L, //keepAliveTime
+          TimeUnit.MILLISECONDS, //timeUnit
+          new SynchronousQueue[Runnable](), //workQueue
+          new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        )
+      )
   }
 
   val services = Seq(TestHttpService(false), TestHttpService(true))

@@ -12,10 +12,13 @@ import cats.data.Reader
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.JobExecutionResult
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import ru.itclover.tsp._
 import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders, Extractors}
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
@@ -27,6 +30,10 @@ import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
+import ru.itclover.tsp.mappers._
+
+import scala.concurrent.{ExecutionContextExecutor, Future}
+//import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 
 trait JobsRoutes extends RoutesProtocols {
@@ -71,7 +78,10 @@ trait JobsRoutes extends RoutesProtocols {
     }
   }
 
-  def createStream[E, EKey, EItem](
+  // TODO: Restore EKey type parameter
+  type EKey = Symbol
+
+  def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
     outConf: JDBCOutputConf,

@@ -1,8 +1,9 @@
-package ru.itclover.tsp.dsl.v2
+
+package ru.itclover.tsp.dsl
 
 import org.scalactic.{Equality, TolerantNumerics}
-import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.PropertyChecks
+import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.Result
 
 class FunctionRegistryTest extends FlatSpec with Matchers with PropertyChecks {

@@ -1,6 +1,7 @@
-package ru.itclover.tsp.dsl.v2
-import ru.itclover.tsp.core.Time
+package ru.itclover.tsp.dsl
+
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
+import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 
 object TestEvents {

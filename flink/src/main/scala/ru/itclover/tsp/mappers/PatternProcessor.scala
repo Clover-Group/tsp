@@ -3,14 +3,13 @@ package ru.itclover.tsp.mappers
 import cats.Id
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.util.Collector
-import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.{Time, _}
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.optimizations.Optimizer
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
-import ru.itclover.tsp.core.optimizations.Optimizer
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner],

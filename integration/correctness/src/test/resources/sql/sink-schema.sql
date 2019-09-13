@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS Test.SM_basic_wide_patterns
+CREATE TABLE IF NOT EXISTS Test.SM_basic_patterns
 (
     series_storage Int32,
     app Int32,

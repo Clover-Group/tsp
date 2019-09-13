@@ -1,12 +1,13 @@
 package ru.itclover.tsp.core.optimizations
 
+import cats.Id
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.fixtures.Common._
-import ru.itclover.tsp.core.{IdxValue, PState, Pattern, Patterns, Result, SimplePattern, StateMachine, Window}
+import ru.itclover.tsp.core.fixtures.Event
+import ru.itclover.tsp.core._
 
 import scala.collection.mutable
-import cats.Id
-import ru.itclover.tsp.core.fixtures.Event
+import scala.language.reflectiveCalls
 
 class OptimizerFootprint extends FlatSpec with Matchers {
 

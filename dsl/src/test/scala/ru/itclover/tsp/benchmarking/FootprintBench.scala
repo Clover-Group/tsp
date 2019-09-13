@@ -2,8 +2,8 @@ package ru.itclover.tsp.benchmarking
 
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.dsl.v2.{ASTPatternGenerator, TestEvents}
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls

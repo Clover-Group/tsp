@@ -6,9 +6,9 @@ import java.util.Random
 
 import cats.Id
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.core.{PQueue, Result, SimplePState, SimplePattern, StateMachine}
 import ru.itclover.tsp.core.fixtures.Common.{EInt, extractor}
 import ru.itclover.tsp.core.fixtures.Event
+import ru.itclover.tsp.core._
 import ru.itclover.tsp.utils.{Change, Constant, RandomInRange, Timer}
 
 import scala.collection.mutable.ArrayBuffer

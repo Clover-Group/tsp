@@ -1,11 +1,13 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
+
 import java.io.Serializable
 
 import ru.itclover.tsp.core.{Fail, Result, Succ}
 
 //import scala.collection.mutable
-import scala.reflect.ClassTag
 import com.typesafe.scalalogging.Logger
+
+import scala.reflect.ClassTag
 
 @SerialVersionUID(81001L)
 trait PFunction extends (Seq[Any] => Result[Any]) with Serializable
@@ -216,7 +218,6 @@ object DefaultFunctions {
   }
 
   def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
-    import Functional._
     val log = Logger("LogicalLogger")
 
     // TSP-182 - Workaround for correct type inference
@@ -487,7 +488,7 @@ object DefaultFunctions {
   }
 }
 
-import DefaultFunctions._
+import ru.itclover.tsp.dsl.DefaultFunctions._
 
 object DefaultFunctionRegistry
     extends FunctionRegistry(

@@ -1,17 +1,7 @@
 package ru.itclover.tsp.core
 import cats.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core.aggregators.{
-  AggregatorPState,
-  GroupAccumResult,
-  GroupAccumState,
-  GroupPattern,
-  PreviousValue,
-  TimerPattern,
-  WindowStatistic,
-  WindowStatisticAccumState,
-  WindowStatisticResult
-}
+import ru.itclover.tsp.core.aggregators._
 import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.language.higherKinds
