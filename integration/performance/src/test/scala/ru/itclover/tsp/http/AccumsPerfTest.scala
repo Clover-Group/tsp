@@ -12,6 +12,7 @@ import ru.itclover.tsp.utils.Files
 
 class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
 
+
   override val log = Logger("AccumsPerfTest")
 
   val port = 8137

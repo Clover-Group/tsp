@@ -1,9 +1,12 @@
 package ru.itclover.tsp.http
 
+import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
@@ -13,7 +16,7 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
 
 class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
@@ -22,6 +25,19 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+
+  // to run blocking tasks.
+  val blockingExecutorContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(
+      new ThreadPoolExecutor(
+        0, // corePoolSize
+        Int.MaxValue, // maxPoolSize
+        1000L, //keepAliveTime
+        TimeUnit.MILLISECONDS, //timeUnit
+        new SynchronousQueue[Runnable](), //workQueue
+        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+      )
+    )
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
