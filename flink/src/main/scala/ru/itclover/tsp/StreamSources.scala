@@ -183,7 +183,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
@@ -311,7 +311,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,

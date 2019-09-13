@@ -31,12 +31,11 @@ import scala.reflect.ClassTag
 
 
 
-case class PatternsSearchJob[In: TypeInformation, InItem](
-  source: StreamSource[In, Symbol, InItem],
+case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
+  source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
   // TODO: Restore InKey as a type parameter
-  type InKey = Symbol
 
   import PatternsSearchJob._
   import decoders._
@@ -126,7 +125,7 @@ case class PatternsSearchJob[In: TypeInformation, InItem](
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
       import source.{extractor, timeExtractor}
-      dataStream.flatMap(SparseRowsDataAccumulator[In, InItem, In](source.asInstanceOf[StreamSource[In, Symbol, InItem]]))
+      dataStream.flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]]))
     case _ => dataStream
   }
 }
