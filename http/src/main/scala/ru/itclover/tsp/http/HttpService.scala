@@ -1,27 +1,25 @@
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
-import akka.event.Logging
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server._
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.directives.DebuggingDirectives
+import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
-import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.tsp.http.routes._
-import scala.concurrent.ExecutionContextExecutor
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
-import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.utils.Exceptions
+import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
+import ru.itclover.tsp.http.domain.output.FailureResponse
+import ru.itclover.tsp.http.protocols.RoutesProtocols
+import ru.itclover.tsp.http.routes._
+import ru.itclover.tsp.utils.Exceptions
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
+
+import scala.concurrent.ExecutionContextExecutor
 import scala.util.Properties
 
 trait HttpService extends RoutesProtocols {
@@ -29,6 +27,8 @@ trait HttpService extends RoutesProtocols {
   implicit val materializer: ActorMaterializer
   implicit val streamEnvironment: StreamExecutionEnvironment
   implicit val executionContext: ExecutionContextExecutor
+
+  val blockingExecutorContext: ExecutionContextExecutor
 
   private val configs = ConfigFactory.load()
   val isDebug = true
@@ -43,7 +43,7 @@ trait HttpService extends RoutesProtocols {
     log.debug("composeRoutes started")
 
     val res = for {
-      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri)
+      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, blockingExecutorContext)
       monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
       validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
     } yield jobs ~ monitoring ~ validation
