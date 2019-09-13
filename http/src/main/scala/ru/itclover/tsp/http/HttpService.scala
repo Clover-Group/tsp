@@ -1,7 +1,5 @@
 package ru.itclover.tsp.http
 
-import java.util.concurrent._
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.Uri
@@ -9,7 +7,6 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import cats.data.Reader
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
@@ -22,7 +19,7 @@ import ru.itclover.tsp.utils.Exceptions
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContextExecutor
 import scala.util.Properties
 
 trait HttpService extends RoutesProtocols {
@@ -31,17 +28,7 @@ trait HttpService extends RoutesProtocols {
   implicit val streamEnvironment: StreamExecutionEnvironment
   implicit val executionContext: ExecutionContextExecutor
 
-  val blockingExecutorContext: ExecutionContextExecutor =
-    ExecutionContext.fromExecutor(
-      new ThreadPoolExecutor(
-        0, // corePoolSize
-        Int.MaxValue, // maxPoolSize
-        1000L, //keepAliveTime
-        TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
-        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
-      )
-    )
+  val blockingExecutorContext: ExecutionContextExecutor
 
   private val configs = ConfigFactory.load()
   val isDebug = true

@@ -1,17 +1,20 @@
 package ru.itclover.tsp.http
 
-import scala.util.{Failure, Properties, Success, Try}
 import java.net.URLDecoder
+import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import cats.implicits._
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import scala.concurrent.{Await, ExecutionContextExecutor}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
-import cats.implicits._
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
@@ -47,6 +50,19 @@ object Launcher extends App with HttpService {
 
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+  // to run blocking tasks.
+  val blockingExecutorContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(
+      new ThreadPoolExecutor(
+        0, // corePoolSize
+        Int.MaxValue, // maxPoolSize
+        1000L, //keepAliveTime
+        TimeUnit.MILLISECONDS, //timeUnit
+        new SynchronousQueue[Runnable](), //workQueue
+        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+      )
+    )
 
   val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
     val (host, port) = getClusterHostPort match {
