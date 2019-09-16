@@ -11,7 +11,8 @@ class PatternsValidatorTest extends FlatSpec with Matchers with PropertyChecks {
   val patterns = Seq(
     "doubleSensor1 > doubleSensor2",
     "intSensor + longSensor > 100",
-    "boolSensor = true and lag(intSensor) = 5"
+    "boolSensor = true and lag(intSensor) = 5",
+    "stringSensor = 'string' and stringSensor != 'also a string'"
   )
 
   val fieldsTypes = Map(
