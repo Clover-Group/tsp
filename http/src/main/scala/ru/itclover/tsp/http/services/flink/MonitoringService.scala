@@ -5,13 +5,12 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-
-import scala.concurrent.{Await, ExecutionContext, Future}
-import MonitoringServiceModel._
-import cats.implicits._
 import cats._
+import cats.implicits._
+import ru.itclover.tsp.http.services.flink.MonitoringServiceModel._
 
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMaterializer, ec: ExecutionContext)
     extends MonitoringServiceProtocols {

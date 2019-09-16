@@ -1,14 +1,14 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
+
+import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.core.Window
-import ru.itclover.tsp.dsl.PatternMetadata
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 
-class ASTTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class ASTTest extends FlatSpec with Matchers with PropertyChecks {
   implicit val funReg: DefaultFunctionRegistry.type = DefaultFunctionRegistry
 
   //TODO: no refactoring in loop compare in case of class derivation

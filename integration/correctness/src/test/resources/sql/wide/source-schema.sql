@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS Test.SM_basic_wide (
     series_id String,
     mechanism_id String,
     speed Float32
-) ENGINE = Log();
+) ENGINE = Memory();
 
 
 CREATE TABLE IF NOT EXISTS Test.SM_typeCasting_wide (
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS Test.SM_typeCasting_wide (
     mechanism_id String,
     speed Int32,
     speed64 Float64
-) ENGINE = Log();
+) ENGINE = Memory();
 
 
 CREATE TABLE IF NOT EXISTS Test.SM_test_wide (
@@ -21,4 +21,4 @@ CREATE TABLE IF NOT EXISTS Test.SM_test_wide (
     mechanism_id String,
     speed Float64,
     speed64 Float64
-) ENGINE = Log();
+) ENGINE = Memory();

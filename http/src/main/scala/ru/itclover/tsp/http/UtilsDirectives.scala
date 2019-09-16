@@ -1,10 +1,11 @@
 package ru.itclover.tsp.http
 
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive, RejectionHandler}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
-import akka.http.scaladsl.server.Directives._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object UtilsDirectives {

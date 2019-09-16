@@ -1,13 +1,12 @@
 package ru.itclover.tsp.core.aggregators
 
 import cats.Group
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.PQueue.MutablePQueue
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.Result._
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{PState, Pattern, _}
+import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}

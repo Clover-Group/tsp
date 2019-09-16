@@ -2,13 +2,17 @@ package ru.itclover.tsp.services
 
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import collection.JavaConverters._
+
 import okhttp3.OkHttpClient
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import cats.syntax.either._
 import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
 import org.influxdb.dto.Query
+import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
+import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, StringOps}
+
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
-import ru.itclover.tsp.utils.CollectionsOps.StringOps
-import ru.itclover.tsp.utils.CollectionsOps.OptionOps
 
 object InfluxDBService {
   case class InfluxConf(

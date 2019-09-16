@@ -1,18 +1,18 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
 
+import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.AnyDecodersInstances._
-import ru.itclover.tsp.dsl.PatternsValidator
 
-class PatternsValidatorTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class PatternsValidatorTest extends FlatSpec with Matchers with PropertyChecks {
   import TestEvents._
 
   val patterns = Seq(
     "doubleSensor1 > doubleSensor2",
     "intSensor + longSensor > 100",
-    "boolSensor = true and lag(intSensor) = 5"
+    "boolSensor = true and lag(intSensor) = 5",
+    "stringSensor = 'string' and stringSensor != 'also a string'"
   )
 
   val fieldsTypes = Map(

@@ -5,8 +5,8 @@ package ru.itclover.tsp.core.sm
 
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.fixtures.Common._
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.fixtures.Common._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls

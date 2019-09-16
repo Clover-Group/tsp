@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.framework
 
-import ru.itclover.tsp.core.{PState, Pattern}
 import ru.itclover.tsp.core.fixtures.Event
+import ru.itclover.tsp.core.{PState, Pattern}
 
 /**
   * An abstract class for test context

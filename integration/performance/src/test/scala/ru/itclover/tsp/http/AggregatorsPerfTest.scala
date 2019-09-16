@@ -1,10 +1,6 @@
 package ru.itclover.tsp.http
 
-import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
@@ -54,7 +50,7 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"

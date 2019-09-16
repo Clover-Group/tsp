@@ -1,5 +1,6 @@
 package ru.itclover.tsp.utils
 import java.util.regex.Pattern
+
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}

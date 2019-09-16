@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core.queues
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 import ru.itclover.tsp.core.PQueue.MutablePQueue
+import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 
 import scala.collection.mutable
 

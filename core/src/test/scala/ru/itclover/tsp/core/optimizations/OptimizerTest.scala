@@ -1,16 +1,14 @@
 package ru.itclover.tsp.core.optimizations
 
 import org.scalatest.{FlatSpec, Matchers}
+import ru.itclover.tsp.core.{Patterns, Window}
 import ru.itclover.tsp.core.fixtures.Common._
-import ru.itclover.tsp.core.Patterns
-import ru.itclover.tsp.core.Window
 
 class OptimizerTest extends FlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}
-  import patterns._
-
   import cats.instances.int._
+  import patterns._
 
   it should "optimize couple(const, const) to const" in {
     val pat = const(3).plus(const(2))

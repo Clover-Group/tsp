@@ -1,8 +1,10 @@
 package ru.itclover.tsp.io.output
 
 import java.sql.Types
+
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
+
 import scala.collection.mutable
 
 /**
@@ -45,9 +47,6 @@ case class RowSchema(
   contextField: Symbol,
   forwardedFields: Seq[Symbol] = List.empty
 ) extends Serializable {
-
-  java.util.UUID.randomUUID
-
   val fieldsCount: Int = 7
 
   val fieldsNames: List[Symbol] =

@@ -1,26 +1,25 @@
 package ru.itclover.tsp.http.routes
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.Logger
+import cats.data.Reader
+import com.typesafe.config.ConfigFactory
+import ru.itclover.tsp.BuildInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 
 import scala.concurrent.ExecutionContextExecutor
-import cats.data.Reader
-import com.typesafe.config.ConfigFactory
-import ru.itclover.tsp.BuildInfo
 // import ru.itclover.tsp.BuildInfo
-import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
-import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
-import spray.json.PrettyPrinter
-import scala.util.{Failure, Success}
-
 import com.typesafe.scalalogging.Logger
+import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
+import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
+import spray.json.PrettyPrinter
+
+import scala.util.{Failure, Success}
 
 object MonitoringRoutes {
 
@@ -64,7 +63,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
 
   val noSuchJobWarn = "No such job or no connection to the FlinkMonitoring"
 
-  // private val log = Logger[MonitoringRoutes]
+  private val log = Logger[MonitoringRoutes]
 
   val route: Route = path("job" / Segment / "statusAndMetrics") { uuid =>
       onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {

@@ -5,26 +5,23 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import com.dimafeng.testcontainers._
+import com.dimafeng.testcontainers.ForAllTestContainer
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.types.Row
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.JDBCInputConf
+import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
-import scala.util.Success
 
-class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
@@ -43,69 +40,58 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
       )
     )
 
-  private val log = Logger("RealDataTest")
+  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8136
-
+  val port = 8151
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9083 -> 9000 :: Nil,
+    port -> 8123 :: 9088 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
 
+  val transformation = NarrowDataUnfolding[Row, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
+
   val inputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
-    query = "select * from Test.Bigdata_HI",
+    query = """select * from Test.SM_basic_narrow""", // speed(1)(2) fancy colnames test
     driverName = container.driverName,
-    datetimeField = 'dt,
+    datetimeField = 'datetime,
     eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 10000L,
+    defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
-    partitionFields = Seq('stock_num)
+    partitionFields = Seq('series_id, 'mechanism_id),
+    dataTransformation = Some(transformation)
   )
 
-  val sinkSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",
-    sinkSchema,
+    rowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val (timeRangeSec, assertions) = (1 to 80) -> Seq(
-      RawPattern("6", "HI__wagon_id__6 < 0.5"),
-      RawPattern("4", "HI__wagon_id__4 < 0.5")
-    )
+  val basicAssertions = Seq(
+    RawPattern("1", "speed1 < 15"),
+    RawPattern("2", """"speed2" > 10""")
+  )
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/narrow/source-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/narrow/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
     Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
-  "Basic assertions" should "work for wide dense table" in {
-
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
-    route ~> check {
+  "Basic assertions and forwarded fields" should "work for wide dense table" in {
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
+      route ~> check {
+      entityAs[String] shouldBe ""
       status shouldEqual StatusCodes.OK
-      val resp = unmarshal[FinishedJobResponse](responseEntity)
-      resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
-      log.info(s"Test job completed for $execTimeS sec.")
-
-      // Correctness
-      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
-      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
-
-      // Performance
-      val fromT = timeRangeSec.head.toLong
-      val toT = timeRangeSec.last.toLong
-      execTimeS should ((be >= fromT).and(be <= toT))
     }
   }
 }

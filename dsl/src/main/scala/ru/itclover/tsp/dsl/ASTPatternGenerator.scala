@@ -1,14 +1,14 @@
-package ru.itclover.tsp.dsl.v2
+package ru.itclover.tsp.dsl
 
-import cats.instances.double._
+import cats.Order
+import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
-import ru.itclover.tsp.core.{Window, _}
+import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances._
+import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.dsl.PatternMetadata
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
@@ -17,8 +17,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey
-  // idxOrd: Order[Idx]
+  @transient fieldToEKey: Symbol => EKey,
+  idxOrd: Order[Idx]
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
@@ -155,10 +155,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
-              case TimeInterval(_, max)    => max < fwi.window.toMillis
-              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
-              case _                       => true
-            })
+            case TimeInterval(_, max)    => max < fwi.window.toMillis
+            case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
+            case _                       => true
+          })
           val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)

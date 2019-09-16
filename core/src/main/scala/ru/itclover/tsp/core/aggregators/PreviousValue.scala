@@ -1,10 +1,9 @@
 package ru.itclover.tsp.core.aggregators
 
-import ru.itclover.tsp.core.Time._
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Pattern._
-import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.{Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec

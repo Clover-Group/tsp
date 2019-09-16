@@ -1,6 +1,7 @@
 package ru.itclover.tsp.services
 
 import java.sql.DriverManager
+
 import scala.util.Try
 
 object JdbcService {

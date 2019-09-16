@@ -225,7 +225,7 @@ git.gitTagToVersionNumber := {
 }
 
 // Release specific settings
-import ReleaseTransformations.{setReleaseVersion => _, _}
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.{setReleaseVersion => _, _}
 
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)

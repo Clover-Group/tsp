@@ -1,6 +1,7 @@
 package ru.itclover.tsp.core
 import cats.kernel.Order
 import ru.itclover.tsp.core.Pattern.Idx
+
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 
