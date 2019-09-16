@@ -158,6 +158,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     (
       real
       | boolean
+      | string
       | functionCall
       | fieldValue
       | '(' ~ expr ~ ')' ~ ws
@@ -400,6 +401,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     '"' ~ capture(oneOrMore(noneOf("\"") | "\"\"")) ~ '"' ~ ws
   }
 
+  def anyWordInSingleQuotes: Rule1[String] = rule {
+    '\'' ~ capture(oneOrMore(noneOf("'") | "''")) ~ '\'' ~ ws
+  }
+
   def fieldValue: Rule1[Identifier] = rule {
     anyWord ~> ((id: String) => {
       fieldsTags.get(Symbol(id)) match {
@@ -413,6 +418,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   def boolean: Rule1[Constant[Boolean]] = rule {
     (ignoreCase("true") ~ ws ~> (() => Constant(true))
     | ignoreCase("false") ~ ws ~> (() => Constant(false)) ~ ws)
+  }
+
+  def string: Rule1[Constant[String]] = rule {
+    (anyWordInSingleQuotes ~> ((id: String) => Constant(id.replace("''", "'"))))
   }
 
   def ws = rule {
