@@ -38,6 +38,8 @@ object Version {
 
   val simulacrum = "0.15.0"
   val sentry = "1.7.27"
+
+  val twitterUtil = "6.43.0"
 }
 
 object Library {
@@ -72,6 +74,7 @@ object Library {
   val flink = flinkCore ++ Seq(
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
+    "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
   )
@@ -96,7 +99,7 @@ object Library {
     "com.github.mpilquist" %% "simulacrum" % Version.simulacrum
   )
 
-  val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
+  val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtil)
 
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
@@ -124,4 +127,9 @@ object Library {
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )
 
+  val arrow = Seq(
+    ("org.apache.arrow" % "arrow-vector" % Version.arrow)
+      .excludeAll(ExclusionRule("io.netty", "netty-common"))
+      .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
+  )
 }

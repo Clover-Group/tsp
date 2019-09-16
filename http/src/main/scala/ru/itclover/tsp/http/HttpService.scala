@@ -110,8 +110,10 @@ trait HttpService extends RoutesProtocols {
       val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
       log.error(error)
       complete(
-        InternalServerError,
-        FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        (
+          InternalServerError,
+          FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
+        )
       )
 
     case ex: JobExecutionException =>

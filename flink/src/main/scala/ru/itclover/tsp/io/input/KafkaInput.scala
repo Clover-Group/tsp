@@ -28,12 +28,12 @@ case class KafkaInputConf(
   // patternsParallelism: Option[Int] = Some(1),
   timestampMultiplier: Option[Double] = Some(1000.0)
   // offsetReset: String = "largest"
-) extends InputConf[Row, Int, Any] {
+) extends InputConf[Row, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
 
   def dataTransformation
-    : Option[ru.itclover.tsp.io.input.SourceDataTransformation[org.apache.flink.types.Row, Int, Any]] = ???
+    : Option[ru.itclover.tsp.io.input.SourceDataTransformation[org.apache.flink.types.Row, Symbol, Any]] = ???
   // def datetimeField: Symbol = 'or
   def defaultEventsGapMs: Long = 0L
   def defaultToleranceFraction: Option[Double] = Some(0.1)
@@ -48,19 +48,19 @@ case class KafkaInputConf(
 
 object KafkaSource {
 
-  def getSource[Event: TypeInformationSerializationSchema](
-    kafkaConfig: KafkaInputConf
-  ): FlinkKafkaConsumerBase[Event] = {
-
-    val kafkaProps = new Properties()
-    kafkaProps.setProperty("bootstrap.servers", kafkaConfig.brokers)
-    kafkaProps.setProperty("group.id", kafkaConfig.group)
-    kafkaProps.setProperty("auto.commit.enable", "false")
-    // kafkaProps.setProperty("auto.offset.reset", kafkaConfig.offsetReset)
-
-    val deserializer: DeserializationSchema[Event] = implicitly[DeserializationSchema[Event]]
-
-    new FlinkKafkaConsumer[Event](kafkaConfig.topic, deserializer, kafkaProps)
-  }
+//  def getSource[Event: TypeInformationSerializationSchema](
+//    kafkaConfig: KafkaInputConf
+//  ): FlinkKafkaConsumerBase[Event] = {
+//
+//    val kafkaProps = new Properties()
+//    kafkaProps.setProperty("bootstrap.servers", kafkaConfig.brokers)
+//    kafkaProps.setProperty("group.id", kafkaConfig.group)
+//    kafkaProps.setProperty("auto.commit.enable", "false")
+//    // kafkaProps.setProperty("auto.offset.reset", kafkaConfig.offsetReset)
+//
+//    val deserializer: DeserializationSchema[Event] = implicitly[DeserializationSchema[Event]]
+//
+//    new FlinkKafkaConsumer[Event](kafkaConfig.topic, deserializer, kafkaProps)
+//  }
 
 }

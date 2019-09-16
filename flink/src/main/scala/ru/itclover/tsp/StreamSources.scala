@@ -12,7 +12,7 @@ import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
@@ -21,7 +21,7 @@ import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import ru.itclover.tsp.io.input.{KafkaInputConf}
+import ru.itclover.tsp.io.input.KafkaInputConf
 
 /*sealed*/
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -349,16 +349,18 @@ object KafkaSource {
 
 case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   val log = Logger[KafkaSource]
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   def fieldsIdxMap = fieldsIdx.toMap
 
-  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
-    fieldsIdxMap(fieldId)
-  }
+//  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
+//    fieldsIdxMap(fieldId)
+//  }
+
+  override def fieldToEKey: Symbol => Symbol = ???
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
@@ -367,7 +369,8 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
     1000.0
   }
 
-  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Int, Any] = RowIdxExtractor()
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Symbol, Any] =
+    RowSymbolExtractor(fieldsIdxMap)
   implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] =
     RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
 
@@ -394,4 +397,15 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
     event: Row => serializablePI.map(event.getField).mkString
   }
 
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = ???
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = ???
+
+  override implicit def transformedExtractor: Extractor[Row, Symbol, Any] = ???
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = ???
+
+  override implicit def eventCreator: EventCreator[Row, Symbol] = ???
+
+  override implicit def keyCreator: KeyCreator[Symbol] = ???
 }
