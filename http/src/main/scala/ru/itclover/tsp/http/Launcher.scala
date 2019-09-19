@@ -1,31 +1,38 @@
 package ru.itclover.tsp.http
 
-import scala.util.{Failure, Properties, Success, Try}
 import java.net.URLDecoder
+
+import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import cats.implicits._
+import cats.implicits._
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import scala.concurrent.{Await, ExecutionContextExecutor}
+
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
-import cats.implicits._
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
   override val isDebug: Boolean = configs.getBoolean("general.is-debug")
   private val log = Logger("Launcher")
 
-  // bku: Increase the number of parallel connections 
-  val parallel  = 1024 
+  // bku: Increase the number of parallel connections
+  val parallel = 1024
 
   // TSP-214 Fix
-  val req_timeout  = 1 // in mins
+  val req_timeout = 1 // in mins
 
-  implicit val system: ActorSystem = ActorSystem("TSP-system", ConfigFactory.parseString (
-    s"""
+  implicit val system: ActorSystem = ActorSystem(
+    "TSP-system",
+    ConfigFactory.parseString(s"""
             |akka {
             |    http {
             |        server {
@@ -41,15 +48,29 @@ object Launcher extends App with HttpService {
             |        }
             |    }
             |}
-          """.stripMargin))
- 
+          """.stripMargin)
+  )
+
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+  // to run blocking tasks.
+  val blockingExecutorContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(
+      new ThreadPoolExecutor(
+        0, // corePoolSize
+        Int.MaxValue, // maxPoolSize
+        1000L, //keepAliveTime
+        TimeUnit.MILLISECONDS, //timeUnit
+        new SynchronousQueue[Runnable](), //workQueue
+        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+      )
+    )
 
   val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
     val (host, port) = getClusterHostPort match {
       case Right(hostAndPort) => hostAndPort
-      case Left(err) => throw new RuntimeException(err)
+      case Left(err)          => throw new RuntimeException(err)
     }
     log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
     Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
@@ -91,16 +112,16 @@ object Launcher extends App with HttpService {
       log.info("Terminated... Bye!")
     }
   }
-  
+
   def getClusterHostPort: Either[String, (String, Int)] = {
     val host = getEnvVarOrConfig("FLINK_JOBMGR_HOST", "flink.job-manager.host")
     val portStr = getEnvVarOrConfig("FLINK_JOBMGR_PORT", "flink.job-manager.port")
-    val port = Either.catchNonFatal(portStr.toInt).left.map {
-      ex: Throwable => s"Cannot parse FLINK_JOBMGR_PORT ($portStr): ${ex.getMessage}"
+    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
+      s"Cannot parse FLINK_JOBMGR_PORT ($portStr): ${ex.getMessage}"
     }
     port.map(p => (host, p))
   }
-  
+
   def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort flatMap {
     case (clusterHost, clusterPort) =>
       log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")

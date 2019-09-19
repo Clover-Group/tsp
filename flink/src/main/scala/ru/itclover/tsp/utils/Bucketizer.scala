@@ -2,9 +2,6 @@ package ru.itclover.tsp.utils
 
 import ru.itclover.tsp.PatternsSearchJob.RichPattern
 import ru.itclover.tsp.core.PState
-import ru.itclover.tsp.core.Segment
-
-import scala.collection.immutable
 
 object Bucketizer {
 
@@ -26,11 +23,12 @@ object Bucketizer {
   }
 
   def bucketsToString[T](buckets: Seq[Bucket[T]]) =
-    buckets.map(b => {
-      val itemsStr = b.items.mkString("`", "`, `", "`")
-      s"Bucket weight: ${b.totalWeight}, Bucket items: $itemsStr"
-    }).mkString("\n\n")
-
+    buckets
+      .map(b => {
+        val itemsStr = b.items.mkString("`", "`, `", "`")
+        s"Bucket weight: ${b.totalWeight}, Bucket items: $itemsStr"
+      })
+      .mkString("\n\n")
 
   trait WeightExtractor[T] extends (T => Long)
 

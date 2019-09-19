@@ -1,20 +1,14 @@
 package ru.itclover.tsp.core.optimizations
-import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core.Pat
-import ru.itclover.tsp.core._
-import scala.language.existentials
-
-import scala.language.reflectiveCalls
-import ru.itclover.tsp.core.aggregators.GroupPattern
-import ru.itclover.tsp.core.aggregators.PreviousValue
-import ru.itclover.tsp.core.aggregators.TimerPattern
-import ru.itclover.tsp.core.aggregators.WindowStatistic
-import ru.itclover.tsp.core.io.TimeExtractor
 import cats.kernel.Group
-import scala.language.higherKinds
-import Optimizer.S
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.{Pat, _}
+import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
+import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.optimizations.Optimizer.S
 
-class Optimizer[E: IdxExtractor: TimeExtractor]() {
+import scala.language.{existentials, higherKinds, reflectiveCalls}
+
+class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
   def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T])
 
@@ -48,14 +42,14 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() {
   private def coupleOfTwoSimple[T]: OptimizeRule[T] = {
     // couple(simple, simple) => simple
     case Pat(
-        x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[T]))), Pat(SimplePattern(fright: (E => Result[T]))))
+        x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(SimplePattern(fright: (E => Result[_]))))
         ) =>
       SimplePattern[E, T](event => x.func.apply(fleft.apply(event), fright.apply(event)))
     // couple(simple, const) => simple
-    case Pat(x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[T]))), Pat(ConstPattern(r)))) =>
+    case Pat(x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(ConstPattern(r)))) =>
       SimplePattern[E, T](event => x.func.apply(fleft.apply(event), r))
     // couple(const, simple) => simple
-    case Pat(x @ CouplePattern(Pat(ConstPattern(l)), Pat(SimplePattern(fright: (E => Result[T]))))) =>
+    case Pat(x @ CouplePattern(Pat(ConstPattern(l)), Pat(SimplePattern(fright: (E => Result[_]))))) =>
       SimplePattern[E, T](event => x.func.apply(l, fright.apply(event)))
     // couple(some, const) => map(some)
     case Pat(x @ CouplePattern(left, Pat(ConstPattern(r)))) =>

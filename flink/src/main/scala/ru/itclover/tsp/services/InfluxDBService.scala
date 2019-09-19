@@ -2,16 +2,14 @@ package ru.itclover.tsp.services
 
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import collection.JavaConverters._
-import okhttp3.OkHttpClient
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import cats.syntax.either._
-import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
-import org.influxdb.dto.Query
-import scala.util.{Failure, Success, Try}
-import ru.itclover.tsp.utils.CollectionsOps.StringOps
-import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, TryOps}
 
+import okhttp3.OkHttpClient
+import org.influxdb.dto.Query
+import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
+import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, StringOps}
+
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 object InfluxDBService {
   case class InfluxConf(
@@ -23,13 +21,15 @@ object InfluxDBService {
   )
 
   def fetchFieldsTypesInfo(query: String, conf: InfluxConf): Try[Seq[(Symbol, Class[_])]] = for {
-    db <- connectDb(conf)
+    db     <- connectDb(conf)
     series <- fetchFirstSeries(db, query, conf.dbName)
     values <- series.getValues.asScala.headOption.toTry(whenNone = emptyValuesException(query))
     tags = if (series.getTags != null) series.getTags.asScala.toSeq.sortBy(_._1) else Seq.empty
   } yield {
     val fields = tags.map(_._1) ++ series.getColumns.asScala
-    val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(v => if (v != null) v.getClass else classOf[Double])
+    val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(
+      v => if (v != null) v.getClass else classOf[Double]
+    )
     fields.map(Symbol(_)).zip(classes)
   }
 
@@ -55,7 +55,7 @@ object InfluxDBService {
       .connectTimeout(timeoutSec, TimeUnit.SECONDS)
     for {
       connection <- Try(InfluxDBFactory.connect(url, userName.orNull, password.orNull, extraConf))
-      db <- Try(connection.setDatabase(dbName))
+      db         <- Try(connection.setDatabase(dbName))
     } yield db
   }
 

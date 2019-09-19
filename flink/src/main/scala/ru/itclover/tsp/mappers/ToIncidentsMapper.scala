@@ -1,7 +1,7 @@
 package ru.itclover.tsp.mappers
 
-import ru.itclover.tsp.core.{Incident, Segment}
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
+import ru.itclover.tsp.core.{Incident, Segment}
 
 final case class ToIncidentsMapper[E, EKey, EItem](
   patternId: String,
@@ -14,7 +14,6 @@ final case class ToIncidentsMapper[E, EKey, EItem](
   def apply(event: E): Segment => Incident = {
     val incidentId = s"P#$patternId;" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString
     val extractedFields = forwardedFields.map { case (name, k) => name -> extractor[Any](event, k) }
-    segment =>
-      Incident(incidentId, patternId, sessionWindowMs, segment, extractedFields, payload)
+    segment => Incident(incidentId, patternId, sessionWindowMs, segment, extractedFields, payload)
   }
 }

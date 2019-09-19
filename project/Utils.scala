@@ -1,13 +1,12 @@
-import sbt.Keys._
-import sbt.{Def, _}
-import sbtrelease.ReleasePlugin.autoImport._
-import sbtrelease._
-import ReleaseTransformations._
-import ohnosequences.sbt.GithubRelease.DefTask
-import ohnosequences.sbt.GithubRelease.keys.TagName
 import ohnosequences.sbt.GithubRelease.defs.githubRelease
+import ohnosequences.sbt.GithubRelease.keys.TagName
 import ohnosequences.sbt.SbtGithubReleasePlugin.tagNameArg
 import org.kohsuke.github.GHRelease
+import sbt.Keys._
+import sbt.{Def, _}
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
+import sbtrelease.ReleasePlugin.autoImport._
+import sbtrelease._
 
 object Utils {
 
@@ -53,16 +52,19 @@ object Utils {
   }
 
   private def vcs(st: State): Vcs = {
-    Project.extract(st).get(releaseVcs).getOrElse(sys.error("Aborting release. Working directory is not a repository of a recognized VCS."))
+    Project
+      .extract(st)
+      .get(releaseVcs)
+      .getOrElse(sys.error("Aborting release. Working directory is not a repository of a recognized VCS."))
   }
 
   def commitChangelogs: ReleaseStep = { st: State =>
-    if(vcs(st).add(changelogFileName, changelogWipFileName).! > 0) {
+    if (vcs(st).add(changelogFileName, changelogWipFileName).! > 0) {
       sys.error("Aborting release due to adding changelogs failed.")
     }
     val sign = Project.extract(st).get(releaseVcsSign)
     val ver = Project.extract(st).get(version)
-    if(vcs(st).commit(s"updated CHANGELOGS for $ver", sign).! > 0) {
+    if (vcs(st).commit(s"updated CHANGELOGS for $ver", sign).! > 0) {
       sys.error("Aborting release due to committing changelogs failed.")
     }
     st

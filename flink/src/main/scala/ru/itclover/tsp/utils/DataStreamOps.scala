@@ -1,10 +1,8 @@
 package ru.itclover.tsp.utils
 
-import org.apache.flink.api.common.functions.FlatMapFunction
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.scala.typeutils.UnitTypeInfo
 import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor
-import org.apache.flink.streaming.api.scala.{asScalaStream, DataStream}
+import org.apache.flink.streaming.api.scala.DataStream
 import ru.itclover.tsp.DebugTsViolationHandler
 
 object DataStreamOps {

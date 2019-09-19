@@ -11,11 +11,13 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   import Decoder._
 
   implicit val decodeToDouble: Decoder[Any, Double] = new AnyDecoder[Double] {
-    override def apply(x: Any) = x match {
+    override def apply(x: Any): Double = x match {
       case d: Double           => d
       case n: java.lang.Number => n.doubleValue()
       case s: String =>
-        try { Helper.strToDouble(s) } catch {
+        try {
+          Helper.strToDouble(s)
+        } catch {
           case e: Exception =>
             throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
         }
@@ -24,11 +26,13 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   }
 
   implicit val decodeToInt: Decoder[Any, Int] = new AnyDecoder[Int] {
-    override def apply(x: Any) = x match {
+    override def apply(x: Any): Int = x match {
       case i: Int              => i
       case n: java.lang.Number => n.intValue()
       case s: String =>
-        try { Helper.strToInt(s) } catch {
+        try {
+          Helper.strToInt(s)
+        } catch {
           case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
       case null => throw new RuntimeException(s"Cannot parse null to Int")
@@ -36,12 +40,14 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   }
 
   implicit val decodeToLong: Decoder[Any, Long] = new AnyDecoder[Long] {
-    override def apply(x: Any) = x match {
+    override def apply(x: Any): Long = x match {
       case i: Int              => i
       case l: Long             => l
       case n: java.lang.Number => n.longValue()
       case s: String =>
-        try { Helper.strToInt(s) } catch {
+        try {
+          Helper.strToInt(s)
+        } catch {
           case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
       case null => throw new RuntimeException(s"Cannot parse null to Long")
@@ -49,7 +55,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   }
 
   implicit val decodeToBoolean: Decoder[Any, Boolean] = new AnyDecoder[Boolean] {
-    override def apply(x: Any) = x match {
+    override def apply(x: Any): Boolean = x match {
       case 0 | 0L | 0.0 | "0" | "false" | "off" | "no" => false
       case 1 | 1L | 1.0 | "1" | "true" | "on" | "yes"  => true
       case b: Boolean                                  => b
@@ -84,6 +90,6 @@ object DoubleDecoderInstances extends BasicDecoders[Double] {
 
 // Hack for String.toInt implicit method
 object Helper {
-  def strToInt(s: String) = s.toInt
-  def strToDouble(s: String) = s.toDouble
+  def strToInt(s: String): Int = s.toInt
+  def strToDouble(s: String): Double = s.toDouble
 }

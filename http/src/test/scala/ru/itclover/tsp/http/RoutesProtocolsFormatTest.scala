@@ -32,6 +32,8 @@ class RoutesProtocolsFormatTest extends FlatSpec with Matchers with RoutesProtoc
 
   "SDT formats" should "work" in {
     sdtFormat[Any, Symbol, Symbol].write(NarrowDataUnfolding('key, 'value, Map.empty[Symbol, Long])) shouldBe a[JsValue]
-    sdtFormat[Any, Symbol, Symbol].write(WideDataFilling[Any, Symbol, Symbol](Map.empty[Symbol, Long], Some(0L))) shouldBe a[JsValue]
+    sdtFormat[Any, Symbol, Symbol].write(WideDataFilling[Any, Symbol, Symbol](Map.empty[Symbol, Long], Some(0L))) shouldBe a[
+      JsValue
+    ]
   }
 }

@@ -7,7 +7,7 @@ maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
-scalaVersion in ThisBuild := "2.12.8"
+scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
 javaOptions in ThisBuild += "--add-modules=java.xml.bind"
@@ -72,7 +72,7 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  Cmd("FROM", "openjdk:8-jre"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -185,7 +185,7 @@ git.gitTagToVersionNumber := {
 }
 
 // Release specific settings
-import ReleaseTransformations.{setReleaseVersion => _, _}
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.{setReleaseVersion => _, _}
 
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
@@ -213,3 +213,7 @@ githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 // Lint
 scapegoatVersion in ThisBuild := "1.3.8"
 scalaBinaryVersion in ThisBuild := "2.12"
+
+addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
+addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
+addCommandAlias("cvr", "; clean; coverage; test; coverageReport")

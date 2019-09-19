@@ -1,4 +1,3 @@
-import sbt.Keys._
 import sbt._
 
 object Version {
@@ -9,11 +8,11 @@ object Version {
 
   val influx = "2.15"
 
-  val clickhouse = "0.1.52"
-  val flink = "1.7.2"
+  val clickhouse = "0.1.55"
+  val flink = "1.9.0"
 
-  val akka = "2.5.19"
-  val akkaHttp = "10.1.5"
+  val akka = "2.5.25"
+  val akkaHttp = "10.1.9"
 
   val cats = "1.6.0"
 
@@ -23,7 +22,7 @@ object Version {
   val scalaCheck = "1.14.0"
   val jmh = "0.3.4"
 
-  val testContainers = "0.20.0"
+  val testContainers = "0.26.0"
   val postgres = "42.2.5"
 
   val avro = "1.8.2"
@@ -50,7 +49,7 @@ object Library {
     "javax.xml.bind" % "jaxb-api" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
-    "com.sun.activation" % "javax.activation" % Version.activation,
+    "com.sun.activation" % "javax.activation" % Version.activation
   )
 
   val logging = Seq(
@@ -80,7 +79,8 @@ object Library {
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
-    "com.typesafe.akka" %% "akka-stream" % Version.akka
+    "com.typesafe.akka" %% "akka-stream" % Version.akka,
+    "com.typesafe.akka" %% "akka-testkit" % Version.akka
   )
 
   val akkaHttp = Seq(
@@ -104,7 +104,7 @@ object Library {
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
-  
+
   val perf = Seq(
     "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
   )
@@ -126,7 +126,7 @@ object Library {
   val sentrylog = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
-  
+
   val strawman = Seq(
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )

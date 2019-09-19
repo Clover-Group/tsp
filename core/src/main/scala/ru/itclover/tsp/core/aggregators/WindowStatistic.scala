@@ -1,10 +1,9 @@
 package ru.itclover.tsp.core.aggregators
 
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{PState, Pattern, _}
+import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
@@ -38,29 +37,30 @@ case class WindowStatisticAccumState[T](
     // add new element to queue
     val (newLastValue, newWindowStatisticQueueInstance) =
       lastValue
-        .map { cmr => {
+        .map { cmr =>
+          {
 
-          val elem = WindowStatisticQueueInstance(
-            idx = idx,
-            time = time,
-            isSuccess = value.isSuccess,
-            // count success and fail times by previous result, not current!
-            successTimeFromPrevious = if (cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0,
-            failTimeFromPrevious = if (!cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0
-          )
+            val elem = WindowStatisticQueueInstance(
+              idx = idx,
+              time = time,
+              isSuccess = value.isSuccess,
+              // count success and fail times by previous result, not current!
+              successTimeFromPrevious = if (cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0,
+              failTimeFromPrevious = if (!cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0
+            )
 
-          val newLV = WindowStatisticResult(
-            idx = idx,
-            time = time,
-            lastWasSuccess = value.isSuccess,
-            successCount = cmr.successCount + (if (value.isSuccess) 1 else 0),
-            successMillis = cmr.successMillis + math.min(elem.successTimeFromPrevious, window.toMillis),
-            failCount = cmr.failCount + (if (value.isFail) 1 else 0),
-            failMillis = cmr.failMillis + math.min(elem.failTimeFromPrevious, window.toMillis)
-          )
+            val newLV = WindowStatisticResult(
+              idx = idx,
+              time = time,
+              lastWasSuccess = value.isSuccess,
+              successCount = cmr.successCount + (if (value.isSuccess) 1 else 0),
+              successMillis = cmr.successMillis + math.min(elem.successTimeFromPrevious, window.toMillis),
+              failCount = cmr.failCount + (if (value.isFail) 1 else 0),
+              failMillis = cmr.failMillis + math.min(elem.failTimeFromPrevious, window.toMillis)
+            )
 
-          newLV -> elem
-        }
+            newLV -> elem
+          }
         }
         .getOrElse(
           WindowStatisticResult(

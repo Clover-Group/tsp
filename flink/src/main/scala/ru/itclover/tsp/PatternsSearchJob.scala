@@ -12,37 +12,43 @@ import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import ru.itclover.tsp.core.IncidentInstances.semigroup
-import ru.itclover.tsp.core.{Incident, RawPattern, Time}
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
-import ru.itclover.tsp.io._
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
+import ru.itclover.tsp.io.EventCreator
+import ru.itclover.tsp.io.input.NarrowDataUnfolding
 import ru.itclover.tsp.io.output.OutputConf
 import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.utils.Bucketizer
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
-import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-case class PatternsSearchJob[In, InKey, InItem](
+
+
+case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
+  // TODO: Restore InKey as a type parameter
 
   import PatternsSearchJob._
   import decoders._
-  import source.{extractor, timeExtractor}
+  import source.{kvExtractor, eventCreator, keyCreator}
+
+
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] =
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
+    import source.{transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
@@ -54,6 +60,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       val mapped = incidents.map(x => x.map(resultMapper))
       (patterns, mapped.map(m => saveStream(m, outputConf)))
     }
+  }
 
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
@@ -64,7 +71,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
-      val singleIncidents = incidentsFromPatterns(stream, patternsBucket.items, forwardedFields)
+      val singleIncidents = incidentsFromPatterns(applyTransformation(stream), patternsBucket.items, forwardedFields)
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
@@ -74,8 +81,10 @@ case class PatternsSearchJob[In, InKey, InItem](
     forwardedFields: Seq[(Symbol, InKey)]
   ): DataStream[Incident] = {
 
-    log.debug ("incidentsFromPatterns started")
-      
+    import source.{transformedExtractor, transformedTimeExtractor => timeExtractor}
+
+    log.debug("incidentsFromPatterns started")
+
     val mappers: Seq[PatternProcessor[In, S, Segment, Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
         val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
@@ -108,9 +117,16 @@ case class PatternsSearchJob[In, InKey, InItem](
         ProcessorCombinator[In, S, Segment, Incident](mappers)
       )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
-    
-      log.debug ("incidentsFromPatterns finished")
-      res
+
+    log.debug("incidentsFromPatterns finished")
+    res
+  }
+
+  def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
+    case Some(_) =>
+      import source.{extractor, timeExtractor}
+      dataStream.flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]]))
+    case _ => dataStream
   }
 }
 
@@ -132,7 +148,7 @@ object PatternsSearchJob {
     dDecoder: Decoder[EItem, Double]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
-    log.debug ("preparePatterns started")
+    log.debug("preparePatterns started")
 
     val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
     implicit val impFIM = fieldsIdxMap
@@ -162,7 +178,7 @@ object PatternsSearchJob {
       .map(_.zip(rawPatterns))
       .toEither
 
-    log.debug ("preparePatterns finished")
+    log.debug("preparePatterns finished")
 
     res
   }
@@ -170,9 +186,9 @@ object PatternsSearchJob {
   def bucketizePatterns[E, T, S <: PState[T, S]](
     patterns: Seq[RichPattern[E, T, S]],
     parallelism: Int
-  ): Vector[Bucket[RichPattern[E, T, S]]] = { 
+  ): Vector[Bucket[RichPattern[E, T, S]]] = {
 
-    log.debug ("bucketizePatterns started")
+    log.debug("bucketizePatterns started")
     // import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
     val patternsBuckets = if (parallelism > patterns.length) {
       log.warn(
@@ -188,12 +204,12 @@ object PatternsSearchJob {
       )
     }
     log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
-    log.debug ("bucketizePatterns finished")
+    log.debug("bucketizePatterns finished")
     patternsBuckets
   }
 
-  def reduceIncidents(incidents: DataStream[Incident]) = { 
-    log.debug ("reduceIncidents started")
+  def reduceIncidents(incidents: DataStream[Incident]) = {
+    log.debug("reduceIncidents started")
 
     val res = incidents
       .assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
@@ -203,16 +219,16 @@ object PatternsSearchJob {
       }))
       .reduce { _ |+| _ }
       .name("Uniting adjacent incidents")
-    
-    log.debug ("reduceIncidents finished")
+
+    log.debug("reduceIncidents finished")
     res
   }
 
   def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]) = {
-    log.debug ("saveStream started")
+    log.debug("saveStream started")
     val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
     outputConf.getOutputFormat.close()
-    log.debug ("saveStream finished")
+    log.debug("saveStream finished")
     res
   }
 }

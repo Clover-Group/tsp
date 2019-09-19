@@ -1,33 +1,32 @@
 package ru.itclover.tsp.http.utils
 
-import java.sql.{Connection, DriverManager, ResultSet}
-import java.util.concurrent.TimeUnit
 import com.dimafeng.testcontainers.SingleContainer
+import org.influxdb.InfluxDB
+import org.influxdb.dto.{Query, QueryResult}
 import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 import ru.itclover.tsp.services.InfluxDBService
-import org.influxdb.{BatchOptions, InfluxDB, InfluxDBFactory}
-import org.influxdb.dto.{Query, QueryResult}
+
 import scala.collection.JavaConverters._
 import scala.language.existentials
 import scala.util.{Failure, Success}
 
+class InfluxDBContainer(
+  imageName: String,
+  val portsBindings: List[(Int, Int)] = List.empty,
+  val url: String,
+  val dbName: String,
+  val userName: String,
+  val password: String = "",
+  env: Map[String, String] = Map(),
+  command: Seq[String] = Seq(),
+  classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
+  waitStrategy: Option[WaitStrategy] = None
+) extends SingleContainer[OTCGenericContainer[_]] {
 
-class InfluxDBContainer(imageName: String,
-                        val portsBindings: List[(Int, Int)] = List.empty,
-                        val url: String,
-                        val dbName: String,
-                        val userName: String,
-                        val password: String = "",
-                        env: Map[String, String] = Map(),
-                        command: Seq[String] = Seq(),
-                        classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
-                        waitStrategy: Option[WaitStrategy] = None
-                      ) extends SingleContainer[OTCGenericContainer[_]] {
-
-  type OTCContainer = OTCGenericContainer[T] forSome {type T <: OTCGenericContainer[T]}
-  override implicit val container: OTCContainer = new OTCGenericContainer(imageName)
+  type OTCContainer = OTCGenericContainer[T] forSome { type T <: OTCGenericContainer[T] }
+  implicit override val container: OTCContainer = new OTCGenericContainer(imageName)
 
   if (portsBindings.nonEmpty) {
     val bindings = portsBindings.map { case (out, in) => s"${out.toString}:${in.toString}" }
@@ -46,7 +45,7 @@ class InfluxDBContainer(imageName: String,
     super.starting()
     val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L)
     db = InfluxDBService.connectDb(conf) match {
-      case Success(database) => database
+      case Success(database)  => database
       case Failure(exception) => throw exception
     }
   }

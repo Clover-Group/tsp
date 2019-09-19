@@ -1,10 +1,10 @@
 package ru.itclover.tsp.http.services.flink
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import spray.json.{DefaultJsonProtocol, _}
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import ru.itclover.tsp.mappers.PatternProcessor
+import spray.json.DefaultJsonProtocol
+
 import scala.language.implicitConversions
 
 object MonitoringServiceModel {
@@ -12,8 +12,14 @@ object MonitoringServiceModel {
   /** @param metrics - set of metrics names and values */
   case class JobDetailsWithMetrics(details: JobDetails, metrics: Map[String, String])
 
-  case class JobDetails(jid: String, name: String, state: String, startTsMs: Long, durationMs: Long,
-                        vertices: Vector[Vertex])
+  case class JobDetails(
+    jid: String,
+    name: String,
+    state: String,
+    startTsMs: Long,
+    durationMs: Long,
+    vertices: Vector[Vertex]
+  )
 
   case class Metric(id: String, value: String)
 
@@ -24,7 +30,6 @@ object MonitoringServiceModel {
   object MetricInfo {
     def onLastVertex(id: String, name: String) = MetricInfo(Int.MaxValue, id, name)
   }
-
 
   case class Vertex(id: String, name: String, metrics: VertexMetrics)
 
@@ -37,7 +42,6 @@ object MonitoringServiceModel {
   case class JobExceptions(timestamp: Long, rootException: String, truncated: Boolean)
 
   case class EmptyResponse()
-
 
   case class MonitoringException(err: String) extends RuntimeException(err)
 
@@ -56,7 +60,10 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   implicit val metricNameFormat = jsonFormat1(MetricName.apply)
   implicit val monitoringErrorFormat = jsonFormat1(MonitoringError.apply)
   implicit val vertexMetricsFormat = jsonFormat(
-    VertexMetrics.apply, "read-records", "write-records", PatternProcessor.currentEventTsMetric
+    VertexMetrics.apply,
+    "read-records",
+    "write-records",
+    PatternProcessor.currentEventTsMetric
   )
 
   implicit val vertexFormat = jsonFormat3(Vertex.apply)

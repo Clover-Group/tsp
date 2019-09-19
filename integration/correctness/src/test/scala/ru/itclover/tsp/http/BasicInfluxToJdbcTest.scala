@@ -1,19 +1,22 @@
 package ru.itclover.tsp.http
 
+import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, RangeMatchers, SqlMatchers}
+import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
 
 class BasicInfluxToJdbcTest
@@ -27,6 +30,19 @@ class BasicInfluxToJdbcTest
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+
+  // to run blocking tasks.
+  val blockingExecutorContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(
+      new ThreadPoolExecutor(
+        0, // corePoolSize
+        Int.MaxValue, // maxPoolSize
+        1000L, //keepAliveTime
+        TimeUnit.MILLISECONDS, //timeUnit
+        new SynchronousQueue[Runnable](), //workQueue
+        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+      )
+    )
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
@@ -57,13 +73,16 @@ class BasicInfluxToJdbcTest
     userName = Some("default")
   )
   val typeCastingInputConf = inputConf.copy(query = """select *, speed as "speed(1)(2)" from SM_typeCasting_wide""")
-  val fillingInputConf = inputConf.copy(query = """select * from SM_sparse_wide""",
-    dataTransformation = Some(WideDataFilling(Map(0 -> 2000L, 1 -> 2000L), None)))
+
+  val fillingInputConf = inputConf.copy(
+    query = """select * from SM_sparse_wide""",
+    dataTransformation = Some(WideDataFilling(Map('_0 -> 2000L, '_1 -> 2000L), None))
+  )
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     rowSchema,
     s"jdbc:clickhouse://localhost:$jdbcPort/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -81,7 +100,7 @@ class BasicInfluxToJdbcTest
     Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
     Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
     Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
@@ -95,12 +114,12 @@ class BasicInfluxToJdbcTest
 
       checkByQuery(
         2 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 1 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
         1 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 3 and " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
       )
     }
@@ -116,12 +135,12 @@ class BasicInfluxToJdbcTest
 
       checkByQuery(
         0 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 10 AND " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
         2 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 11 AND " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
     }
@@ -139,7 +158,7 @@ class BasicInfluxToJdbcTest
 
       checkByQuery(
         0.0 :: Nil,
-        "SELECT to - from FROM Test.SM_basic_wide_patterns WHERE id = 20 AND " +
+        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 20 AND " +
           "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
     }

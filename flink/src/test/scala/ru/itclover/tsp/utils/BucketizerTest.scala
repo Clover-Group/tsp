@@ -1,14 +1,13 @@
 package ru.itclover.tsp.utils
 
-import org.scalatest.WordSpec
-import org.scalatest.Matchers
+import org.scalatest.{Matchers, WordSpec}
 
 class BucketizerTest extends WordSpec with Matchers {
   import Bucketizer._
 
   "Bucketizer" should {
-    implicit val straightWeightExtractor = new WeightExtractor[Long] {
-      override def apply(item: Long) = item
+    implicit val straightWeightExtractor: WeightExtractor[Long] = new WeightExtractor[Long] {
+      override def apply(item: Long): Long = item
     }
 
     "work on simple cases" in {
@@ -44,7 +43,7 @@ class BucketizerTest extends WordSpec with Matchers {
       oneResult.map(_.totalWeight).sum shouldBe one.sum
 
       val zero = Seq(2, 2, 2, 2, 2).map(_.toLong)
-      an [IllegalArgumentException] shouldBe thrownBy(Bucketizer.bucketizeByWeight(zero, 0))
+      an[IllegalArgumentException] shouldBe thrownBy(Bucketizer.bucketizeByWeight(zero, 0))
     }
   }
 

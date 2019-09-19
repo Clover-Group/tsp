@@ -11,7 +11,7 @@ class LauncherTest extends FlatSpec with Matchers {
     noException should be thrownBy Launcher.main(Array("flink-local"))
   }
 
-  "Launcher" should "launch in cluster mode" in {
-    noException should be thrownBy Launcher.main(Array("flink-cluster-test", ""))
-  }
+//  "Launcher" should "launch in cluster mode" in {
+//    noException should be thrownBy Launcher.main(Array("flink-cluster-test", ""))
+//  }
 }

@@ -1,38 +1,36 @@
 package ru.itclover.tsp.http.routes
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
+import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ExceptionHandler, Route}
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.tsp.http.protocols.RoutesProtocols
-
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import ru.itclover.tsp.BuildInfo
+import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
+import ru.itclover.tsp.http.protocols.RoutesProtocols
+
+import scala.concurrent.ExecutionContextExecutor
 // import ru.itclover.tsp.BuildInfo
-import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
+import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
-import ru.itclover.tsp.utils.Exceptions
+import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
 import spray.json.PrettyPrinter
+
 import scala.util.{Failure, Success}
 
-import com.typesafe.scalalogging.Logger
-
 object MonitoringRoutes {
-  
-  private val log  = Logger[MonitoringRoutes]
+
+  private val log = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
     monitoringUri: Uri
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
-    
-    log.debug ("fromExecutionContext started")
-    
+
+    log.debug("fromExecutionContext started")
+
     Reader { execContext =>
       new MonitoringRoutes {
         implicit override val executionContext = execContext
@@ -41,9 +39,9 @@ object MonitoringRoutes {
         override val uri = monitoringUri
       }.route
     }
-  
+
   }
-    log.debug ("fromExecutionContext finished")
+  log.debug("fromExecutionContext finished")
 }
 
 trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {

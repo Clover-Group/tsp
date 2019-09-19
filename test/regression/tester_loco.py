@@ -5,15 +5,13 @@
 # Designed by Nikita Novikov
 # Clover Group, Feb 21 2019
 
-import json
-import time
-import glob
-
-import requests
-import threading
-
-import sys
 import argparse
+import glob
+import json
+import requests
+import sys
+import threading
+import time
 from pprint import pprint
 
 

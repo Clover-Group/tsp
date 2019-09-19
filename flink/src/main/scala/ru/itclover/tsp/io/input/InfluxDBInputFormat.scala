@@ -1,25 +1,21 @@
 package ru.itclover.tsp.io.input
 
-import com.google.common.base.Preconditions
 import java.io.IOException
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
+
 import okhttp3.OkHttpClient
-import org.apache.flink.api.common.io.GenericInputFormat
-import org.apache.flink.api.common.io.NonParallelInput
+import org.apache.flink.api.common.io.{GenericInputFormat, NonParallelInput}
 import org.apache.flink.core.io.GenericInputSplit
 import org.influxdb.InfluxDBFactory
-import org.influxdb.dto.Query
-import org.influxdb.dto.QueryResult
-
+import org.influxdb.dto.{Query, QueryResult}
 
 object InfluxDBInputFormat {
   def create() = new Builder()
 
   class Builder {
     val obj = new InfluxDBInputFormat()
-
 
     def url(url: String) = {
 
@@ -57,12 +53,12 @@ object InfluxDBInputFormat {
       this
     }
 
-    def and()= {
+    def and() = {
       new Actions()
     }
 
-    class Actions
-    {
+    class Actions {
+
       def buildIt() = {
         obj
       }
@@ -75,19 +71,17 @@ object InfluxDBInputFormat {
 }
 
 @SerialVersionUID(42L)
-class InfluxDBInputFormat extends GenericInputFormat[QueryResult.Result] with NonParallelInput
-{
+class InfluxDBInputFormat extends GenericInputFormat[QueryResult.Result] with NonParallelInput {
   var url: String = _
   var username: String = _
   var password: String = _
   var database: String = _
   var query: String = _
-  var timeoutSec:  Long = _
+  var timeoutSec: Long = _
 
   var queryResult: util.ListIterator[QueryResult.Result] = _
 
   // --------------------------------------------------------------------------
-
 
   override def open(split: GenericInputSplit) = {
     val extraConf = new OkHttpClient.Builder()
@@ -103,7 +97,6 @@ class InfluxDBInputFormat extends GenericInputFormat[QueryResult.Result] with No
   }
 
   override def reachedEnd() = !queryResult.hasNext
-
 
   def nextRecord(reuse: QueryResult.Result): QueryResult.Result = {
     val result = queryResult.next()

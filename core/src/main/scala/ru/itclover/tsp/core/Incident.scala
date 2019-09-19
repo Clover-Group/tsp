@@ -20,11 +20,10 @@ case class Incident(
 ) extends Product
     with Serializable
 
-
 object IncidentInstances {
 
-  implicit def semigroup = new Semigroup[Incident] {
-    override def combine(a: Incident, b: Incident) = {
+  implicit def semigroup: Semigroup[Incident] = new Semigroup[Incident] {
+    override def combine(a: Incident, b: Incident): Incident = {
       val from =
         if (a.segment.from.toMillis > b.segment.from.toMillis) b.segment.from
         else a.segment.from

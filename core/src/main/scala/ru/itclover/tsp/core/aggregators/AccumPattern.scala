@@ -2,12 +2,11 @@ package ru.itclover.tsp.core.aggregators
 
 import cats.implicits._
 import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.Pattern._
-import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.io.TimeExtractor.GetTime
+import ru.itclover.tsp.core.{Time, Window, _}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}

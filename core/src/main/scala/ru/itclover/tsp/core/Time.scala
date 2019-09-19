@@ -23,7 +23,8 @@ object Time {
     override def compare(x: Time, y: Time) = Long.compare(x.toMillis, y.toMillis)
   }
 
-  val DATE_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
+  val DATE_TIME_FORMAT: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault())
 
   implicit def durationWindow(duration: Duration): Window = Window(toMillis = duration.toMillis)
 
@@ -37,7 +38,7 @@ object Time {
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
 
-  object MinWindow extends Window(toMillis = 0l)
+  object MinWindow extends Window(toMillis = 0L)
 
   object MaxWindow extends Window(toMillis = java.lang.Long.MAX_VALUE)
 

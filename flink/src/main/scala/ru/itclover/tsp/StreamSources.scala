@@ -9,16 +9,21 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf}
+import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
 import ru.itclover.tsp.utils.ErrorsADT._
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
+import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-/*sealed*/ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
+/*sealed*/
+trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def createStream: DataStream[Event]
 
   def conf: InputConf[Event, EKey, EItem]
@@ -29,39 +34,72 @@ import scala.collection.mutable
 
   def fieldToEKey: Symbol => EKey
 
+  def fieldsIdxMap: Map[Symbol, Int]
+
+  def transformedFieldsIdxMap: Map[Symbol, Int]
+
   def partitioner: Event => String
 
   implicit def timeExtractor: TimeExtractor[Event]
 
+  implicit def transformedTimeExtractor: TimeExtractor[Event]
+
   implicit def extractor: Extractor[Event, EKey, EItem]
+
+  implicit def transformedExtractor: Extractor[Event, EKey, EItem]
+
+  implicit def trivialEItemDecoder: Decoder[EItem, EItem] = (v1: EItem) => v1
+
+  implicit def itemToKeyDecoder: Decoder[EItem, EKey]  // for narrow data widening
+
+  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(key, value, _, _)) =>
+      (r: Event) =>
+        (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
+    case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
+      (r: Event) =>
+        sys.error("Wide data filling does not need K-V extractor")
+    case Some(_) =>
+      (r: Event) =>
+        sys.error("Unsupported data transformation")
+    case None =>
+      (r: Event) =>
+        sys.error("No K-V extractor without data transformation")
+  }
+
+  implicit def eventCreator: EventCreator[Event, EKey]
+
+  implicit def keyCreator: KeyCreator[EKey]
 }
 
 object StreamSource {
+
   def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
-    allFields.find { field => !excludedFields.contains(field) }
+    allFields.find { field =>
+      !excludedFields.contains(field)
+    }
   }
 }
-
 
 object JdbcSource {
 
   def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
     for {
-      types <- JdbcService.fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
+      types <- JdbcService
+        .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => JdbcSource(conf, types, nullField).asRight
-        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
-  } yield source
+    } yield source
 }
-
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -69,16 +107,19 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val log = Logger[JdbcSource]
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
-  private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
+  private val badPartitions = partitionFields
+    .map(fieldsIdxMap.get)
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
+    .flatten
     .map(p => fieldsClasses(p)._1)
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
+  val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
@@ -104,13 +145,15 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     r
   }
 
-  override def fieldToEKey = {
-    fieldId: Symbol => fieldsIdxMap(fieldId)
+  override def fieldToEKey = { fieldId: Symbol =>
+    fieldId
+    // fieldsIdxMap(fieldId)
   }
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
   val tsMultiplier = timestampMultiplier.getOrElse {
@@ -118,7 +161,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
     1000.0
   }
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
@@ -130,25 +174,49 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       .setQuery(query)
       .setRowTypeInfo(rowTypesInfo)
       .finish()
+
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, datetimeField)
 }
 
-
 object InfluxDBSource {
+
   def create(conf: InfluxDBInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
     for {
-      types <- InfluxDBService.fetchFieldsTypesInfo(conf.query, conf.influxConf)
+      types <- InfluxDBService
+        .fetchFieldsTypesInfo(conf.query, conf.influxConf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => InfluxDBSource(conf, types, nullField).asRight
-        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
 case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -159,16 +227,19 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
-  private val badPartitions = partitionFields.map(fieldsIdxMap.get)
-    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size).flatten
+  private val badPartitions = partitionFields
+    .map(fieldsIdxMap.get)
+    .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
+    .flatten
     .map(p => fieldsClasses(p)._1)
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
+  val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
@@ -208,15 +279,17 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
     }
   }
 
-  override def fieldToEKey = (fieldId: Symbol) => fieldsIdxMap(fieldId)
+  override def fieldToEKey = (fieldId: Symbol) => fieldId // fieldsIdxMap(fieldId)
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat =
     InfluxDBInputFormat
@@ -229,4 +302,28 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .query(query)
       .and()
       .buildIt()
+
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowIsoTimeExtractor(transformedTimeIndex, datetimeField)
+
 }
