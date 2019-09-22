@@ -47,8 +47,8 @@ object PQueue {
       queue.remove()
       this
     }
-    override def beheadOption(): Option[PQueue[T]] = if (queue.nonEmpty) {
-      queue.dequeue(); Some(this)
+    override def beheadOption(): Option[PQueue[T]] = if (!queue.isEmpty) {
+      queue.remove(); Some(this)
     } else None
     override def clean(): PQueue[T] = JavaMutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = {

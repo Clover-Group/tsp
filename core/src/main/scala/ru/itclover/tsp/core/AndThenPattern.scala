@@ -49,6 +49,20 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
 
       def default: (QI[T1], QI[T2], QI[(Idx, Idx)]) = (first, second, total)
 
+      (for(iv1@ IdxValue(start1, end1, value1) <- first.headOption;
+           iv2@ IdxValue(start2, end2, value2) <- second.headOption) yield {
+        if(value1.isFail){
+          inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
+        } else if(value2.isFail){
+          val newFirst = iv1.removeBefore(end2 + 1).map(_ => first.changeFirst(end2 + 1)).getOrElse(first.behead())
+          inner(newFirst, second, total.enqueue(IdxValue(start1, end2, Fail)))
+        } else {
+
+
+        }
+
+      }).getOrElse(default)
+
       first.headOption match {
         // if any of parts is empty -> do nothing
         case None => default
