@@ -90,7 +90,6 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
     Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
       route ~> check {
-      entityAs[String] shouldBe ""
       status shouldEqual StatusCodes.OK
     }
   }

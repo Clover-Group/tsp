@@ -21,7 +21,7 @@ case class KafkaInputConf(
   partitionFields: Seq[Symbol],
   // userName: Option[String] = None,
   // password: Option[String] = None,
-  // dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
   // defaultToleranceFraction: Option[Double] = None,
   // parallelism: Option[Int] = None,
   // numParallelSources: Option[Int] = Some(1),
@@ -31,9 +31,6 @@ case class KafkaInputConf(
 ) extends InputConf[Row, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
-
-  def dataTransformation
-    : Option[ru.itclover.tsp.io.input.SourceDataTransformation[org.apache.flink.types.Row, Symbol, Any]] = ???
   // def datetimeField: Symbol = 'or
   def defaultEventsGapMs: Long = 0L
   def defaultToleranceFraction: Option[Double] = Some(0.1)

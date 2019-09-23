@@ -40,20 +40,28 @@ class KafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with H
 
   implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
-  val port = 8148
-  implicit override val container = new JDBCContainer(
+  val port = 8166
+  val clickhouseContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9087 -> 9000 :: Nil,
+    port -> 8123 :: 9089 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
 
+  val kafkaPort = 8092
+
+  val kafkaContainer = KafkaContainer()
+
+  implicit override val container = MultipleContainers(clickhouseContainer, kafkaContainer)
+
   val inputConf = KafkaInputConf(
-    brokers = "37.228.115.243:9092",
+    brokers = "127.0.0.1:9092",
     topic = "batch_record_small_stream_writer",
     group = "group5",
     datetimeField = 'and,
-    partitionFields = Seq('series_id, 'mechanism_id)
+    partitionFields = Seq('series_id, 'mechanism_id),
+    dataTransformation = None,
+    timestampMultiplier = Option(1000.0)
   )
 
   // val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
