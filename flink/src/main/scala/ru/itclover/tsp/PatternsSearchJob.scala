@@ -70,7 +70,9 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
-      val singleIncidents = incidentsFromPatterns(applyTransformation(stream), patternsBucket.items, forwardedFields)
+      import source.timeExtractor
+      val singleIncidents = incidentsFromPatterns(applyTransformation(
+        stream.assignAscendingTimestamps(timeExtractor(_).toMillis)), patternsBucket.items, forwardedFields)
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
@@ -124,7 +126,9 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
     case Some(_) =>
       import source.{extractor, timeExtractor}
-      dataStream.flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]]))
+      dataStream
+        .flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]]))
+        .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }
 }
