@@ -360,7 +360,7 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
 //    fieldsIdxMap(fieldId)
 //  }
 
-  override def fieldToEKey: Symbol => Symbol = ???
+  override def fieldToEKey: Symbol => Symbol = (x => x)
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
@@ -397,15 +397,30 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
     event: Row => serializablePI.map(event.getField).mkString
   }
 
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = ???
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
 
-  override implicit def transformedTimeExtractor: TimeExtractor[Row] = ???
+  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
-  override implicit def transformedExtractor: Extractor[Row, Symbol, Any] = ???
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField)
 
-  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = ???
+  override implicit def transformedExtractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap)
 
-  override implicit def eventCreator: EventCreator[Row, Symbol] = ???
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
-  override implicit def keyCreator: KeyCreator[Symbol] = ???
+  override implicit def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  override implicit def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }
