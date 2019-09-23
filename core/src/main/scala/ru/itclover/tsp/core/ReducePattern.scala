@@ -1,5 +1,7 @@
 package ru.itclover.tsp.core
-import cats.implicits._
+import cats.syntax.traverse._
+import cats.syntax.functor._
+import cats.instances.list._
 import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
@@ -48,18 +50,20 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
         // if any of parts is empty -> do nothing
         case x if x.contains(None) => default
         case x =>
-          val ivs = x.map(_.get) // it's safe since it does not contain None
-          val values = ivs.map(_.value)
-          val indices = ivs.map(_.index)
-          // we emit result only if results on all sides come at the same time
-          if (indices.forall(i => idxOrd.eqv(i, ivs.head.index))) {
-            val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
-            inner(queues.map(q => q.behead()), result.enqueue(IdxValue(ivs.head.index, res)))
-            // otherwise skip results from one of sides (with minimum index)
-          } else {
-            val idxOfMinIndex = indices.zipWithIndex.minBy(_._1)._2
-            inner(queues.zipWithIndex.map { case (q, i) => if (i == idxOfMinIndex) q.behead() else q }, result)
-          }
+          // todo implement!
+//          val ivs = x.map(_.get) // it's safe since it does not contain None
+//          val values = ivs.map(_.value)
+//          val indices = ivs.map(_.index)
+//          // we emit result only if results on all sides come at the same time
+//          if (indices.forall(i => idxOrd.eqv(i, ivs.head.index))) {
+//            val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
+//            inner(queues.map(q => q.behead()), result.enqueue(IdxValue(ivs.head.index, res)))
+//            // otherwise skip results from one of sides (with minimum index)
+//          } else {
+//            val idxOfMinIndex = indices.zipWithIndex.minBy(_._1)._2
+//            inner(queues.zipWithIndex.map { case (q, i) => if (i == idxOfMinIndex) q.behead() else q }, result)
+//          }
+          ???
       }
     }
 

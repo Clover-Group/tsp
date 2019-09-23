@@ -1,7 +1,6 @@
 package ru.itclover.tsp.core.aggregators
 
 import cats.Group
-import ru.itclover.tsp.core.PQueue.MutablePQueue
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.Result._

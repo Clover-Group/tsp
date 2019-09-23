@@ -16,7 +16,7 @@ trait PQueue[T] {
   @inline def behead(): PQueue[T]
   @inline def beheadOption(): Option[PQueue[T]]
   @inline def enqueue(idxValues: IdxValue[T]*): PQueue[T]
-  @inline def changeFirst(newStart: Idx): PQueue[T]
+  @inline def rewindTo(newStart: Idx): PQueue[T]
   @inline def clean(): PQueue[T]
   def drop(i: Long): PQueue[T] = (1L to i).foldLeft(this) { case (x, _) => x.behead() }
 
@@ -58,7 +58,7 @@ object PQueue {
     override def toSeq: Seq[IdxValue[T]] = queue.toArray().asInstanceOf[Array[core.IdxValue[T]]].toSeq
     override def size: Int = queue.size
 
-    override def changeFirst(newStart: Idx): PQueue[T] = {
+    override def rewindTo(newStart: Idx): PQueue[T] = { //todo implement it!
       val first = queue.remove()
       queue.offerFirst(first.copy(start = newStart))
       this
@@ -93,7 +93,7 @@ object PQueue {
 
     override def toSeq: Seq[IdxValue[T]] = queue.toSeq.map(x => x.map(_ => func(x)))
 
-    override def changeFirst(newStart: Idx): PQueue[T] = this.copy(queue = queue.changeFirst(newStart))
+    override def rewindTo(newStart: Idx): PQueue[T] = this.copy(queue = queue.rewindTo(newStart))
   }
 
   object MapPQueue {

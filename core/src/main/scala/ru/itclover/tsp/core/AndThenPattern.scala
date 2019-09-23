@@ -49,55 +49,40 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
 
       def default: (QI[T1], QI[T2], QI[(Idx, Idx)]) = (first, second, total)
 
-      (for(iv1@ IdxValue(start1, end1, value1) <- first.headOption;
-           iv2@ IdxValue(start2, end2, value2) <- second.headOption) yield {
-        if(value1.isFail){
-          inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
-        } else if(value2.isFail){
-          val newFirst = iv1.removeBefore(end2 + 1).map(_ => first.changeFirst(end2 + 1)).getOrElse(first.behead())
-          inner(newFirst, second, total.enqueue(IdxValue(start1, end2, Fail)))
-        } else {
-
-
-        }
-
-      }).getOrElse(default)
-
-      first.headOption match {
-        // if any of parts is empty -> do nothing
-        case None => default
-        // if first part is Failure (== None) then return None as a result
-        case Some(x @ IdxValue(start1, end1, Fail)) =>
-          inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
-        case Some(iv1 @ IdxValue(start1, end1, _)) =>
-          second.headOption match {
-            // if any of parts is empty -> do nothing
-            case None => default
-            // if that's a late event from second queue, just skip it
-            case Some(IdxValue(start2, end2, _)) if idxOrd.lteqv(end2, start1) => //todo lt or lteqv ?
+      (first.headOption, second.headOption) match {
+        case (None, _) => default
+        case (_, None) => default
+        case (Some(iv1 @ IdxValue(start1, end1, value1)), Some(iv2 @ IdxValue(start2, end2, value2))) =>
+          if (value1.isFail) {
+            inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
+          } else if (value2.isFail) {
+            val newFirst = iv1.removeBefore(end2 + 1).map(_ => first.rewindTo(end2 + 1)).getOrElse(first.behead())
+            inner(newFirst, second, total.enqueue(IdxValue(start1, end2, Fail)))
+          } else { // at this moment both first and second results are not Fail.
+            // late event from second, just skip it
+            // first            |-------|
+            // second  |------|
+            if (idxOrd.gt(start1, end2)) {
               inner(first, second.behead(), total)
-            // if second part is Failure return None as a result
-            case Some(IdxValue(start2, end2, Fail)) =>
-              val newFirst = iv1.removeBefore(end2 + 1).map(_ => first.changeFirst(end2 + 1)).getOrElse(first.behead())
-              inner(newFirst, second, total.enqueue(IdxValue(start1, end2, Fail)))
-            // if both first and second stages a Success then return Success
-            case Some(iv2 @ IdxValue(start2, end2, Succ(_))) if idxOrd.gt(iv2.start, iv1.end) =>
-              val newFirst = first.behead()
-              if (idxOrd.lteqv(iv2.start, newFirst.headOption.map(_.end).getOrElse(Long.MaxValue))) {
-                inner(
-                  newFirst,
-                  second.behead(),
-                  total.enqueue(IdxValue.union(iv1, iv2)((_, _) => Succ(index1 -> index2)))
-                )
-              } else {
-                // if both return success, but the second part is too late (i.e. not immediately following the first)
-                inner(first.behead(), second, total)
-              }
-            case Some(iv2 @ IdxValue(start2, end2, Succ(_))) =>
-              // if the second Success starts not after the first part end, we must skip it
-              inner(first, second.behead(), total)
+            }
+            // Gap between first and second. Just behead first
+            // first   |-------|
+            // second             |------|
+            else if (idxOrd.lt(end1 + 1, start2)) {
+              inner(first.behead(), second, total)
+            }
+            // First and second intersect
+            // first   |-------|
+            // second       |-------|
+            else {
+              val end = Math.min(end1, end2)
+              val start = Math.max(start1, start2)
+              val newResult = IdxValue(start, end, Succ(start, end)) // todo nobody uses the output of AndThen pattern. Let's drop it later.
+              inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
+            }
           }
       }
+
     }
 
     inner(firstQ, secondQ, totalQ)

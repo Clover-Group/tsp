@@ -63,21 +63,21 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
             val newFirst = if (idxOrd.eqv(minEnd, end1)) {
               first.behead()
             } else {
-              first.changeFirst(newStart)
+              first.rewindTo(newStart)
             }
 
             val newSecond = if (idxOrd.eqv(minEnd, end2)) {
               second.behead()
             } else {
-              second.changeFirst(newStart)
+              second.rewindTo(newStart)
             }
 
             inner(newFirst, newSecond, newTotal)
           } else {
             // otherwise skip results from one of sides
             val cutTo = idxOrd.max(start1, start2)
-            val newFirst = iv1.removeBefore(cutTo).map(x => first.changeFirst(cutTo)).getOrElse(first.behead())
-            val newSecond = iv2.removeBefore(cutTo).map(x => second.changeFirst(cutTo)).getOrElse(second.behead())
+            val newFirst = iv1.removeBefore(cutTo).map(x => first.rewindTo(cutTo)).getOrElse(first.behead())
+            val newSecond = iv2.removeBefore(cutTo).map(x => second.rewindTo(cutTo)).getOrElse(second.behead())
             inner(newFirst, newSecond, total)
           }
       }
