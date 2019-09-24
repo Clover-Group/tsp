@@ -26,12 +26,12 @@ trait PQueue[T] {
 
 object PQueue {
 
-  def apply[T](idxValue: IdxValue[T]): PQueue[T] = JavaMutablePQueue(idxValue)
+  def apply[T](idxValue: IdxValue[T]): PQueue[T] = MutablePQueue(idxValue)
 
-  def empty[T]: PQueue[T] = JavaMutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
+  def empty[T]: PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
 
   // PQueue with mutable queue backend. This is the default implementation used in the majority of patterns
-  case class JavaMutablePQueue[T](queue: java.util.Deque[IdxValue[T]]) extends PQueue[T] {
+  case class MutablePQueue[T](queue: java.util.Deque[IdxValue[T]]) extends PQueue[T] {
 
     override def headOption: Option[IdxValue[T]] = Option.apply(queue.peekFirst())
 
@@ -51,7 +51,7 @@ object PQueue {
     override def beheadOption(): Option[PQueue[T]] = if (!queue.isEmpty) {
       queue.remove(); Some(this)
     } else None
-    override def clean(): PQueue[T] = JavaMutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
+    override def clean(): PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = {
       idxValues.foreach(queue.offerLast)
       this
@@ -79,9 +79,9 @@ object PQueue {
     }
   }
 
-  object JavaMutablePQueue {
+  object MutablePQueue {
 
-    def apply[T](idxValue: IdxValue[T]): JavaMutablePQueue[T] = new JavaMutablePQueue({
+    def apply[T](idxValue: IdxValue[T]): MutablePQueue[T] = new MutablePQueue({
       val queue: util.ArrayDeque[IdxValue[T]] = new java.util.ArrayDeque();
       queue.offer(idxValue)
       queue
