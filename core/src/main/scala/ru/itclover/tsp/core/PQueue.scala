@@ -4,6 +4,7 @@ import java.util
 import ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Idx
 
+import scala.annotation.tailrec
 import scala.collection.convert.ImplicitConversionsToJava._
 import scala.language.implicitConversions
 
@@ -58,10 +59,23 @@ object PQueue {
     override def toSeq: Seq[IdxValue[T]] = queue.toArray().asInstanceOf[Array[core.IdxValue[T]]].toSeq
     override def size: Int = queue.size
 
-    override def rewindTo(newStart: Idx): PQueue[T] = { //todo implement it!
-      val first = queue.remove()
-      queue.offerFirst(first.copy(start = newStart))
-      this
+    override def rewindTo(newStart: Idx): PQueue[T] = {
+
+      @tailrec
+      def inner(q: PQueue[T]): PQueue[T] = {
+        headOption match {
+          case None                                            => q
+          case Some(IdxValue(start, _, _)) if start > newStart => q
+          case Some(IdxValue(_, end, _)) if end < newStart     => inner(q.behead())
+          case Some(_) => {
+            val first = queue.remove()
+            queue.offerFirst(first.copy(start = newStart))
+            this
+          }
+        }
+      }
+
+      inner(this)
     }
   }
 
