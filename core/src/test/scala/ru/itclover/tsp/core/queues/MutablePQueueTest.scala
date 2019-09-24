@@ -110,6 +110,23 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     }
 
+    def getTestQueue: MutablePQueue[Int] = {
+      val testQueue = MutablePQueue[Int]()
+
+      (0 to 1000)
+        .foreach(i => testQueue.enqueue(IdxValue(2* i, 2*i + 1, Result.succ(i))))
+
+      testQueue
+    }
+
+    "rewindTo-1" in {
+      getTestQueue.rewindTo(0).size shouldBe 1001
+      getTestQueue.rewindTo(1).size shouldBe 1001
+      getTestQueue.rewindTo(1).headOption.get.start shouldBe 1
+      getTestQueue.rewindTo(23).headOption.get.start shouldBe 23
+      getTestQueue.rewindTo(100000).size shouldBe 0
+    }
+
   }
 
 }
