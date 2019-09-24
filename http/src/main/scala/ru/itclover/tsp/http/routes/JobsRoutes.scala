@@ -23,6 +23,7 @@ import org.apache.flink.api.common.JobExecutionResult
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
+import org.apache.flink.types.Row
 import ru.itclover.tsp._
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders, Extractors}
@@ -34,7 +35,7 @@ import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
-import ru.itclover.tsp.io.output.JDBCOutputConf
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -100,6 +101,48 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
+    } ~
+    path("streamJob" / "from-jdbc" / "to-kafka"./) {
+      entity(as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]) { request =>
+        import request._
+
+        val resultOrErr = for {
+          source <- JdbcSource.create(inputConf)
+          _      <- createStream(patterns, inputConf, outConf, source)
+          result <- runStream(uuid, isAsync)
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
+      }
+    } ~
+    path("streamJob" / "from-influxdb" / "to-kafka"./) {
+      entity(as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]) { request =>
+        import request._
+
+        val resultOrErr = for {
+          source <- InfluxDBSource.create(inputConf)
+          _      <- createStream(patterns, inputConf, outConf, source)
+          result <- runStream(uuid, isAsync)
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
+      }
+    } ~
+    path("streamJob" / "from-kafka" / "to-kafka"./) {
+      entity(as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]) { request =>
+        import request._
+
+        val resultOrErr = for {
+          source <- KafkaSource.create(inputConf)
+          _ = log.info("Kafka create done")
+          _ <- createStream(patterns, inputConf, outConf, source)
+          _ = log.info("Kafka createStream done")
+          result <- runStream(uuid, isAsync)
+          _ = log.info("Kafka runStream done")
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
+      }
     }
   }
 
@@ -109,7 +152,7 @@ trait JobsRoutes extends RoutesProtocols {
   def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
-    outConf: JDBCOutputConf,
+    outConf: OutputConf[Row],
     source: StreamSource[E, EKey, EItem]
   )(implicit decoders: BasicDecoders[EItem]) = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)

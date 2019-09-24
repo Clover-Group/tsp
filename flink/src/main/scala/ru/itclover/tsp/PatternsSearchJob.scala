@@ -5,12 +5,14 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
@@ -18,7 +20,7 @@ import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
 import ru.itclover.tsp.io.EventCreator
 import ru.itclover.tsp.io.input.NarrowDataUnfolding
-import ru.itclover.tsp.io.output.OutputConf
+import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
@@ -227,11 +229,20 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]) = {
+  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]): DataStreamSink[E] = {
     log.debug("saveStream started")
-    val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
-    outputConf.getOutputFormat.close()
-    log.debug("saveStream finished")
-    res
+    outputConf match {
+      case kafkaConf: KafkaOutputConf =>
+        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.serializer)
+          .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
+        val res = stream.addSink(producer)
+        log.debug("saveStream finished")
+        res
+      case _ =>
+        val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
+        outputConf.getOutputFormat.close()
+        log.debug("saveStream finished")
+        res
+    }
   }
 }

@@ -77,7 +77,8 @@ object Library {
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
+    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
+    "org.apache.flink" % "flink-avro" % Version.flink
   )
 
   val akka = Seq(
