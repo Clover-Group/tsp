@@ -56,7 +56,12 @@ object PQueue {
       idxValues.foreach(queue.offerLast)
       this
     }
-    override def toSeq: Seq[IdxValue[T]] = queue.toArray().asInstanceOf[Array[core.IdxValue[T]]].toSeq
+    override def toSeq: Seq[IdxValue[T]] = {
+      val buffer = scala.collection.mutable.ArrayBuffer.empty[IdxValue[T]]
+      import scala.collection.convert.ImplicitConversionsToScala._
+      buffer ++= queue.iterator()
+      buffer
+    }
     override def size: Int = queue.size
 
     override def rewindTo(newStart: Idx): PQueue[T] = {
@@ -80,6 +85,8 @@ object PQueue {
   }
 
   object MutablePQueue {
+
+    def apply[T](): MutablePQueue[T] = new MutablePQueue(new util.ArrayDeque[IdxValue[T]]())
 
     def apply[T](idxValue: IdxValue[T]): MutablePQueue[T] = new MutablePQueue({
       val queue: util.ArrayDeque[IdxValue[T]] = new java.util.ArrayDeque();

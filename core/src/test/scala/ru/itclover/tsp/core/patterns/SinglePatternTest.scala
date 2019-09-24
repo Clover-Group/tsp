@@ -11,6 +11,7 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor}
 
 import scala.language.reflectiveCalls
 
+//todo these tests are testing nothing!
 class SinglePatternTest extends FlatSpec with Matchers {
 
   def processEvent[A](e: Event[A]): Result[A] = Result.succ(e.row)
@@ -22,7 +23,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
-    res shouldBe this.expState
+    res.queue.size shouldBe 0
   }
 
   it should "process SkipPattern correctly" in {
@@ -31,7 +32,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
-    res shouldBe this.expState
+    res.queue.size shouldBe 0
   }
 
   it should "process ExtractingPattern correctly" in {
@@ -49,7 +50,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
-    res shouldBe this.expState
+    res.queue.size shouldBe 0
   }
 
 }

@@ -24,6 +24,6 @@ class ATPGTest extends FlatSpec with Matchers {
     // Assertion
     val actState = StateMachine[Id].run(pat, Seq(ev), pat.initialState())
 
-    actState shouldBe expState
+    actState.queue.size shouldBe 0
   }
 }

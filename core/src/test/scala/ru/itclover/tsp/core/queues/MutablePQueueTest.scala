@@ -13,10 +13,10 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
   "mutable pattern queue" should {
 
-    val testQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
+    val testQueue = MutablePQueue[Int]()
 
     (0 to 1000)
-      .foreach(i => testQueue.enqueue(i, Result.succ(i)))
+      .foreach(i => testQueue.enqueue(IdxValue(i, i, Result.succ(i))))
 
     "retrieve head option" in {
 
@@ -69,7 +69,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     "enqueue" in {
 
-      testQueue.enqueue(1, Result.succ(1))
+      testQueue.enqueue(IdxValue(1, 1, Result.succ(1)))
 
       val expectedData = Result.succ(4)
       val actualData = testQueue.dequeueOption().get._1.value
@@ -81,7 +81,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
     "clean" in {
 
       val cleanResult = testQueue.clean()
-      cleanResult.enqueue(1, Result.succ(1))
+      cleanResult.enqueue(IdxValue(1, 1, Result.succ(1)))
 
       cleanResult.size shouldBe 1
     }

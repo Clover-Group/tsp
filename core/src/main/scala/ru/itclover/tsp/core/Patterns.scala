@@ -88,69 +88,69 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   def const[T](a: T): ConstPattern[E, T] = ConstPattern(Result.succ(a))
 
-  def windowStatistic[T, S <: PState[T, S]](i: Pattern[E, S, T], w: Window): WindowStatistic[E, S, T] =
-    WindowStatistic(i, w)
-
-  def truthCount[T, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
-    S,
-    WindowStatisticAccumState[T],
-    WindowStatisticResult
-  ]] = windowStatistic(inner, w).map(wsr => wsr.successCount)
-
-  def truthMillis[T, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
-    S,
-    WindowStatisticAccumState[T],
-    WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.successMillis)
-
-  def failCount[T, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
-    S,
-    WindowStatisticAccumState[T],
-    WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.failCount)
-
-  def failMillis[T, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
-    S,
-    WindowStatisticAccumState[T],
-    WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.failMillis)
+//  def windowStatistic[T, S <: PState[T, S]](i: Pattern[E, S, T], w: Window): WindowStatistic[E, S, T] =
+//    WindowStatistic(i, w)
+//
+//  def truthCount[T, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+//    S,
+//    WindowStatisticAccumState[T],
+//    WindowStatisticResult
+//  ]] = windowStatistic(inner, w).map(wsr => wsr.successCount)
+//
+//  def truthMillis[T, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+//    S,
+//    WindowStatisticAccumState[T],
+//    WindowStatisticResult
+//  ]] =
+//    windowStatistic(inner, w).map(wsr => wsr.successMillis)
+//
+//  def failCount[T, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+//    S,
+//    WindowStatisticAccumState[T],
+//    WindowStatisticResult
+//  ]] =
+//    windowStatistic(inner, w).map(wsr => wsr.failCount)
+//
+//  def failMillis[T, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+//    S,
+//    WindowStatisticAccumState[T],
+//    WindowStatisticResult
+//  ]] =
+//    windowStatistic(inner, w).map(wsr => wsr.failMillis)
 
   def lag[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = PreviousValue(inner, w)
 
-  def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
-
-  def sum[T: Group, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-    GroupPattern(inner, w).map(_.sum)
-
-  def count[T: Group, S <: PState[T, S]](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, GroupAccumResult[T], Long, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-    GroupPattern(inner, w).map(_.count)
-
-  // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
-  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window)(
-    implicit f: Fractional[T]
-  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-    GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
+//  def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
+//
+//  def sum[T: Group, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+//    GroupPattern(inner, w).map(_.sum)
+//
+//  def count[T: Group, S <: PState[T, S]](
+//    inner: Pattern[E, S, T],
+//    w: Window
+//  ): MapPattern[E, GroupAccumResult[T], Long, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+//    GroupPattern(inner, w).map(_.count)
+//
+//  // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
+//  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window)(
+//    implicit f: Fractional[T]
+//  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+//    GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
 
 //  abs(lag(x) - x) > 0 for 10m
 }

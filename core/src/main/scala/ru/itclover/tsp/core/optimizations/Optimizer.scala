@@ -2,7 +2,7 @@ package ru.itclover.tsp.core.optimizations
 import cats.kernel.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.{Pat, _}
-import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
+//import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer.S
 
@@ -84,19 +84,19 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
         forceState(optimizePat(right))
       )(x.func)
     case x: IdxMapPattern[E, _, _, _] if optimizable(x.inner) => new IdxMapPattern(forceState(x.inner))(x.func)
-    case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
-      def cast[S <: PState[T, S], T](pats: Seq[Pat[E, T]]): Seq[Pattern[E, S, T]] forSome { type S <: PState[T, S] } =
-        pats.asInstanceOf[Seq[Pattern[E, S, T]]]
-      new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
-    }
-    case x @ GroupPattern(inner, window) if optimizable(inner) => {
-      implicit val group: Group[T] = x.group.asInstanceOf[Group[T]]
-      val newInner: Pattern[E, S[T], T] = forceState(optimizePat(inner.asInstanceOf[Pat[E, T]]))
-      GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
-    }
-    case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
-    case TimerPattern(inner, window) if optimizable(inner)    => TimerPattern(forceState(optimizePat(inner)), window)
-    case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)
+//    case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
+//      def cast[S <: PState[T, S], T](pats: Seq[Pat[E, T]]): Seq[Pattern[E, S, T]] forSome { type S <: PState[T, S] } =
+//        pats.asInstanceOf[Seq[Pattern[E, S, T]]]
+//      new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
+//    }
+//    case x @ GroupPattern(inner, window) if optimizable(inner) => {
+//      implicit val group: Group[T] = x.group.asInstanceOf[Group[T]]
+//      val newInner: Pattern[E, S[T], T] = forceState(optimizePat(inner.asInstanceOf[Pat[E, T]]))
+//      GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
+//    }
+//    case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
+//    case TimerPattern(inner, window) if optimizable(inner)    => TimerPattern(forceState(optimizePat(inner)), window)
+//    case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)
   }
 
   // Need to cast Pat[E,T] to some Pattern type. Pattern has restriction on State

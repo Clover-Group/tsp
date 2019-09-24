@@ -64,7 +64,7 @@ class GeneratorTest extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      result(0) shouldBe expectedData
+      result(0).queue.size shouldBe 0
 
     }
 
@@ -111,7 +111,7 @@ class GeneratorTest extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      result(0) shouldBe expectedData
+      result(0).queue.size shouldBe 0
     }
 
     "not to match" in {
@@ -153,7 +153,7 @@ class GeneratorTest extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      result(0) shouldBe expectedData
+      result(0).queue.size shouldBe 0
     }
 
   }
@@ -202,7 +202,7 @@ class GeneratorTest extends WordSpec with Matchers {
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 
-      result(0) shouldBe expectedData
+      result(0).queue.size shouldBe 0
     }
   }
 
