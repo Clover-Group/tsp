@@ -41,26 +41,8 @@ trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializab
 case class IdxValue[+T](start: Idx, end: Idx, value: Result[T]) {
   def map[B](f: T => Result[B]): IdxValue[B] = this.copy(value = value.flatMap(f))
 
-  //todo tests
-  def removeBefore(idx: Idx)(implicit idxOrd: Order[Idx]): Option[IdxValue[T]] = {
-    if (idxOrd.lt(idx, start)) {
-      Some(this)
-    } else if (idxOrd.gt(idx, end)) {
-      None
-    } else {
-      Some(this.copy(start = idx))
-    }
-  }
-
-  def removeAfter(idx: Idx)(implicit idxOrd: Order[Idx]): Option[IdxValue[T]] = {
-    if (idxOrd.lt(idx, start)) {
-      None
-    } else if (idxOrd.gt(idx, end)) {
-      Some(this)
-    } else {
-      Some(this.copy(end = idx))
-    }
-  }
+  def intersects[A >: T](that: IdxValue[A])(implicit ord: Order[Idx]): Boolean =
+    !(ord.lt(this.end, that.start) || ord.gt(this.start, that.end))
 }
 
 object IdxValue {

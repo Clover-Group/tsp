@@ -44,8 +44,8 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
 
     @tailrec
     def inner(first: QI[T1], second: QI[T2], total: QI[T3]): (QI[T1], QI[T2], QI[T3]) = {
-
       def default: (QI[T1], QI[T2], QI[T3]) = (first, second, total)
+
       (first.headOption, second.headOption) match {
         // if any of parts is empty -> do nothing
         case (_, None)                                                                            => default
@@ -56,29 +56,12 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
             val result: Result[T3] = func(val1, val2)
             val minEnd = idxOrd.min(end1, end2)
 
-            val newResult = IdxValue(start1, minEnd, result)
-            val newTotal = total.enqueue(newResult)
-
-            val newStart = minEnd + 1 //todo ???
-            val newFirst = if (idxOrd.eqv(minEnd, end1)) {
-              first.behead()
-            } else {
-              first.rewindTo(newStart)
-            }
-
-            val newSecond = if (idxOrd.eqv(minEnd, end2)) {
-              second.behead()
-            } else {
-              second.rewindTo(newStart)
-            }
-
-            inner(newFirst, newSecond, newTotal)
+            val newStart = minEnd + 1
+            inner(first.rewindTo(newStart), second.rewindTo(newStart), total.enqueue(IdxValue(start1, minEnd, result)))
           } else {
             // otherwise skip results from one of sides
             val cutTo = idxOrd.max(start1, start2)
-            val newFirst = iv1.removeBefore(cutTo).map(x => first.rewindTo(cutTo)).getOrElse(first.behead())
-            val newSecond = iv2.removeBefore(cutTo).map(x => second.rewindTo(cutTo)).getOrElse(second.behead())
-            inner(newFirst, newSecond, total)
+            inner(first.rewindTo(cutTo), second.rewindTo(cutTo), total)
           }
       }
     }

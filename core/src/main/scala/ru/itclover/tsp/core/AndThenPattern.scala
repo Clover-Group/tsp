@@ -56,8 +56,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
           if (value1.isFail) {
             inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
           } else if (value2.isFail) {
-            val newFirst = iv1.removeBefore(end2 + 1).map(_ => first.rewindTo(end2 + 1)).getOrElse(first.behead())
-            inner(newFirst, second, total.enqueue(IdxValue(start1, end2, Fail)))
+            inner(first.rewindTo(end2 + 1), second, total.enqueue(IdxValue(start1, end2, Fail)))
           } else { // at this moment both first and second results are not Fail.
             // late event from second, just skip it
             // first            |-------|
