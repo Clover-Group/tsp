@@ -1,7 +1,13 @@
 package ru.itclover.tsp.io.output
 
+import java.io.ByteArrayOutputStream
+
 import org.apache.flink.api.common.io.OutputFormat
+import org.apache.flink.api.common.serialization.SerializationSchema
+import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
+import org.apache.avro.io.EncoderFactory
+import org.apache.avro.specific.SpecificDatumWriter
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -9,6 +15,8 @@ trait OutputConf[Event] {
   def getOutputFormat: OutputFormat[Event]
 
   def parallelism: Option[Int]
+
+  def rowSchema: RowSchema
 }
 
 /**
@@ -44,3 +52,25 @@ case class JDBCOutputConf(
 //  override def getOutputFormat: OutputFormat[Row] = ???
 //  override def parallelism: Option[Int] = Some(1)
 //}
+
+case class KafkaOutputConf(
+  broker: String,
+  topic: String,
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
+
+  def serializer: SerializationSchema[Row] = (element: Row) => {
+    val out = new ByteArrayOutputStream
+    val encoder = EncoderFactory.get.binaryEncoder(out, null)
+    val writer = new SpecificDatumWriter[Row]()
+    writer.write(element, encoder)
+    encoder.flush()
+    out.close()
+    out.toByteArray
+  }
+
+}

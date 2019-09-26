@@ -156,10 +156,11 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       serializablePI.map(event.getField).mkString
   }
 
-  val tsMultiplier = timestampMultiplier.getOrElse {
+  def tsMultiplier = timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
     1000.0
   }
+
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
   override def extractor = RowSymbolExtractor(fieldsIdxMap)
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
