@@ -25,7 +25,13 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
 }
 
 case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
-  override def updated(window: Window, idx: Idx, end: Idx, time: Time, value: Result[T]): (PreviousValueAccumState[T], QI[T]) = {
+  override def updated(
+    window: Window,
+    idx: Idx,
+    end: Idx,
+    times: m.Queue[(Idx, Time)],
+    value: Result[T]
+  ): (PreviousValueAccumState[T], QI[T]) = {
     ???
     // todo implement
 //    // Timestamp and value which was actual to the (time - window) moment

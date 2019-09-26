@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.aggregators
 
-import cats.implicits._
+//import cats.implicits._
+import cats.syntax.foldable._
+import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.Pattern._
@@ -78,11 +80,15 @@ abstract class AccumPattern[
       indexTimeMap: m.Queue[(Idx, Time)]
     ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) =
       innerQueue.dequeueOption() match {
-        case None                                         => (innerQueue, accumState, collectedNewResults, indexTimeMap)
+        case None                                              => (innerQueue, accumState, collectedNewResults, indexTimeMap)
         case Some((IdxValue(start, end, value), updatedQueue)) =>
-          val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(start, indexTimeMap)(idxOrd)
+          // rewind all old records
+          val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start)
 
-          val (newAState, newResults) = accumState.updated(window, start, end, newInnerResultTime, value)
+          //firstPart contains info about Idx->Time for all events in range [start, end]
+          val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, true)
+
+          val (newAState, newResults) = accumState.updated(window, start, end, idxTimeMapForValue, value)
 
           innerFunc(
             updatedQueue,
@@ -99,5 +105,5 @@ abstract class AccumPattern[
 
 trait AccumState[In, Out, +Self <: AccumState[In, Out, Self]] extends Product with Serializable {
 
-  def updated(window: Window, start: Idx, end: Idx, time: Time, value: Result[In]): (Self, QI[Out])
+  def updated(window: Window, start: Idx, end: Idx, times: m.Queue[(Idx, Time)], value: Result[In]): (Self, QI[Out])
 }
