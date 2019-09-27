@@ -9,11 +9,13 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.utils.{Change, Constant, RandomInRange, Timer}
+import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
+import ru.itclover.tsp.core.utils.{Change, Constant, RandomInRange, TimeSeriesGenerator, Timer}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
 import scala.language.reflectiveCalls
+import scala.concurrent.duration._
 
 class GeneratorTest extends WordSpec with Matchers {
 
@@ -29,31 +31,13 @@ class GeneratorTest extends WordSpec with Matchers {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
 
       val events = (for (time <- Timer(from = Instant.now());
-                         pump <- RandomInRange(1, 100)(random)
-                           .map(_.toDouble)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(Constant(0));
+                         idx  <- Increment;
+                         pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(40.seconds).after(Constant(0));
                          speed <- Constant(261.0)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(
-                             Change(
-                               from = 260.0,
-                               to = 0.0,
-                               howLong = Duration.fromNanos(
-                                 JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
-                               )
-                             )
-                           )
+                           .timed(1.second)
+                           .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
                            .after(Constant(0.0)))
-        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+        yield Event[Int](time.getEpochSecond, idx, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(
@@ -71,36 +55,13 @@ class GeneratorTest extends WordSpec with Matchers {
     "match for valid-2" in {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
       val events = (for (time <- Timer(from = Instant.now());
-                         pump <- RandomInRange(1, 100)(random)
-                           .map(_.toDouble)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(Constant(0));
-                         speed <- Change(
-                           from = 1.0,
-                           to = 261,
-                           Duration.fromNanos(
-                             JavaDuration.of(15, ChronoUnit.SECONDS).toNanos
-                           )
-                         ).timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(
-                             Change(
-                               from = 260.0,
-                               to = 0.0,
-                               howLong = Duration.fromNanos(
-                                 JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
-                               )
-                             )
-                           )
+                         idx  <- Increment;
+                         pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(40.seconds).after(Constant(0));
+                         speed <- Change(from = 1.0, to = 261, 15.seconds)
+                           .timed(1.seconds)
+                           .after(Change(from = 260.0, to = 0.0, howLong = 10.seconds))
                            .after(Constant(0.0)))
-        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+        yield Event[Int](time.getEpochSecond, idx, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(
@@ -118,31 +79,13 @@ class GeneratorTest extends WordSpec with Matchers {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
 
       val events = (for (time <- Timer(from = Instant.now());
-                         pump <- RandomInRange(1, 100)(random)
-                           .map(_.toDouble)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(Constant(0));
+                         idx  <- Increment;
+                         pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(40.seconds).after(Constant(0));
                          speed <- Constant(250d)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(
-                             Change(
-                               from = 250.0,
-                               to = 0.0,
-                               howLong = Duration.fromNanos(
-                                 JavaDuration.of(10, ChronoUnit.SECONDS).toNanos
-                               )
-                             )
-                           )
+                           .timed(1.second)
+                           .after(Change(from = 250.0, to = 0.0, howLong = 10.seconds))
                            .after(Constant(0.0)))
-        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+        yield Event[Int](time.getEpochSecond, idx, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(
@@ -167,31 +110,13 @@ class GeneratorTest extends WordSpec with Matchers {
       val patterns = new ArrayBuffer[SimplePattern[EInt, Int]]()
 
       val events = (for (time <- Timer(from = Instant.now());
-                         pump <- RandomInRange(1, 100)(random)
-                           .map(_.toDouble)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(40, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(Constant(0));
+                         idx  <- Increment;
+                         pump <- RandomInRange(1, 100)(random).map(_.toDouble).timed(40.seconds).after(Constant(0));
                          speed <- Constant(250d)
-                           .timed(
-                             Duration.fromNanos(
-                               JavaDuration.of(1, ChronoUnit.SECONDS).toNanos
-                             )
-                           )
-                           .after(
-                             Change(
-                               from = 250.0,
-                               to = 0.0,
-                               howLong = Duration.fromNanos(
-                                 JavaDuration.of(30, ChronoUnit.SECONDS).toNanos
-                               )
-                             )
-                           )
+                           .timed(1.second)
+                           .after(Change(from = 250.0, to = 0.0, howLong = 30.seconds))
                            .after(Constant(0.0)))
-        yield Event[Int](time.getEpochSecond, speed.toInt, pump.toInt)).run(seconds = 100)
+        yield Event[Int](time.getEpochSecond, idx, speed.toInt, pump.toInt)).run(seconds = 100)
 
       events
         .foreach(

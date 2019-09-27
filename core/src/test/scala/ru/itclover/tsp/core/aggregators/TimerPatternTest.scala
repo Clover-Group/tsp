@@ -7,7 +7,8 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core.utils.{Constant, Timer}
+import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
+import ru.itclover.tsp.core.utils.{Constant, TimeSeriesGenerator, Timer}
 import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine}
 
 import scala.collection.mutable.ArrayBuffer
@@ -27,12 +28,14 @@ class TimerPatternTest extends WordSpec with Matchers {
     "match-for-valid-1" in {
 
       val events = (for (time <- Timer(from = Instant.now());
+                         idx  <- Increment;
                          row  <- Constant(0).timed(40.seconds).after(Constant(1)))
-        yield Event[Int](time.toEpochMilli, row, 0)).run(seconds = 100)
+        yield Event[Int](time.toEpochMilli, idx, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[Unit]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
 
-      collect.size shouldBe (0)
+      collect.size shouldBe 1
+
     }
   }
 

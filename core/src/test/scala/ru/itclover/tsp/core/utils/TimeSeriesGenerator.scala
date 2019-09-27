@@ -1,12 +1,14 @@
 package ru.itclover.tsp.core.utils
 
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.duration.{Duration, _}
 import scala.util.Random
 
 /**
   *  Common trait for Time Series Generator
+  *
   * @tparam T Generic type for generator
   */
 trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
@@ -28,6 +30,7 @@ trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
 
 /**
   * Case class for map of time series
+  *
   * @param f method for convert
   * @tparam T type for time series
   */
@@ -55,6 +58,7 @@ case class FlatMapTimeSeriesGenerator[R1, R2](parent: TimeSeriesGenerator[R1], f
 
 /**
   * Case class with constant for TimeSeries
+  *
   * @param v value for constant
   * @tparam T Generic type for generator
   */
@@ -66,6 +70,7 @@ case class Constant[T](v: T) extends TimeSeriesGenerator[T] {
 
 /**
   * Case class for changing Time Series
+  *
   * @param from start date
   * @param to end date
   * @param howLong duration of change
@@ -77,6 +82,7 @@ case class Change(from: Double, to: Double, howLong: Duration) extends TimeSerie
 
 /**
   * Pattern for continuing time series
+  *
   * @param first first generator
   * @param next second generator
   * @tparam A input type for generators
@@ -95,6 +101,7 @@ case class AndThen[A](first: TimeSeriesGenerator[A], next: TimeSeriesGenerator[A
 
 /**
   * Case Class for timing the generator
+  *
   * @param inner inner generator
   * @param dur duration of timing
   * @tparam T Generic type for generator
@@ -108,6 +115,7 @@ case class Timed[T](inner: TimeSeriesGenerator[T], dur: Duration) extends TimeSe
 
 /**
   * Case class for timing(start date)
+  *
   * @param from start date
   */
 case class Timer(from: Instant) extends TimeSeriesGenerator[Instant] {
@@ -119,6 +127,7 @@ case class Timer(from: Instant) extends TimeSeriesGenerator[Instant] {
 
 /**
   * Case class for generating random values in range
+  *
   * @param from start
   * @param to end
   * @param random instance of java.util.Random
@@ -127,4 +136,10 @@ case class RandomInRange(from: Int, to: Int)(implicit random: Random) extends Ti
   override def apply(v1: Duration): Int = random.nextInt(to - from + 1) + from
 
   override def howLong: Duration.Infinite = Duration.Inf
+}
+
+object TimeSeriesGenerator {
+
+  val Increment: TimeSeriesGenerator[Int] =
+    Change(0, 1000000000 - 1, howLong = 1000000000.seconds).map((x: Double) => x.toInt)
 }

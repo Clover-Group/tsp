@@ -6,7 +6,8 @@ import cats.Id
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
+import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
+import ru.itclover.tsp.core.utils.{Change, Constant, TimeSeriesGenerator, Timer}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -27,22 +28,26 @@ class SimplePatternTest extends FlatSpec with Matchers {
   it should "return correct results for changing values" in {
 
     val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
                        row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1)))
-      yield Event[Int](time.toEpochMilli, row.toInt, 0)).run(seconds = 100)
+      yield Event[Int](time.toEpochMilli, idx, row.toInt, 0)).run(seconds = 100)
 
     val out = runAndCollectOutput(events)
     out.size shouldBe (100)
+    out.foreach(x => x.start shouldBe( x.end))
   }
 
   it should "collect points to segments for same values" in {
 
     val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
                        row  <- Constant(0).timed(10.seconds).after(Constant(1)))
-      yield Event[Int](time.toEpochMilli, row.toInt, 0)).run(seconds = 100)
+      yield Event[Int](time.toEpochMilli, idx, row.toInt, 0)).run(seconds = 100)
 
     val out = runAndCollectOutput(events)
     out.size shouldBe (2)
-    out(0) shouldBe (IdxValue(0, 10, Result.succ(0)))
+    out(0) shouldBe (IdxValue(0, 9, Result.succ(0)))
+    out(1) shouldBe (IdxValue(10, 99, Result.succ(1)))
   }
 
 }
