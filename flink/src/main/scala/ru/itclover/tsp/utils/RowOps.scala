@@ -25,6 +25,7 @@ object RowOps {
         case d: java.lang.Double => (d * tsMultiplier).toLong
         case f: java.lang.Float  => (f * tsMultiplier).toLong
         case n: java.lang.Number => (n.doubleValue() * tsMultiplier).toLong
+        case null                => 0L // TODO: Where can nulls come from?
         case x                   => sys.error(s"Cannot parse time `$x` from field $fieldId, should be number of millis since 1.1.1970")
       }
       CoreTime(toMillis = millis)
