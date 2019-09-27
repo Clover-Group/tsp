@@ -6,10 +6,10 @@ import java.util.Random
 
 import cats.Id
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.core.fixtures.Common.{EInt, extractor}
+import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.utils.{Change, Constant, RandomInRange, Timer}
+import ru.itclover.tsp.core.utils.{Change, Constant, RandomInRange, Timer}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
@@ -57,7 +57,7 @@ class GeneratorTest extends WordSpec with Matchers {
 
       events
         .foreach(
-          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
       val result = (patterns, events).zipped.map { (p, e) =>
@@ -104,7 +104,7 @@ class GeneratorTest extends WordSpec with Matchers {
 
       events
         .foreach(
-          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
       val result = (patterns, events).zipped.map { (p, e) =>
@@ -146,7 +146,7 @@ class GeneratorTest extends WordSpec with Matchers {
 
       events
         .foreach(
-          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
       val result = (patterns, events).zipped.map { (p, e) =>
@@ -195,7 +195,7 @@ class GeneratorTest extends WordSpec with Matchers {
 
       events
         .foreach(
-          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt))(extractor))
+          event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
       val result = (patterns, events).zipped.map { (p, e) =>

@@ -19,7 +19,7 @@ class ATPGTest extends FlatSpec with Matchers {
 
     // Actual state
     val ev = Event[Int](0L, testNum, 0)
-    val pat = ConstPattern[EInt, Int](Result.succ(testNum))(extractor)
+    val pat = ConstPattern[EInt, Int](Result.succ(testNum))
 
     // Assertion
     val actState = StateMachine[Id].run(pat, Seq(ev), pat.initialState())

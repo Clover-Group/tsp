@@ -19,7 +19,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
   it should "process SimplePattern correctly" in {
 
-    val pat = new SimplePattern[EInt, Int](_ => processEvent(event))(extractor)
+    val pat = new SimplePattern[EInt, Int](_ => processEvent(event))
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
@@ -28,7 +28,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
   it should "process SkipPattern correctly" in {
 
-    val pat = new SimplePattern[EInt, Int](_ => processEvent(event))(extractor)
+    val pat = new SimplePattern[EInt, Int](_ => processEvent(event))
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 
@@ -46,7 +46,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
     }
 
     //val pat = new ExtractingPattern[EInt, Symbol, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
-    val pat = new ExtractingPattern('and, 'or)(extractor, MyExtractor, dec)
+    val pat = new ExtractingPattern('and, 'or)(Event.extractor, MyExtractor, dec)
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 

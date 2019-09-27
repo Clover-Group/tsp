@@ -1,4 +1,4 @@
-package ru.itclover.tsp.utils
+package ru.itclover.tsp.core.utils
 
 import java.time.Instant
 
