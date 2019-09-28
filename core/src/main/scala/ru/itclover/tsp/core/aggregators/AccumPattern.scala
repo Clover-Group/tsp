@@ -83,10 +83,10 @@ abstract class AccumPattern[
         case None                                                   => (innerQueue, accumState, collectedNewResults, indexTimeMap)
         case Some((iv @ IdxValue(start, end, value), updatedQueue)) =>
           // rewind all old records
-          val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start)
+          val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start) // that shouldn't happen
 
           //firstPart contains info about Idx->Time for all events in range [start, end]
-          val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, true)
+          val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, marginToFirst = true)
 
           val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
 
