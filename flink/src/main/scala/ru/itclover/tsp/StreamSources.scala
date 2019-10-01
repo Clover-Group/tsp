@@ -378,11 +378,12 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
   val stageName = "Kafka input processing stage"
 
   def createStream: DataStream[Row] = streamEnv
-    .addSource(KafkaService.consumer(conf))
+    .addSource(KafkaService.consumer(conf, fieldsIdxMap))
     .name(stageName)
     .map(r => {
-      val row = new Row(0)
-      row
+      //val row = new Row(5)
+      //row
+      r
     })
 
   val emptyEvent = {
