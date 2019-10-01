@@ -26,7 +26,8 @@ case class KafkaInputConf(
   // parallelism: Option[Int] = None,
   // numParallelSources: Option[Int] = Some(1),
   // patternsParallelism: Option[Int] = Some(1),
-  timestampMultiplier: Option[Double] = Some(1000.0)
+  timestampMultiplier: Option[Double] = Some(1000.0),
+  fieldsTypes: Map[String, String],
   // offsetReset: String = "largest"
 ) extends InputConf[Row, Symbol, Any] {
 

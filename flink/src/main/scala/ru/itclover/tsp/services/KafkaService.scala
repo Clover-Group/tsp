@@ -17,17 +17,21 @@ import ru.itclover.tsp.io.input.KafkaInputConf
 object KafkaService {
 
   // Stub
-  def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(Symbol, Class[_])]] = Try(
-    Seq(
-      ('and, classOf[Int]),
-      ('ts, classOf[String]),
-      ('SpeedEngine, classOf[Double]),
-      ('Speed, classOf[Double]),
-      ('loco_num, classOf[String]),
-      ('Section, classOf[String]),
-      ('upload_id, classOf[String])
-    )
-  )
+  def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(Symbol, Class[_])]] = Try(conf.fieldsTypes.map {
+    case (fieldName, fieldType) =>
+      val fieldClass = fieldType match {
+        case "int8"    => classOf[Byte]
+        case "int16"   => classOf[Short]
+        case "int32"   => classOf[Int]
+        case "int64"   => classOf[Long]
+        case "float32" => classOf[Float]
+        case "float64" => classOf[Double]
+        case "boolean" => classOf[Boolean]
+        case "string"  => classOf[String]
+        case _         => classOf[Any]
+      }
+      (Symbol(fieldName), fieldClass)
+  }.toSeq)
 
   // Stub
   def consumer(conf: KafkaInputConf, fieldsIdxMap: Map[Symbol, Int]) = {
@@ -46,10 +50,11 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
     val msgString = new String(record.value())
     val node = new ObjectMapper().readTree(msgString)
     val row = new Row(fieldsIdxMap.size)
+    val mapper = new ObjectMapper()
     fieldsIdxMap.foreach {
       case (name, index) =>
-        val mapper = new ObjectMapper()
-        val fieldValue = mapper.convertValue(node.get(name.toString), classOf[java.lang.Object])
+        val v = node.get(name.name)
+        val fieldValue = mapper.convertValue(v, classOf[java.lang.Object])
         row.setField(index, fieldValue)
     }
     row
