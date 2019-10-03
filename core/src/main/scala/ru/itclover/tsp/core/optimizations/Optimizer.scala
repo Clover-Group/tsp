@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.optimizations
 import cats.kernel.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core.aggregators.TimerPattern
+import ru.itclover.tsp.core.aggregators.{GroupPattern, TimerPattern}
 import ru.itclover.tsp.core.{Pat, _}
 //import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
 import ru.itclover.tsp.core.io.TimeExtractor
@@ -69,8 +69,6 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       SimplePattern[E, T](e => simple.f(e).flatMap(map.func))
   }
 
-  //todo mapOfMap
-
   private def optimizeInners[T]: OptimizeRule[T] = {
     case AndThenPattern(first, second) if optimizable(first) || optimizable(second) =>
       AndThenPattern(
@@ -90,11 +88,11 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 //        pats.asInstanceOf[Seq[Pattern[E, S, T]]]
 //      new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
 //    }
-//    case x @ GroupPattern(inner, window) if optimizable(inner) => {
-//      implicit val group: Group[T] = x.group.asInstanceOf[Group[T]]
-//      val newInner: Pattern[E, S[T], T] = forceState(optimizePat(inner.asInstanceOf[Pat[E, T]]))
-//      GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
-//    }
+    case x @ GroupPattern(inner, window) if optimizable(inner) => {
+      implicit val group: Group[T] = x.group.asInstanceOf[Group[T]]
+      val newInner: Pattern[E, S[T], T] = forceState(optimizePat(inner.asInstanceOf[Pat[E, T]]))
+      GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
+    }
 //    case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
     case TimerPattern(inner, window) if optimizable(inner) => TimerPattern(forceState(optimizePat(inner)), window)
 //    case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)

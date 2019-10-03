@@ -8,7 +8,7 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
-import scala.collection.{mutable, mutable => m}
+import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 //todo documentation
@@ -34,7 +34,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
 
   override def updated(
     window: Window,
-    times: mutable.Queue[(Idx, Time)],
+    times: m.Queue[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (GroupAccumState[T], QI[GroupAccumResult[T]]) = {
 

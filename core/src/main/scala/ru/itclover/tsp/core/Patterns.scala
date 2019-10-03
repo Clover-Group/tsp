@@ -134,25 +134,23 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
 
-//  def sum[T: Group, S <: PState[T, S]](
-//    inner: Pattern[E, S, T],
-//    w: Window
-//  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-//    GroupPattern(inner, w).map(_.sum)
-//
-//  def count[T: Group, S <: PState[T, S]](
-//    inner: Pattern[E, S, T],
-//    w: Window
-//  ): MapPattern[E, GroupAccumResult[T], Long, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-//    GroupPattern(inner, w).map(_.count)
-//
-//  // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
-//  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window)(
-//    implicit f: Fractional[T]
-//  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
-//    GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
+  def sum[T: Group, S <: PState[T, S]](
+    inner: Pattern[E, S, T],
+    w: Window
+  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+    GroupPattern(inner, w).map(_.sum)
 
-//  abs(lag(x) - x) > 0 for 10m
+  def count[T: Group, S <: PState[T, S]](
+    inner: Pattern[E, S, T],
+    w: Window
+  ): MapPattern[E, GroupAccumResult[T], Long, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+    GroupPattern(inner, w).map(_.count)
+
+  // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
+  def avg[T: Group, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window)(
+    implicit f: Fractional[T]
+  ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
+    GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
 }
 
 object Patterns {
