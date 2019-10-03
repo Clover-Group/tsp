@@ -49,21 +49,21 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
     output: QI[T]
   ): (QI[(Time, T)], QI[T]) = {
     // Timestamp and value which was actual to the (time - window) moment
-    def splitAtActualTs(): (Time, Option[T], QI[(Time, T)]) = {
+    def splitAtActualTs(): (Option[T], QI[(Time, T)]) = {
       @tailrec
-      def inner(prevBestTime: Time, q: QI[(Time, T)], v: Option[T]): (Time, Option[T], QI[(Time, T)]) = {
+      def inner(q: QI[(Time, T)], v: Option[T]): (Option[T], QI[(Time, T)]) = {
 
         q.headOption match {
-          case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(t, q.behead(), Some(result))
-          case Some(IdxValue(_, _, Fail))                                       => inner(prevBestTime, q.behead(), v)
-          case _                                                                => (prevBestTime, v, q)
+          case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(q.behead(), Some(result))
+          case Some(IdxValue(_, _, Fail))                                        => inner(q.behead(), v)
+          case _                                                                 => (v, q)
         }
       }
 
-      inner(Time(Long.MinValue), queue, None)
+      inner(queue, None)
     }
 
-    val (actualTs, newValue, newQueue) = splitAtActualTs()
+    val (newValue, newQueue) = splitAtActualTs()
     val newIdxValue = IdxValue(idx, idx, value.map(time -> _))
     //     we return first element after the moment time - window. Probably, better instead return _last_ element before moment time - window?
     val head = newValue // it's not probably, but certainly. Returning last before
