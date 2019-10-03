@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.optimizations
 import cats.kernel.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
-import ru.itclover.tsp.core.aggregators.{GroupPattern, TimerPattern}
+import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern}
 import ru.itclover.tsp.core.{Pat, _}
 //import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPattern, WindowStatistic}
 import ru.itclover.tsp.core.io.TimeExtractor
@@ -93,7 +93,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       val newInner: Pattern[E, S[T], T] = forceState(optimizePat(inner.asInstanceOf[Pat[E, T]]))
       GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
     }
-//    case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
+    case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
     case TimerPattern(inner, window) if optimizable(inner) => TimerPattern(forceState(optimizePat(inner)), window)
 //    case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)
   }

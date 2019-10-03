@@ -24,39 +24,52 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
     )
 }
 
+// todo simplify
 case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
   override def updated(
     window: Window,
     times: m.Queue[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (PreviousValueAccumState[T], QI[T]) = {
-    ???
-    // todo implement
-//    // Timestamp and value which was actual to the (time - window) moment
-//    def splitAtActualTs(): (Time, Option[T], QI[(Time, T)]) = {
-//      @tailrec
-//      def inner(prevBestTime: Time, q: QI[(Time, T)], v: Option[T]): (Time, Option[T], QI[(Time, T)]) = {
-//
-//        q.headOption match {
-//          case Some(IdxValue(_, Succ((t, result)))) if t.plus(window) < time => inner(t, q.behead(), Some(result))
-//          case Some(IdxValue(_, Fail))                                       => inner(prevBestTime, q.behead(), v)
-//          case _                                                             => (prevBestTime, v, q)
-//        }
-//      }
-//
-//      inner(Time(Long.MinValue), queue, None)
-//    }
-//
-//    val (actualTs, newValue, newQueue) = splitAtActualTs()
-//    val newIdxValue = IdxValue(_, idx, value.map(time -> _))
-// //     we return first element after the moment time - window. Probably, better instead return _last_ element before moment time - window?
-//    val head = newValue // it's not probably, but certainly. Returning last before
-//    val updatedQueue = newQueue.enqueue(newIdxValue)
-//
-//    (
-//      PreviousValueAccumState(updatedQueue),
-//      head.map(x => IdxValue(idx, Succ(x))).foldLeft(PQueue.empty[T]) { case (q, x) => q.enqueue(x) }
-//    )
+    val (newQueue, newOutputQueue) =
+      times.foldLeft(queue -> PQueue.empty[T]) {
+        case ((q, output), (idx, time)) =>
+          addOnePoint(time, idx, window, idxValue.value, q, output)
+      }
 
+    PreviousValueAccumState(newQueue) -> newOutputQueue
+  }
+
+  private def addOnePoint(
+    time: Time,
+    idx: Idx,
+    window: Window,
+    value: Result[T],
+    queue: QI[(Time, T)],
+    output: QI[T]
+  ): (QI[(Time, T)], QI[T]) = {
+    // Timestamp and value which was actual to the (time - window) moment
+    def splitAtActualTs(): (Time, Option[T], QI[(Time, T)]) = {
+      @tailrec
+      def inner(prevBestTime: Time, q: QI[(Time, T)], v: Option[T]): (Time, Option[T], QI[(Time, T)]) = {
+
+        q.headOption match {
+          case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(t, q.behead(), Some(result))
+          case Some(IdxValue(_, _, Fail))                                       => inner(prevBestTime, q.behead(), v)
+          case _                                                                => (prevBestTime, v, q)
+        }
+      }
+
+      inner(Time(Long.MinValue), queue, None)
+    }
+
+    val (actualTs, newValue, newQueue) = splitAtActualTs()
+    val newIdxValue = IdxValue(idx, idx, value.map(time -> _))
+    //     we return first element after the moment time - window. Probably, better instead return _last_ element before moment time - window?
+    val head = newValue // it's not probably, but certainly. Returning last before
+    val updatedQueue = newQueue.enqueue(newIdxValue)
+
+    updatedQueue ->
+    head.map(x => IdxValue(idx, idx, Succ(x))).foldLeft(output) { case (q, x) => q.enqueue(x) }
   }
 }

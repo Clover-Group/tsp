@@ -13,6 +13,7 @@ import scala.language.higherKinds
 
 //todo documentation
 //todo tests
+//todo simplify?
 case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](
   override val inner: Pattern[Event, S, T],
   override val window: Window
@@ -64,7 +65,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
           .orElse(Option(GroupAccumResult(sum = t, count = 1)))
 
         //remove outdated elements from queue
-        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) < time)
+        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) <= time)
 
         val finalNewLastValue = outputs.foldLeft(newLastValue) {
           case (cmr, elem) =>

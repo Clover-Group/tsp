@@ -30,7 +30,7 @@ class GroupPatternTest extends WordSpec with Matchers {
 
       import cats.instances.int.catsKernelStdGroupForInt
 
-      val groupPattern = GroupPattern(innerPattern, 9.999.seconds).map(_.sum)
+      val groupPattern = GroupPattern(innerPattern, 10.seconds).map(_.sum)
 
       val collect = new ArrayBuffer[IdxValue[Int]]()
       val finalState =
@@ -45,7 +45,10 @@ class GroupPatternTest extends WordSpec with Matchers {
     }
 
     //todo
-    "don't fail if there is only few Fails in a window" in {}
+    "don't fail if there is only few Fails in a window" in {
+
+
+    }
 
     //todo
     "fail if all events in window are Fails" in {}
