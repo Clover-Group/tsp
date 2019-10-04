@@ -377,11 +377,15 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
 
   val stageName = "Kafka input processing stage"
 
-  def createStream: DataStream[Row] = streamEnv
-    .addSource(KafkaService.consumer(conf, fieldsIdxMap))
-    .name(stageName)
-    .keyBy(partitioner)
-    .process(new TimeOutFunction(5000))
+  def createStream: DataStream[Row] = {
+    val consumer = KafkaService.consumer(conf, fieldsIdxMap)
+    consumer.setStartFromEarliest()
+    streamEnv
+      .addSource(consumer)
+      .name(stageName)
+      .keyBy(_ => "nokey")
+      .process(new TimeOutFunction(5000, consumer))
+  }
 
   val emptyEvent = {
     val r = new Row(fieldsIdx.length)

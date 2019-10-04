@@ -70,7 +70,7 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
 }
 
 class TimeOutFunction( // delay after which an alert flag is thrown
-  val timeOut: Long
+  val timeOut: Long, consumer: FlinkKafkaConsumer[Row]
 ) extends ProcessFunction[Row, Row] {
   // state to remember the last timer set
   private var lastTimer: ValueState[Long] = _
@@ -95,8 +95,8 @@ class TimeOutFunction( // delay after which an alert flag is thrown
     // check if this was the last timer we registered
     if (timestamp == lastTimer.value) {
       // it was, so no data was received afterwards.
-      // fire an alert.
-      out.collect(new Row(0))
+      // stop the consumer.
+      consumer.close()
     }
   }
 }
