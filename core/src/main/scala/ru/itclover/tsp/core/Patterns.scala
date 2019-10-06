@@ -134,6 +134,12 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
 
+  // tries to join sequential segments together
+  // todo add segmentation there it needs
+  def segmentizer[T, S <: PState[T, S]](inner: Pattern[E, S, T]) = SegmentizerPattern(inner)
+
+  def lag[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = SegmentizerPattern(PreviousValue(inner, w))
+
   def sum[T: Group, S <: PState[T, S]](
     inner: Pattern[E, S, T],
     w: Window
