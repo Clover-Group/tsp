@@ -69,10 +69,11 @@ class ReducePatternTest extends WordSpec with Matchers {
       val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
       //returns 2 intervals
-      collect.size > 0 shouldBe true
+      collect.nonEmpty shouldBe true
       collect(0).start shouldBe 10
-
     }
+
+    //todo more tests!
   }
 
 }
