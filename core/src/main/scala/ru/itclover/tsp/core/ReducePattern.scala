@@ -7,6 +7,7 @@ import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
+
 //todo docs
 /** Reduce Pattern */
 class ReducePattern[Event, S <: PState[T1, S], T1, T2](
@@ -56,10 +57,15 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
 
           // we emit result only if results on all sides have result for same interval of indexes
           val commonStart = starts.max
-          val commonEnd = Math.min(ends.min, commonStart)
+          val commonEnd = ends.min
           val newQueue = queues.map(_.rewindTo(commonEnd + 1))
-          val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
-          val newResult = result.enqueue(IdxValue(commonStart, commonEnd, res))
+          val newResult =
+            if (commonEnd >= commonStart) {
+              val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
+              result.enqueue(IdxValue(commonStart, commonEnd, res))
+            } else {
+              result
+            }
 
           inner(newQueue, newResult)
       }
