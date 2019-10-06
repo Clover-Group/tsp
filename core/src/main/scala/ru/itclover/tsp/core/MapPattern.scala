@@ -6,7 +6,6 @@ import ru.itclover.tsp.core.Pattern.QI
 
 import scala.language.higherKinds
 
-//todo optimize Map(Simple) => Simple
 case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: Pattern[Event, InnerState, T1])(
   val func: T1 => Result[T2]
 ) extends Pattern[Event, MapPState[InnerState, T1, T2], T2] {
