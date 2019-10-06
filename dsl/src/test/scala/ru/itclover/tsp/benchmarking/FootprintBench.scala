@@ -3,6 +3,7 @@ package ru.itclover.tsp.benchmarking
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 
 import scala.collection.mutable.ArrayBuffer
@@ -52,7 +53,9 @@ class FootprintBench extends FlatSpec with Matchers {
       .right
       .get
       ._1
-    val actualTime = repeat(5, 1000000, patternString)
+
+    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
+    val actualTime = repeat(10, 1000000, patternString)
     println(actualTime)
 
   }

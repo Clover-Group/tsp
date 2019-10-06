@@ -2,10 +2,8 @@ package ru.itclover.tsp.dsl
 
 import java.io.Serializable
 
+import com.typesafe.scalalogging.LazyLogging
 import ru.itclover.tsp.core.{Fail, Result, Succ}
-
-//import scala.collection.mutable
-import com.typesafe.scalalogging.Logger
 
 import scala.reflect.ClassTag
 
@@ -33,9 +31,7 @@ case class FunctionRegistry(
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
 }
 
-object DefaultFunctions {
-
-  val log = Logger("DefaultFunctionRegistry")
+object DefaultFunctions extends LazyLogging{
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] = {
     x match {
@@ -48,7 +44,7 @@ object DefaultFunctions {
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       // TODO: maybe some other cases
       case _ =>
-        log.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
+        logger.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
         Result.fail
     }
   }

@@ -48,7 +48,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
       case Succ(_) =>
         val end: Time = times.last._2 // time corresponding to the idxValue.end
 
-        // ++ is slow here!
+        // don't use ++ here, slow!
         val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
 
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {

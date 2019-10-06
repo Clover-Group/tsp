@@ -12,7 +12,7 @@ import scala.language.higherKinds
 trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
   def idxExtractor: IdxExtractor[Event]
   val f: Event => Result[T]
-  private val maxSegmentSize = 1000 // todo make some di here
+  private val maxSegmentSize = 100000000 // todo make some di here
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: SimplePState[T],
