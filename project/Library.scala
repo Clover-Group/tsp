@@ -8,13 +8,13 @@ object Version {
 
   val influx = "2.15"
 
-  val clickhouse = "0.1.55"
+  val clickhouse = "0.2"
   val flink = "1.9.0"
 
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
 
-  val cats = "1.6.0"
+  val cats = "2.0.0"
 
   val scalaTest = "3.0.8"
   val scalaCheck = "1.14.0"
