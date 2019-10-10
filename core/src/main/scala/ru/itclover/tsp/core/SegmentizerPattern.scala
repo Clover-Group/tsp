@@ -7,10 +7,12 @@ import ru.itclover.tsp.core.Pattern.QI
 import scala.annotation.tailrec
 import scala.languageFeature.higherKinds
 
-//todo tests
-//todo docs
+/*
+Joins together sequential outputs of the inner pattern with the same value. It reduces amount of produced results.
+ */
 case class SegmentizerPattern[Event, T, InnerState <: PState[T, InnerState]](inner: Pattern[Event, InnerState, T])
     extends Pattern[Event, InnerState, T] {
+//todo tests
 
   @tailrec
   private def inner(q: QI[T], last: IdxValue[T], resultQ: QI[T]): QI[T] = {
