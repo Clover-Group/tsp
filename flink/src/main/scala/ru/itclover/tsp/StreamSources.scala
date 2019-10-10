@@ -380,11 +380,12 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
   def createStream: DataStream[Row] = {
     val consumer = KafkaService.consumer(conf, fieldsIdxMap)
     consumer.setStartFromEarliest()
+    streamEnv.enableCheckpointing(5000)
     streamEnv
       .addSource(consumer)
       .name(stageName)
-      .keyBy(_ => "nokey")
-      .process(new TimeOutFunction(5000, consumer))
+      //.keyBy(_ => "nokey")
+      //.process(new TimeOutFunction(5000, timeIndex, fieldsIdxMap.size))
   }
 
   val emptyEvent = {

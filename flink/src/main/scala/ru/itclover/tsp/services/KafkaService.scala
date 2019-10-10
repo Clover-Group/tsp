@@ -12,11 +12,14 @@ import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
+import org.apache.flink.streaming.connectors.kafka.internal.KafkaFetcher
 import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserializationSchema
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import ru.itclover.tsp.io.input.KafkaInputConf
+
+class StreamEndException(message: String) extends Exception(message)
 
 object KafkaService {
 
@@ -70,7 +73,7 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
 }
 
 class TimeOutFunction( // delay after which an alert flag is thrown
-  val timeOut: Long, consumer: FlinkKafkaConsumer[Row]
+  val timeOut: Long, timeIndex: Int, fieldsCount: Int
 ) extends ProcessFunction[Row, Row] {
   // state to remember the last timer set
   private var lastTimer: ValueState[Long] = _
@@ -95,8 +98,9 @@ class TimeOutFunction( // delay after which an alert flag is thrown
     // check if this was the last timer we registered
     if (timestamp == lastTimer.value) {
       // it was, so no data was received afterwards.
-      // stop the consumer.
-      consumer.close()
+      val sentinel = new Row(fieldsCount)
+      sentinel.setField(timeIndex, Long.MaxValue)
+      out.collect(sentinel)
     }
   }
 }

@@ -11,6 +11,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
+import org.apache.flink.streaming.api.windowing.triggers.{CountTrigger, Trigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -19,7 +20,7 @@ import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor
 import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
 import ru.itclover.tsp.io.EventCreator
-import ru.itclover.tsp.io.input.NarrowDataUnfolding
+import ru.itclover.tsp.io.input.{KafkaInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
@@ -57,7 +58,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
-      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
+      val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
+      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(x => x.map(resultMapper))
       (patterns, mapped.map(m => saveStream(m, outputConf)))
     }
@@ -65,7 +67,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-    forwardedFields: Seq[(Symbol, InKey)]
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
   ): Vector[DataStream[Incident]] =
     for {
       sourceBucket <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
@@ -74,14 +77,15 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     } yield {
       import source.timeExtractor
       val singleIncidents = incidentsFromPatterns(applyTransformation(
-        stream.assignAscendingTimestamps(timeExtractor(_).toMillis)), patternsBucket.items, forwardedFields)
+        stream.assignAscendingTimestamps(timeExtractor(_).toMillis)), patternsBucket.items, forwardedFields, useWindowing)
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
   def incidentsFromPatterns[T, S <: PState[Segment, S]: ClassTag](
     stream: DataStream[In],
     patterns: Seq[RichPattern[In, Segment, S]],
-    forwardedFields: Seq[(Symbol, InKey)]
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
   ): DataStream[Incident] = {
 
     import source.{transformedExtractor, transformedTimeExtractor => timeExtractor}
@@ -106,20 +110,30 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           source.emptyEvent
         )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
     }
-    val res = stream
-      .assignAscendingTimestamps(timeExtractor(_).toMillis)
-      .keyBy(source.partitioner)
-      .window(
-        TumblingEventTimeWindows
-          .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-      )
-//      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-//      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
-      .process[Incident](
-        ProcessorCombinator[In, S, Segment, Incident](mappers)
-      )
-      .setMaxParallelism(source.conf.maxPartitionsParallelism)
+    val res =  if (useWindowing) {
+      stream
+        .assignAscendingTimestamps(timeExtractor(_).toMillis)
+        .keyBy(source.partitioner)
+        .window(
+          TumblingEventTimeWindows
+            .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+            .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+        )
+        .process[Incident](
+          ProcessorCombinator[In, S, Segment, Incident](mappers)
+        )
+        .setMaxParallelism(source.conf.maxPartitionsParallelism)
+    } else {
+      stream
+        .assignAscendingTimestamps(timeExtractor(_).toMillis)
+        .keyBy(source.partitioner)
+            .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+            .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+        .process[Incident](
+          ProcessorCombinator[In, S, Segment, Incident](mappers)
+        )
+        .setMaxParallelism(source.conf.maxPartitionsParallelism)
+    }
 
     log.debug("incidentsFromPatterns finished")
     res
