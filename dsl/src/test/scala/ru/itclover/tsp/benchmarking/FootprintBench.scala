@@ -39,7 +39,7 @@ class FootprintBench extends FlatSpec with Matchers {
     ts / times
   }
 
-  it should "process pattern by ASTPatternGenerator correctly" in {
+  it should "benchmark" in {
 
     val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
     val expectedTime = 3000
@@ -54,9 +54,9 @@ class FootprintBench extends FlatSpec with Matchers {
       .get
       ._1
 
-    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
-    val actualTime = repeat(10, 1000000, patternString)
-    println(actualTime)
+//    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
+//    val actualTime = repeat(5, 1000000, patternString)
+//    println(actualTime)
 
   }
 
