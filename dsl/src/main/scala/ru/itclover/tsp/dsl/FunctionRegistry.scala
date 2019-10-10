@@ -46,6 +46,18 @@ object DefaultFunctions {
         Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
       case v: Long if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: Int if (ct.runtimeClass eq classOf[Long]) || (ct.runtimeClass eq classOf[java.lang.Long]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Long
+      case v: Int if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: java.lang.Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
+        Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
+      case v: java.lang.Long if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: java.lang.Integer if (ct.runtimeClass eq classOf[Long]) || (ct.runtimeClass eq classOf[java.lang.Long]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Long
+      case v: java.lang.Integer if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       // TODO: maybe some other cases
       case _ =>
         log.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
