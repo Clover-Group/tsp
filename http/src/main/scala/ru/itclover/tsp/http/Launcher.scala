@@ -122,7 +122,7 @@ object Launcher extends App with HttpService {
     port.map(p => (host, p))
   }
 
-  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort flatMap {
+  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort.flatMap {
     case (clusterHost, clusterPort) =>
       log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
       val rawJarPath = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath

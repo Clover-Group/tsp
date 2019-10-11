@@ -20,6 +20,7 @@ import org.apache.flink.types.Row
   * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
+@SerialVersionUID(91002L)
 case class JDBCInputConf(
   sourceId: Int,
   jdbcUrl: String,

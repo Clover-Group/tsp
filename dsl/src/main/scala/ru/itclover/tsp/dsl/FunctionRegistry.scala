@@ -33,7 +33,7 @@ case class FunctionRegistry(
 
 object DefaultFunctions extends LazyLogging{
 
-  private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] = {
+  private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
       case value: Result[T]                                          => value
       case value: T                                                  => Result.succ(value)
@@ -42,12 +42,23 @@ object DefaultFunctions extends LazyLogging{
         Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
       case v: Long if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: Int if (ct.runtimeClass eq classOf[Long]) || (ct.runtimeClass eq classOf[java.lang.Long]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Long
+      case v: Int if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: java.lang.Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
+        Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
+      case v: java.lang.Long if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
+      case v: java.lang.Integer if (ct.runtimeClass eq classOf[Long]) || (ct.runtimeClass eq classOf[java.lang.Long]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Long
+      case v: java.lang.Integer if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+        Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       // TODO: maybe some other cases
       case _ =>
         logger.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
         Result.fail
     }
-  }
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
     implicit f: Fractional[T1],
@@ -241,7 +252,6 @@ object DefaultFunctions extends LazyLogging{
           }
         case _ => Result.fail
       }
-    }
 
     Map(
       //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
@@ -386,7 +396,7 @@ object DefaultFunctions extends LazyLogging{
   }
 
   def reducers[T: ClassTag](
-    implicit conv: T => Double
+    // implicit conv: T => Double
   ): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
     ('sumof, DoubleASTType) -> (
       (
@@ -459,10 +469,10 @@ object DefaultFunctions extends LazyLogging{
     override def negate(x: Int): Int = -x
     override def fromInt(x: Int): Int = x
     override def toInt(x: Int): Int = x
-    override def toLong(x: Int): Long = x
+    override def toLong(x: Int): Long = x.toLong
     override def toFloat(x: Int): Float = x.toFloat
     override def toDouble(x: Int): Double = x.toDouble
-    override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x, y)
+    override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x.toLong, y.toLong)
   }
 
   implicit val fractionalLong: Fractional[Long] = new Fractional[Long] {
@@ -471,7 +481,7 @@ object DefaultFunctions extends LazyLogging{
     override def minus(x: Long, y: Long): Long = x - y
     override def times(x: Long, y: Long): Long = x * y
     override def negate(x: Long): Long = -x
-    override def fromInt(x: Int): Long = x
+    override def fromInt(x: Int): Long = x.toLong
     override def toInt(x: Long): Int = x.toInt
     override def toLong(x: Long): Long = x
     override def toFloat(x: Long): Float = x.toFloat
@@ -485,20 +495,20 @@ import ru.itclover.tsp.dsl.DefaultFunctions._
 object DefaultFunctionRegistry
     extends FunctionRegistry(
       functions = arithmeticFunctions[Int, Int] ++
-      arithmeticFunctions[Long, Long] ++
-      arithmeticFunctions[Long, Int] ++
-      arithmeticFunctions[Double, Double] ++
-      arithmeticFunctions[Double, Long] ++
-      arithmeticFunctions[Double, Int] ++
-      mathFunctions[Int] ++
-      mathFunctions[Long] ++
-      mathFunctions[Double] ++
-      logicalFunctions ++
-      comparingFunctions[Int, Int] ++
-      comparingFunctions[Long, Long] ++
-      comparingFunctions[Double, Double] ++
-      comparingFunctions[Double, Long] ++
-      comparingFunctions[Double, Int] ++
-      comparingFunctions[String, String],
+        arithmeticFunctions[Long, Long] ++
+        arithmeticFunctions[Long, Int] ++
+        arithmeticFunctions[Double, Double] ++
+        arithmeticFunctions[Double, Long] ++
+        arithmeticFunctions[Double, Int] ++
+        mathFunctions[Int] ++
+        mathFunctions[Long] ++
+        mathFunctions[Double] ++
+        logicalFunctions ++
+        comparingFunctions[Int, Int] ++
+        comparingFunctions[Long, Long] ++
+        comparingFunctions[Double, Double] ++
+        comparingFunctions[Double, Long] ++
+        comparingFunctions[Double, Int] ++
+        comparingFunctions[String, String],
       reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
     )

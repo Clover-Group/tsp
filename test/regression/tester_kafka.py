@@ -5,13 +5,15 @@
 # Designed by Nikita Novikov
 # Clover Group, Feb 21 2019
 
-import argparse
-import glob
 import json
-import requests
-import sys
-import threading
 import time
+import glob
+
+import requests
+import threading
+
+import sys
+import argparse
 from pprint import pprint
 
 
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     host = args.host
     port = args.port
     # TSP server. Localhost or production
-    url = f'http://{host}:{port}/streamJob/from-jdbc/to-jdbc/?run_async=1'
+    url = f'http://{host}:{port}/streamJob/from-kafka/to-jdbc/?run_async=1'
     print(f"Sending to {url}")
 
     files = sum([glob.glob(p) for p in args.files], [])

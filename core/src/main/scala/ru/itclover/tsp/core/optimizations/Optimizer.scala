@@ -16,12 +16,11 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   def optimizable[T](pat: Pat[E, T]): Boolean =
     optimizations[T].exists(_.isDefinedAt(pat))
 
-  def applyOptimizations[T](pat: Pat[E, T]): (Pat[E, T], Boolean) = {
+  def applyOptimizations[T](pat: Pat[E, T]): (Pat[E, T], Boolean) =
     optimizations[T].foldLeft(pat -> false) {
       case ((p, _), rule) if rule.isDefinedAt(p) => rule.apply(p).asInstanceOf[Pat[E, T]] -> true
       case (x, _)                                => x
     }
-  }
 
   def optimize[T](pattern: Pat[E, T]): Pattern[E, S[T], T] = forceState(optimizePat(pattern))
 

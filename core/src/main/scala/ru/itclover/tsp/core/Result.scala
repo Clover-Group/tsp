@@ -29,7 +29,7 @@ sealed trait Result[+A] {
 }
 
 object Result {
-  implicit class OptionToResult[T](val opt: Option[T]) extends AnyVal {
+  implicit class OptionToResult[T](private val opt: Option[T]) extends AnyVal {
 
     def toResult: Result[T] = opt match {
       case None    => Fail

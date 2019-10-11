@@ -9,7 +9,7 @@ object QueueUtils {
 
   private val trueFunction = (x: Any) => true
 
-  def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) = {
+  def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) =
     if (predicate.eq(trueFunction)) (queue, m.Queue.empty)
     else {
 
@@ -22,7 +22,6 @@ object QueueUtils {
 
       inner(m.Queue.empty, queue)
     }
-  }
 
   /**
     * Splits inner `q` at point idx, so all records with id < idx are in first returned queue, and all with id >= idx are in second.

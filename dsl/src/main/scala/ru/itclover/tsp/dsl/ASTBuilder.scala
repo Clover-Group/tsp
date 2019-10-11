@@ -6,7 +6,6 @@ import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core.{Time, Window, _}
 import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
 // TODO@trolley813: Adapt to the new `v2` single-state patterns
@@ -47,7 +46,9 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
     (timeWithTolerance | timeBoundedRange) ~ ws ~> (buildForExpr(_, _))
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
-    ((c: AST, b: AST, r: Option[Any]) => {
+    // ((c: AST, b: AST, r: Option[Any]) => {
+    ((c: AST, b: AST, _) => {
+
       val until = Assert(FunctionCall('not, Seq(b)))
       //val window = Window(86400000) // 24 hours
       val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), Some(MinWindow))
@@ -57,9 +58,8 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
   /*_*/
 
-  protected def buildForExpr(phase: AST, ti: TimeInterval): AST = {
+  protected def buildForExpr(phase: AST, ti: TimeInterval): AST =
     Timer(Assert(phase.asInstanceOf[AST]), ti)
-  }
 
   // format: off
 
