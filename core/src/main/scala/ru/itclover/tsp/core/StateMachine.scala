@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 
 import scala.language.higherKinds
 
-private class StateMachine[F[_]: Monad: Traverse] {
+class StateMachine[F[_]: Monad: Traverse] {
   private val log = Logger("StateMachineV2")
 
   /**
