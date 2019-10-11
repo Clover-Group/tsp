@@ -4,7 +4,7 @@ import org.parboiled2._
 import ru.itclover.tsp.core.Intervals.{Interval, NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 import ru.itclover.tsp.core.{Time, Window, _}
-import ru.itclover.tsp.utils.UtilityTypes.ParseException
+import UtilityTypes.ParseException
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag

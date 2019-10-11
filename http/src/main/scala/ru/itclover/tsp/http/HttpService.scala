@@ -15,7 +15,7 @@ import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.routes._
-import ru.itclover.tsp.utils.Exceptions
+import ru.itclover.tsp.http.utils.Exceptions
 import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 

@@ -1,4 +1,4 @@
-package ru.itclover.tsp.utils
+package ru.itclover.tsp.dsl
 
 //
 object UtilityTypes {

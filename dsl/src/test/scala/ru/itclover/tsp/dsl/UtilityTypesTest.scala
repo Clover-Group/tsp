@@ -1,7 +1,6 @@
-package ru.itclover.tsp.core.utils
+package ru.itclover.tsp.dsl
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
 /**
   * Class for testing utility types

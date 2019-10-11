@@ -1,7 +1,6 @@
-package ru.itclover.tsp.core.utils
+package ru.itclover.tsp.http.utils
 
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.utils.Exceptions
 
 /**
   * Class for testing the exceptions viewer in "core" module
