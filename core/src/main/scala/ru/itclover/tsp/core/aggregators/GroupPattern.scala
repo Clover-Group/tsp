@@ -11,7 +11,11 @@ import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-//todo documentation
+/**
+  * Group pattern is an AccumPattern calculating result on window for objects having an instance of cats.Group.
+  * Complexity does not depend on window size, since for each new added element we can produce new output
+  * using previous result.
+  */
 //todo tests
 //todo simplify?
 case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](

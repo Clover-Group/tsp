@@ -45,19 +45,6 @@ case class IdxValue[+T](start: Idx, end: Idx, value: Result[T]) {
     !(ord.lt(this.end, that.start) || ord.gt(this.start, that.end))
 }
 
-object IdxValue {
-
-  /// Union the segments with a custom result
-  // todo re-consider this???
-  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2])(
-    func: (Result[T1], Result[T2]) => Result[T3]
-  ): IdxValue[T3] = IdxValue(
-    start = Math.min(iv1.start, iv2.start),
-    end = Math.max(iv1.end, iv2.end),
-    value = func(iv1.value, iv2.value)
-  )
-}
-
 object Pattern {
 
   type Idx = Long

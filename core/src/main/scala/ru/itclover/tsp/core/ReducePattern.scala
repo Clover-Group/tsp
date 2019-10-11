@@ -8,8 +8,11 @@ import ru.itclover.tsp.core.Pattern.{Idx, QI}
 import scala.annotation.tailrec
 import scala.language.higherKinds
 
-//todo docs
-/** Reduce Pattern */
+/** Reduce Pattern.
+  * Complex pattern combining Seq of inner patterns (all of them have to have the same type).
+  * Each inner can be transformed using `transform` function, filtered using `filterCond`.
+  * Final result is left-folded of `initial` and Seq of inner results with function `func`.
+  * */
 class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   val patterns: Seq[Pattern[Event, S, T1]]
 )(
