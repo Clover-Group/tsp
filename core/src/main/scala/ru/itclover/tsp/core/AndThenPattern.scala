@@ -76,7 +76,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
             else {
               val end = Math.min(end1, end2)
               val start = Math.max(start1, start2)
-              val newResult = IdxValue(start, end, Succ(start, end)) // todo nobody uses the output of AndThen pattern. Let's drop it later.
+              val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
               inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
             }
           }

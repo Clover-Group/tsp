@@ -54,9 +54,10 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
 
         q.headOption match {
           case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(q.behead(), Some(result))
-          case Some(IdxValue(_, _, Fail))                                        => inner(q.behead(), v)
-          case _                                                                 => (v, q)
+          case Some(IdxValue(_, _, Fail)) => inner(q.behead(), v)
+          case _ => (v, q)
         }
+      }
 
       inner(queue, None)
     }

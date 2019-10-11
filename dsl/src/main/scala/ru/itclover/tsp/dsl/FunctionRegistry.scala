@@ -239,19 +239,20 @@ object DefaultFunctions extends LazyLogging{
           sym match {
 
             case 'and => Result.succ(l.and(x0, x1))
-            case 'or  => Result.succ(l.or(x0, x1))
+            case 'or => Result.succ(l.or(x0, x1))
             case 'xor => Result.succ(l.xor(x0, x1))
-            case 'eq  => Result.succ(l.eq(x0, x1))
+            case 'eq => Result.succ(l.eq(x0, x1))
             case 'neq => Result.succ(l.neq(x0, x1))
-            case _    => Result.fail
+            case _ => Result.fail
           }
         case (Succ(x0), Fail) =>
           sym match {
             case 'not => Result.succ(l.not(x0))
-            case _    => Result.fail
+            case _ => Result.fail
           }
         case _ => Result.fail
       }
+    }
 
     Map(
       //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
