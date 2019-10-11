@@ -110,33 +110,28 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           source.emptyEvent
         )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
     }
-    val res =  if (useWindowing) {
-      stream
-        .assignAscendingTimestamps(timeExtractor(_).toMillis)
-        .keyBy(source.partitioner)
+    val keyedStream = stream
+      .assignAscendingTimestamps(timeExtractor(_).toMillis)
+      .keyBy(source.partitioner)
+    val windowed =  if (useWindowing) {
+      keyedStream
         .window(
           TumblingEventTimeWindows
             .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
             .asInstanceOf[WindowAssigner[In, FlinkWindow]]
         )
-        .process[Incident](
-          ProcessorCombinator[In, S, Segment, Incident](mappers)
-        )
-        .setMaxParallelism(source.conf.maxPartitionsParallelism)
     } else {
-      stream
-        .assignAscendingTimestamps(timeExtractor(_).toMillis)
-        .keyBy(source.partitioner)
+      keyedStream
             .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
             .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
-        .process[Incident](
-          ProcessorCombinator[In, S, Segment, Incident](mappers)
-        )
-        .setMaxParallelism(source.conf.maxPartitionsParallelism)
     }
+    val processed = windowed.process[Incident](
+      ProcessorCombinator[In, S, Segment, Incident](mappers)
+    )
+      .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
     log.debug("incidentsFromPatterns finished")
-    res
+    processed
   }
 
   def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
