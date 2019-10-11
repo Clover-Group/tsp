@@ -16,11 +16,10 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: SimplePState[T],
     events: Cont[Event]
-  ): F[SimplePState[T]] = {
+  ): F[SimplePState[T]] =
     Monad[F].pure(SimplePState(events.map(e => IdxValue(e.index(idxExtractor), f(e))).foldLeft(oldState.queue) {
       case (oldStateQ, b) => oldStateQ.enqueue(b) // .. style?
     }))
-  }
 
 }
 

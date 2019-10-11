@@ -69,11 +69,11 @@ object StateMachine {
 }
 
 abstract class AbstractStateMachine[Event, Out, State <: PState[Out, State], F[_], Cont[_]] {
-  private val isDebug = ConfigFactory.load().getBoolean("general.is-debug")
-  private val log = Logger("AbstractPatternMapper")
+  ConfigFactory.load().getBoolean("general.is-debug")
+  Logger("AbstractPatternMapper")
 
   def pattern: Pattern[Event, State, Out]
 
-  def initialState()
+  def initialState(): Unit
 
 }

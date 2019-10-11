@@ -1,7 +1,6 @@
 package ru.itclover.tsp.core
 
 import cats.{Foldable, Functor, Monad, Order}
-import org.openjdk.jmh.annotations.{Scope, State}
 import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.language.higherKinds
@@ -22,7 +21,6 @@ object Pat {
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
-@State(Scope.Benchmark)
 trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializable {
 
   /**
@@ -99,7 +97,7 @@ object Pattern {
       tsToIdx(eventToTs(e))
     }
 
-    override def compare(x: Idx, y: Idx) = idxToTs(x) compare idxToTs(y)
+    override def compare(x: Idx, y: Idx) = idxToTs(x).compare(idxToTs(y))
 
     def idxToTs(idx: Idx): Long = idx / maxCounter
 
@@ -107,14 +105,14 @@ object Pattern {
   }
 
   object IdxExtractor {
-    implicit class GetIdx[T](val event: T) extends AnyVal {
+    implicit class GetIdx[T](private val event: T) extends AnyVal {
       def index(implicit te: IdxExtractor[T]): Idx = te.apply(event)
     }
 
     def of[E](f: E => Idx): IdxExtractor[E] = new IdxExtractor[E] {
       override def apply(e: E): Idx = f(e)
 
-      override def compare(x: Idx, y: Idx) = x compare y
+      override def compare(x: Idx, y: Idx) = x.compare(y)
     }
   }
 }

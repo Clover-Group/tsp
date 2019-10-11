@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.TimeExtractor
 
 // Dummy event
-sealed case class Event[A](ts: Long, row: A, col: A)
+case class Event[A](ts: Long, row: A, col: A)
 
 object Common {
 

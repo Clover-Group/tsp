@@ -41,8 +41,8 @@ class InfluxDBContainer(
 
   var db: InfluxDB = _
 
-  override def starting()(implicit description: Description): Unit = {
-    super.starting()
+  override def start(): Unit = {
+    super.start()
     val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L)
     db = InfluxDBService.connectDb(conf) match {
       case Success(database)  => database
@@ -50,8 +50,8 @@ class InfluxDBContainer(
     }
   }
 
-  override def finished()(implicit description: Description): Unit = {
-    super.finished()
+  override def stop(): Unit = {
+    super.stop()
     db.close()
   }
 

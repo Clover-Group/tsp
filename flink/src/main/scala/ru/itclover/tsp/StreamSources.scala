@@ -12,7 +12,7 @@ import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, TimeOutFunction}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
 import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
@@ -21,6 +21,7 @@ import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import ru.itclover.tsp.io.input.KafkaInputConf
 
 /*sealed*/
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -74,11 +75,10 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
 object StreamSource {
 
-  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
+  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) =
     allFields.find { field =>
       !excludedFields.contains(field)
     }
-  }
 }
 
 object JdbcSource {
@@ -156,10 +156,11 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       serializablePI.map(event.getField).mkString
   }
 
-  val tsMultiplier = timestampMultiplier.getOrElse {
+  def tsMultiplier = timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
     1000.0
   }
+
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
   override def extractor = RowSymbolExtractor(fieldsIdxMap)
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
@@ -326,4 +327,104 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowIsoTimeExtractor(transformedTimeIndex, datetimeField)
 
+}
+
+object KafkaSource {
+
+  val log = Logger[KafkaSource]
+
+  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
+    for {
+      types <- KafkaService
+        .fetchFieldsTypesInfo(conf)
+        .toEither
+        .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
+      _ = log.info(s"Kafka types found: $types")
+      source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
+        case Some(nullField) => KafkaSource(conf, types, nullField).asRight
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+      }
+    } yield source
+
+}
+
+case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+  implicit @transient streamEnv: StreamExecutionEnvironment
+) extends StreamSource[Row, Symbol, Any] {
+
+  val log = Logger[KafkaSource]
+
+  def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
+  def fieldsIdxMap = fieldsIdx.toMap
+
+//  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
+//    fieldsIdxMap(fieldId)
+//  }
+
+  override def fieldToEKey: Symbol => Symbol = (x => x)
+
+  def timeIndex = fieldsIdxMap(conf.datetimeField)
+
+  def tsMultiplier = conf.timestampMultiplier.getOrElse {
+    log.info("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
+    1000.0
+  }
+
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Symbol, Any] =
+    RowSymbolExtractor(fieldsIdxMap)
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] =
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+
+  val stageName = "Kafka input processing stage"
+
+  def createStream: DataStream[Row] = {
+    val consumer = KafkaService.consumer(conf, fieldsIdxMap)
+    consumer.setStartFromEarliest()
+    streamEnv.enableCheckpointing(5000)
+    streamEnv
+      .addSource(consumer)
+      .name(stageName)
+      //.keyBy(_ => "nokey")
+      //.process(new TimeOutFunction(5000, timeIndex, fieldsIdxMap.size))
+  }
+
+  val emptyEvent = {
+    val r = new Row(fieldsIdx.length)
+    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
+    r
+  }
+
+  def partitionsIdx = conf.partitionFields.map(fieldsIdxMap)
+
+  def partitioner = {
+    val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField)
+
+  override implicit def transformedExtractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap)
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override implicit def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  override implicit def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }

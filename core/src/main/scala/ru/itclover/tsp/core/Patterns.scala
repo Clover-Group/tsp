@@ -4,8 +4,6 @@ import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators._
 import ru.itclover.tsp.core.io.TimeExtractor
 
-import scala.language.higherKinds
-
 //todo refactor it later on
 abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 

@@ -1,8 +1,6 @@
 package ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Idx
 
-import scala.language.implicitConversions
-
 trait PQueue[T] {
 
   def size: Int
@@ -41,9 +39,8 @@ object PQueue {
     override def clean(): PQueue[T] = ImmutablePQueue(collection.immutable.Queue.empty)
     override def enqueue(
       idxValues: IdxValue[T]*
-    ): PQueue[T] = {
+    ): PQueue[T] =
       ImmutablePQueue(queue.enqueue(scala.collection.immutable.Iterable(idxValues: _*)))
-    }
     override def toSeq: Seq[IdxValue[T]] = queue.toSeq
     override def size: Int = queue.size
   }
@@ -56,12 +53,11 @@ object PQueue {
       val result = queue.dequeue
       result -> this
     }
-    override def dequeueOption(): Option[(IdxValue[T], PQueue[T])] = {
+    override def dequeueOption(): Option[(IdxValue[T], PQueue[T])] =
       if (queue.nonEmpty) {
         Some(queue.dequeue -> this)
       } else None
 
-    }
     override def behead(): PQueue[T] = {
       queue.dequeue()
       this

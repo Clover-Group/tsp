@@ -12,7 +12,7 @@ object Files {
     val pw = new FileWriter(new File(path), !overwrite)
     Try {
       pw.write(content)
-    } eventually {
+    }.eventually {
       pw.close()
     }
   }
@@ -24,7 +24,7 @@ object Files {
 
   def readFile(path: String): Try[String] = for {
     src <- Try(scala.io.Source.fromFile(path))
-    str <- Try(src.mkString) eventually {
+    str <- Try(src.mkString).eventually {
       src.close
     }
   } yield str

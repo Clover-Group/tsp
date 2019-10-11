@@ -9,7 +9,7 @@ object QueueUtils {
 
   private val trueFunction = (x: Any) => true
 
-  def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) = {
+  def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) =
     if (predicate.eq(trueFunction)) (queue, m.Queue.empty)
     else {
 
@@ -22,7 +22,6 @@ object QueueUtils {
 
       inner(m.Queue.empty, queue)
     }
-  }
 
   @tailrec
   def rollMap(idx: Idx, q: m.Queue[(Idx, Time)])(implicit ord: Order[Idx]): (Time, m.Queue[(Idx, Time)]) = {

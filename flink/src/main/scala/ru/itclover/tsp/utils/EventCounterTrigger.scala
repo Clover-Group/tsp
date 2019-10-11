@@ -10,7 +10,7 @@ case class EventCounterTrigger[T, W <: Window](maxElements: Long) extends Trigge
     timestamp: Long,
     window: W,
     ctx: Trigger.TriggerContext
-  ): TriggerResult = {
+  ): TriggerResult =
     if (elements < maxElements) {
       elements += 1
       TriggerResult.CONTINUE
@@ -18,7 +18,6 @@ case class EventCounterTrigger[T, W <: Window](maxElements: Long) extends Trigge
       elements = 0
       TriggerResult.FIRE_AND_PURGE
     }
-  }
   override def onProcessingTime(
     time: Long,
     window: W,
