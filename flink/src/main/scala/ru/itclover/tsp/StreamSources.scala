@@ -83,21 +83,21 @@ object StreamSource {
 
 object JdbcSource {
 
-  def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
+  def create(conf: JDBCInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
     for {
       types <- JdbcService
         .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => JdbcSource(conf, types, nullField).asRight
+        case Some(nullField) => JdbcSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
-case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -184,7 +184,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
@@ -202,20 +202,20 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
 object InfluxDBSource {
 
-  def create(conf: InfluxDBInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
+  def create(conf: InfluxDBInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
     for {
       types <- InfluxDBService
         .fetchFieldsTypesInfo(conf.query, conf.influxConf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => InfluxDBSource(conf, types, nullField).asRight
+        case Some(nullField) => InfluxDBSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
-case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -312,7 +312,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
@@ -333,7 +333,7 @@ object KafkaSource {
 
   val log = Logger[KafkaSource]
 
-  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
+  def create(conf: KafkaInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
     for {
       types <- KafkaService
         .fetchFieldsTypesInfo(conf)
@@ -341,14 +341,14 @@ object KafkaSource {
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       _ = log.info(s"Kafka types found: $types")
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => KafkaSource(conf, types, nullField).asRight
+        case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 
 }
 
-case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -403,7 +403,7 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,

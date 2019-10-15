@@ -35,6 +35,7 @@ import scala.reflect.ClassTag
 
 case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
+  fields: Set[InKey],
   decoders: BasicDecoders[InItem]
 ) {
   // TODO: Restore InKey as a type parameter
@@ -138,7 +139,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     case Some(_) =>
       import source.{extractor, timeExtractor}
       dataStream
-        .flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]]))
+        .flatMap(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields))
         .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }

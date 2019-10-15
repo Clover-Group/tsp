@@ -102,7 +102,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, InKey, Value, OutEvent: TypeInformation](streamSource: StreamSource[InEvent, InKey, Value])(
+  def apply[InEvent, InKey, Value, OutEvent: TypeInformation](streamSource: StreamSource[InEvent, InKey, Value], patternFields: Set[InKey])(
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
@@ -114,6 +114,9 @@ object SparseRowsDataAccumulator {
         case ndu: NarrowDataUnfolding[InEvent, InKey, _] =>
           val sparseRowsConf = ndu
           val fim = streamSource.fieldsIdxMap
+          val timeouts = patternFields
+            .map(k => (k, ndu.defaultTimeout.getOrElse(0L))).toMap[InKey, Long] ++
+            ndu.fieldsTimeoutsMs
           val extraFields = fim
             .filterNot {
               case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.valueColumn
@@ -121,7 +124,7 @@ object SparseRowsDataAccumulator {
             .keys
             .toSeq
           new SparseRowsDataAccumulator(
-            sparseRowsConf.fieldsTimeoutsMs,
+            timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = true,
             defaultTimeout = ndu.defaultTimeout
@@ -136,6 +139,9 @@ object SparseRowsDataAccumulator {
           val sparseRowsConf = wdf
           val fim = streamSource.fieldsIdxMap
           val toKey = streamSource.fieldToEKey
+          val timeouts = patternFields
+            .map(k => (k, wdf.defaultTimeout.getOrElse(0L))).toMap[InKey, Long] ++
+            wdf.fieldsTimeoutsMs
           val extraFields =
             fim
               .filterNot {
@@ -144,7 +150,7 @@ object SparseRowsDataAccumulator {
               .keys
               .toSeq
           new SparseRowsDataAccumulator(
-            sparseRowsConf.fieldsTimeoutsMs,
+            timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = false,
             defaultTimeout = wdf.defaultTimeout
