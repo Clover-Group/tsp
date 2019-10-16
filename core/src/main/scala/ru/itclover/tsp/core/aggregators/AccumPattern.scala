@@ -1,6 +1,5 @@
 package ru.itclover.tsp.core.aggregators
 
-//import cats.implicits._
 import cats.syntax.foldable._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
@@ -53,7 +52,7 @@ abstract class AccumPattern[
       .map(
         newInnerState => {
           val (newInnerQueue, newAState, newResults, updatedIndexTimeMap) =
-            processQueue(newInnerState, state.astate, state.queue, idxTimeMapWithNewEvents)
+            processQueue(newInnerState.queue, state.astate, state.queue, idxTimeMapWithNewEvents)
 
           AggregatorPState(
             newInnerState.copyWith(newInnerQueue),
@@ -65,47 +64,33 @@ abstract class AccumPattern[
       )
   }
 
+  @tailrec
   private def processQueue(
-    innerS: Inner,
+    innerQueue: QI[InnerOut],
     accumState: AState,
     results: QI[Out],
     indexTimeMap: m.Queue[(Idx, Time)]
   ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) = {
+    innerQueue.dequeueOption() match {
+      case None                                               => (innerQueue, accumState, results, indexTimeMap)
+      case Some((iv @ IdxValue(start, end, _), updatedQueue)) =>
+        // rewind all old records
+        val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start)
 
-    @tailrec
-    def innerFunc(
-      innerQueue: QI[InnerOut],
-      accumState: AState,
-      collectedNewResults: QI[Out],
-      indexTimeMap: m.Queue[(Idx, Time)]
-    ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) =
-      innerQueue.dequeueOption() match {
-        case None                                                   => (innerQueue, accumState, collectedNewResults, indexTimeMap)
-        case Some((iv @ IdxValue(start, end, value), updatedQueue)) =>
-          // rewind all old records
-          val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start) // that shouldn't happen
+        //idxTimeMapForValue contains info about Idx->Time for all events in range [start, end]
+        val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, marginToFirst = true)
 
-          //firstPart contains info about Idx->Time for all events in range [start, end]
-          val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, marginToFirst = true)
+        val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
 
-          val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
-
-          innerFunc(
-            updatedQueue,
-            newAState,
-            collectedNewResults.enqueue(newResults.toSeq: _*),
-            updatedIdxTimeMap
-          )
-      }
-
-    innerFunc(innerS.queue, accumState, results, indexTimeMap)
+        processQueue(updatedQueue, newAState, results.enqueue(newResults.toSeq: _*), updatedIdxTimeMap)
+    }
   }
 
 }
 
 trait AccumState[In, Out, +Self <: AccumState[In, Out, Self]] extends Product with Serializable {
 
-  /** This method is called each IdxValue produced by inner patterns.
+  /** This method is called for each IdxValue produced by inner patterns.
     * @param window - defines time window for accumulation.
     * @param times - contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end].
     *              Guaranteed to be non-empty.

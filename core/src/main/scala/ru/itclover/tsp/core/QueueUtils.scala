@@ -30,7 +30,13 @@ object QueueUtils {
   def splitAtIdx(q: m.Queue[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(
     implicit ord: Order[Idx]
   ): (m.Queue[(Idx, Time)], m.Queue[(Idx, Time)]) = {
-    takeWhileFromQueue(q){case (idx1: Idx, _: Time) => if (marginToFirst) ord.lteqv(idx1, idx) else ord.lt(idx1, idx)}
+    takeWhileFromQueue(q) {
+      if (marginToFirst) {
+        case (idx1: Idx, _: Time) => ord.lteqv(idx1, idx)
+      } else {
+        case (idx1: Idx, _: Time) => ord.lt(idx1, idx)
+      }
+    }
   }
 
 }

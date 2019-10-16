@@ -32,12 +32,6 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
     times: m.Queue[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (TimerAccumState[T], QI[Unit]) = {
-    def createIdxValue(
-      optStart: Option[(Idx, Time)],
-      optEnd: Option[(Idx, Time)],
-      result: Result[Unit]
-    ): Option[IdxValue[Unit]] =
-      Apply[Option].map2(optStart, optEnd)((start, end) => IdxValue(start._1, end._1, result))
 
     val (updatedWindowQueue, newOptResult) = idxValue.value match {
       // clean queue in case of fail. Return fails for all events in queue
@@ -60,4 +54,11 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
     }
     (TimerAccumState(updatedWindowQueue), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
   }
+
+  private def createIdxValue(
+    optStart: Option[(Idx, Time)],
+    optEnd: Option[(Idx, Time)],
+    result: Result[Unit]
+  ): Option[IdxValue[Unit]] =
+    Apply[Option].map2(optStart, optEnd)((start, end) => IdxValue(start._1, end._1, result))
 }

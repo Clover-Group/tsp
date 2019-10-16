@@ -63,7 +63,6 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
   ): (Option[GroupAccumResult[T]], m.Queue[GroupAccumValue[T]], QI[GroupAccumResult[T]]) = {
     value
       .map { t =>
-        // add new element to queue
         val newLastValue = lastValue
           .map(cmr => GroupAccumResult(sum = Group[T].combine(cmr.sum, t), count = cmr.count + 1))
           .orElse(Option(GroupAccumResult(sum = t, count = 1)))
@@ -72,12 +71,10 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) <= time)
 
         val finalNewLastValue = outputs.foldLeft(newLastValue) {
-          case (cmr, elem) =>
-            cmr.map(
-              lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1)
-            )
+          case (cmr, elem) => cmr.map(lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1))
         }
 
+        // add new element to queue
         val finalWindowQueue = { updatedWindowQueue.enqueue(GroupAccumValue(idx, time, t)); updatedWindowQueue }
 
         Tuple3(

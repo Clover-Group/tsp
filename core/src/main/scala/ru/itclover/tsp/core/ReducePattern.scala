@@ -28,8 +28,6 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
     oldState: ReducePState[S, T1, T2],
     events: Cont[Event]
   ): F[ReducePState[S, T1, T2]] = {
-    //val leftF = left.apply(oldState.left, events)
-    //val rightF = right.apply(oldState.right, events)
     val patternsF: List[F[S]] = patterns.zip(oldState.states).map { case (p, s) => p.apply[F, Cont](s, events) }.toList
     val patternsG: F[List[S]] = patternsF.traverse(identity)
     for (pG <- patternsG) yield {
