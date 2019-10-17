@@ -9,7 +9,6 @@ import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 /**
   * Group pattern is an AccumPattern calculating result on window for objects having an instance of cats.Group.

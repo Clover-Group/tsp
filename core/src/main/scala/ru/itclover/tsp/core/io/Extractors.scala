@@ -17,7 +17,7 @@ trait TimeExtractor[Event] extends Serializable {
 }
 
 object TimeExtractor {
-  implicit class GetTime[T](val event: T) extends AnyVal {
+  implicit class GetTime[T](private val event: T) extends AnyVal {
     def time(implicit te: TimeExtractor[T]): Time = te.apply(event)
   }
 

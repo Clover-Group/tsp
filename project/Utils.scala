@@ -16,9 +16,9 @@ object Utils {
       .getOrElse(sys.error("No versions are set! Was this release part executed before inquireVersions?"))
     val selected = selectVersion(vs)
 
-    st.log.info("Setting version to '%s'." format selected)
+    st.log.info("Setting version to '%s'.".format(selected))
     val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
-    val versionStr = "%s" format selected
+    val versionStr = "%s".format(selected)
     val file = Project.extract(st).get(releaseVersionFile)
     IO.writeLines(file, Seq(versionStr))
 
@@ -51,12 +51,11 @@ object Utils {
     IO.write(file(changelogWipFileName), "")
   }
 
-  private def vcs(st: State): Vcs = {
+  private def vcs(st: State): Vcs =
     Project
       .extract(st)
       .get(releaseVcs)
       .getOrElse(sys.error("Aborting release. Working directory is not a repository of a recognized VCS."))
-  }
 
   def commitChangelogs: ReleaseStep = { st: State =>
     if (vcs(st).add(changelogFileName, changelogWipFileName).! > 0) {

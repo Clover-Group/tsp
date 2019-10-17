@@ -4,6 +4,9 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 import okhttp3.OkHttpClient
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import cats.syntax.either._
+import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
 import org.influxdb.dto.Query
 import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
 import ru.itclover.tsp.utils.CollectionsOps.{OptionOps, StringOps}
@@ -28,8 +31,8 @@ object InfluxDBService {
   } yield {
     val fields = tags.map(_._1) ++ series.getColumns.asScala
     val classes = tags.map(_ => classOf[String]) ++ values.asScala.map(
-      v => if (v != null) v.getClass else classOf[Double]
-    )
+        v => if (v != null) v.getClass else classOf[Double]
+      )
     fields.map(Symbol(_)).zip(classes)
   }
 
@@ -59,9 +62,8 @@ object InfluxDBService {
     } yield db
   }
 
-  def makeLimit1Query(query: String) = {
+  def makeLimit1Query(query: String) =
     query.replaceLast("""LIMIT \d+""", "", Pattern.CASE_INSENSITIVE) + " LIMIT 1"
-  }
 
   def emptyValuesException(query: String) = new InfluxDBException(s"Empty/Null values or tags in query - `$query`.")
 }

@@ -2,32 +2,32 @@ import sbt._
 
 object Version {
   val logback = "1.2.3"
-  val scalaLogging = "3.9.0"
+  val scalaLogging = "3.9.2"
 
-  val config = "1.3.3"
+  val config = "1.3.4"
 
   val influx = "2.15"
 
-  val clickhouse = "0.1.55"
+  val clickhouse = "0.2"
   val flink = "1.9.0"
 
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
 
-  val cats = "1.6.0"
+  val cats = "2.0.0"
 
-  val twitterUtilVersion = "6.43.0"
-
-  val scalaTest = "3.0.5"
+  val scalaTest = "3.0.8"
   val scalaCheck = "1.14.0"
-  val jmh = "0.3.4"
+  val jmh = "0.3.7"
 
-  val testContainers = "0.26.0"
-  val postgres = "42.2.5"
+  val testContainers = "0.28.0"
+  val testContainersKafka = "1.12.1"
+  val postgres = "42.2.6"
 
   val avro = "1.8.2"
+  val arrow = "0.14.1"
 
-  val parboiled = "2.1.5"
+  val parboiled = "2.1.8"
 
   val shapeless = "2.3.3"
 
@@ -38,7 +38,9 @@ object Version {
   val kindProjector = "0.9.8"
 
   val simulacrum = "0.15.0"
-  val sentry = "1.7.16"
+  val sentry = "1.7.27"
+
+  val twitterUtil = "6.43.0"
 }
 
 object Library {
@@ -73,8 +75,10 @@ object Library {
   val flink = flinkCore ++ Seq(
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
+    "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink
+    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
+    "org.apache.flink" % "flink-avro" % Version.flink
   )
 
   val akka = Seq(
@@ -97,7 +101,7 @@ object Library {
     "com.github.mpilquist" %% "simulacrum" % Version.simulacrum
   )
 
-  val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtilVersion)
+  val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtil)
 
   val scalaTest = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
@@ -110,17 +114,12 @@ object Library {
   )
 
   val testContainers = Seq(
-    "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test"
+    "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
+    "org.testcontainers" % "kafka" % Version.testContainersKafka % "test"
   )
-
-  val jol = Seq("org.openjdk.jol" % "jol-core" % "0.9" % "test")
 
   val parboiled = Seq(
     "org.parboiled" %% "parboiled" % Version.parboiled
-  )
-
-  val shapeless = Seq(
-    "com.chuusai" %% "shapeless" % Version.shapeless
   )
 
   val sentrylog = Seq(
@@ -131,4 +130,9 @@ object Library {
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )
 
+  val arrow = Seq(
+    ("org.apache.arrow" % "arrow-vector" % Version.arrow)
+      .excludeAll(ExclusionRule("io.netty", "netty-common"))
+      .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
+  )
 }

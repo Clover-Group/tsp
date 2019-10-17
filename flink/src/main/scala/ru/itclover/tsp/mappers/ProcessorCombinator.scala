@@ -15,6 +15,6 @@ case class ProcessorCombinator[In, S <: PState[Inner, S]: ClassTag, Inner, Out](
     context: Context,
     elements: Iterable[In],
     out: Collector[Out]
-  ): Unit = mappers.foreach(_.process(key, elements.toList, out))
+  ): Unit = mappers.foreach(_.process( /*key,*/ elements.toList, out))
 
 }

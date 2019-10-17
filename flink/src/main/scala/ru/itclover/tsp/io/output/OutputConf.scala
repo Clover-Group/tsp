@@ -1,7 +1,16 @@
 package ru.itclover.tsp.io.output
 
+import java.io.ByteArrayOutputStream
+
+import org.apache.avro.Schema
 import org.apache.flink.api.common.io.OutputFormat
+import org.apache.flink.api.common.serialization.SerializationSchema
+import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
+import org.apache.avro.io.EncoderFactory
+import org.apache.avro.specific.SpecificDatumWriter
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode
+import org.codehaus.jackson.map.ObjectMapper
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -9,6 +18,8 @@ trait OutputConf[Event] {
   def getOutputFormat: OutputFormat[Event]
 
   def parallelism: Option[Int]
+
+  def rowSchema: RowSchema
 }
 
 /**
@@ -44,3 +55,31 @@ case class JDBCOutputConf(
 //  override def getOutputFormat: OutputFormat[Row] = ???
 //  override def parallelism: Option[Int] = Some(1)
 //}
+
+case class KafkaOutputConf(
+  broker: String,
+  topic: String,
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
+
+  def serializer: SerializationSchema[Row] = (element: Row) => {
+    val out = new ByteArrayOutputStream
+    val mapper = new ObjectMapper()
+    val root = mapper.createObjectNode()
+    root.put(rowSchema.sourceIdField.name, element.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
+    root.put(rowSchema.fromTsField.name, element.getField(rowSchema.beginInd).asInstanceOf[Double])
+    root.put(rowSchema.toTsField.name, element.getField(rowSchema.endInd).asInstanceOf[Double])
+    root.put(rowSchema.appIdFieldVal._1.name, element.getField(rowSchema.appIdInd).asInstanceOf[Int])
+    root.put(rowSchema.patternIdField.name, element.getField(rowSchema.patternIdInd).asInstanceOf[String])
+    root.put(rowSchema.processingTsField.name, element.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
+    root.put(rowSchema.contextField.name, element.getField(rowSchema.contextInd).asInstanceOf[String])
+    out.write(mapper.writeValueAsBytes(root))
+    out.close()
+    out.toByteArray
+  }
+
+}

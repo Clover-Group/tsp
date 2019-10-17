@@ -9,7 +9,6 @@ import cats.Apply
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 /* Timer */
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](

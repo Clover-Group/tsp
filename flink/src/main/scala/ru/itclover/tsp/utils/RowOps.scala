@@ -7,7 +7,7 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Time => CoreTime}
 
 object RowOps {
-  implicit class RowOps(val row: Row) extends AnyVal {
+  implicit class RowOps(private val row: Row) extends AnyVal {
 
     def getFieldOrThrow(i: Int): AnyRef =
       if (row.getArity > i) row.getField(i)
@@ -25,6 +25,7 @@ object RowOps {
         case d: java.lang.Double => (d * tsMultiplier).toLong
         case f: java.lang.Float  => (f * tsMultiplier).toLong
         case n: java.lang.Number => (n.doubleValue() * tsMultiplier).toLong
+        case null                => 0L // TODO: Where can nulls come from?
         case x                   => sys.error(s"Cannot parse time `$x` from field $fieldId, should be number of millis since 1.1.1970")
       }
       CoreTime(toMillis = millis)
@@ -36,9 +37,7 @@ object RowOps {
     def apply(r: Row) = {
       val isoTime = r.getField(timeIndex).toString
       if (isoTime == null || isoTime == "")
-        sys.error(
-          sys.error(s"Cannot parse time `$isoTime` from field $fieldId, should be in ISO 8601 format")
-        )
+        sys.error(s"Cannot parse time `$isoTime` from field $fieldId, should be in ISO 8601 format")
       CoreTime(toMillis = Instant.parse(isoTime).toEpochMilli)
     }
   }

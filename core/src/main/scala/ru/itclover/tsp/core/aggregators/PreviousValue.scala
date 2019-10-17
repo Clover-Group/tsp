@@ -8,7 +8,6 @@ import ru.itclover.tsp.core.{Time, Window, _}
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
   override val inner: Pattern[Event, State, Out],
@@ -55,8 +54,8 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
 
         q.headOption match {
           case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(q.behead(), Some(result))
-          case Some(IdxValue(_, _, Fail))                                        => inner(q.behead(), v)
-          case _                                                                 => (v, q)
+          case Some(IdxValue(_, _, Fail)) => inner(q.behead(), v)
+          case _ => (v, q)
         }
       }
 
