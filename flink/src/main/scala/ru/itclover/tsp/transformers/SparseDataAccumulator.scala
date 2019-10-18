@@ -5,6 +5,7 @@ import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
@@ -43,7 +44,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
   keyCreator: KeyCreator[InKey]
-) extends RichFlatMapFunction[InEvent, OutEvent]
+) extends ProcessFunction[InEvent, OutEvent]
     with Serializable {
   // potential event values with receive time
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -61,7 +62,18 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val log = Logger("SparseDataAccumulator")
 
-  override def flatMap(item: InEvent, out: Collector[OutEvent]): Unit = {
+  var lastTimestamp = Time(Long.MinValue)
+  var lastEvent: OutEvent = _
+  private var lastTimer: ValueState[Long] = _
+
+  override def open(conf: Configuration): Unit = { // setup timer state
+    val lastTimerDesc = new ValueStateDescriptor[Long]("lastTimer", classOf[Long])
+    lastTimer = getRuntimeContext.getState(lastTimerDesc)
+  }
+
+  override def processElement(item: InEvent,
+                              ctx: ProcessFunction[InEvent, OutEvent]#Context,
+                              out: Collector[OutEvent]): Unit = {
     val time = extractTime(item)
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)
@@ -89,7 +101,12 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
         }
       }
       val outEvent = eventCreator.create(list)
-      out.collect(outEvent)
+      if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
+        out.collect(lastEvent)
+      }
+      lastTimestamp = time
+      lastEvent = outEvent
+      ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 5000)
     }
   }
 
@@ -98,6 +115,16 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       (k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
     )
   }
+
+  override def onTimer(timestamp: Long, ctx: ProcessFunction[InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
+    // check if this was the last timer we registered
+    if (timestamp == lastTimer.value) {
+      // it was, so no data was received afterwards.
+      // collect the last
+      out.collect(lastEvent)
+    }
+  }
+
 }
 
 object SparseRowsDataAccumulator {
