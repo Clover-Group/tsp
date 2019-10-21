@@ -1,7 +1,6 @@
 package ru.itclover.tsp.utils
 
 import java.io.File
-import java.nio.file.Paths
 
 import org.scalatest.{Matchers, WordSpec}
 
@@ -9,9 +8,9 @@ class ArrowOpsTest extends WordSpec with Matchers{
 
   "ArrowFileReader" should {
 
-    "parse test" in {
+    "work with test file" in {
 
-      val testFile: File = new File("flink/src/test/resources/test_read.arrow")
+      val testFile: File = new File("flink/src/test/resources/arrow/test_read.arrow")
       testFile.createNewFile()
 
       ArrowOps.writeDataToFile(testFile.getAbsolutePath)

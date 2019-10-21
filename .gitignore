@@ -4,6 +4,10 @@
 tmp
 logs
 
+*.pq
+*.pq.*
+*.arrow
+
 .github
 .metals/
 .bloop/
