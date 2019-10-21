@@ -94,12 +94,12 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
         case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
         case _                                     =>
       }
-      if (defaultTimeout.isEmpty) {
+      //if (defaultTimeout.isEmpty) {
         extraFieldNames.foreach { name =>
           val value = extractValue(item, name)
           if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
         }
-      }
+      //}
       val outEvent = eventCreator.create(list)
       if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
         out.collect(lastEvent)
