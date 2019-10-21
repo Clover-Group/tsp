@@ -41,6 +41,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def partitioner: Event => String
 
+  def transformedPartitioner: Event => String
+
   implicit def timeExtractor: TimeExtractor[Event]
 
   implicit def transformedTimeExtractor: TimeExtractor[Event]
@@ -83,21 +85,21 @@ object StreamSource {
 
 object JdbcSource {
 
-  def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
+  def create(conf: JDBCInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
     for {
       types <- JdbcService
         .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => JdbcSource(conf, types, nullField).asRight
+        case Some(nullField) => JdbcSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
-case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -107,7 +109,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val log = Logger[JdbcSource]
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -156,6 +159,12 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       serializablePI.map(event.getField).mkString
   }
 
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
   def tsMultiplier = timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
     1000.0
@@ -184,7 +193,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
@@ -202,20 +211,20 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
 object InfluxDBSource {
 
-  def create(conf: InfluxDBInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
+  def create(conf: InfluxDBInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
     for {
       types <- InfluxDBService
         .fetchFieldsTypesInfo(conf.query, conf.influxConf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => InfluxDBSource(conf, types, nullField).asRight
+        case Some(nullField) => InfluxDBSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
-case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -228,7 +237,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -288,6 +298,12 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       serializablePI.map(event.getField).mkString
   }
 
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
   override def extractor = RowSymbolExtractor(fieldsIdxMap)
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
@@ -312,7 +328,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
@@ -333,7 +349,7 @@ object KafkaSource {
 
   val log = Logger[KafkaSource]
 
-  def create(conf: KafkaInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
+  def create(conf: KafkaInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
     for {
       types <- KafkaService
         .fetchFieldsTypesInfo(conf)
@@ -341,14 +357,14 @@ object KafkaSource {
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       _ = log.info(s"Kafka types found: $types")
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => KafkaSource(conf, types, nullField).asRight
+        case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 
 }
 
-case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
 ) extends StreamSource[Row, Symbol, Any] {
 
@@ -394,16 +410,22 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
     r
   }
 
-  def partitionsIdx = conf.partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
 
   def partitioner = {
     val serializablePI = partitionsIdx
     event: Row => serializablePI.map(event.getField).mkString
   }
 
+  def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(value) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this)(
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
         kvExtractor,
