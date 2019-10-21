@@ -42,6 +42,8 @@ object Version {
   val sentry = "1.7.16"
 
   val arrow = "0.14.1"
+  val parquet = "0.11.0"
+  val hadoopClient = "3.2.1"
 }
 
 object Library {
@@ -137,6 +139,16 @@ object Library {
 
   val strawman = Seq(
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
+  )
+
+  val arrowDeps = Seq(
+    "org.apache.arrow" % "arrow-memory" % Version.arrow,
+    "org.apache.arrow" % "arrow-vector" % Version.arrow
+  )
+
+  val parquetDeps = Seq(
+    "com.github.mjakubowski84" %% "parquet4s-core" % Version.parquet,
+    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient
   )
 
 }

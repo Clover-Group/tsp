@@ -31,10 +31,6 @@ lazy val commonSettings = Seq(
   skip in publish := true,
   maxErrors := 5,
 
-  libraryDependencies += "org.apache.arrow" % "arrow-memory" % "0.14.1",
-  libraryDependencies += "org.apache.arrow" % "arrow-vector" % "0.14.1"
-
-
 )
 
 lazy val assemblySettings = Seq(
@@ -131,7 +127,7 @@ lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.twitterUtil ++ Library.flink ++ Library.scalaTest ++ Library.dbDrivers
-      ++ Library.jackson
+      ++ Library.jackson ++ Library.arrowDeps ++ Library.parquetDeps
   )
   .dependsOn(core, config, dsl)
 
