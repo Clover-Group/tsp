@@ -41,6 +41,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def partitioner: Event => String
 
+  def transformedPartitioner: Event => String
+
   implicit def timeExtractor: TimeExtractor[Event]
 
   implicit def transformedTimeExtractor: TimeExtractor[Event]
@@ -107,7 +109,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val log = Logger[JdbcSource]
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -152,6 +155,12 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
 
   override def partitioner = {
     val serializablePI = partitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
     event: Row =>
       serializablePI.map(event.getField).mkString
   }
@@ -228,7 +237,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  def partitionsIdx = partitionFields.map(transformedFieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -284,6 +294,12 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   override def partitioner = {
     val serializablePI = partitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
     event: Row =>
       serializablePI.map(event.getField).mkString
   }
@@ -394,10 +410,16 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
     r
   }
 
-  def partitionsIdx = conf.partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
 
   def partitioner = {
     val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
+  def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
     event: Row => serializablePI.map(event.getField).mkString
   }
 

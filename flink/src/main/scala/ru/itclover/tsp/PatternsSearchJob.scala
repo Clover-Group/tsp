@@ -113,7 +113,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     }
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
-      .keyBy(source.partitioner)
+      .keyBy(source.transformedPartitioner)
     val windowed =  if (useWindowing) {
       keyedStream
         .window(
