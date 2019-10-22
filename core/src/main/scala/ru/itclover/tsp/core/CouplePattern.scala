@@ -80,5 +80,3 @@ case class CouplePState[State1 <: PState[T1, State1], State2 <: PState[T2, State
 ) extends PState[T3, CouplePState[State1, State2, T1, T2, T3]] {
   override def copyWith(queue: QI[T3]): CouplePState[State1, State2, T1, T2, T3] = this.copy(queue = queue)
 }
-
-case object CouplePState {}
