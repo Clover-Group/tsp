@@ -22,12 +22,10 @@ object ArrowOps {
     val arrowFileReader = new ArrowFileReader(seekableReadChannel, new RootAllocator(Integer.MAX_VALUE))
     val schemaRow = arrowFileReader.getVectorSchemaRoot
 
-    println(s"SCHEMA: ${schemaRow.toString}")
+    schemaRow.getSchema.getFields
 
     val javaBlocks = arrowFileReader.getRecordBlocks
     val scalaBlocks = javaBlocks.asScala.toList
-
-    println(s"BLOCKS: ${scalaBlocks}")
 
     var test = new ListBuffer[Int]()
 
@@ -38,7 +36,6 @@ object ArrowOps {
 
         arrowFileReader.loadRecordBatch(block)
         val rowCount = schemaRow.getRowCount
-        println(s"row count for current block: $rowCount")
 
         val vectors = schemaRow.getFieldVectors.asScala.toList
 
@@ -67,8 +64,6 @@ object ArrowOps {
       })
 
     val t2 = System.currentTimeMillis()
-
-    println(s"Время обработки: ${(t2 - t1) / 1000} секунд")
 
     test
 
