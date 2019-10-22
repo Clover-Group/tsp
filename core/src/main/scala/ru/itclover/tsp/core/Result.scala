@@ -8,7 +8,7 @@ sealed trait Result[+A] {
 
   def isFail: Boolean = this match {
     case Fail    => true
-    case Succ(t) => false
+    case Succ(_) => false
   }
 
   def isSuccess: Boolean = !isFail

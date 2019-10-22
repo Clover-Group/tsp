@@ -18,7 +18,7 @@ class ATPGTest extends FlatSpec with Matchers {
     def checkAll(): Prop =
       Prop.forAll { num: Int =>
         // Exp state
-        val eventsQueue = PQueue(IdxValue(num, Result.succ(0)))
+        val eventsQueue = PQueue(IdxValue(num.toLong, Result.succ(0)))
         val expState = SimplePState[Int](eventsQueue)
 
         // Act state

@@ -101,7 +101,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   // Need to cast Pat[E,T] to some Pattern type. Pattern has restriction on State
   // type parameters which is constant, so simple asInstanceOf complains on
   // unmet restrictions.
-  private def forceState[E, T](pat: Pat[E, T]): Pattern[E, S[T], T] =
+  private def forceState[T](pat: Pat[E, T]): Pattern[E, S[T], T] =
     pat.asInstanceOf[Pattern[E, S[T], T]]
 }
 

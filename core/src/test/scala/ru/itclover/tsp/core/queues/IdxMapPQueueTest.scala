@@ -16,7 +16,7 @@ class IdxMapPQueueTest extends WordSpec with Matchers {
     val transferQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
 
     (0 to 20)
-      .foreach(i => transferQueue.enqueue(i, Result.succ(i)))
+      .foreach(i => transferQueue.enqueue(i.toLong, Result.succ(i)))
 
     val testQueue = IdxMapPQueue[Int, Int](transferQueue, (item => item.value))
 

@@ -26,12 +26,7 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
     entity(as[PatternsValidatorConf]) { request =>
       val patterns: Seq[RawPattern] = request.patterns
       val fields: Map[String, String] = request.fields
-      val res = PatternsValidator.validate[Nothing](patterns, fields)(
-        new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
-        new Decoder[Any, Double] {
-          override def apply(v1: Any): Double = 0.0
-        }
-      )
+      val res = PatternsValidator.validate[Nothing](patterns, fields)
       val result = res.map { x =>
         x._2 match {
           case Right(success) =>
