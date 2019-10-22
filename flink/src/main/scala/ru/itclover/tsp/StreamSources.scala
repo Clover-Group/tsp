@@ -12,11 +12,10 @@ import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, TimeOutFunction}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
+import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._

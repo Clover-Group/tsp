@@ -6,7 +6,7 @@ import ru.itclover.tsp.core.aggregators.{GroupPattern, PreviousValue, TimerPatte
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer.S
 
-import scala.language.{existentials, higherKinds, reflectiveCalls}
+import scala.language.{existentials, higherKinds}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 

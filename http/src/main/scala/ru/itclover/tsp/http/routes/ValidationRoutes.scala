@@ -5,8 +5,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import cats.data.Reader
-import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
-import ru.itclover.tsp.core.{RawPattern, Time}
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
 

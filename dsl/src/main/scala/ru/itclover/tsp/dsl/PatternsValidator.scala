@@ -1,7 +1,6 @@
 package ru.itclover.tsp.dsl
 
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
 
 import scala.reflect.ClassTag
 
