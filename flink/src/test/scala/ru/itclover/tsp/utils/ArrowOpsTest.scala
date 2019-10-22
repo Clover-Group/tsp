@@ -10,15 +10,10 @@ class ArrowOpsTest extends WordSpec with Matchers{
 
     "work with test file" in {
 
-      val testFile: File = new File("flink/src/test/resources/arrow/test_read.arrow")
-      testFile.createNewFile()
-
-      ArrowOps.writeDataToFile(testFile.getAbsolutePath)
+      val testFile: File = new File("flink/src/test/resources/arrow/aaa2")
 
       val result = ArrowOps.readFromFile(testFile)
       result.nonEmpty shouldBe true
-
-      testFile.delete()
 
     }
 
