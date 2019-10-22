@@ -9,14 +9,19 @@ import org.apache.flink.core.io.InputSplit
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, KafkaConf, KafkaInputConf}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService}
+import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, TimeOutFunction}
 import ru.itclover.tsp.utils.ErrorsADT._
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
+import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import ru.itclover.tsp.io.input.KafkaInputConf
 
 /*sealed*/
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -30,41 +35,73 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def fieldToEKey: Symbol => EKey
 
+  def fieldsIdxMap: Map[Symbol, Int]
+
+  def transformedFieldsIdxMap: Map[Symbol, Int]
+
   def partitioner: Event => String
+
+  def transformedPartitioner: Event => String
 
   implicit def timeExtractor: TimeExtractor[Event]
 
+  implicit def transformedTimeExtractor: TimeExtractor[Event]
+
   implicit def extractor: Extractor[Event, EKey, EItem]
+
+  implicit def transformedExtractor: Extractor[Event, EKey, EItem]
+
+  implicit def trivialEItemDecoder: Decoder[EItem, EItem] = (v1: EItem) => v1
+
+  implicit def itemToKeyDecoder: Decoder[EItem, EKey]  // for narrow data widening
+
+  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(key, value, _, _)) =>
+      (r: Event) =>
+        (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
+    case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
+      (r: Event) =>
+        sys.error("Wide data filling does not need K-V extractor")
+    case Some(_) =>
+      (r: Event) =>
+        sys.error("Unsupported data transformation")
+    case None =>
+      (r: Event) =>
+        sys.error("No K-V extractor without data transformation")
+  }
+
+  implicit def eventCreator: EventCreator[Event, EKey]
+
+  implicit def keyCreator: KeyCreator[EKey]
 }
 
 object StreamSource {
 
-  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) = {
+  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) =
     allFields.find { field =>
       !excludedFields.contains(field)
     }
-  }
 }
 
 object JdbcSource {
 
-  def create(conf: JDBCInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
+  def create(conf: JDBCInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, JdbcSource] =
     for {
       types <- JdbcService
         .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => JdbcSource(conf, types, nullField).asRight
+        case Some(nullField) => JdbcSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
-case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -72,7 +109,8 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   val log = Logger[JdbcSource]
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -84,6 +122,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
+  val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
@@ -110,20 +149,30 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   }
 
   override def fieldToEKey = { fieldId: Symbol =>
-    fieldsIdxMap(fieldId)
+    fieldId
+    // fieldsIdxMap(fieldId)
   }
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
-  val tsMultiplier = timestampMultiplier.getOrElse {
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
+  def tsMultiplier = timestampMultiplier.getOrElse {
     log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
     1000.0
   }
+
   override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
@@ -135,26 +184,49 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
       .setQuery(query)
       .setRowTypeInfo(rowTypesInfo)
       .finish()
+
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, datetimeField)
 }
 
 object InfluxDBSource {
 
-  def create(conf: InfluxDBInputConf)(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
+  def create(conf: InfluxDBInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, InfluxDBSource] =
     for {
       types <- InfluxDBService
         .fetchFieldsTypesInfo(conf.query, conf.influxConf)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => InfluxDBSource(conf, types, nullField).asRight
+        case Some(nullField) => InfluxDBSource(conf, types, nullField, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 }
 
-case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
+) extends StreamSource[Row, Symbol, Any] {
 
   import conf._
 
@@ -165,7 +237,8 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
 
   val fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   val fieldsIdxMap = fieldsIdx.toMap
-  val partitionsIdx = partitionFields.map(fieldsIdxMap)
+  def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
@@ -177,6 +250,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
+  val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
@@ -216,15 +290,23 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
     }
   }
 
-  override def fieldToEKey = (fieldId: Symbol) => fieldsIdxMap(fieldId)
+  override def fieldToEKey = (fieldId: Symbol) => fieldId // fieldsIdxMap(fieldId)
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: Row =>
+      serializablePI.map(event.getField).mkString
+  }
+
+  override def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row =>
+      serializablePI.map(event.getField).mkString
   }
 
   override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
-  override def extractor = RowIdxExtractor()
+  override def extractor = RowSymbolExtractor(fieldsIdxMap)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
 
   val inputFormat =
     InfluxDBInputFormat
@@ -237,21 +319,134 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
       .query(query)
       .and()
       .buildIt()
+
+  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowIsoTimeExtractor(transformedTimeIndex, datetimeField)
+
 }
 
-case class KafkaSource(conf: KafkaConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol)(
+object KafkaSource {
+
+  val log = Logger[KafkaSource]
+
+  def create(conf: KafkaInputConf, fields: Set[Symbol])(implicit strEnv: StreamExecutionEnvironment): Either[ConfigErr, KafkaSource] =
+    for {
+      types <- KafkaService
+        .fetchFieldsTypesInfo(conf)
+        .toEither
+        .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
+      _ = log.info(s"Kafka types found: $types")
+      source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
+        case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+      }
+    } yield source
+
+}
+
+case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_])], nullFieldId: Symbol, patternFields: Set[Symbol])(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Int, Any] {
-  override def createStream: DataStream[Row] = ???
-  //streamEnv.addSource(KafkaInputConf.getSource(conf)) - there must be a Row instance
+) extends StreamSource[Row, Symbol, Any] {
 
-  override def emptyEvent: Row = ???
+  val log = Logger[KafkaSource]
 
-  override def fieldToEKey: Symbol => Int = ???
+  def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
+  def fieldsIdxMap = fieldsIdx.toMap
 
-  override def partitioner: Row => String = ???
+//  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
+//    fieldsIdxMap(fieldId)
+//  }
 
-  override implicit def timeExtractor: TimeExtractor[Row] = ???
+  override def fieldToEKey: Symbol => Symbol = (x => x)
 
-  override implicit def extractor: Extractor[Row, Int, Any] = ???
+  def timeIndex = fieldsIdxMap(conf.datetimeField)
+
+  def tsMultiplier = conf.timestampMultiplier.getOrElse {
+    log.info("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
+    1000.0
+  }
+
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Symbol, Any] =
+    RowSymbolExtractor(fieldsIdxMap)
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] =
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+
+  val stageName = "Kafka input processing stage"
+
+  def createStream: DataStream[Row] = {
+    val consumer = KafkaService.consumer(conf, fieldsIdxMap)
+    consumer.setStartFromEarliest()
+    streamEnv.enableCheckpointing(5000)
+    streamEnv
+      .addSource(consumer)
+      .name(stageName)
+      //.keyBy(_ => "nokey")
+      //.process(new TimeOutFunction(5000, timeIndex, fieldsIdxMap.size))
+  }
+
+  val emptyEvent = {
+    val r = new Row(fieldsIdx.length)
+    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
+    r
+  }
+
+  def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
+
+  def partitioner = {
+    val serializablePI = partitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
+  def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: Row => serializablePI.map(event.getField).mkString
+  }
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(value) =>
+      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
+        createTypeInformation[Row],
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
+
+  override implicit def transformedTimeExtractor: TimeExtractor[Row] = RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField)
+
+  override implicit def transformedExtractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap)
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override implicit def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+
+  override implicit def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }

@@ -1,13 +1,13 @@
 package ru.itclover.tsp.http
 
 import akka.http.scaladsl.model.StatusCodes
-import org.scalatest.FlatSpec
-import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
+import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
-import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer, RangeMatchers}
+import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
@@ -43,7 +43,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -72,8 +72,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 6")
-      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4")
+      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
+      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
       // Performance
       execTimeS should be <= realDataMaxTimeSec
     }

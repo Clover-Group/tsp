@@ -22,6 +22,7 @@ import ru.itclover.tsp.services.InfluxDBService
   * @param patternsParallelism number of parallel branch nodes splitted after sink stage (node). Patterns also
   *                            separated by approx. equal buckets by the max window in pattern (TBD by sum window size)
   */
+@SerialVersionUID(91001L)
 case class InfluxDBInputConf(
   sourceId: Int,
   dbName: String,
@@ -35,12 +36,12 @@ case class InfluxDBInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
-  dataTransformation: Option[SourceDataTransformation[Row, Int, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
   defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
-) extends InputConf[Row, Int, Any] {
+) extends InputConf[Row, Symbol, Any] {
 
   val influxConf = InfluxDBService.InfluxConf(url, dbName, userName, password, 200L)
 }

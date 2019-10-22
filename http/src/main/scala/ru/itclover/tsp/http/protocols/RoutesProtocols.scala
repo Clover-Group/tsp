@@ -2,11 +2,11 @@ package ru.itclover.tsp.http.protocols
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
-import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
-import ru.itclover.tsp.io.output.{JDBCOutputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
+import ru.itclover.tsp.io.input._
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RowSchema}
 import spray.json._
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
@@ -118,6 +118,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "patternsParallelism"
   )
 
+  implicit val kafkaInpConfFmt = jsonFormat8(
+    KafkaInputConf.apply
+  )
+
   implicit val rowSchemaFmt = jsonFormat(
     RowSchema.apply,
     "sourceIdField",
@@ -132,9 +136,12 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
+  implicit val kafkaOutConfFmt = jsonFormat4(KafkaOutputConf.apply)
+
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
+
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 }

@@ -1,19 +1,17 @@
-#!python3
+#!/usr/bin/env python3.6
 
 # This script implements a regression testing the the REST API
 # It sends several requests in parallel threads to the TSP backend, checks responses and measures the execution timeouts
 # Designed by Nikita Novikov
 # Clover Group, Feb 21 2019
 
-import json
-import time
-import glob
-
-import requests
-import threading
-
-import sys
 import argparse
+import glob
+import json
+import requests
+import sys
+import threading
+import time
 from pprint import pprint
 
 

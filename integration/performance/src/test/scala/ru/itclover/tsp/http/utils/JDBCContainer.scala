@@ -1,12 +1,13 @@
 package ru.itclover.tsp.http.utils
 
 import java.sql.{Connection, DriverManager, ResultSet}
-import scala.language.existentials
+
 import com.dimafeng.testcontainers.SingleContainer
-import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
-import collection.JavaConverters._
+
+import scala.collection.JavaConverters._
+import scala.language.existentials
 
 
 class JDBCContainer(imageName: String,
@@ -35,16 +36,16 @@ class JDBCContainer(imageName: String,
 
   var connection: Connection = _
 
-  override def starting()(implicit description: Description): Unit = {
-    super.starting()
+  override def start(): Unit = {
+    super.start()
     connection = {
       Class.forName(driverName)
       DriverManager.getConnection(jdbcUrl)
     }
   }
 
-  override def finished()(implicit description: Description): Unit = {
-    super.finished()
+  override def stop(): Unit = {
+    super.stop()
     connection.close()
   }
 

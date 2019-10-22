@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.{FromEntityUnmarshaller, Unmarshal}
 import akka.stream.ActorMaterializer
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object AkkaHttpUtils {
@@ -16,7 +17,7 @@ object AkkaHttpUtils {
     ec: ExecutionContext
   ): Future[Either[L, R]] = {
     val raw = Http().singleRequest(HttpRequest(uri = fullUri, method = method))
-    raw flatMap { rs =>
+    raw.flatMap { rs =>
       Unmarshal(rs.entity).to[Either[L, R]]
     }
   }

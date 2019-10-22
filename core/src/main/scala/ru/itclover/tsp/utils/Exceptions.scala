@@ -1,7 +1,6 @@
 package ru.itclover.tsp.utils
 
-import java.io.StringWriter
-import java.io.PrintWriter
+import java.io.{PrintWriter, StringWriter}
 
 object Exceptions {
   case class InvalidRequest(msg: String) extends RuntimeException(msg)

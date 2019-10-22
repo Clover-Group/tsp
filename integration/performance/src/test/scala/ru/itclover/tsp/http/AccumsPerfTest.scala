@@ -12,6 +12,7 @@ import ru.itclover.tsp.utils.Files
 
 class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
 
+
   override val log = Logger("AccumsPerfTest")
 
   val port = 8137
@@ -57,7 +58,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = JDBCOutputConf(
-    "Test.SM_basic_wide_patterns",
+    "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver",
@@ -94,7 +95,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       // Correctness
       checkByQuery(
         1 :: Nil,
-        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 499 AND to - from > 99000"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND to - from > 99000"
       )
       // Performance
       execTimeS should be <= timeWindowMaxTimeSec
@@ -110,7 +111,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       // Correctness
       checkByQuery(
         1 :: Nil,
-        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 4991 AND to - from > 99000"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND to - from > 99000"
       )
       // Performance
       execTimeS should be <= nestedTimeWindowMaxTimeSec
@@ -126,7 +127,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       // Correctness
       checkByQuery(
         1 :: Nil,
-        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 988 AND to - from > 99000"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND to - from > 99000"
       )
       // Performance
       execTimeS should be <= timeWindowCountMaxTimeSec
@@ -139,7 +140,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       // Correctness
       checkByQuery(
         2 :: Nil,
-        "SELECT count(*) FROM Test.SM_basic_wide_patterns WHERE id = 466 AND to - from > 99000"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND to - from > 99000"
       )
       // Performance
       execTimeS should be <= timedMaxTimeSec

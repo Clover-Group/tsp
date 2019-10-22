@@ -1,14 +1,12 @@
 package ru.itclover.tsp.core.aggregators
 
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{PState, Pattern, _}
+import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 // TOOD@fabura Docs? Rename?
 case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](

@@ -34,10 +34,11 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) ex
     Timestamp.valueOf(utc.toLocalDateTime).getTime / 1000.0
   }
 
-  def payloadToJson(payload: Seq[(String, Any)]): String = {
-    payload.map {
-      case (fld, value) if value.isInstanceOf[String] => s""""${fld}":"${value}""""
-      case (fld, value)                               => s""""${fld}":$value"""
-    } mkString ("{", ",", "}")
-  }
+  def payloadToJson(payload: Seq[(String, Any)]): String =
+    payload
+      .map {
+        case (fld, value) if value.isInstanceOf[String] => s""""${fld}":"${value}""""
+        case (fld, value)                               => s""""${fld}":$value"""
+      }
+      .mkString("{", ",", "}")
 }

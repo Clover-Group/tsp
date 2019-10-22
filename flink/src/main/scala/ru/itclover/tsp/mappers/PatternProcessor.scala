@@ -3,14 +3,13 @@ package ru.itclover.tsp.mappers
 import cats.Id
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.util.Collector
-import ru.itclover.tsp.core.Time
-import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.{Time, _}
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.optimizations.Optimizer
 
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
-import ru.itclover.tsp.core.optimizations.Optimizer
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner],
@@ -30,7 +29,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   log.info(s"pattern: $pattern, inner: $pattern.inner")
 
   def process(
-    key: String,
+    // key: String,
     elements: Iterable[E],
     out: Collector[Out]
   ): Unit = {
@@ -85,7 +84,7 @@ object PatternProcessor {
     * @tparam T Element type
     * @return List of chunks
     */
-  def splitByCondition[T](elements: List[T])(pred: (T, T) => Boolean): List[Seq[T]] = {
+  def splitByCondition[T](elements: List[T])(pred: (T, T) => Boolean): List[Seq[T]] =
     if (elements.length < 2) {
       List(elements)
     } else {
@@ -101,5 +100,4 @@ object PatternProcessor {
       }
       results.map(_.toSeq).toList
     }
-  }
 }

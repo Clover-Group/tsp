@@ -5,74 +5,91 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichMapFunction
+import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
+import org.apache.flink.streaming.api.windowing.triggers.{CountTrigger, Trigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
-import ru.itclover.tsp.core.{Incident, RawPattern, Time}
-import ru.itclover.tsp.dsl.PatternMetadata
-import ru.itclover.tsp.dsl.v2.ASTPatternGenerator
-import ru.itclover.tsp.io._
-import ru.itclover.tsp.io.output.OutputConf
+import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
+import ru.itclover.tsp.io.EventCreator
+import ru.itclover.tsp.io.input.{KafkaInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.utils.Bucketizer
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
-import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
 
-import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-case class PatternsSearchJob[In, InKey, InItem](
+
+
+case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
+  fields: Set[InKey],
   decoders: BasicDecoders[InItem]
 ) {
+  // TODO: Restore InKey as a type parameter
 
   import PatternsSearchJob._
   import decoders._
-  import source.{extractor, timeExtractor}
+  import source.{kvExtractor, eventCreator, keyCreator}
+
+
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] =
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
+    import source.{transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
-    ) map { patterns =>
+    ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
-      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields)
+      val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
+      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(x => x.map(resultMapper))
       (patterns, mapped.map(m => saveStream(m, outputConf)))
     }
+  }
 
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-    forwardedFields: Seq[(Symbol, InKey)]
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
   ): Vector[DataStream[Incident]] =
     for {
       sourceBucket <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
       stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
-      val singleIncidents = incidentsFromPatterns(stream, patternsBucket.items, forwardedFields)
+      import source.timeExtractor
+      val singleIncidents = incidentsFromPatterns(applyTransformation(
+        stream.assignAscendingTimestamps(timeExtractor(_).toMillis)), patternsBucket.items, forwardedFields, useWindowing)
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
   def incidentsFromPatterns[T, S <: PState[Segment, S]: ClassTag](
     stream: DataStream[In],
     patterns: Seq[RichPattern[In, Segment, S]],
-    forwardedFields: Seq[(Symbol, InKey)]
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
   ): DataStream[Incident] = {
+
+    import source.{transformedExtractor, transformedTimeExtractor => timeExtractor}
 
     log.debug("incidentsFromPatterns started")
 
@@ -94,23 +111,38 @@ case class PatternsSearchJob[In, InKey, InItem](
           source.emptyEvent
         )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
     }
-    val res = stream
+    val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
-      .keyBy(source.partitioner)
-      .window(
-        TumblingEventTimeWindows
-          .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-          .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-      )
-//      .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-//      .trigger(EventCounterTrigger[In, FlinkWindow](source.conf.chunkSize.getOrElse(5000)))
-      .process[Incident](
-        ProcessorCombinator[In, S, Segment, Incident](mappers)
-      )
+      .keyBy(source.transformedPartitioner)
+    val windowed =  if (useWindowing) {
+      keyedStream
+        .window(
+          TumblingEventTimeWindows
+            .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+            .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+        )
+    } else {
+      keyedStream
+            .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+            .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+    }
+    val processed = windowed.process[Incident](
+      ProcessorCombinator[In, S, Segment, Incident](mappers)
+    )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
     log.debug("incidentsFromPatterns finished")
-    res
+    processed
+  }
+
+  def applyTransformation(dataStream: DataStream[In]): DataStream[In] = source.conf.dataTransformation match {
+    case Some(_) =>
+      import source.{extractor, timeExtractor}
+      dataStream
+        .keyBy(source.partitioner)
+        .process(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields))
+        .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
+    case _ => dataStream
   }
 }
 
@@ -155,7 +187,7 @@ object PatternsSearchJob {
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
               p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
-            )
+          )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
@@ -208,11 +240,20 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]) = {
+  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]): DataStreamSink[E] = {
     log.debug("saveStream started")
-    val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
-    outputConf.getOutputFormat.close()
-    log.debug("saveStream finished")
-    res
+    outputConf match {
+      case kafkaConf: KafkaOutputConf =>
+        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.serializer)
+          .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
+        val res = stream.addSink(producer)
+        log.debug("saveStream finished")
+        res
+      case _ =>
+        val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
+        outputConf.getOutputFormat.close()
+        log.debug("saveStream finished")
+        res
+    }
   }
 }

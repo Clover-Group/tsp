@@ -1,16 +1,14 @@
 package ru.itclover.tsp.core.aggregators
 
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.IdxValue.{IdxValueSegment, IdxValueSimple}
 import ru.itclover.tsp.core.PQueue._
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.{Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 /* Timer */
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
@@ -28,7 +26,7 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T
 case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumState[T, T, TimerAccumState[T]] {
 
   @inline
-  override def updated(window: Window, index: Idx, time: Time, value: Result[T]): (TimerAccumState[T], QI[T]) = {
+  override def updated(window: Window, index: Idx, time: Time, value: Result[T]): (TimerAccumState[T], QI[T]) =
     value match {
       // clean queue in case of fail. Return fails for all events in queue
       case Fail =>
@@ -44,5 +42,4 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
         val newResults: QI[T] = MutablePQueue(outputs.map { case (idx, _) => IdxValueSegment(index, idx, index, value) })
         (TimerAccumState(windowQueueWithNewEvent), newResults)
     }
-  }
 }

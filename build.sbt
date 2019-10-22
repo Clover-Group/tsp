@@ -10,22 +10,19 @@ dockerUpdateLatest := true
 scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
     "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
-javaOptions in ThisBuild += "--add-modules=java.xml.bind"
-scalacOptions in ThisBuild += "-target:jvm-1.8"
+//javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  scalacOptions ++= Seq(
-    "-Ypartial-unification", // allow the compiler to unify type constructors of different arities
-    "-deprecation",          // warn about use of deprecated APIs
-    "-feature"               // warn about feature warnings
-  ),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
-
+  // Comment for production builds
+  scalacOptions --= Seq(
+    "-Xfatal-warnings"
+  ),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
@@ -33,9 +30,11 @@ lazy val commonSettings = Seq(
 
 )
 
+
 lazy val assemblySettings = Seq(
   assemblyJarName := s"TSP_v${version.value}.jar",
-  javaOptions += "--add-modules=java.xml.bind"
+  javaOptions += "--add-modules=java.xml.bind" ,
+
 )
 
 // make run command include the provided dependencies (for sbt run)
@@ -73,7 +72,9 @@ dockerCommands := Seq()
 
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
-  Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
+  //Cmd("FROM", "openjdk:11-jre-slim"),
+  Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
@@ -95,23 +96,52 @@ lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
     },
     skip in publish := false,
     mainClass := Some(launcher),
-    inTask(assembly)(assemblySettings)
+    inTask(assembly)(assemblySettings),
+
+
+// bku: Customized assembly strategy to fix Merge errors on builds
+assemblyMergeStrategy in assembly := {
+case "git.properties"                              => MergeStrategy.first
+  case PathList("META-INF", xs @ _*) =>
+    xs map {_.toLowerCase} match {
+      case "manifest.mf" :: Nil | "index.list" :: Nil | "dependencies" :: Nil =>
+        MergeStrategy.discard
+      case ps @ x :: xs if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+        MergeStrategy.discard
+      case "plexus" :: xs =>
+        MergeStrategy.discard
+      case "services" :: xs =>
+        MergeStrategy.filterDistinctLines
+      case "spring.schemas" :: Nil | "spring.handlers" :: Nil =>
+        MergeStrategy.filterDistinctLines
+      case _ => MergeStrategy.first
+    }
+  case "application.conf" => MergeStrategy.concat
+  case "reference.conf" => MergeStrategy.concat
+  case _ => MergeStrategy.first
+}
   )
 
 
+lazy val runTask = taskKey[Unit]("App runner")
+
+//runTask := {
+// (http/runMain ${TSP_LAUNCHER:-ru.itclover.tsp.http.Launcher} ${TSP_LAUNCHER_ARGS:-flink-local})
+//}
+
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
+
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, dsl, integrationCorrectness)
-  .dependsOn(core, config, http, flink, dsl, integrationCorrectness)
+  .aggregate(core, config, http, flink, dsl, itValid)
+  .dependsOn(core, config, http, flink, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
-      ++ Library.shapeless
   )
 
 lazy val config = project.in(file("config"))
@@ -135,7 +165,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.twitterUtil
+      Library.akkaHttp ++ Library.arrow
   )
   .dependsOn(core, config, flink, dsl)
 
@@ -146,26 +176,35 @@ lazy val dsl = project.in(file("dsl"))
     libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
 
-lazy val integrationCorrectness = project.in(file("integration/correctness"))
+lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(core, flink, http, config)
 
-lazy val integrationPerformance = project.in(file("integration/performance"))
+lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
-  .dependsOn(integrationCorrectness)
+  .dependsOn(itValid)
 
 
 /*** Other settings ***/
 
+// Exclude sources
+//excludeFilter in unmanagedResources := {
+//  val public = ((resourceDirectory in Compile).value / "com" / "example" / "export" / "dev").getCanonicalPath
+//  new SimpleFileFilter(_.getCanonicalPath startsWith public)
+//}
+//(unmanagedResourceDirectories in Compile) := (unmanagedResourceDirectories in Compile).value.filter(_.getName.startsWith("dev"))
+unmanagedResourceDirectories in Compile -= (resourceDirectory in Compile).value / "com/example/export/dev"
+
+
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
-addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
+//addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 
@@ -188,7 +227,7 @@ git.gitTagToVersionNumber := {
 }
 
 // Release specific settings
-import ReleaseTransformations.{setReleaseVersion => _, _}
+import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.{setReleaseVersion => _, _}
 
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
@@ -212,11 +251,11 @@ ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.valu
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 
-
-// Lint
-scapegoatVersion in ThisBuild := "1.3.8"
-scalaBinaryVersion in ThisBuild := "2.12"
-
+addCommandAlias("com", "all compile test:compile it:compile")
+addCommandAlias("lint", "; compile:scalafix --check ; test:scalafix --check")
+addCommandAlias("fix", "all compile:scalafix test:scalafix")
 addCommandAlias("fmt", "; scalafmtSbt; scalafmtAll; test:scalafmtAll")
 addCommandAlias("chk", "; scalafmtSbtCheck; scalafmtCheck; test:scalafmtCheck")
-addCommandAlias("cvr", "; clean; coverage; test; coverageReport")
+addCommandAlias("cov", "; clean; coverage; test; coverageReport")
+addCommandAlias("tree", "dependencyTree::toFile target/tree.txt -f")
+addCommandAlias("pub", "docker:publish")

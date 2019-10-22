@@ -1,17 +1,15 @@
 package ru.itclover.tsp.core.aggregators
 
 import cats.Group
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.PQueue.MutablePQueue
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.Result._
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{PState, Pattern, _}
+import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 case class GroupPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T: Group](
   override val inner: Pattern[Event, S, T],
@@ -36,7 +34,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
     idx: Idx,
     time: Time,
     value: Result[T]
-  ): (GroupAccumState[T], QI[GroupAccumResult[T]]) = {
+  ): (GroupAccumState[T], QI[GroupAccumResult[T]]) =
     value
       .map { t =>
         // add new element to queue
@@ -61,7 +59,6 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
         )
       }
       .getOrElse(this -> PQueue.empty)
-  }
 
 }
 

@@ -1,15 +1,13 @@
 package ru.itclover.tsp.core.aggregators
 
-import ru.itclover.tsp.core.Time._
-import ru.itclover.tsp.core.{Time, Window}
 import ru.itclover.tsp.core.Pattern._
-import ru.itclover.tsp.core._
+import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.{Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
   override val inner: Pattern[Event, State, Out],
@@ -30,13 +28,12 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
     // Timestamp and value which was actual to the (time - window) moment
     def splitAtActualTs(): (Time, Option[T], QI[(Time, T)]) = {
       @tailrec
-      def inner(prevBestTime: Time, q: QI[(Time, T)], v: Option[T]): (Time, Option[T], QI[(Time, T)]) = {
+      def inner(prevBestTime: Time, q: QI[(Time, T)], v: Option[T]): (Time, Option[T], QI[(Time, T)]) =
         q.headOption match {
           case Some(IdxValue(_, Succ((t, result)))) if t.plus(window) < time => inner(t, q.behead(), Some(result))
           case Some(IdxValue(_, Fail))                                       => inner(prevBestTime, q.behead(), v)
           case _                                                             => (prevBestTime, v, q)
         }
-      }
 
       inner(Time(Long.MinValue), queue, None)
     }

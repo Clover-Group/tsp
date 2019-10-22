@@ -1,17 +1,15 @@
 package ru.itclover.tsp.io.input
 
-import com.google.common.base.Preconditions
 import java.io.IOException
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
+
 import okhttp3.OkHttpClient
-import org.apache.flink.api.common.io.GenericInputFormat
-import org.apache.flink.api.common.io.NonParallelInput
+import org.apache.flink.api.common.io.{GenericInputFormat, NonParallelInput}
 import org.apache.flink.core.io.GenericInputSplit
 import org.influxdb.InfluxDBFactory
-import org.influxdb.dto.Query
-import org.influxdb.dto.QueryResult
+import org.influxdb.dto.{Query, QueryResult}
 
 object InfluxDBInputFormat {
   def create() = new Builder()
@@ -55,19 +53,16 @@ object InfluxDBInputFormat {
       this
     }
 
-    def and() = {
+    def and() =
       new Actions()
-    }
 
     class Actions {
 
-      def buildIt() = {
+      def buildIt() =
         obj
-      }
 
-      def consumeIt(consumer: Consumer[InfluxDBInputFormat]) = {
+      def consumeIt(consumer: Consumer[InfluxDBInputFormat]) =
         consumer.accept(buildIt())
-      }
     }
   }
 }

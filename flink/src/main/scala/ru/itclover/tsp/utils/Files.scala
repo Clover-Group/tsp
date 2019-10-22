@@ -1,8 +1,9 @@
 package ru.itclover.tsp.utils
 
-import CollectionsOps._
-import java.io.{File, FileNotFoundException, FileWriter}
-import scala.io.Source
+import java.io.{File, FileWriter}
+
+import ru.itclover.tsp.utils.CollectionsOps._
+
 import scala.util.Try
 
 object Files {
@@ -11,7 +12,7 @@ object Files {
     val pw = new FileWriter(new File(path), !overwrite)
     Try {
       pw.write(content)
-    } eventually {
+    }.eventually {
       pw.close()
     }
   }
@@ -23,7 +24,7 @@ object Files {
 
   def readFile(path: String): Try[String] = for {
     src <- Try(scala.io.Source.fromFile(path))
-    str <- Try(src.mkString) eventually {
+    str <- Try(src.mkString).eventually {
       src.close
     }
   } yield str
