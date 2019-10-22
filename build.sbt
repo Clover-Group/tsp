@@ -165,7 +165,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.arrow
+      Library.akkaHttp ++ Library.arrowDeps
   )
   .dependsOn(core, config, flink, dsl)
 
