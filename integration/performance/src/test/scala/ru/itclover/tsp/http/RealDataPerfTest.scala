@@ -30,7 +30,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
   val inputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
-    query = "select * from Test.Bigdata_HI limit 100",
+    query = "select * from Test.Bigdata_HI limit 10000000",
     driverName = container.driverName,
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
