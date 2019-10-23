@@ -10,7 +10,7 @@ import org.scalatest.{Matchers, WordSpec}
 class ArrowServiceTest extends WordSpec with Matchers{
 
   
-  val testFile: File = new File("flink/src/test/resources/arrow/aaa2")
+  val testFile: File = new File("flink/src/test/resources/arrow/df_billion")
 
   "ArrowService" should {
 

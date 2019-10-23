@@ -6,7 +6,7 @@ import com.github.mjakubowski84.parquet4s.{ParquetReader, ParquetWriter}
 
 import scala.collection.mutable.ListBuffer
 
-case class TempSchema(name: String, age: Int)
+case class TempSchema(a: Long, b: String, c: Double)
 
 object ParquetOps {
 

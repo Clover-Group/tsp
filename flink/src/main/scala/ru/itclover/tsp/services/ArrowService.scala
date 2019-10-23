@@ -4,7 +4,7 @@ import java.io.{ByteArrayInputStream, File, FileInputStream}
 
 import org.apache.arrow.memory.{BaseAllocator, RootAllocator}
 import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowReader, ArrowStreamReader, SeekableReadChannel}
-import org.apache.arrow.vector.{BaseValueVector, BitVector, Float4Vector, Float8Vector, IntVector, VarCharVector}
+import org.apache.arrow.vector.{BaseValueVector, BitVector, Float4Vector, Float8Vector, IntVector, VarCharVector, BigIntVector, SmallIntVector}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
 
@@ -15,15 +15,12 @@ import scala.collection.mutable.ListBuffer
 
 object ArrowService {
 
-  val ALLOCATE_LIMIT = 1000000
-
   /**
   * Method for working with types from Apache Arrow schema.
   */
-  def typesMap: Map[Types.MinorType, Class[_ >: Float with String with Boolean with Int with Double]] = Map(
-    //TODO: change to long
-    Types.MinorType.BIGINT -> classOf[Int],
-    Types.MinorType.SMALLINT -> classOf[Int],
+  def typesMap: Map[Types.MinorType, Class[_ >: Float with String with Boolean with Int with Double with Long with Short]] = Map(
+    Types.MinorType.BIGINT -> classOf[Long],
+    Types.MinorType.SMALLINT -> classOf[Short],
     Types.MinorType.BIT -> classOf[Boolean],
     Types.MinorType.INT -> classOf[Int],
     Types.MinorType.VARCHAR -> classOf[String],
@@ -38,7 +35,7 @@ object ArrowService {
     */
   def retrieveSchemaAndReader(inputData: Array[Byte]): (Schema, ArrowReader, BaseAllocator) = {
 
-    val allocator = new RootAllocator(ALLOCATE_LIMIT)
+    val allocator = new RootAllocator(Integer.MAX_VALUE)
     val bytesStream = new ByteArrayInputStream(inputData)
 
     val reader = new ArrowStreamReader(bytesStream, allocator)
@@ -54,7 +51,7 @@ object ArrowService {
     */
   def retrieveSchemaAndReader(inputData: File): (Schema, ArrowReader, BaseAllocator) = {
 
-    val allocator = new RootAllocator(ALLOCATE_LIMIT)
+    val allocator = new RootAllocator(Integer.MAX_VALUE)
     val fileStream = new FileInputStream(inputData)
     val readChannel = new SeekableReadChannel(fileStream.getChannel)
 
@@ -111,6 +108,8 @@ object ArrowService {
             case "java.lang.String" => valueVector.asInstanceOf[VarCharVector]
             case "float" => valueVector.asInstanceOf[Float4Vector]
             case "double" => valueVector.asInstanceOf[Float8Vector]
+            case "long" => valueVector.asInstanceOf[BigIntVector]
+            case "short" => valueVector.asInstanceOf[SmallIntVector]
             case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
           }
 

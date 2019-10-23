@@ -9,17 +9,11 @@ class ParquetOpsTest extends WordSpec with Matchers{
 
     "work with test file" in {
 
-      val testFile: File = new File("flink/src/test/resources/parquet/test_read.pq")
-
-      val testList = List(TempSchema("test", 11), TempSchema("test1", 12))
-
-      ParquetOps.writeToFile(testFile, testList)
+      val testFile: File = new File("flink/src/test/resources/parquet/df_billion_brotli.parquet")
 
       val readResult: List[TempSchema] = ParquetOps.readFromFile(testFile)
 
-      readResult shouldBe testList
-
-      testFile.delete()
+      readResult.nonEmpty shouldBe true
 
 
     }
