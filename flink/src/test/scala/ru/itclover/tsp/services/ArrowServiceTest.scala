@@ -8,7 +8,6 @@ import org.apache.arrow.vector.types.pojo.Schema
 import org.scalatest.{Matchers, WordSpec}
 
 class ArrowServiceTest extends WordSpec with Matchers{
-
   
   val testFile: File = new File("flink/src/test/resources/arrow/df_billion")
 
