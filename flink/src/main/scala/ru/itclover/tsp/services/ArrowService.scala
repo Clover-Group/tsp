@@ -15,6 +15,8 @@ import scala.collection.mutable.ListBuffer
 
 object ArrowService {
 
+  val ALLOCATE_LIMIT = 1000000
+
   /**
   * Method for working with types from Apache Arrow schema.
   */
@@ -35,7 +37,7 @@ object ArrowService {
     */
   def retrieveSchemaAndReader(inputData: Array[Byte]): (Schema, ArrowReader, BaseAllocator) = {
 
-    val allocator = new RootAllocator(Integer.MAX_VALUE)
+    val allocator = new RootAllocator(ALLOCATE_LIMIT)
     val bytesStream = new ByteArrayInputStream(inputData)
 
     val reader = new ArrowStreamReader(bytesStream, allocator)
@@ -51,7 +53,7 @@ object ArrowService {
     */
   def retrieveSchemaAndReader(inputData: File): (Schema, ArrowReader, BaseAllocator) = {
 
-    val allocator = new RootAllocator(Integer.MAX_VALUE)
+    val allocator = new RootAllocator(ALLOCATE_LIMIT)
     val fileStream = new FileInputStream(inputData)
     val readChannel = new SeekableReadChannel(fileStream.getChannel)
 
