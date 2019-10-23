@@ -22,8 +22,6 @@ object ArrowOps {
     val arrowFileReader = new ArrowFileReader(seekableReadChannel, new RootAllocator(Integer.MAX_VALUE))
     val schemaRow = arrowFileReader.getVectorSchemaRoot
 
-    schemaRow.getSchema.getFields
-
     val javaBlocks = arrowFileReader.getRecordBlocks
     val scalaBlocks = javaBlocks.asScala.toList
 
