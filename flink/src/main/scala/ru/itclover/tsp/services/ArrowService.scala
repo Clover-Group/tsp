@@ -21,6 +21,7 @@ object ArrowService {
   * Method for working with types from Apache Arrow schema.
   */
   def typesMap: Map[Types.MinorType, Class[_ >: Float with String with Boolean with Int with Double]] = Map(
+    //TODO: change to long
     Types.MinorType.BIGINT -> classOf[Int],
     Types.MinorType.SMALLINT -> classOf[Int],
     Types.MinorType.BIT -> classOf[Boolean],
