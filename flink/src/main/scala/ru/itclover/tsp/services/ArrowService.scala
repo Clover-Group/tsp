@@ -104,12 +104,13 @@ object ArrowService {
 
           val valueInfo = typesMap(valueVector.getMinorType)
 
-          val transferredVector: BaseValueVector = valueInfo.getClass.getName match {
-            case "scala.Int" => valueVector.asInstanceOf[IntVector]
-            case "scala.Boolean" => valueVector.asInstanceOf[BitVector]
+          val transferredVector: BaseValueVector = valueInfo.getName match {
+            case "int" => valueVector.asInstanceOf[IntVector]
+            case "boolean" => valueVector.asInstanceOf[BitVector]
             case "java.lang.String" => valueVector.asInstanceOf[VarCharVector]
-            case "scala.Float" => valueVector.asInstanceOf[Float4Vector]
-            case "scala.Double" => valueVector.asInstanceOf[Float8Vector]
+            case "float" => valueVector.asInstanceOf[Float4Vector]
+            case "double" => valueVector.asInstanceOf[Float8Vector]
+            case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
           }
 
           val value = transferredVector.getObject(i)
