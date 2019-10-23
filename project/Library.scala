@@ -42,6 +42,7 @@ object Version {
   val arrow = "0.14.1"
   val parquet = "0.11.0"
   val hadoopClient = "3.2.1"
+  val parquetCodecs = "1.10.1"
 
   val twitterUtil = "6.43.0"
 }
@@ -140,7 +141,10 @@ object Library {
 
   val parquetDeps = Seq(
     "com.github.mjakubowski84" %% "parquet4s-core" % Version.parquet,
-    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient
+    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient,
+    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient,
+    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs,
+    "com.github.rdblue" % "brotli-codec" % "0.1.1"
   )
 
 }
