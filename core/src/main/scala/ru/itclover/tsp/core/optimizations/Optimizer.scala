@@ -84,8 +84,8 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       )(x.func)
     case x: IdxMapPattern[E, _, _, _] if optimizable(x.inner) => new IdxMapPattern(forceState(x.inner))(x.func)
     case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
-      def cast[S <: PState[T, S], T](pats: Seq[Pat[E, T]]): Seq[Pattern[E, S, T]] forSome { type S <: PState[T, S] } =
-        pats.asInstanceOf[Seq[Pattern[E, S, T]]]
+      def cast[St <: PState[Ty, St], Ty](pats: Seq[Pat[E, Ty]]): Seq[Pattern[E, St, Ty]] forSome { type St <: PState[Ty, St] } =
+        pats.asInstanceOf[Seq[Pattern[E, St, Ty]]]
       new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
     }
     case x @ GroupPattern(inner, window) if optimizable(inner) => {

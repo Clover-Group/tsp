@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.streaming.api.functions.ProcessFunction
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
@@ -39,7 +39,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
   keyCreator: KeyCreator[InKey]
-) extends ProcessFunction[InEvent, OutEvent]
+) extends KeyedProcessFunction[String, InEvent, OutEvent]
     with Serializable {
   // potential event values with receive time
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -67,7 +67,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   }
 
   override def processElement(item: InEvent,
-                              ctx: ProcessFunction[InEvent, OutEvent]#Context,
+                              ctx: KeyedProcessFunction[String, InEvent, OutEvent]#Context,
                               out: Collector[OutEvent]): Unit = {
     val time = extractTime(item)
     if (useUnfolding) {
@@ -111,7 +111,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     )
   }
 
-  override def onTimer(timestamp: Long, ctx: ProcessFunction[InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
+  override def onTimer(timestamp: Long, ctx:KeyedProcessFunction[String, InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
     // check if this was the last timer we registered
     if (timestamp == lastTimer.value) {
       // it was, so no data was received afterwards.

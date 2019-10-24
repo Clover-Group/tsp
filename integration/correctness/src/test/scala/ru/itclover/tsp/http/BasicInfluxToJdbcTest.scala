@@ -2,13 +2,13 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
@@ -44,19 +44,27 @@ class BasicInfluxToJdbcTest
       )
     )
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
   val influxPort = 8138
 
   val influxContainer =
-    new InfluxDBContainer("influxdb:1.5", influxPort -> 8086 :: Nil, s"http://localhost:$influxPort", "Test", "default")
+    new InfluxDBContainer(
+      "influxdb:1.5",
+      influxPort -> 8086 :: Nil,
+      s"http://localhost:$influxPort",
+      "Test",
+      "default",
+      waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
+    )
 
   val jdbcPort = 8157
   implicit val jdbcContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     jdbcPort -> 8123 :: 9072 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$jdbcPort/default"
+    s"jdbc:clickhouse://localhost:$jdbcPort/default",
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   override val container = MultipleContainers(LazyContainer(jdbcContainer), LazyContainer(influxContainer))
@@ -97,10 +105,10 @@ class BasicInfluxToJdbcTest
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
     Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
     Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {

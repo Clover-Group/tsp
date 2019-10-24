@@ -2,13 +2,13 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
@@ -39,14 +39,15 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
       )
     )
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8170
   val clickhouseContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9080 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   val inputConf = JDBCInputConf(
@@ -87,10 +88,10 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").map(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(clickhouseContainer.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
+    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
+    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {

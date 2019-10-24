@@ -15,7 +15,7 @@ import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.TsIdxExtractor
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
 import ru.itclover.tsp.io.input.KafkaInputConf
@@ -158,8 +158,7 @@ object PatternsSearchJob {
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
-    getTime: TimeExtractor[E],
-    dDecoder: Decoder[EItem, Double]
+    getTime: TimeExtractor[E]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")

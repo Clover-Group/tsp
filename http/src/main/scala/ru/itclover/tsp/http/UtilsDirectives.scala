@@ -11,7 +11,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object UtilsDirectives {
 
   def logRequest(logFn: String => Unit)(implicit rejectionHandler: RejectionHandler): Directive[Unit] =
-    extractRequestContext.flatMap { ctx =>
+    extractRequestContext.flatMap { _ =>
       mapRequest { req =>
         logFn(requestToString(req))
         req
