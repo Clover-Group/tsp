@@ -12,11 +12,10 @@ import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, TimeOutFunction}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
-import ru.itclover.tsp.utils.RowOps.{RowIdxExtractor, RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
+import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 
 import scala.collection.JavaConverters._
@@ -59,14 +58,14 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
     case Some(NarrowDataUnfolding(key, value, _, _)) =>
       (r: Event) =>
         (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
-    case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
-      (r: Event) =>
+    case Some(WideDataFilling(_, _)) =>
+      (_: Event) =>
         sys.error("Wide data filling does not need K-V extractor")
     case Some(_) =>
-      (r: Event) =>
+      (_: Event) =>
         sys.error("Unsupported data transformation")
     case None =>
-      (r: Event) =>
+      (_: Event) =>
         sys.error("No K-V extractor without data transformation")
   }
 
@@ -192,7 +191,7 @@ case class JdbcSource(conf: JDBCInputConf, fieldsClasses: Seq[(Symbol, Class[_])
   override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
@@ -327,7 +326,7 @@ case class InfluxDBSource(conf: InfluxDBInputConf, fieldsClasses: Seq[(Symbol, C
   override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,
@@ -424,7 +423,7 @@ case class KafkaSource(conf: KafkaInputConf, fieldsClasses: Seq[(Symbol, Class[_
   }
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
         createTypeInformation[Row],
         timeExtractor,

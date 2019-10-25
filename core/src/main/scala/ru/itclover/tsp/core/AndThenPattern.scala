@@ -78,7 +78,7 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
                 // if both return success, but the second part is too late (i.e. not immediately following the first)
                 inner(first.behead(), second, total)
               }
-            case Some(iv2 @ IdxValue(_, Succ(_))) =>
+            case Some(IdxValue(_, Succ(_))) =>
               // if the second Success starts not after the first part end, we must skip it
               inner(first, second.behead(), total)
           }

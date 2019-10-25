@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
 
-class ExtractingPattern[Event: IdxExtractor, EKey, EItem, T, S <: PState[T, S]](key: EKey, keyName: Symbol)(
+class ExtractingPattern[Event: IdxExtractor, EKey, EItem, T, S <: PState[T, S]](key: EKey)(
   implicit extract: Extractor[Event, EKey, EItem],
   decoder: Decoder[EItem, T]
 ) extends SimplePattern[Event, T]({ e =>

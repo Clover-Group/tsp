@@ -5,8 +5,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import cats.data.Reader
-import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
-import ru.itclover.tsp.core.{RawPattern, Time}
+import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
 
@@ -26,12 +25,7 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
     entity(as[PatternsValidatorConf]) { request =>
       val patterns: Seq[RawPattern] = request.patterns
       val fields: Map[String, String] = request.fields
-      val res = PatternsValidator.validate[Nothing](patterns, fields)(
-        new TimeExtractor[Nothing] { override def apply(v1: Nothing): Time = Time(0) },
-        new Decoder[Any, Double] {
-          override def apply(v1: Any): Double = 0.0
-        }
-      )
+      val res = PatternsValidator.validate[Nothing](patterns, fields)
       val result = res.map { x =>
         x._2 match {
           case Right(success) =>

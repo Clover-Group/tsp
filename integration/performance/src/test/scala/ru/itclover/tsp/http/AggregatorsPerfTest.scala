@@ -62,8 +62,8 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
   /*"Aggregators performance tests" should "compute in time" in {

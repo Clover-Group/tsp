@@ -38,7 +38,7 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
       inner(Time(Long.MinValue), queue, None)
     }
 
-    val (actualTs, newValue, newQueue) = splitAtActualTs()
+    val (_, newValue, newQueue) = splitAtActualTs()
     val newIdxValue = IdxValue(idx, value.map(time -> _))
     // we return first element after the moment time - window. Probably, better instead return _last_ element before moment time - window?
     val head = newValue // it's not probably, but certainly. Returning last before

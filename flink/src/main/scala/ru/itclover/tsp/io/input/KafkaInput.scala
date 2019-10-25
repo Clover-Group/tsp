@@ -1,8 +1,6 @@
 package ru.itclover.tsp.io.input
 
-import java.util.{Properties, UUID}
-import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaConsumerBase}
-import org.apache.flink.api.common.serialization.{DeserializationSchema, TypeInformationSerializationSchema}
+import java.util.UUID
 import org.apache.flink.types.Row
 
 @SerialVersionUID(91000L)

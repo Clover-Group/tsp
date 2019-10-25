@@ -33,8 +33,8 @@ case class IdxMapPState[InnerState <: PState[T1, InnerState], T1, T2](
 ) extends PState[T2, IdxMapPState[InnerState, T1, T2]] {
   override def queue: QI[T2] = IdxMapPQueue(innerState.queue, func)
   override def copyWith(queue: QI[T2]): IdxMapPState[InnerState, T1, T2] = {
-    val prevSize = innerState.queue.size
-    val toDrop = prevSize - queue.size
+    val prevSize = innerState.queue.size.toLong
+    val toDrop = prevSize - queue.size.toLong
     assert(toDrop >= 0, "Illegal state, queue cannot grow in map")
     this.copy(innerState = innerState.copyWith(innerState.queue.drop(toDrop)))
   }

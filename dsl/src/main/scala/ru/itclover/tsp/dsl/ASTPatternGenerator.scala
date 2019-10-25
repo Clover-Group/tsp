@@ -50,14 +50,14 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case id: Identifier =>
         id.valueType match {
           case IntASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value)
           case LongASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value)
           case DoubleASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value, id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
+          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>

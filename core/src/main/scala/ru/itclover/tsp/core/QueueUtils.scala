@@ -7,7 +7,7 @@ import scala.collection.{mutable => m}
 
 object QueueUtils {
 
-  private val trueFunction = (x: Any) => true
+  private val trueFunction = (_: Any) => true
 
   def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) =
     if (predicate.eq(trueFunction)) (queue, m.Queue.empty)
