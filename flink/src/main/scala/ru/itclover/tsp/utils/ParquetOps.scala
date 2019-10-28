@@ -100,6 +100,36 @@ object ParquetOps {
   }
 
   /**
+    * Retrieve Apache Parquet Groups from schema and reader
+    * @param schema apache parquet schema
+    * @param reader apache parquet reader
+    * @return list of parquet groups
+    */
+  def getParquetGroups(schema: MessageType, reader: ParquetFileReader): mutable.ListBuffer[SimpleGroup] = {
+
+    val groups: mutable.ListBuffer[SimpleGroup] = mutable.ListBuffer.empty
+    var pages = reader.readNextRowGroup()
+
+    var rows = 0L
+
+    while (pages != null) {
+
+      rows = pages.getRowCount
+
+      val columnIO = new ColumnIOFactory().getColumnIO(schema)
+      val recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema))
+
+      (0 until rows.toInt).foreach(_ => groups += recordReader.read().asInstanceOf[SimpleGroup])
+
+      pages = reader.readNextRowGroup()
+
+    }
+
+    groups
+
+  }
+
+  /**
     * Retrieve data in Apache Flink rows
     * @param input parquet schema and reader
     * @return flink rows
@@ -107,7 +137,7 @@ object ParquetOps {
   def retrieveData(input: (MessageType, ParquetFileReader)): mutable.ListBuffer[Row] = {
 
     val (schema, reader) = input
-    val groups: mutable.ListBuffer[SimpleGroup] = mutable.ListBuffer.empty
+    val groups: mutable.ListBuffer[SimpleGroup] = getParquetGroups(input._1, input._2)
     val result: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
 
     val schemaTypes = getSchemaTypes(schema)
