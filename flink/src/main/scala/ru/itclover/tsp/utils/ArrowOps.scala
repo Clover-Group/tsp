@@ -86,21 +86,21 @@ object ArrowOps {
 
     arrowFileWriter.start()
 
-    for(i <- 0 to 100){
+    for (i <- 0 to 100) {
 
       root.setRowCount(10)
 
-      for(field <- root.getSchema.getFields.asScala){
+      for (field <- root.getSchema.getFields.asScala) {
 
         val vector = root.getVector(field.getName)
 
-        if(vector.getMinorType == Types.MinorType.INT){
+        if (vector.getMinorType == Types.MinorType.INT) {
 
           val intVector = vector.asInstanceOf[IntVector]
           intVector.setInitialCapacity(10)
           intVector.allocateNew()
 
-          for(j <- 0 to 10){
+          for (j <- 0 to 10) {
             intVector.setSafe(j, i)
           }
 

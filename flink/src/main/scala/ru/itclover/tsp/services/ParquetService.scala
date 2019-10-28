@@ -15,20 +15,21 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-object ParquetService{
+object ParquetService {
 
   def typesMap = Map(
-    PrimitiveType.PrimitiveTypeName.INT64 -> classOf[Long],
-    PrimitiveType.PrimitiveTypeName.INT32 -> classOf[Int],
-    PrimitiveType.PrimitiveTypeName.INT96 -> classOf[Array[Byte]],
+    PrimitiveType.PrimitiveTypeName.INT64   -> classOf[Long],
+    PrimitiveType.PrimitiveTypeName.INT32   -> classOf[Int],
+    PrimitiveType.PrimitiveTypeName.INT96   -> classOf[Array[Byte]],
     PrimitiveType.PrimitiveTypeName.BOOLEAN -> classOf[Boolean],
-    PrimitiveType.PrimitiveTypeName.FLOAT -> classOf[Float],
-    PrimitiveType.PrimitiveTypeName.DOUBLE -> classOf[Double],
-    OriginalType.UTF8 -> classOf[String]
+    PrimitiveType.PrimitiveTypeName.FLOAT   -> classOf[Float],
+    PrimitiveType.PrimitiveTypeName.DOUBLE  -> classOf[Double],
+    OriginalType.UTF8                       -> classOf[String]
   )
 
   /**
     * Method for retrieving schema and reader from input file
+    *
     * @param inputData file with input data
     * @return tuple with schema and reader
     */
@@ -43,6 +44,7 @@ object ParquetService{
 
   /**
     * Method for converting input to list of values
+    *
     * @param input parquet schema, parquet reader
     * @return list of values
     */
@@ -55,7 +57,7 @@ object ParquetService{
 
     val fieldMap: mutable.Map[String, (PrimitiveType, OriginalType)] = mutable.Map.empty
 
-    for(field <- schemaFields){
+    for (field <- schemaFields) {
       fieldMap += (field.getName -> Tuple2(field.asPrimitiveType, field.getOriginalType))
     }
 
@@ -64,7 +66,7 @@ object ParquetService{
 
     var counter = 0L
 
-    while(pages != null){
+    while (pages != null) {
 
       val rows = pages.getRowCount
       counter += rows
@@ -80,57 +82,61 @@ object ParquetService{
 
     reader.close()
 
-    val rowLimit = groups.length / counter
-
     var result: mutable.ListBuffer[mutable.ListBuffer[(String, Any)]] = mutable.ListBuffer.empty
-    val fieldNames = fieldMap.keys.toList
 
-    for(group <- groups){
+    for (group <- groups) {
 
       val rowResult: mutable.ListBuffer[(String, Any)] = mutable.ListBuffer.empty
 
-      for(i <- 0 until rowLimit.toInt){
+      val fieldCount = group.getType.getFieldCount
 
-        val field = fieldNames(i)
-        val index = i + 1
+      for (i <- 0 until fieldCount) {
 
-        val fieldType = fieldMap(field)
+        val valueCount = group.getFieldRepetitionCount(i)
+
+        val fieldType = group.getType.getType(i)
+        val fieldName = fieldType.getName
+        val fieldMapping = fieldMap(fieldName)
 
         var value: Any = null
 
-        if(typesMap.contains(fieldType._2)){
-          value = group.getString(field, index)
-        }else{
+        for (j <- 0 until valueCount) {
 
-          val valueInfo = typesMap(fieldType._1.getPrimitiveTypeName)
+          if (typesMap.contains(fieldMapping._2)) {
+            value = group.getString(i, j)
+          } else {
 
-          value = valueInfo.getName match {
+            val valueInfo = typesMap(fieldMapping._1.getPrimitiveTypeName)
 
-            case "long" => group.getLong(field, index)
-            case "int" => group.getInteger(field, index)
+            value = valueInfo.getName match {
 
-            //array of bytes
-            case "[B" => group.getBinary(field, index).getBytes
+              case "long" => group.getLong(i, j)
+              case "int"  => group.getInteger(i, j)
 
-            case "boolean" => group.getBoolean(field, index)
-            case "float" => group.getFloat(field, index)
-            case "double" => group.getDouble(field, index)
+              //array of bytes
+              case "[B" => group.getBinary(i, j).getBytes
 
-            case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
+              case "boolean" => group.getBoolean(i, j)
+              case "float"   => group.getFloat(i, j)
+              case "double"  => group.getDouble(i, j)
+
+              case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
+
+            }
 
           }
+
+          rowResult += (fieldName -> value)
+
         }
 
-        rowResult += (field -> value)
+        result += rowResult
 
       }
-
-      result += rowResult
 
     }
 
     result
 
   }
-
 }

@@ -3,7 +3,7 @@ package ru.itclover.tsp.utils
 import java.io.File
 import org.scalatest.{Matchers, WordSpec}
 
-class ParquetOpsTest extends WordSpec with Matchers{
+class ParquetOpsTest extends WordSpec with Matchers {
 
   "ParquetFileReader" should {
 
@@ -14,7 +14,6 @@ class ParquetOpsTest extends WordSpec with Matchers{
       val readResult: List[TempSchema] = ParquetOps.readFromFile(testFile)
 
       readResult.nonEmpty shouldBe true
-
 
     }
 

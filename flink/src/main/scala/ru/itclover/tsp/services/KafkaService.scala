@@ -73,7 +73,9 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
 }
 
 class TimeOutFunction( // delay after which an alert flag is thrown
-  val timeOut: Long, timeIndex: Int, fieldsCount: Int
+  val timeOut: Long,
+  timeIndex: Int,
+  fieldsCount: Int
 ) extends ProcessFunction[Row, Row] {
   // state to remember the last timer set
   private var lastTimer: ValueState[Long] = _

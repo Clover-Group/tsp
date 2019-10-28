@@ -4,7 +4,7 @@ import java.io.File
 
 import org.scalatest.{Matchers, WordSpec}
 
-class ArrowOpsTest extends WordSpec with Matchers{
+class ArrowOpsTest extends WordSpec with Matchers {
 
   "ArrowFileReader" should {
 

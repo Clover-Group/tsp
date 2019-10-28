@@ -6,7 +6,7 @@ import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.schema.MessageType
 import org.scalatest.{Matchers, WordSpec}
 
-class ParquetServiceTest extends WordSpec with Matchers{
+class ParquetServiceTest extends WordSpec with Matchers {
 
   val testFile: File = new File("flink/src/test/resources/parquet/df_billion.parquet")
 

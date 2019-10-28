@@ -14,7 +14,7 @@ case class KafkaInputConf(
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
-  fieldsTypes: Map[String, String],
+  fieldsTypes: Map[String, String]
 ) extends InputConf[Row, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)

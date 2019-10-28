@@ -24,9 +24,9 @@ object ParquetOps {
     val result = new ListBuffer[TempSchema]()
     val parquetIterable = ParquetReader.read[TempSchema](filePath)
 
-    try{
+    try {
       parquetIterable.foreach(elem => result += elem)
-    }finally parquetIterable.close()
+    } finally parquetIterable.close()
 
     result.toList
 

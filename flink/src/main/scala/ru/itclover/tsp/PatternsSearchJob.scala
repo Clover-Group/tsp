@@ -31,8 +31,6 @@ import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 
 import scala.reflect.ClassTag
 
-
-
 case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   fields: Set[InKey],
@@ -43,8 +41,6 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   import PatternsSearchJob._
   import decoders._
   import source.{kvExtractor, eventCreator, keyCreator}
-
-
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
@@ -77,8 +73,12 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
       import source.timeExtractor
-      val singleIncidents = incidentsFromPatterns(applyTransformation(
-        stream.assignAscendingTimestamps(timeExtractor(_).toMillis)), patternsBucket.items, forwardedFields, useWindowing)
+      val singleIncidents = incidentsFromPatterns(
+        applyTransformation(stream.assignAscendingTimestamps(timeExtractor(_).toMillis)),
+        patternsBucket.items,
+        forwardedFields,
+        useWindowing
+      )
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
@@ -114,7 +114,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.transformedPartitioner)
-    val windowed =  if (useWindowing) {
+    val windowed = if (useWindowing) {
       keyedStream
         .window(
           TumblingEventTimeWindows
@@ -123,12 +123,13 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
         )
     } else {
       keyedStream
-            .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-            .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+        .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+        .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
     }
-    val processed = windowed.process[Incident](
-      ProcessorCombinator[In, S, Segment, Incident](mappers)
-    )
+    val processed = windowed
+      .process[Incident](
+        ProcessorCombinator[In, S, Segment, Incident](mappers)
+      )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
     log.debug("incidentsFromPatterns finished")
@@ -140,7 +141,9 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       import source.{extractor, timeExtractor}
       dataStream
         .keyBy(source.partitioner)
-        .process(SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields))
+        .process(
+          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
+        )
         .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }
@@ -187,7 +190,7 @@ object PatternsSearchJob {
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
               p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
-          )
+            )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
