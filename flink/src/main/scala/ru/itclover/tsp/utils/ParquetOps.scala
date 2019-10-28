@@ -27,6 +27,7 @@ object ParquetOps {
     PrimitiveType.PrimitiveTypeName.BOOLEAN -> classOf[Boolean],
     PrimitiveType.PrimitiveTypeName.FLOAT   -> classOf[Float],
     PrimitiveType.PrimitiveTypeName.DOUBLE  -> classOf[Double],
+    PrimitiveType.PrimitiveTypeName.BINARY  -> classOf[String],
     OriginalType.UTF8                       -> classOf[String]
   )
 
@@ -56,6 +57,7 @@ object ParquetOps {
       case "boolean" => group.getBoolean(indices._1, indices._2)
       case "float"   => group.getFloat(indices._1, indices._2)
       case "double"  => group.getDouble(indices._1, indices._2)
+      case "java.lang.String" => group.getString(indices._1, indices._2)
 
       case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
 
