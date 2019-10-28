@@ -2,13 +2,15 @@ package ru.itclover.tsp.utils
 
 import java.io.{File, FileInputStream}
 
-import org.apache.arrow.memory.{BaseAllocator, RootAllocator}
+import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowReader, SeekableReadChannel}
 import org.apache.arrow.vector.{BaseValueVector, BigIntVector, BitVector, FieldVector, Float4Vector, Float8Vector, IntVector, SmallIntVector, VarCharVector, VectorDefinitionSetter}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
+import org.apache.flink.types.Row
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object ArrowOps {
 
@@ -67,12 +69,68 @@ object ArrowOps {
 
   }
 
+  /**
+  *  Method for schema fields
+    * @param schema schema from Apache Arrow
+    * @return list of fields(string)
+    */
   def getSchemaFields(schema: Schema): List[String] = {
 
     schema.getFields
           .asScala
           .map(_.getName)
           .toList
+
+  }
+
+  /**
+  * Retrieve data in Apache Flink rows
+    * @param input arrow schema and reader
+    * @return flink rows
+    */
+  def retrieveData(input: (Schema, ArrowReader, RootAllocator)): mutable.ListBuffer[Row] = {
+
+    val (schema, reader, allocator) = input
+    val schemaFields = getSchemaFields(schema)
+
+    val schemaRoot = reader.getVectorSchemaRoot
+    var rowCount = 0
+
+    var readCondition = reader.loadNextBatch()
+    val result: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
+    val objectsList: mutable.ListBuffer[Any] = mutable.ListBuffer.empty[Any]
+
+    while(readCondition){
+
+      rowCount = schemaRoot.getRowCount
+
+      for (i <- 0 until rowCount){
+
+        for(field <- schemaFields){
+
+          val valueVector = schemaRoot.getVector(field)
+          objectsList += retrieveFieldValue(valueVector).getObject(i)
+
+        }
+
+        val row = new Row(objectsList.size)
+        for(i <- objectsList.indices){
+          row.setField(i, objectsList(i))
+        }
+
+        result += row
+        objectsList.clear()
+
+      }
+
+      readCondition = reader.loadNextBatch()
+
+    }
+
+    reader.close()
+    allocator.close()
+
+    result
 
   }
 
