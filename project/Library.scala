@@ -43,13 +43,14 @@ object Version {
   val parquet = "0.11.0"
   val hadoopClient = "3.2.1"
   val parquetCodecs = "1.10.1"
+  val brotli = "0.1.1"
 
   val twitterUtil = "6.43.0"
 }
 
 object Library {
 
-  val jackson = Seq(
+  val jackson: Seq[ModuleID] = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
     "javax.xml.bind" % "jaxb-api" % Version.jaxb,
@@ -58,25 +59,33 @@ object Library {
     "com.sun.activation" % "javax.activation" % Version.activation
   )
 
-  val logging = Seq(
+  val logging: Seq[ModuleID] = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
     "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
   )
 
-  val config = Seq(
+  val config: Seq[ModuleID] = Seq(
     "com.typesafe" % "config" % Version.config
   )
 
-  val influx = Seq(
+  val influx: Seq[ModuleID] = Seq(
     "org.influxdb" % "influxdb-java" % Version.influx
   )
-  val clickhouse = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
-  val postgre = Seq("org.postgresql" % "postgresql" % Version.postgres)
-  val dbDrivers = influx ++ clickhouse ++ postgre
+  val clickhouse: Seq[ModuleID] = Seq(
+    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse
+  )
 
-  val flinkCore = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
+  val postgre: Seq[ModuleID] = Seq(
+    "org.postgresql" % "postgresql" % Version.postgres
+  )
 
-  val flink = flinkCore ++ Seq(
+  val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
+
+  val flinkCore: Seq[ModuleID] = Seq(
+    "org.apache.flink" %% "flink-scala" % Version.flink
+  )
+
+  val flink: Seq[ModuleID] = flinkCore ++ Seq(
     "org.apache.flink" %% "flink-runtime-web" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
@@ -85,66 +94,67 @@ object Library {
     "org.apache.flink" % "flink-avro" % Version.flink
   )
 
-  val akka = Seq(
+  val akka: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     "com.typesafe.akka" %% "akka-stream" % Version.akka,
     "com.typesafe.akka" %% "akka-testkit" % Version.akka
   )
 
-  val akkaHttp = Seq(
+  val akkaHttp: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
   )
 
-  val cats = Seq(
+  val cats: Seq[ModuleID] = Seq(
     "org.typelevel" %% "cats-core" % Version.cats
   )
 
-  val scrum = Seq(
+  val scrum: Seq[ModuleID] = Seq(
     "com.github.mpilquist" %% "simulacrum" % Version.simulacrum
   )
 
-  val twitterUtil = Seq("com.twitter" %% "util-eval" % Version.twitterUtil)
+  val twitterUtil: Seq[ModuleID] = Seq(
+    "com.twitter" %% "util-eval" % Version.twitterUtil
+  )
 
-  val scalaTest = Seq(
+  val scalaTest: Seq[ModuleID] = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
     "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
     "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
   )
 
-  val perf = Seq(
+  val perf: Seq[ModuleID] = Seq(
     "pl.project13.scala" %% "sbt-jmh" % Version.testContainers % Version.jmh
   )
 
-  val testContainers = Seq(
+  val testContainers: Seq[ModuleID]= Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
     "org.testcontainers" % "kafka" % Version.testContainersKafka % "test"
   )
 
-  val parboiled = Seq(
+  val parboiled: Seq[ModuleID] = Seq(
     "org.parboiled" %% "parboiled" % Version.parboiled
   )
 
-  val sentrylog = Seq(
+  val sentrylog: Seq[ModuleID] = Seq(
     "io.sentry" %% "sentry-logback" % Version.sentry
   )
 
-  val strawman = Seq(
+  val strawman: Seq[ModuleID] = Seq(
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )
 
-  val arrowDeps = Seq(
+  val arrowDeps: Seq[ModuleID] = Seq(
     "org.apache.arrow" % "arrow-memory" % Version.arrow,
     "org.apache.arrow" % "arrow-vector" % Version.arrow
   )
 
-  val parquetDeps = Seq(
-    "com.github.mjakubowski84" %% "parquet4s-core" % Version.parquet,
+  val parquetDeps: Seq[ModuleID] = Seq(
     "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient,
     "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient,
     "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs,
-    "com.github.rdblue" % "brotli-codec" % "0.1.1"
+    "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
 
 }

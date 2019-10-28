@@ -43,7 +43,7 @@ class ParquetServiceTest extends WordSpec with Matchers {
 
         val end = System.nanoTime()
         val elapsedTime = TimeUnit.SECONDS.convert(end - start, TimeUnit.NANOSECONDS)
-        println(s"Execution time for file $path : ${end - start} nanoseconds, $elapsedTime seconds")
+        println(s"Execution time for file $path : ${(end - start) / 1000} milliseconds, $elapsedTime seconds")
 
         result.nonEmpty shouldBe true
 
