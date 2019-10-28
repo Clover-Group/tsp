@@ -11,8 +11,8 @@ class ParquetOpsTest extends WordSpec with Matchers {
   val testFiles: List[File] = new File(
     "flink/src/test/resources/parquet"
   ).listFiles()
-   .filter(_.isFile)
-   .toList
+    .filter(_.isFile)
+    .toList
 
   "ParquetOps" should {
 
@@ -39,7 +39,6 @@ class ParquetOpsTest extends WordSpec with Matchers {
         schemaTypes.keys shouldBe Set("b", "a", "c")
         schemaTypes.values.toList.head._2 shouldBe OriginalType.UTF8
 
-
       })
 
     }
@@ -60,12 +59,12 @@ class ParquetOpsTest extends WordSpec with Matchers {
 
     "retrieve data" in {
 
-      testFiles.foreach(file =>{
+      testFiles.foreach(file => {
 
         val schemaAndReader = ParquetOps.retrieveSchemaAndReader(file)
         val rowData = ParquetOps.retrieveData(schemaAndReader)
 
-        rowData.head.getArity shouldBe 1
+        rowData.head.getArity shouldBe 3
 
       })
 

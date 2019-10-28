@@ -54,9 +54,9 @@ object ParquetOps {
       //array of bytes
       case "[B" => group.getBinary(indices._1, indices._2).getBytes
 
-      case "boolean" => group.getBoolean(indices._1, indices._2)
-      case "float"   => group.getFloat(indices._1, indices._2)
-      case "double"  => group.getDouble(indices._1, indices._2)
+      case "boolean"          => group.getBoolean(indices._1, indices._2)
+      case "float"            => group.getFloat(indices._1, indices._2)
+      case "double"           => group.getDouble(indices._1, indices._2)
       case "java.lang.String" => group.getString(indices._1, indices._2)
 
       case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
@@ -182,7 +182,13 @@ object ParquetOps {
 
         })
 
-        result += Row.of(objectsList)
+        val row = new Row(objectsList.size)
+
+        for(i <- objectsList.indices){
+          row.setField(i, objectsList(i))
+        }
+
+        result += row
         objectsList.clear()
 
       })
