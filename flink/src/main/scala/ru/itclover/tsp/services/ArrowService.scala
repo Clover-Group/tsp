@@ -66,11 +66,9 @@ object ArrowService {
     * @param input arrow schema, arrow reader, arrow allocator
     * @return list of values
     */
-  def convertData(input: (Schema, ArrowReader, BaseAllocator)): ListBuffer[ListBuffer[(String, Any)]] = {
+  def convertData(input: (Schema, ArrowReader, BaseAllocator)) = {
 
-    val schema = input._1
-    val reader = input._2
-    val allocator = input._3
+    val (schema, reader, allocator) = input
 
     val schemaFields: List[String] = schema.getFields
                                            .asScala
@@ -82,7 +80,7 @@ object ArrowService {
 
     var readCondition = reader.loadNextBatch()
 
-    var result: mutable.ListBuffer[mutable.ListBuffer[(String, Any)]] = mutable.ListBuffer.empty
+    val result: mutable.ListBuffer[mutable.ListBuffer[(String, Any)]] = mutable.ListBuffer.empty
 
     while(readCondition){
 
@@ -90,14 +88,14 @@ object ArrowService {
 
       for(i <- 0 until rowCount){
 
-        var rowResult: mutable.ListBuffer[(String, Any)] = mutable.ListBuffer.empty
+        val rowResult: mutable.ListBuffer[(String, Any)] = mutable.ListBuffer.empty
 
         for(field <- schemaFields){
 
           val valueVector = schemaRoot.getVector(field)
 
           if(!typesMap.contains(valueVector.getMinorType)){
-            throw new IllegalArgumentException(s"There is no mapping for Arrow Type ${valueVector.getMinorType}")
+            Left(s"There is no mapping for Arrow Type ${valueVector.getMinorType}")
           }
 
           val valueInfo = typesMap(valueVector.getMinorType)
@@ -113,9 +111,9 @@ object ArrowService {
             case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
           }
 
-          val value = transferredVector.getObject(i)
+          val value: Any = transferredVector.getObject(i)
 
-          rowResult += Tuple2(field, value)
+          rowResult += (field -> value)
 
         }
 

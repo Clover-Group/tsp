@@ -56,7 +56,7 @@ object ParquetService{
     val fieldMap: mutable.Map[String, (PrimitiveType, OriginalType)] = mutable.Map.empty
 
     for(field <- schemaFields){
-      fieldMap += Tuple2(field.getName, Tuple2(field.asPrimitiveType, field.getOriginalType))
+      fieldMap += (field.getName -> Tuple2(field.asPrimitiveType, field.getOriginalType))
     }
 
     var pages = reader.readNextRowGroup()
@@ -121,7 +121,7 @@ object ParquetService{
           }
         }
 
-        rowResult += Tuple2(field, value)
+        rowResult += (field -> value)
 
       }
 
