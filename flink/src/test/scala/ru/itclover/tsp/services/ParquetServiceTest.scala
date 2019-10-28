@@ -20,7 +20,7 @@ class ParquetServiceTest extends WordSpec with Matchers {
 
     "retrieve schema and reader from file" in {
 
-      testPaths.foreach(path =>{
+      testPaths.foreach(path => {
 
         val schemaAndReader = ParquetService.retrieveSchemaAndReader(new File(path))
 

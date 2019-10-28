@@ -19,7 +19,6 @@ import org.apache.arrow.vector.types.pojo.Schema
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
 object ArrowService {
 

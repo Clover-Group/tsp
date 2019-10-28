@@ -64,12 +64,9 @@ object ParquetService {
     var pages = reader.readNextRowGroup()
     val groups: mutable.ListBuffer[SimpleGroup] = mutable.ListBuffer.empty
 
-    var counter = 0L
-
     while (pages != null) {
 
       val rows = pages.getRowCount
-      counter += rows
 
       val columnIO = new ColumnIOFactory().getColumnIO(schema)
       val recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema))
