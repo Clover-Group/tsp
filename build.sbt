@@ -23,8 +23,12 @@ lazy val commonSettings = Seq(
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
   // Comment for production builds
+  addCompilerPlugin(scalafixSemanticdb),
   scalacOptions --= Seq(
     "-Xfatal-warnings"
+  ),
+  scalacOptions ++= Seq(
+    "-Yrangepos",
   ),
   // don't release subprojects
   githubRelease := null,

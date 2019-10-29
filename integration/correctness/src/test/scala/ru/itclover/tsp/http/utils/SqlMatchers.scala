@@ -1,14 +1,14 @@
 package ru.itclover.tsp.http.utils
 
 import org.scalactic.Equality
-import org.scalatest.Matchers
+import org.scalatest.{Assertion, Matchers}
 
 trait SqlMatchers extends Matchers {
 
   /** Util for checking segments count and size in seconds */
   def checkByQuery(expectedValues: Seq[Double], query: String, epsilon: Double = 0.0001)(
     implicit container: JDBCContainer
-  ): Unit = {
+  ): Assertion = {
     val resultSet = container.executeQuery(query)
     val results = new Iterator[Double] {
       override def hasNext: Boolean = resultSet.next

@@ -10,7 +10,9 @@ class ExceptionsTest extends FlatSpec with Matchers {
 
   it should "get string with stacktrace" in {
 
-    val thrownException = the[ArithmeticException] thrownBy 1 / 0
+    val one = 1
+    val zero = 0
+    val thrownException = the[ArithmeticException] thrownBy one / zero
 
     val expectedString = "java.lang.ArithmeticException: / by zero"
     val actualString = Exceptions.getStackTrace(thrownException).substring(0, 40)

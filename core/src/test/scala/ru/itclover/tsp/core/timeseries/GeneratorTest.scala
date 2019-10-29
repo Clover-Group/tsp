@@ -17,7 +17,7 @@ import scala.language.reflectiveCalls
 
 class GeneratorTest extends WordSpec with Matchers {
 
-  def process(e: EInt): Long = e.row
+  def process(e: EInt): Long = e.row.toLong
 
   "test-time-series" should {
 

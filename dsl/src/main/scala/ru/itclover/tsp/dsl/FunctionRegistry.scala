@@ -39,7 +39,7 @@ object DefaultFunctions {
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
-      case value: Result[T]                                          => value
+      case value: Result[_]                                          => value.asInstanceOf[Result[T]]
       case value: T                                                  => Result.succ(value)
       case value if ct.runtimeClass.isAssignableFrom(value.getClass) => Result.succ(value.asInstanceOf[T])
       case v: Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
@@ -229,7 +229,7 @@ object DefaultFunctions {
   }
 
   def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
-    val log = Logger("LogicalLogger")
+    // val log = Logger("LogicalLogger")
 
     // TSP-182 - Workaround for correct type inference
 

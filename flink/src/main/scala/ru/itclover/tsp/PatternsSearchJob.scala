@@ -5,7 +5,6 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichMapFunction
-import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
@@ -16,15 +15,14 @@ import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.TsIdxExtractor
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
-import ru.itclover.tsp.io.EventCreator
-import ru.itclover.tsp.io.input.{KafkaInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
+import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -163,14 +161,12 @@ object PatternsSearchJob {
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
-    getTime: TimeExtractor[E],
-    dDecoder: Decoder[EItem, Double]
+    getTime: TimeExtractor[E]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
 
     val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
-    implicit val impFIM = fieldsIdxMap
 
 //    Pattern that transforms IdxValue[T] into IdxValue[Segment(fromTime, toTime)],
 //     useful when you need not a single point, but the whole time-segment as the result.

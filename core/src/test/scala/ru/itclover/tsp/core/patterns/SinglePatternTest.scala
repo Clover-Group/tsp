@@ -45,7 +45,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
     }
 
     //val pat = new ExtractingPattern[EInt, Symbol, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
-    val pat = new ExtractingPattern('and, 'or)(extractor, MyExtractor, dec)
+    val pat = new ExtractingPattern('and)(extractor, MyExtractor, dec)
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
 

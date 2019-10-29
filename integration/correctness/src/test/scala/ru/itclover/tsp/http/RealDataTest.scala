@@ -2,7 +2,6 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
@@ -10,6 +9,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -24,7 +24,7 @@ import scala.util.Success
 
 class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
@@ -51,7 +51,8 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9083 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/"))
   )
 
   val inputConf = JDBCInputConf(
@@ -83,9 +84,9 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
   "Basic assertions" should "work for wide dense table" in {
@@ -99,8 +100,8 @@ class RealDataTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wit
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
-      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
+      checkByQuery(1275.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
+      checkByQuery(1832.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
 
       // Performance
       val fromT = timeRangeSec.head.toLong
