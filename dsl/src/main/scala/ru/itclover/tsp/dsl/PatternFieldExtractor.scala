@@ -27,8 +27,7 @@ object PatternFieldExtractor {
       dummyIdxExtractor,
       dummyTimeExtractor,
       dummyExtractor,
-      fieldToEKey,
-      cats.instances.long.catsKernelStdOrderForLong
+      fieldToEKey
     )
     patterns
       .map { p =>

@@ -2,14 +2,10 @@ package ru.itclover.tsp.io.output
 
 import java.io.ByteArrayOutputStream
 
-import org.apache.avro.Schema
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
-import org.apache.avro.io.EncoderFactory
-import org.apache.avro.specific.SpecificDatumWriter
-import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.node.ObjectNode
 import org.codehaus.jackson.map.ObjectMapper
 
 trait OutputConf[Event] {

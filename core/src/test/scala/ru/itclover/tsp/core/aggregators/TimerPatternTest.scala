@@ -8,12 +8,11 @@ import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
-import ru.itclover.tsp.core.utils.{Constant, TimeSeriesGenerator, Timer}
-import ru.itclover.tsp.core.{Fail, IdxValue, Patterns, StateMachine, Succ}
+import ru.itclover.tsp.core.utils.{Constant, Timer}
+import ru.itclover.tsp.core._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
-import scala.language.reflectiveCalls
 
 class TimerPatternTest extends WordSpec with Matchers {
 
@@ -30,9 +29,9 @@ class TimerPatternTest extends WordSpec with Matchers {
       val events = (for (time <- Timer(from = Instant.now());
                          idx  <- Increment;
                          row  <- Constant(0).timed(40.seconds).after(Constant(1)))
-        yield Event[Int](time.toEpochMilli, idx, row, 0)).run(seconds = 100)
+        yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[Unit]]()
-      val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
 
       //returns 2 intervals
       collect.size shouldBe 2
@@ -45,9 +44,9 @@ class TimerPatternTest extends WordSpec with Matchers {
       val events = (for (time <- Timer(from = Instant.now());
                          idx  <- Increment;
                          row  <- Constant(1).timed(40.seconds).after(Constant(0)))
-        yield Event[Int](time.toEpochMilli, idx, row, 0)).run(seconds = 100)
+        yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[Unit]]()
-      val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
 
       //returns 2 intervals
 //      collect.size shouldBe 2

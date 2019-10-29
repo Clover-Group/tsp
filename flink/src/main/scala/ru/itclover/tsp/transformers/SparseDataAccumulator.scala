@@ -1,30 +1,25 @@
 package ru.itclover.tsp.transformers
 
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.streaming.api.functions.ProcessFunction
-import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.types.Row
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.KeyCreator
 //import ru.itclover.tsp.phases.NumericPhases.InKeyNumberExtractor
 //import ru.itclover.tsp.EvalUtils
-import ru.itclover.tsp.core.{Pattern, Time}
+import ru.itclover.tsp.core.Time
 //import ru.itclover.tsp.core.Time.TimeNonTransformedExtractor
-import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.io.EventCreator
+import ru.itclover.tsp.io.input.{NarrowDataUnfolding, WideDataFilling}
 //import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
-import ru.itclover.tsp.utils.KeyCreatorInstances._
 
 import scala.collection.mutable
 import scala.util.{Success, Try}
-import scala.util.control.NonFatal
 
 trait SparseDataAccumulator
 
@@ -44,7 +39,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
   keyCreator: KeyCreator[InKey]
-) extends ProcessFunction[InEvent, OutEvent]
+) extends KeyedProcessFunction[String, InEvent, OutEvent]
     with Serializable {
   // potential event values with receive time
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -72,7 +67,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   }
 
   override def processElement(item: InEvent,
-                              ctx: ProcessFunction[InEvent, OutEvent]#Context,
+                              ctx: KeyedProcessFunction[String, InEvent, OutEvent]#Context,
                               out: Collector[OutEvent]): Unit = {
     val time = extractTime(item)
     if (useUnfolding) {
@@ -116,7 +111,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     )
   }
 
-  override def onTimer(timestamp: Long, ctx: ProcessFunction[InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
+  override def onTimer(timestamp: Long, ctx:KeyedProcessFunction[String, InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
     // check if this was the last timer we registered
     if (timestamp == lastTimer.value) {
       // it was, so no data was received afterwards.

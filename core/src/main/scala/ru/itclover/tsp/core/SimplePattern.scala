@@ -1,9 +1,8 @@
 package ru.itclover.tsp.core
 import cats.syntax.foldable._
-import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
-import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
+import ru.itclover.tsp.core.Pattern.{IdxExtractor, QI}
 
 import scala.language.higherKinds
 
@@ -19,12 +18,12 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
     events: Cont[Event]
   ): F[SimplePState[T]] = {
     val (lastElement, newQueue) = events.foldLeft(Option.empty[IdxValue[T]] -> oldState.queue) {
-      case ((None, queue), e: Event) => {
+      case ((None, queue), e) => {
         val value = f(e)
         val idx = e.index(idxExtractor)
         Some(IdxValue(idx, idx, value)) -> queue
       }
-      case ((Some(x @ IdxValue(start, end, prevValue)), queue), e: Event) => {
+      case ((Some(x @ IdxValue(start, end@_, prevValue)), queue), e) => {
         val value = f(e)
         val idx = e.index(idxExtractor)
         // if new value is the same as previous than just expand segment

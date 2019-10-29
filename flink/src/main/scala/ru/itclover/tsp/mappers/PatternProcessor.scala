@@ -9,7 +9,6 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer
 
 import scala.collection.mutable.ListBuffer
-import scala.language.reflectiveCalls
 
 case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner],

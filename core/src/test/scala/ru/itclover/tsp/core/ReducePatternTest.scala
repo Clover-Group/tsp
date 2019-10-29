@@ -2,19 +2,17 @@ package ru.itclover.tsp.core
 
 import java.time.Instant
 
+import cats.instances.int._
 import cats.{Apply, Id, Semigroup}
 import org.scalatest.{Matchers, WordSpec}
+import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core.utils.{Constant, Timer}
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
+import ru.itclover.tsp.core.utils.{Constant, Timer}
 
-import scala.concurrent.duration._
-import ru.itclover.tsp.core.Time._
 import scala.collection.mutable.ArrayBuffer
-
-import cats.instances.int._
-import cats.instances.long._
+import scala.concurrent.duration._
 
 //todo write tests
 class ReducePatternTest extends WordSpec with Matchers {
@@ -23,7 +21,7 @@ class ReducePatternTest extends WordSpec with Matchers {
   val events = (for (time <- Timer(from = Instant.now());
                      idx  <- Increment;
                      row  <- Constant(0).timed(40.seconds).after(Constant(1)))
-    yield Event[Int](time.toEpochMilli, idx, row, -row)).run(seconds = 100)
+    yield Event[Int](time.toEpochMilli, idx.toLong, row, -row)).run(seconds = 100)
 
   implicit val applicativeResult: Apply[Result] = new Apply[Result] {
     override def ap[A, B](ff: Result[A => B])(fa: Result[A]): Result[B] = ff.flatMap(fa.map)
@@ -46,7 +44,7 @@ class ReducePatternTest extends WordSpec with Matchers {
         )
 
       val collect = new ArrayBuffer[IdxValue[Int]]()
-      val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
       //returns 2 intervals
       collect.size shouldBe 2
@@ -66,7 +64,7 @@ class ReducePatternTest extends WordSpec with Matchers {
         )
 
       val collect = new ArrayBuffer[IdxValue[Int]]()
-      val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
       //returns 2 intervals
       collect.nonEmpty shouldBe true

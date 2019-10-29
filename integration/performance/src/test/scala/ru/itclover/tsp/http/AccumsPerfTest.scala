@@ -85,8 +85,8 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
   "Time window (truthMillis)" should "compute in time" in {
@@ -94,7 +94,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       val execTimeS = checkAndGetExecTimeSec()
       // Correctness
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND to - from > 99000"
       )
       // Performance
@@ -110,7 +110,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       val execTimeS = checkAndGetExecTimeSec()
       // Correctness
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND to - from > 99000"
       )
       // Performance
@@ -126,7 +126,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       val execTimeS = checkAndGetExecTimeSec()
       // Correctness
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND to - from > 99000"
       )
       // Performance
@@ -139,7 +139,7 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       val execTimeS = checkAndGetExecTimeSec()
       // Correctness
       checkByQuery(
-        2 :: Nil,
+        2.0 :: Nil,
         "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND to - from > 99000"
       )
       // Performance

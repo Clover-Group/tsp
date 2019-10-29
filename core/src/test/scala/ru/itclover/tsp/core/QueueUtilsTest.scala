@@ -1,6 +1,6 @@
 package ru.itclover.tsp.core
 
-import org.scalatest.{FlatSpec, FunSuite, Matchers}
+import org.scalatest.{FlatSpec, Matchers}
 
 class QueueUtilsTest extends FlatSpec with Matchers {
 

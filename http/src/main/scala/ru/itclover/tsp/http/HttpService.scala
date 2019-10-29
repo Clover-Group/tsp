@@ -45,7 +45,7 @@ trait HttpService extends RoutesProtocols {
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, blockingExecutorContext)
       monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-      validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
+      validation <- ValidationRoutes.fromExecutionContext()
     } yield jobs ~ monitoring ~ validation
 
     log.debug("composeRoutes finished")

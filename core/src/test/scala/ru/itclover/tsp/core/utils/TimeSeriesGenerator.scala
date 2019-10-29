@@ -1,7 +1,6 @@
 package ru.itclover.tsp.core.utils
 
 import java.time.Instant
-import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.duration.{Duration, _}
 import scala.util.Random

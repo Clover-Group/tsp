@@ -1,9 +1,7 @@
 package ru.itclover.tsp.core
 
-import org.scalatest.{Matchers, WordSpec}
-import org.scalatest.{FlatSpec, Matchers}
-import cats.kernel.Order._
 import cats.instances.long._
+import org.scalatest.{FlatSpec, Matchers}
 
 class IdxValueTest extends FlatSpec with Matchers {
 

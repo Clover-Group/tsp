@@ -23,6 +23,6 @@ object Common {
   val event: Event[Int] = Event[Int](0L, 0L, 0, 0)
 
   // Dummy event processing
-  def procEvent(ev: EInt): Long = ev.row
+  def procEvent(ev: EInt): Long = ev.row.toLong
 
 }

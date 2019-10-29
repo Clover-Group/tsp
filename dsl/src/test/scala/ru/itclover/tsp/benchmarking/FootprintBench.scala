@@ -3,11 +3,9 @@ package ru.itclover.tsp.benchmarking
 import cats._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
 class FootprintBench extends FlatSpec with Matchers {
@@ -27,7 +25,7 @@ class FootprintBench extends FlatSpec with Matchers {
     val sm = StateMachine[Id]
     val initialState = pattern.initialState()
     val collect = new ArrayBuffer[(Long, Long)](events.size)
-    val actState = sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += (x.start -> x.end), 1000)
+    sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += (x.start -> x.end), 1000)
     val time = (System.nanoTime() - start) / 1000000
     println(time)
     time
@@ -42,7 +40,6 @@ class FootprintBench extends FlatSpec with Matchers {
   it should "benchmark" in {
 
     val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
-    val expectedTime = 3000
 
     val patternString = gen
       .build(
@@ -55,8 +52,8 @@ class FootprintBench extends FlatSpec with Matchers {
       ._1
 
 //    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
-//    val actualTime = repeat(5, 1000000, patternString)
-//    println(actualTime)
+    val actualTime = repeat(5, 1000, patternString)
+    println(actualTime)
 
   }
 

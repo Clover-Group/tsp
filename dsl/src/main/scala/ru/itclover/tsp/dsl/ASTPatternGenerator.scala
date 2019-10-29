@@ -1,6 +1,5 @@
 package ru.itclover.tsp.dsl
 
-import cats.Order
 import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
@@ -17,8 +16,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey,
-  idxOrd: Order[Idx]
+  @transient fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
@@ -50,14 +48,14 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case id: Identifier =>
         id.valueType match {
           case IntASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value)
           case LongASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value)
           case DoubleASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value, id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
+          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -155,10 +153,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
-            case TimeInterval(_, max)    => max < fwi.window.toMillis
-            case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
-            case _                       => true
-          })
+              case TimeInterval(_, max)    => max < fwi.window.toMillis
+              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
+              case _                       => true
+            })
           val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)

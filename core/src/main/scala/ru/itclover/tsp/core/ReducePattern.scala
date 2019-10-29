@@ -1,9 +1,9 @@
 package ru.itclover.tsp.core
-import cats.syntax.traverse._
-import cats.syntax.functor._
 import cats.instances.list._
-import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.Pattern.{Idx, QI}
+import cats.syntax.functor._
+import cats.syntax.traverse._
+import cats.{Foldable, Functor, Monad}
+import ru.itclover.tsp.core.Pattern.QI
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
@@ -20,8 +20,6 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   val transform: Result[T2] => Result[T2],
   val filterCond: Result[T1] => Boolean,
   val initial: Result[T2]
-)(
-  implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](

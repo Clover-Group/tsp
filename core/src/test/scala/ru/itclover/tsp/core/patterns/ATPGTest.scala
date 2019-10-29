@@ -6,16 +6,11 @@ import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.fixtures.Common._
 import ru.itclover.tsp.core.fixtures.Event
 
-import scala.language.reflectiveCalls
-
 class ATPGTest extends FlatSpec with Matchers {
 
   it should "auto generate all patterns" in {
 
     val testNum = 5
-
-    // Expected state
-    val expState = SimplePState(PQueue.empty)
 
     // Actual state
     val ev = Event[Int](0L, 0, testNum, 0)

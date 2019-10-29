@@ -16,7 +16,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
     val testQueue = MutablePQueue[Int]()
 
     (0 to 1000)
-      .foreach(i => testQueue.enqueue(IdxValue(i, i, Result.succ(i))))
+      .foreach(i => testQueue.enqueue(IdxValue(i.toLong, i.toLong, Result.succ(i))))
 
     "retrieve head option" in {
 
@@ -114,7 +114,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
       val testQueue = MutablePQueue[Int]()
 
       (0 to 1000)
-        .foreach(i => testQueue.enqueue(IdxValue(2* i, 2*i + 1, Result.succ(i))))
+        .foreach(i => testQueue.enqueue(IdxValue(2 * i.toLong, 2 * i.toLong + 1, Result.succ(i))))
 
       testQueue
     }

@@ -1,12 +1,8 @@
 package ru.itclover.tsp.core
 import java.util
 
-import ru.itclover.tsp.core
 import ru.itclover.tsp.core.Pattern.Idx
-
 import scala.annotation.tailrec
-import scala.collection.convert.ImplicitConversionsToJava._
-import scala.language.implicitConversions
 
 trait PQueue[T] {
 

@@ -1,6 +1,5 @@
 package ru.itclover.tsp.io.input
 
-import org.apache.flink.types.Row
 import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.services.InfluxDBService
 

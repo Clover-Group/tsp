@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.optimizations
 
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.{Patterns, Window}
+import ru.itclover.tsp.core.Patterns
 import ru.itclover.tsp.core.fixtures.Common._
 
 class OptimizerTest extends FlatSpec with Matchers {

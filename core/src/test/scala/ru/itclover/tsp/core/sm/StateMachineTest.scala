@@ -9,7 +9,6 @@ import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.fixtures.Common._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.reflectiveCalls
 
 class StateMachineTest extends FlatSpec with Matchers {
 

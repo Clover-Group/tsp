@@ -1,6 +1,4 @@
 package ru.itclover.tsp.io
-import java.util.concurrent.atomic.AtomicLong
-
 import org.apache.flink.types.Row
 import ru.itclover.tsp.RowWithIdx
 

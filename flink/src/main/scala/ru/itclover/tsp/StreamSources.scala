@@ -58,12 +58,12 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(key, value, _, _)) =>
       (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
-    case Some(WideDataFilling(fieldsTimeoutsMs, defaultTimeout)) =>
-      (r: Event) => sys.error("Wide data filling does not need K-V extractor")
+    case Some(WideDataFilling(_, _)) =>
+      (_: Event) => sys.error("Wide data filling does not need K-V extractor")
     case Some(_) =>
-      (r: Event) => sys.error("Unsupported data transformation")
+      (_: Event) => sys.error("Unsupported data transformation")
     case None =>
-      (r: Event) => sys.error("No K-V extractor without data transformation")
+      (_: Event) => sys.error("No K-V extractor without data transformation")
   }
 
   implicit def eventCreator: EventCreator[Event, EKey]
@@ -192,7 +192,7 @@ case class JdbcSource(
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
         createTypeInformation[RowWithIdx],
         timeExtractor,
@@ -331,7 +331,7 @@ case class InfluxDBSource(
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
         createTypeInformation[RowWithIdx],
         timeExtractor,
@@ -429,7 +429,7 @@ case class KafkaSource(
   }
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(value) =>
+    case Some(_) =>
       val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
         createTypeInformation[RowWithIdx],
         timeExtractor,

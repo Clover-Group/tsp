@@ -3,11 +3,9 @@ package ru.itclover.tsp.core
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.PQueue._
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 
 import scala.annotation.tailrec
-import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /** Couple Pattern */
@@ -48,9 +46,9 @@ case class CouplePattern[Event: IdxExtractor, State1 <: PState[T1, State1], Stat
 
       (first.headOption, second.headOption) match {
         // if any of parts is empty -> do nothing
-        case (_, None)                                                                            => default
-        case (None, _)                                                                            => default
-        case (Some(iv1 @ IdxValue(start1, end1, val1)), Some(iv2 @ IdxValue(start2, end2, val2))) =>
+        case (_, None)                                                                => default
+        case (None, _)                                                                => default
+        case (Some(IdxValue(start1, end1, val1)), Some(IdxValue(start2, end2, val2))) =>
           // we emit result only if results on left and right sides come at the same time
           if (idxOrd.eqv(start1, start2)) {
             val result: Result[T3] = func(val1, val2)

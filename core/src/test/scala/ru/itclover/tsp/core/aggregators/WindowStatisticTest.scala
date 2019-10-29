@@ -4,16 +4,15 @@ import java.time.Instant
 
 import cats.Id
 import org.scalatest.{Matchers, WordSpec}
+import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core.{Fail, IdxValue, Patterns, StateMachine, Succ}
-import ru.itclover.tsp.core.utils.{Constant, Timer}
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
-
-import scala.concurrent.duration._
-import ru.itclover.tsp.core.Time._
+import ru.itclover.tsp.core.utils.{Constant, Timer}
+import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine, Succ}
 
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 
 class WindowStatisticTest extends WordSpec with Matchers {
 
@@ -30,9 +29,9 @@ class WindowStatisticTest extends WordSpec with Matchers {
       val events = (for (time <- Timer(from = Instant.now());
                          idx  <- Increment;
                          row  <- Constant(0).timed(40.seconds).after(Constant(1)))
-        yield Event[Int](time.toEpochMilli, idx, row, 0)).run(seconds = 100)
+        yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[_]]()
-      val finalState = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => collect += x)
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => collect += x)
 
       collect.size shouldBe 100
       collect(0) shouldBe IdxValue(0, 0, Succ(0))

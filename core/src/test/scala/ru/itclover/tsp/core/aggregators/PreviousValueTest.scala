@@ -22,7 +22,7 @@ class PreviousValueTest extends WordSpec with Matchers {
     val events = (for (time <- Timer(from = Instant.now());
                        idx  <- Increment;
                        row  <- Increment)
-      yield Event[Int](time.toEpochMilli, idx, row, 0)).run(seconds = 100)
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
 
     "return prev values for success" in {
 
@@ -31,7 +31,6 @@ class PreviousValueTest extends WordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[Int]]()
       StateMachine[Id].run(previousPattern, events, previousPattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
-      println(collect)
       collect.size shouldBe 90
       collect.foreach(idxv => idxv.value.map(value => value + 10 shouldBe idxv.start).getOrElse(true shouldBe false))
 
@@ -43,7 +42,6 @@ class PreviousValueTest extends WordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[Unit]]()
       StateMachine[Id].run(previousPattern, events, previousPattern.initialState(), (x: IdxValue[Unit]) => collect += x)
 
-      println(collect)
       collect.size shouldBe 0
 
     }

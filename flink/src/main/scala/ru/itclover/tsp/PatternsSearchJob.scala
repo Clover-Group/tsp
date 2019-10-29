@@ -5,7 +5,6 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.functions.RichMapFunction
-import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
@@ -17,15 +16,14 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
-import ru.itclover.tsp.core.io.{BasicDecoders, Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
+import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
-import ru.itclover.tsp.io.EventCreator
-import ru.itclover.tsp.io.input.{KafkaInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.utils.{Bucketizer, KeyCreator}
+import ru.itclover.tsp.utils.Bucketizer
 import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -41,14 +39,14 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   import PatternsSearchJob._
   import decoders._
-  import source.{kvExtractor, eventCreator, keyCreator}
+  import source.{eventCreator, keyCreator, kvExtractor}
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
-    import source.{transformedExtractor, transformedTimeExtractor, idxExtractor}
+    import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
@@ -116,20 +114,21 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       .keyBy(source.transformedPartitioner)
     val windowed =
       if (useWindowing) {
-      keyedStream
-        .window(
-          TumblingEventTimeWindows
-            .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-            .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-        )
-    } else {
-      keyedStream
-            .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-            .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
-    }
-    val processed = windowed.process[Incident](
-      ProcessorCombinator[In, S, Segment, Incident](mappers, timeExtractor)
-    )
+        keyedStream
+          .window(
+            TumblingEventTimeWindows
+              .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+          )
+      } else {
+        keyedStream
+          .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+          .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+      }
+    val processed = windowed
+      .process[Incident](
+        ProcessorCombinator[In, S, Segment, Incident](mappers, timeExtractor)
+      )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
     log.debug("incidentsFromPatterns finished")
@@ -164,20 +163,17 @@ object PatternsSearchJob {
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
-    idxExtractor: IdxExtractor[E],
-    dDecoder: Decoder[EItem, Double]
+    idxExtractor: IdxExtractor[E] /*,
+    dDecoder: Decoder[EItem, Double]*/
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
-
-    implicit val impFIM = fieldsIdxMap
 
     val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
       idxExtractor,
       getTime,
       extractor,
-      fieldsIdxMap,
-      cats.instances.long.catsKernelStdOrderForLong
+      fieldsIdxMap
     )
     val res = Traverse[List]
       .traverse(rawPatterns.toList)(
@@ -186,7 +182,12 @@ object PatternsSearchJob {
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
-              p => (new TimestampsAdderPattern(SegmentizerPattern(p._1)).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+              p =>
+                (
+                  new TimestampsAdderPattern(SegmentizerPattern(p._1))
+                    .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+                  p._2
+                )
             )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )

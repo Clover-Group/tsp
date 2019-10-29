@@ -12,7 +12,7 @@ import ru.itclover.tsp.core.{Pat, _}
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer.S
 
-import scala.language.{existentials, higherKinds, reflectiveCalls}
+import scala.language.{existentials, higherKinds}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
@@ -89,8 +89,8 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
     case x: TimestampsAdderPattern[E, _, _] if optimizable(x.inner) =>
       new TimestampsAdderPattern(forceState(optimizePat(x.inner)))
     case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
-      def cast[S <: PState[T, S], T](pats: Seq[Pat[E, T]]): Seq[Pattern[E, S, T]] forSome { type S <: PState[T, S] } =
-        pats.asInstanceOf[Seq[Pattern[E, S, T]]]
+      def cast[St <: PState[Ty, St], Ty](pats: Seq[Pat[E, Ty]]): Seq[Pattern[E, St, Ty]] forSome { type St <: PState[Ty, St] } =
+        pats.asInstanceOf[Seq[Pattern[E, St, Ty]]]
       new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
     }
     case x @ GroupPattern(inner, window) if optimizable(inner) => {
@@ -107,7 +107,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   // Need to cast Pat[E,T] to some Pattern type. Pattern has restriction on State
   // type parameters which is constant, so simple asInstanceOf complains on
   // unmet restrictions.
-  private def forceState[E, T](pat: Pat[E, T]): Pattern[E, S[T], T] =
+  private def forceState[T](pat: Pat[E, T]): Pattern[E, S[T], T] =
     pat.asInstanceOf[Pattern[E, S[T], T]]
 }
 

@@ -1,5 +1,4 @@
 package ru.itclover.tsp.io.input
-import org.apache.flink.types.Row
 import ru.itclover.tsp.RowWithIdx
 
 /**

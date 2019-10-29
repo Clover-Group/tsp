@@ -1,11 +1,10 @@
 package ru.itclover.tsp.core
 
-import cats.{Foldable, Functor, Monad}
 import cats.syntax.functor._
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.QI
 
 import scala.annotation.tailrec
-import scala.languageFeature.higherKinds
 
 /*
 Joins together sequential outputs of the inner pattern with the same value. It reduces amount of produced results.

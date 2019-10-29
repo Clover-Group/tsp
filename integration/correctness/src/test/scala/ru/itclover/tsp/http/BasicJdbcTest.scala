@@ -2,13 +2,13 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
@@ -39,14 +39,15 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
       )
     )
 
-  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8148
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/"))
   )
 
   val inputConf = JDBCInputConf(
@@ -82,10 +83,10 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").map(container.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
@@ -95,24 +96,24 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        2 :: Nil,
+        2.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
 
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65002'"
       )
 
       checkByQuery(
-        1 :: Nil,
+        1.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
       )
@@ -128,12 +129,12 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        0 :: Nil,
+        0.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        2 :: Nil,
+        2.0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
