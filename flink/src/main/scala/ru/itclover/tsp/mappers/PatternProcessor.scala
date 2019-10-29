@@ -3,7 +3,7 @@ package ru.itclover.tsp.mappers
 import cats.Id
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.util.Collector
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.{Time, _}
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer
@@ -15,18 +15,17 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
   pattern: Pattern[E, State, Inner],
   patternMaxWindow: Long,
   mapResults: E => Inner => Out,
-  eventsMaxGapMs: Long,
-  emptyEvent: E
+  eventsMaxGapMs: Long
 )(
-  implicit timeExtractor: TimeExtractor[E]
+  implicit timeExtractor: TimeExtractor[E],
+  idxExtractor: IdxExtractor[E]
 ) {
 
-  implicit val tsToIdx = new TsIdxExtractor[E](timeExtractor(_).toMillis)
   val optimizer: Optimizer[E] = new Optimizer[E]()
   val log = Logger("PatternLogger")
   var lastState: Optimizer.S[Out] = _
   var lastTime: Time = Time(0)
-  log.info(s"pattern: $pattern, inner: $pattern.inner")
+  log.debug(s"pattern: $pattern")
 
   def process(
     // key: String,
@@ -40,7 +39,7 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
 
     val firstElement = elements.head
     val mapFunction = mapResults(firstElement) // do not inline!
-    val mappedPattern: MapPattern[E, Inner, Out, State] = new MapPattern(pattern)(in => Result.succ(mapFunction(in)))
+    val mappedPattern: MapPattern[E, Inner, Out, State] = MapPattern(pattern)(in => Result.succ(mapFunction(in)))
 
     val optimizedPattern = new Optimizer[E].optimize(mappedPattern)
     val initialState = optimizedPattern.initialState()

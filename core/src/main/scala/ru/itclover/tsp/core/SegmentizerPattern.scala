@@ -11,7 +11,7 @@ import scala.languageFeature.higherKinds
 Joins together sequential outputs of the inner pattern with the same value. It reduces amount of produced results.
  */
 case class SegmentizerPattern[Event, T, InnerState <: PState[T, InnerState]](inner: Pattern[Event, InnerState, T])
-    extends Pattern[Event, InnerState, T] {
+    extends Pattern[Event, SegmentizerPState[InnerState, T], T] {
 //todo tests
 
   @tailrec
@@ -29,15 +29,22 @@ case class SegmentizerPattern[Event, T, InnerState <: PState[T, InnerState]](inn
   }
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    oldState: InnerState,
+    oldState: SegmentizerPState[InnerState, T],
     event: Cont[Event]
-  ): F[InnerState] =
-    inner(oldState, event).map(innerResult => {
+  ): F[SegmentizerPState[InnerState, T]] =
+    inner(oldState.innerState, event).map(innerResult => {
       innerResult.queue.dequeueOption() match {
-        case None               => innerResult
-        case Some((head, tail)) => innerResult.copyWith(inner(tail, head, PQueue.empty))
+        case None => SegmentizerPState(innerResult, oldState.queue)
+        case Some((head, tail)) =>
+          val newQueue = inner(tail, head, oldState.queue) // do not inline!
+          SegmentizerPState(innerResult.copyWith(PQueue.empty), newQueue)
       }
     })
 
-  override def initialState(): InnerState = inner.initialState()
+  override def initialState(): SegmentizerPState[InnerState, T] = SegmentizerPState(inner.initialState(), PQueue.empty)
+}
+
+case class SegmentizerPState[InnerState, T](innerState: InnerState, override val queue: QI[T])
+    extends PState[T, SegmentizerPState[InnerState, T]] {
+  override def copyWith(queue: QI[T]): SegmentizerPState[InnerState, T] = this.copy(queue = queue)
 }

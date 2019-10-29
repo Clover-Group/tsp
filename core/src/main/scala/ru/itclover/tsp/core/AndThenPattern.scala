@@ -52,11 +52,11 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
       (first.headOption, second.headOption) match {
         case (None, _) => default
         case (_, None) => default
-        case (Some(iv1 @ IdxValue(start1, end1, value1)), Some(iv2 @ IdxValue(start2, end2, value2))) =>
+        case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
           if (value1.isFail) {
             inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
           } else if (value2.isFail) {
-            inner(first.rewindTo(end2 + 1), second, total.enqueue(IdxValue(start1, end2, Fail)))
+            inner(first.rewindTo(end2 + 1), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
           } else { // at this moment both first and second results are not Fail.
             // late event from second, just skip it
             // first            |-------|
@@ -96,5 +96,3 @@ case class AndThenPState[T1, T2, State1 <: PState[T1, State1], State2 <: PState[
 
   override def copyWith(queue: QI[(Idx, Idx)]): AndThenPState[T1, T2, State1, State2] = this.copy(queue = queue)
 }
-
-object AndThenPState {}

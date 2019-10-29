@@ -51,23 +51,8 @@ object Pattern {
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
-  }
 
-  //todo выкинуть, переписать
-  class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
-    val maxCounter: Int = 10e5.toInt // should be power of 10
-    var counter: Int = 0
-
-    override def apply(e: Event): Idx = {
-      counter = (counter + 1) % maxCounter
-      tsToIdx(eventToTs(e))
-    }
-
-    override def compare(x: Idx, y: Idx): Int = idxToTs(x) compare idxToTs(y)
-
-    def idxToTs(idx: Idx): Long = idx / maxCounter
-
-    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter //todo ts << 5 & counter ?
+    def comap[A](f: A => Event): IdxExtractor[A] = IdxExtractor.of(f.andThen(apply))
   }
 
   object IdxExtractor {

@@ -10,6 +10,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.types.Row
 import org.scalatest.FlatSpec
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
@@ -50,7 +51,7 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     s"jdbc:clickhouse://localhost:$port/default"
   )
 
-  val transformation = NarrowDataUnfolding[Row, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
+  val transformation = NarrowDataUnfolding[RowWithIdx, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
 
   val inputConf = JDBCInputConf(
     sourceId = 123,
