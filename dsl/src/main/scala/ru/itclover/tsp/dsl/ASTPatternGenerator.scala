@@ -7,7 +7,6 @@ import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
@@ -44,7 +43,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-
+    import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -57,7 +56,12 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
             new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case StringASTType =>
+            new ExtractingPattern[Event, EKey, EItem, String, AnyState[String]](id.value)
+          case NullASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case AnyASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -83,12 +87,11 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    registry.functions
+                    registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
                       .getOrElse(
-                        (fc.functionName, fc.arguments.map(_.valueType)),
                         sys.error(
                           s"Function ${fc.functionName} with argument types " +
-                          s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
+                          s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
                         )
                       )
                       ._1(

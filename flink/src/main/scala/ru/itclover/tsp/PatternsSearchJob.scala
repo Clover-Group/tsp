@@ -182,7 +182,12 @@ object PatternsSearchJob {
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
-              p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+              p =>
+                p match {
+                  case (null, _) => sys.error("Pattern is nulle")
+                  case _ =>
+                    (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+                }
           )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
