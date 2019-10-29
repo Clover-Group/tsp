@@ -159,7 +159,7 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redis
   )
   .dependsOn(core, config, dsl)
 

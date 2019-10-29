@@ -1,17 +1,16 @@
 package ru.itclover.tsp.io.input
 
-import java.util.UUID
 import org.apache.flink.types.Row
 
-@SerialVersionUID(91000L)
-case class KafkaInputConf(
-  brokers: String,
-  topic: String,
-  group: String = UUID.randomUUID().toString,
+case class RedisInputConf(
+  host: String,
+  port: Int,
+  database: Option[String] = None,
+  password: Option[String] = None,
+  clusterNodes: Option[Seq[String]] = None,
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
-  timestampMultiplier: Option[Double] = Some(1000.0),
   fieldsTypes: Map[String, String]
 ) extends InputConf[Row, Symbol, Any] {
 

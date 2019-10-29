@@ -17,8 +17,9 @@ object EventCreatorInstances {
     }
     override def emptyEvent(fieldsIdxMap: Map[Symbol, Int]): Row = {
       val row = new Row(fieldsIdxMap.keySet.toSeq.length)
-      fieldsIdxMap.foreach { case (_, i) =>
-        row.setField(i, 0)
+      fieldsIdxMap.foreach {
+        case (_, i) =>
+          row.setField(i, 0)
       }
       row
     }
@@ -34,8 +35,9 @@ object EventCreatorInstances {
     }
     override def emptyEvent(fieldsIdxMap: Map[Int, Int]): Row = {
       val row = new Row(fieldsIdxMap.keySet.toSeq.length)
-      fieldsIdxMap.foreach { case (_, i) =>
-        row.setField(i, 0)
+      fieldsIdxMap.foreach {
+        case (_, i) =>
+          row.setField(i, 0)
       }
       row
     }

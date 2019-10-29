@@ -41,6 +41,9 @@ object Version {
   val sentry = "1.7.27"
 
   val twitterUtil = "6.43.0"
+
+  val redis = "2.2.6"
+
 }
 
 object Library {
@@ -135,4 +138,9 @@ object Library {
       .excludeAll(ExclusionRule("io.netty", "netty-common"))
       .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
   )
+
+  val redis = Seq(
+    "com.github.scredis" %% "scredis" % Version.redis
+  )
+
 }
