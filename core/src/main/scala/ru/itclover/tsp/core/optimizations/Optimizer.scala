@@ -16,7 +16,7 @@ import scala.language.{existentials, higherKinds}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
-  def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T])
+  def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
 
   def optimizable[T](pat: Pat[E, T]): Boolean =
     optimizations[T].exists(_.isDefinedAt(pat))
@@ -73,6 +73,11 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       SimplePattern[E, T](e => simple.f(e).flatMap(map.func))
   }
 
+  private def mapOfMap[T]: OptimizeRule[T] = {
+    case Pat(map @ MapPattern(Pat(innerMap @ MapPattern(inner)))) =>
+      MapPattern(forceState(inner))(t => innerMap.func(t).flatMap(map.func))
+  }
+
   private def optimizeInners[T]: OptimizeRule[T] = {
     case AndThenPattern(first, second) if optimizable(first) || optimizable(second) =>
       AndThenPattern(
@@ -89,7 +94,9 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
     case x: TimestampsAdderPattern[E, _, _] if optimizable(x.inner) =>
       new TimestampsAdderPattern(forceState(optimizePat(x.inner)))
     case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
-      def cast[St <: PState[Ty, St], Ty](pats: Seq[Pat[E, Ty]]): Seq[Pattern[E, St, Ty]] forSome { type St <: PState[Ty, St] } =
+      def cast[St <: PState[Ty, St], Ty](
+        pats: Seq[Pat[E, Ty]]
+      ): Seq[Pattern[E, St, Ty]] forSome { type St <: PState[Ty, St] } =
         pats.asInstanceOf[Seq[Pattern[E, St, Ty]]]
       new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
     }
