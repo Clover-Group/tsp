@@ -14,7 +14,7 @@ object PatternFieldExtractor {
       override def apply(e: E): Time = Time(0)
     }
     val dummyExtractor = new Extractor[E, EKey, EItem] {
-      override def apply[T](e: E, k: EKey)(implicit d: Decoder[EItem, T]): T = null.asInstanceOf[T]
+      override def apply[T](k: EKey)(implicit d: Decoder[EItem, T]): E => T = _ => null.asInstanceOf[T]
     }
 
     val dummyIdxExtractor = new IdxExtractor[E] {

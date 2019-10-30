@@ -43,10 +43,14 @@ object RowOps {
   }
 
   case class RowSymbolExtractor(fieldIdxMap: Map[Symbol, Int]) extends Extractor[Row, Symbol, Any] {
-    def apply[T](r: Row, s: Symbol)(implicit d: Decoder[Any, T]): T = d(r.getField(fieldIdxMap(s)))
+
+    def apply[T](s: Symbol)(implicit d: Decoder[Any, T]): Row => T = {
+      val indexOfField = fieldIdxMap(s)
+      (r: Row) => d(r.getField(indexOfField))
+    }
   }
 
   case class RowIdxExtractor() extends Extractor[Row, Int, Any] {
-    def apply[T](r: Row, i: Int)(implicit d: Decoder[Any, T]): T = d(r.getFieldOrThrow(i))
+    def apply[T](i: Int)(implicit d: Decoder[Any, T]): Row => T = r => d(r.getFieldOrThrow(i))
   }
 }

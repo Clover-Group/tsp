@@ -20,15 +20,16 @@ object TestEvents {
     override def compare(x: Idx, y: Idx): Int = x.compare(y)
   }
   implicit val extractor: Extractor[TestEvent, Symbol, Any] = new Extractor[TestEvent, Symbol, Any] {
-    override def apply[T](e: TestEvent, k: Symbol)(
+    override def apply[T](k: Symbol)(
       implicit d: Decoder[Any, T]
-    ): T = d(k match {
-      case 'intSensor     => e.intSensor
-      case 'longSensor    => e.longSensor
-      case 'boolSensor    => e.boolSensor
-      case 'doubleSensor1 => e.doubleSensor1
-      case 'doubleSensor2 => e.doubleSensor2
-      case _              => null
-    })
+    ): TestEvent => T = (e: TestEvent) =>
+      d(k match {
+        case 'intSensor     => e.intSensor
+        case 'longSensor    => e.longSensor
+        case 'boolSensor    => e.boolSensor
+        case 'doubleSensor1 => e.doubleSensor1
+        case 'doubleSensor2 => e.doubleSensor2
+        case _              => null
+      })
   }
 }
