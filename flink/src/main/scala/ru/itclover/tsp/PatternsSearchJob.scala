@@ -251,10 +251,9 @@ object PatternsSearchJob {
         res
 
       case redisConf: RedisOutputConf =>
-
         val outputInfo = SerializerInfo(
-          key=redisConf.key,
-          serializerType=redisConf.serializer
+          key = redisConf.key,
+          serializerType = redisConf.serializer
         )
 
         val redisSink = new RedisSinkFunction(redisConf, outputInfo).asInstanceOf[RedisSinkFunction[E]]

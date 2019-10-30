@@ -8,6 +8,7 @@ import com.dimafeng.testcontainers.{Container, ForAllTestContainer, GenericConta
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{FlatSpec, Matchers}
+import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
@@ -42,10 +43,11 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
 
   override val container: GenericContainer = new GenericContainer(
     "redis:latest",
-    exposedPorts = Seq(6380)
+    exposedPorts = Seq(6380),
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200))
   )
 
-  val redisURL = s"redis://@${container.containerIpAddress}:${container.exposedPorts.head}/"
+  val redisURL = s"redis://@${container.containerIpAddress}:${container.mappedPort(6380)}/"
 
   val inputConf = RedisInputConf(
     url = redisURL,

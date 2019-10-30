@@ -11,7 +11,17 @@ import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, RedisInputConf, SerializerInfo, WideDataFilling}
+import ru.itclover.tsp.io.input.{
+  InfluxDBInputConf,
+  InfluxDBInputFormat,
+  InputConf,
+  JDBCInputConf,
+  KafkaInputConf,
+  NarrowDataUnfolding,
+  RedisInputConf,
+  SerializerInfo,
+  WideDataFilling
+}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, RedisService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
@@ -517,7 +527,7 @@ case class RedisSource(
   override def createStream: DataStream[Row] = {
 
     val info = SerializerInfo(
-      key=conf.key,
+      key = conf.key,
       serializerType = conf.serializer
     )
     val rows: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]

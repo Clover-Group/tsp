@@ -120,7 +120,7 @@ object RedisService {
   }
 
   /**
-  * Helper method to prepare Redis client
+    * Helper method to prepare Redis client
     * @param redisURL redis connection url
     * @return redis client
     */
@@ -134,9 +134,9 @@ object RedisService {
       database = {
         val database = uri.getPath.replace("/", "")
 
-        if(database.isEmpty || !Character.isDigit(database.charAt(0))){
+        if (database.isEmpty || !Character.isDigit(database.charAt(0))) {
           0
-        }else{
+        } else {
           database.asInstanceOf[Int]
         }
 
