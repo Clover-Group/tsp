@@ -141,7 +141,19 @@ object RedisService {
         }
 
       },
-      passwordOpt = Some(uri.getUserInfo.split(":")(1))
+      passwordOpt = {
+        val userInfo = uri.getUserInfo.split(":")
+
+        if(userInfo.length == 1 && userInfo(0).isEmpty){
+          None
+        }else if(!userInfo(0).isEmpty){
+          Some(userInfo(0))
+        }else{
+          Some(userInfo(1))
+        }
+
+
+      }
     )
 
   }

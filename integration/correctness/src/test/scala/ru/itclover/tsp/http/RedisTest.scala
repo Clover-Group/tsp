@@ -41,13 +41,17 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     )
   )
 
+  val redisPort = 6380
+
   override val container: GenericContainer = new GenericContainer(
     "redis:latest",
-    exposedPorts = Seq(6380),
-    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200))
+    exposedPorts = Seq(redisPort),
+    waitStrategy = Some(Wait.forLogMessage(".*Ready to accept connections.*\\n", 1))
   )
 
-  val redisURL = s"redis://@${container.containerIpAddress}:${container.mappedPort(6380)}/"
+  container.container.withExposedPorts(redisPort)
+
+  val redisURL = s"redis://@${container.containerIpAddress}:$redisPort/"
 
   val inputConf = RedisInputConf(
     url = redisURL,
@@ -95,7 +99,7 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     val mapper = new ObjectMapper()
     val jsonString = mapper.writeValueAsString(testData)
 
-    client.set[Array[Byte]](serializationInfo.key, jsonString.getBytes("UTF-8")).value.get.get
+    client.set[Array[Byte]](serializationInfo.key, jsonString.getBytes("UTF-8"))
 
   }
 
