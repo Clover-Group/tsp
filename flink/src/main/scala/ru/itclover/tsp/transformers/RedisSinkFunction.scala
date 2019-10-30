@@ -10,14 +10,14 @@ import scredis.serialization.Reader
 import java.time.LocalDateTime
 
 /**
-* Sink function impl for Redis sink
+  * Sink function impl for Redis sink
   * @param conf redis output conf
   * @param info serializer info
   */
 class RedisSinkFunction[ITEM](conf: RedisOutputConf, info: SerializerInfo) extends RichSinkFunction[Row] {
 
   /**
-  * Method for sink impl
+    * Method for sink impl
     * @param value value for save
     * @param context sink context
     */

@@ -12,11 +12,11 @@ import ru.itclover.tsp.io.input.{RedisInputConf, SerializerInfo}
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 
 /**
-* Deserialization trait for Redis
+  * Deserialization trait for Redis
   * @tparam INPUT input type
   * @tparam OUTPUT output type
   */
-trait Serialization[INPUT, OUTPUT]{
+trait Serialization[INPUT, OUTPUT] {
 
   def serialize(output: OUTPUT, rowSchema: RowSchema): INPUT
   def deserialize(input: INPUT, fieldsIdxMap: Map[Symbol, Int]): OUTPUT
@@ -24,12 +24,12 @@ trait Serialization[INPUT, OUTPUT]{
 }
 
 /**
-* JSON Serialization for Redis
+  * JSON Serialization for Redis
   */
-class JSONSerialization extends Serialization[Array[Byte], Row]{
+class JSONSerialization extends Serialization[Array[Byte], Row] {
 
   /**
-  * Method for deserialize from json string
+    * Method for deserialize from json string
     * @param input bytes array from json string
     * @return flink row
     */
@@ -52,7 +52,7 @@ class JSONSerialization extends Serialization[Array[Byte], Row]{
   }
 
   /**
-  * Method for serialize to json string
+    * Method for serialize to json string
     * @param output flink row
     * @param rowSchema schema from flink row
     * @return bytes array from json string
@@ -80,7 +80,7 @@ class JSONSerialization extends Serialization[Array[Byte], Row]{
 object RedisService {
 
   /**
-  * Method for retrieving types from Redis input
+    * Method for retrieving types from Redis input
     * @param conf Redis config
     * @return field types info
     */
@@ -108,31 +108,31 @@ object RedisService {
   )
 
   /**
-  * Mapping of serialization types to implementation instances
+    * Mapping of serialization types to implementation instances
     * @param info DeserializationInfo instance
     * @return implementation instance
     */
   def getSerialization(info: SerializerInfo) = info.serializerType match {
 
     case "json" => new JSONSerialization()
-    case _ => null
+    case _      => null
 
   }
 
   /**
-  * Instantiating of redis client
+    * Instantiating of redis client
     * @param conf redis input config
     * @param info serialization info
     * @return client, serializer
     */
   def clientInstance(conf: RedisInputConf, info: SerializerInfo) = {
 
-     val client = new Redis(
-       host = conf.host,
-       port = conf.port,
-       database = conf.database.getOrElse(0),
-       passwordOpt = conf.password
-     )
+    val client = new Redis(
+      host = conf.host,
+      port = conf.port,
+      database = conf.database.getOrElse(0),
+      passwordOpt = conf.password
+    )
 
     (client, getSerialization(info))
 
@@ -158,5 +158,3 @@ object RedisService {
   }
 
 }
-
-

@@ -3,7 +3,7 @@ package ru.itclover.tsp.io.input
 import org.apache.flink.types.Row
 
 /**
-* Information for deserialization protocols
+  * Information for deserialization protocols
   * @param key key from Redis
   * @param serializerType deserialization type
   */
@@ -13,7 +13,7 @@ case class SerializerInfo(
 )
 
 /**
-* Source for Redis Input
+  * Source for Redis Input
   * @param host host for Redis instance
   * @param port port for Redis instance
   * @param database number of Redis database(optional)
