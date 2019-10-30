@@ -157,10 +157,16 @@ trait JobsRoutes extends RoutesProtocols {
         import request._
         val fields = PatternFieldExtractor.extract(patterns)
 
-        val resultOrerr = for {
+        val resultOrErr = for {
           source <- RedisSource.create(inputConf, fields)
           _ = log.info("Redis create done")
-        }
+          _ <- createStream(patterns, fields, inputConf, outConf, source)
+          _ = log.info("Redis createStream done")
+          result <- runStream(uuid, isAsync)
+          _ = log.info("Redis runStream done")
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
 
       }
     }
