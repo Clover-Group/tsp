@@ -7,7 +7,7 @@ import org.apache.flink.types.Row
   * @param key key from Redis
   * @param serializerType deserialization type
   */
-case class DeserializationInfo(
+case class SerializerInfo(
   key: String,
   serializerType: String
 )
@@ -33,7 +33,7 @@ case class RedisInputConf(
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
   fieldsTypes: Map[String, String],
-  serializationInfo: Seq[DeserializationInfo]
+  serializationInfo: Seq[SerializerInfo]
 ) extends InputConf[Row, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)

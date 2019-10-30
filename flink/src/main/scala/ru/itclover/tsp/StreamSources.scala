@@ -20,6 +20,7 @@ import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import scredis.serialization.Reader
 
 import scala.collection.JavaConverters._
+import scala.util.{ Success, Failure }
 import scala.collection.mutable
 
 /*sealed*/
@@ -518,14 +519,17 @@ case class RedisSource(
 
     info.foreach(elem =>{
 
-      val clientInfo = RedisService.clientInstance(conf, elem, fieldsIdxMap)
-      val (client, deserializer, _) = clientInfo
+      val (client, deserializer) = RedisService.clientInstance(conf, elem)
 
       implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
 
-      //TODO: refactor
-      val value = client.get[Array[Byte]](elem.key).value.get.get.get
-      rows += deserializer.deserialize(value)
+      import client.dispatcher
+      client.get[Array[Byte]](elem.key).onComplete {
+        case Success(value) => rows += deserializer.deserialize(value.get, fieldsIdxMap)
+        case Failure(e) => throw new Exception(e.getMessage)
+      }
+
+      client.quit().value.get.get
 
     })
 

@@ -1,29 +1,39 @@
 package ru.itclover.tsp.services
 
+import java.nio.charset.Charset
+
 import scredis.Redis
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
 
 import scala.util.Try
-import ru.itclover.tsp.io.input.{DeserializationInfo, RedisInputConf}
+import scala.collection.mutable
+import ru.itclover.tsp.io.input.{RedisInputConf, SerializerInfo}
+import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 
 /**
 * Deserialization trait for Redis
   * @tparam INPUT input type
   * @tparam OUTPUT output type
   */
-trait Deserializer[INPUT, OUTPUT]{
+trait Serialization[INPUT, OUTPUT]{
 
-  def deserialize(input: INPUT): OUTPUT
+  def serialize(output: OUTPUT, rowSchema: RowSchema): INPUT
+  def deserialize(input: INPUT, fieldsIdxMap: Map[Symbol, Int]): OUTPUT
 
 }
 
 /**
-* JSON Deserializer for Redis
-  * @param fieldsIdxMap mapping of fields to count
+* JSON Serialization for Redis
   */
-class JSONDeserializer(fieldsIdxMap: Map[Symbol, Int]) extends Deserializer[Array[Byte], Row]{
-  override def deserialize(input: Array[Byte]): Row = {
+class JSONSerialization extends Serialization[Array[Byte], Row]{
+
+  /**
+  * Method for deserialize from json string
+    * @param input bytes array from json string
+    * @return flink row
+    */
+  override def deserialize(input: Array[Byte], fieldsIdxMap: Map[Symbol, Int]): Row = {
 
     val inputData = new String(input)
     val jsonTree = new ObjectMapper().readTree(inputData)
@@ -38,6 +48,31 @@ class JSONDeserializer(fieldsIdxMap: Map[Symbol, Int]) extends Deserializer[Arra
     }
 
     row
+
+  }
+
+  /**
+  * Method for serialize to json string
+    * @param output flink row
+    * @param rowSchema schema from flink row
+    * @return bytes array from json string
+    */
+  override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
+
+    val mapper = new ObjectMapper()
+    val root = mapper.createObjectNode()
+
+    root.put(rowSchema.sourceIdField.name, output.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
+    root.put(rowSchema.fromTsField.name, output.getField(rowSchema.beginInd).asInstanceOf[Double])
+    root.put(rowSchema.toTsField.name, output.getField(rowSchema.endInd).asInstanceOf[Double])
+    root.put(rowSchema.appIdFieldVal._1.name, output.getField(rowSchema.appIdInd).asInstanceOf[Int])
+    root.put(rowSchema.patternIdField.name, output.getField(rowSchema.patternIdInd).asInstanceOf[String])
+    root.put(rowSchema.processingTsField.name, output.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
+    root.put(rowSchema.contextField.name, output.getField(rowSchema.contextInd).asInstanceOf[String])
+
+    val jsonString = mapper.writeValueAsString(root)
+
+    jsonString.getBytes(Charset.forName("UTF-8"))
 
   }
 }
@@ -73,35 +108,52 @@ object RedisService {
   )
 
   /**
-  * Mapping of serializer types to implementation instances
+  * Mapping of serialization types to implementation instances
     * @param info DeserializationInfo instance
-    * @param fieldsIdxMap mapping of fields to count
     * @return implementation instance
     */
-  def getDeserializer(info: DeserializationInfo, fieldsIdxMap: Map[Symbol, Int]) = info.serializerType match {
+  def getSerialization(info: SerializerInfo) = info.serializerType match {
 
-    case "json" => new JSONDeserializer(fieldsIdxMap)
+    case "json" => new JSONSerialization()
     case _ => null
 
   }
 
   /**
   * Instantiating of redis client
-    * @param conf redis config
+    * @param conf redis input config
     * @param info serialization info
-    * @param fieldsIdxMap mapping of fields to count
-    * @return client, serializer, mapping
+    * @return client, serializer
     */
-  def clientInstance(conf: RedisInputConf, info: DeserializationInfo,  fieldsIdxMap: Map[Symbol, Int]) = {
+  def clientInstance(conf: RedisInputConf, info: SerializerInfo) = {
 
      val client = new Redis(
        host = conf.host,
        port = conf.port,
-       database = conf.database.getOrElse(None),
+       database = conf.database.getOrElse(0),
        passwordOpt = conf.password
      )
 
-    (client, getDeserializer(info, fieldsIdxMap), fieldsIdxMap)
+    (client, getSerialization(info))
+
+  }
+
+  /**
+    * Instantiating of redis client
+    * @param conf redis output config
+    * @param info serialization info
+    * @return client, serializer
+    */
+  def clientInstance(conf: RedisOutputConf, info: SerializerInfo) = {
+
+    val client = new Redis(
+      host = conf.host,
+      port = conf.port,
+      database = conf.database.getOrElse(0),
+      passwordOpt = conf.password
+    )
+
+    (client, getSerialization(info))
 
   }
 

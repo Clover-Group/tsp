@@ -7,6 +7,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
 import org.codehaus.jackson.map.ObjectMapper
+import ru.itclover.tsp.io.input.SerializerInfo
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -78,4 +79,18 @@ case class KafkaOutputConf(
     out.toByteArray
   }
 
+}
+
+case class RedisOutputConf(
+  host: String,
+  port: Int,
+  database: Option[Int] = None,
+  password: Option[String] = None,
+  outputInfo: SerializerInfo,
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = null
 }
