@@ -45,32 +45,26 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     exposedPorts = Seq(6380)
   )
 
+  val redisURL = s"redis://@${container.containerIpAddress}:${container.exposedPorts.head}/"
+
   val inputConf = RedisInputConf(
-    host=container.containerIpAddress,
-    port=container.exposedPorts.head,
+    url = redisURL,
     datetimeField='dt,
     partitionFields=Seq('stocknum),
     fieldsTypes = Map(
       "test_int" -> "int8",
       "test_string" -> "string"
     ),
-    serializationInfo=Seq(
-      SerializerInfo(
-        key="test_key",
-        serializerType="json"
-      )
-    )
+    key="test_key",
+    serializer="json"
   )
 
   val sinkSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = RedisOutputConf(
-    host=container.containerIpAddress,
-    port=container.exposedPorts.head,
-    outputInfo = SerializerInfo(
-      key="test_key",
-      serializerType="json"
-    ),
+    url = redisURL,
+    key="test_key",
+    serializer="json",
     rowSchema = sinkSchema
   )
 
@@ -81,9 +75,12 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   override def afterStart(): Unit = {
     super.beforeAll()
 
-    val serializationInfo = inputConf.serializationInfo.head
+    val serializationInfo = SerializerInfo(
+      key=inputConf.key,
+      serializerType = inputConf.serializer
+    )
 
-    val (client, _) = RedisService.clientInstance(inputConf, inputConf.serializationInfo.head)
+    val (client, _) = RedisService.clientInstance(inputConf, serializationInfo)
     val rnd = new Random()
 
     val testData = Map(

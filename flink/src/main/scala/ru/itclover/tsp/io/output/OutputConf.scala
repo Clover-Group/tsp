@@ -82,11 +82,9 @@ case class KafkaOutputConf(
 }
 
 case class RedisOutputConf(
-  host: String,
-  port: Int,
-  database: Option[Int] = None,
-  password: Option[String] = None,
-  outputInfo: SerializerInfo,
+  url: String,
+  key: String,
+  serializer: String,
   rowSchema: RowSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {

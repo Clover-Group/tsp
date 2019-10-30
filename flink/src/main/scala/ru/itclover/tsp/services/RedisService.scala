@@ -1,13 +1,13 @@
 package ru.itclover.tsp.services
 
 import java.nio.charset.Charset
+import java.net.URI
 
 import scredis.Redis
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
 
 import scala.util.Try
-import scala.collection.mutable
 import ru.itclover.tsp.io.input.{RedisInputConf, SerializerInfo}
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 
@@ -120,6 +120,33 @@ object RedisService {
   }
 
   /**
+  * Helper method to prepare Redis client
+    * @param redisURL redis connection url
+    * @return redis client
+    */
+  def extractClient(redisURL: String): Redis = {
+
+    val uri = new URI(redisURL)
+
+    new Redis(
+      host = uri.getHost,
+      port = uri.getPort,
+      database = {
+        val database = uri.getPath.replace("/", "")
+
+        if(database.isEmpty || !Character.isDigit(database.charAt(0))){
+          0
+        }else{
+          database.asInstanceOf[Int]
+        }
+
+      },
+      passwordOpt = Some(uri.getUserInfo.split(":")(1))
+    )
+
+  }
+
+  /**
     * Instantiating of redis client
     * @param conf redis input config
     * @param info serialization info
@@ -127,12 +154,7 @@ object RedisService {
     */
   def clientInstance(conf: RedisInputConf, info: SerializerInfo) = {
 
-    val client = new Redis(
-      host = conf.host,
-      port = conf.port,
-      database = conf.database.getOrElse(0),
-      passwordOpt = conf.password
-    )
+    val client = extractClient(conf.url)
 
     (client, getSerialization(info))
 
@@ -146,12 +168,7 @@ object RedisService {
     */
   def clientInstance(conf: RedisOutputConf, info: SerializerInfo) = {
 
-    val client = new Redis(
-      host = conf.host,
-      port = conf.port,
-      database = conf.database.getOrElse(0),
-      passwordOpt = conf.password
-    )
+    val client = extractClient(conf.url)
 
     (client, getSerialization(info))
 

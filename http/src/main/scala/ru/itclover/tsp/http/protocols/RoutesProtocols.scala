@@ -122,11 +122,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     KafkaInputConf.apply
   )
 
-  implicit val serializerInfoFmt = jsonFormat2(
-    SerializerInfo.apply
-  )
-
-  implicit val redisConfInputFmt = jsonFormat9(
+  implicit val redisConfInputFmt = jsonFormat7(
     RedisInputConf.apply
   )
 
@@ -146,7 +142,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val kafkaOutConfFmt = jsonFormat4(KafkaOutputConf.apply)
 
-  implicit val redisConfOutputFmt = jsonFormat7(RedisOutputConf.apply)
+  implicit val redisConfOutputFmt = jsonFormat5(RedisOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 

@@ -11,16 +11,7 @@ import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{
-  InfluxDBInputConf,
-  InfluxDBInputFormat,
-  InputConf,
-  JDBCInputConf,
-  KafkaInputConf,
-  NarrowDataUnfolding,
-  RedisInputConf,
-  WideDataFilling
-}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InfluxDBInputFormat, InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, RedisInputConf, SerializerInfo, WideDataFilling}
 import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, RedisService}
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
@@ -29,7 +20,7 @@ import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import scredis.serialization.Reader
 
 import scala.collection.JavaConverters._
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 import scala.collection.mutable
 
 /*sealed*/
@@ -525,24 +516,23 @@ case class RedisSource(
 
   override def createStream: DataStream[Row] = {
 
-    val info = conf.serializationInfo
+    val info = SerializerInfo(
+      key=conf.key,
+      serializerType = conf.serializer
+    )
     val rows: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
 
-    info.foreach(elem => {
+    val (client, deserializer) = RedisService.clientInstance(conf, info)
 
-      val (client, deserializer) = RedisService.clientInstance(conf, elem)
+    implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
 
-      implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
+    import client.dispatcher
+    client.get[Array[Byte]](info.key).onComplete {
+      case Success(value) => rows += deserializer.deserialize(value.get, fieldsIdxMap)
+      case Failure(e)     => throw new Exception(e.getMessage)
+    }
 
-      import client.dispatcher
-      client.get[Array[Byte]](elem.key).onComplete {
-        case Success(value) => rows += deserializer.deserialize(value.get, fieldsIdxMap)
-        case Failure(e)     => throw new Exception(e.getMessage)
-      }
-
-      client.quit().value.get.get
-
-    })
+    client.quit().value.get.get
 
     streamEnv.fromCollection(rows)
 
