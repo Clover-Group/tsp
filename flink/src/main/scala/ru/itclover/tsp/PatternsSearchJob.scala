@@ -28,6 +28,7 @@ import ru.itclover.tsp.utils.Bucketizer.Bucket
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 
+import scala.collection.parallel.{ForkJoinTaskSupport, ParSeq}
 import scala.reflect.ClassTag
 
 case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
@@ -92,23 +93,30 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
     log.debug("incidentsFromPatterns started")
 
-    val mappers: Seq[PatternProcessor[In, S, Segment, Incident]] = patterns.map {
-      case ((pattern, meta), rawP) =>
-        val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
-        val toIncidents = ToIncidentsMapper(
-          rawP.id,
-          allForwardFields.map { case (id, k) => id.toString.tail -> k },
-          rawP.payload.toSeq,
-          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
-          source.conf.partitionFields.map(source.fieldToEKey)
-        )
-        PatternProcessor[In, S, Segment, Incident](
-          pattern,
-          meta.sumWindowsMs,
-          toIncidents.apply,
-          source.conf.eventsMaxGapMs
-        )(timeExtractor, source.idxExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
-    }
+    val mappers: ParSeq[PatternProcessor[In, S, Segment, Incident]] = patterns
+      .map {
+        case ((pattern, meta), rawP) =>
+          val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+          val toIncidents = ToIncidentsMapper(
+            rawP.id,
+            allForwardFields.map { case (id, k) => id.toString.tail -> k },
+            rawP.payload.toSeq,
+            if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
+            source.conf.partitionFields.map(source.fieldToEKey)
+          )
+          PatternProcessor[In, S, Segment, Incident](
+            pattern,
+            meta.sumWindowsMs,
+            toIncidents.apply,
+            source.conf.eventsMaxGapMs
+          )(timeExtractor, source.idxExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
+      }
+      .toBuffer
+      .par
+
+    // todo this is the temporal hack to run rules on few threads.
+    mappers.tasksupport = PatternsSearchJob.taskSupport
+
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.transformedPartitioner)
@@ -154,6 +162,8 @@ object PatternsSearchJob {
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
+
+  val taskSupport = new ForkJoinTaskSupport()
 
   def preparePatterns[E, S <: PState[Segment, S], EKey, EItem](
     rawPatterns: Seq[RawPattern],
