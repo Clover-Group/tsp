@@ -14,12 +14,12 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.io.input.RedisInputConf
 
-import scala.util.Random
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import ru.itclover.tsp.io.input.SerializerInfo
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 import ru.itclover.tsp.services.RedisService
+import scala.collection.JavaConverters._
 
 class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with ForAllTestContainer with Matchers{
 
@@ -41,15 +41,14 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     )
   )
 
-  val redisPort = 6380
+  val redisPort = 6383
 
   override val container: GenericContainer = new GenericContainer(
     "redis:latest",
-    exposedPorts = Seq(redisPort),
     waitStrategy = Some(Wait.forLogMessage(".*Ready to accept connections.*\\n", 1))
   )
 
-  container.container.withExposedPorts(redisPort)
+  container.container.setPortBindings(List(s"$redisPort:6379").asJava)
 
   val redisURL = s"redis://@${container.containerIpAddress}:$redisPort/"
 
@@ -58,6 +57,8 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     datetimeField='dt,
     partitionFields=Seq('stocknum),
     fieldsTypes = Map(
+      "dt" -> "float64",
+      "stock_num" -> "string",
       "test_int" -> "int8",
       "test_string" -> "string"
     ),
@@ -80,6 +81,7 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
 
   override def afterStart(): Unit = {
     super.beforeAll()
+    Thread.sleep(8000)
 
     val serializationInfo = SerializerInfo(
       key=inputConf.key,
@@ -87,12 +89,11 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     )
 
     val (client, _) = RedisService.clientInstance(inputConf, serializationInfo)
-    val rnd = new Random()
 
-    val testData = Map(
-      "dt" -> rnd.nextFloat(),
+    val testData = Map[String, Any](
+      "dt" -> 1500000000.0,
       "stock_num" -> "0017",
-      "test_int" -> rnd.nextInt(100),
+      "test_int" -> 87,
       "test_string" -> "test"
     )
 
@@ -100,7 +101,6 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     val jsonString = mapper.writeValueAsString(testData)
 
     client.set[Array[Byte]](serializationInfo.key, jsonString.getBytes("UTF-8"))
-
   }
 
   "Redis test assertions" should "work for redis source" in {
