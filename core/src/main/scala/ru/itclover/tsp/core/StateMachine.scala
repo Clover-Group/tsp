@@ -42,7 +42,7 @@ object StateMachine {
         .grouped(groupSize)
         .foldLeft(Monad[F].pure(seedState)) {
           case (state, evs) =>
-            log.debug(s"After $counter rows")
+            // log.debug(s"After $counter rows")
             counter += groupSize
 
             state
