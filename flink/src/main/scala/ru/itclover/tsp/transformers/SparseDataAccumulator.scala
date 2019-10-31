@@ -66,18 +66,16 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     lastTimer = getRuntimeContext.getState(lastTimerDesc)
   }
 
-  override def processElement(
-    item: InEvent,
-    ctx: KeyedProcessFunction[String, InEvent, OutEvent]#Context,
-    out: Collector[OutEvent]
-  ): Unit = {
+  override def processElement(item: InEvent,
+                              ctx: KeyedProcessFunction[String, InEvent, OutEvent]#Context,
+                              out: Collector[OutEvent]): Unit = {
     val time = extractTime(item)
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)
       event(key) = (value, time)
     } else {
       allFieldsIndexesMap.keySet.foreach { key =>
-        val newValue = Try(extractValue(key).apply(item))
+        val newValue = Try(extractValue(item, key))
         newValue match {
           case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
         }
@@ -92,10 +90,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
         case _                                     =>
       }
       //if (defaultTimeout.isEmpty) {
-      extraFieldNames.foreach { name =>
-        val value = extractValue(name).apply(item)
-        if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
-      }
+        extraFieldNames.foreach { name =>
+          val value = extractValue(item, name)
+          if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+        }
       //}
       val outEvent = eventCreator.create(list)
       if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
@@ -113,11 +111,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     )
   }
 
-  override def onTimer(
-    timestamp: Long,
-    ctx: KeyedProcessFunction[String, InEvent, OutEvent]#OnTimerContext,
-    out: Collector[OutEvent]
-  ): Unit = {
+  override def onTimer(timestamp: Long, ctx:KeyedProcessFunction[String, InEvent, OutEvent]#OnTimerContext, out: Collector[OutEvent]): Unit = {
     // check if this was the last timer we registered
     if (timestamp == lastTimer.value) {
       // it was, so no data was received afterwards.
@@ -130,10 +124,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, InKey, Value, OutEvent: TypeInformation](
-    streamSource: StreamSource[InEvent, InKey, Value],
-    patternFields: Set[InKey]
-  )(
+  def apply[InEvent, InKey, Value, OutEvent: TypeInformation](streamSource: StreamSource[InEvent, InKey, Value], patternFields: Set[InKey])(
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
@@ -146,8 +137,7 @@ object SparseRowsDataAccumulator {
           val sparseRowsConf = ndu
           val fim = streamSource.fieldsIdxMap
           val timeouts = patternFields
-              .map(k => (k, ndu.defaultTimeout.getOrElse(0L)))
-              .toMap[InKey, Long] ++
+            .map(k => (k, ndu.defaultTimeout.getOrElse(0L))).toMap[InKey, Long] ++
             ndu.fieldsTimeoutsMs
           val extraFields = fim
             .filterNot {
@@ -172,8 +162,7 @@ object SparseRowsDataAccumulator {
           val fim = streamSource.fieldsIdxMap
           val toKey = streamSource.fieldToEKey
           val timeouts = patternFields
-              .map(k => (k, wdf.defaultTimeout.getOrElse(0L)))
-              .toMap[InKey, Long] ++
+            .map(k => (k, wdf.defaultTimeout.getOrElse(0L))).toMap[InKey, Long] ++
             wdf.fieldsTimeoutsMs
           val extraFields =
             fim

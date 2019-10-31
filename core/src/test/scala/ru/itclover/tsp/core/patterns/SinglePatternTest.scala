@@ -38,7 +38,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
     // Pattern Extractor
     implicit val MyExtractor: Extractor[EInt, Symbol, Int] = new Extractor[EInt, Symbol, Int] {
-      def apply[T](sym: Symbol)(implicit d: Decoder[Int, T]): EInt => T = _.row
+      def apply[T](a: EInt, sym: Symbol)(implicit d: Decoder[Int, T]): T = a.row
     }
 
     //val pat = new ExtractingPattern[EInt, Symbol, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
