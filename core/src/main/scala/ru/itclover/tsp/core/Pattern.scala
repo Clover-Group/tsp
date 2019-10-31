@@ -23,11 +23,7 @@ object Pat {
   */
 trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializable {
 
-  /**
-    * Creates initial state. Has to be called only once
-    *
-    * @return initial state
-    */
+  /** @return initial state. Has to be called only once */
   def initialState(): S
 
   /**
@@ -35,47 +31,16 @@ trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializab
     * @param events - new events to be processed
     * @tparam F Container for state (some simple monad mostly)
     * @tparam Cont Container for yet another chunk of Events
-    * @return
+    * @return new state wrapped in F[_]
     */
   @inline def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
 }
 
-trait IdxValue[+T] {
-  def index: Idx // For internal use in patterns
-  def value: Result[T] // actual result
-  def start: Idx
-  def end: Idx
-  def map[B](f: T => Result[B]): IdxValue[B]
-}
+case class IdxValue[+T](start: Idx, end: Idx, value: Result[T]) {
+  def map[B](f: T => Result[B]): IdxValue[B] = this.copy(value = value.flatMap(f))
 
-object IdxValue {
-
-  def apply[T](index: Idx, value: Result[T]): IdxValue[T] = IdxValueSimple[T](index, value)
-  def unapply[T](arg: IdxValue[T]): Option[(Idx, Result[T])] = Some(arg.index -> arg.value)
-
-  /// Union the segments with a custom result
-  def union[T1, T2, T3](iv1: IdxValue[T1], iv2: IdxValue[T2])(
-    func: (Result[T1], Result[T2]) => Result[T3]
-  ): IdxValue[T3] = IdxValueSegment(
-    index = Math.max(iv1.start, iv2.start),
-    start = Math.min(iv1.start, iv2.start),
-    end = Math.max(iv1.end, iv2.end),
-    value = func(iv1.value, iv2.value)
-  )
-
-  class IdxValueSimple[T](val index: Idx, val value: Result[T]) extends IdxValue[T] {
-    override def start: Idx = index
-    override def end: Idx = index
-    override def map[B](f: T => Result[B]): IdxValue[B] = IdxValueSimple(index, value.flatMap(f))
-  }
-
-  object IdxValueSimple {
-    def apply[T](index: Idx, value: Result[T]): IdxValue[T] = new IdxValueSimple(index, value)
-  }
-
-  case class IdxValueSegment[T](index: Idx, start: Idx, end: Idx, value: Result[T]) extends IdxValue[T] {
-    override def map[B](f: T => Result[B]): IdxValue[B] = this.copy(value = value.flatMap(f))
-  }
+  def intersects[A >: T](that: IdxValue[A])(implicit ord: Order[Idx]): Boolean =
+    !(ord.lt(this.end, that.start) || ord.gt(this.start, that.end))
 }
 
 object Pattern {
@@ -86,22 +51,8 @@ object Pattern {
 
   trait IdxExtractor[Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
-  }
 
-  class TsIdxExtractor[Event](eventToTs: Event => Long) extends IdxExtractor[Event] {
-    val maxCounter: Int = 10e5.toInt // should be power of 10
-    var counter: Int = 0
-
-    override def apply(e: Event): Idx = {
-      counter = (counter + 1) % maxCounter
-      tsToIdx(eventToTs(e))
-    }
-
-    override def compare(x: Idx, y: Idx) = idxToTs(x).compare(idxToTs(y))
-
-    def idxToTs(idx: Idx): Long = idx / maxCounter
-
-    def tsToIdx(ts: Long): Idx = ts * maxCounter + counter //todo ts << 5 & counter ?
+    def comap[A](f: A => Event): IdxExtractor[A] = IdxExtractor.of(f.andThen(apply))
   }
 
   object IdxExtractor {
@@ -112,7 +63,7 @@ object Pattern {
     def of[E](f: E => Idx): IdxExtractor[E] = new IdxExtractor[E] {
       override def apply(e: E): Idx = f(e)
 
-      override def compare(x: Idx, y: Idx) = x.compare(y)
+      override def compare(x: Idx, y: Idx): Int = x compare y
     }
   }
 }

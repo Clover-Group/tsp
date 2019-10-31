@@ -13,10 +13,10 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
   "mutable pattern queue" should {
 
-    val testQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
+    val testQueue = MutablePQueue[Int]()
 
     (0 to 1000)
-      .foreach(i => testQueue.enqueue(i.toLong, Result.succ(i)))
+      .foreach(i => testQueue.enqueue(IdxValue(i.toLong, i.toLong, Result.succ(i))))
 
     "retrieve head option" in {
 
@@ -69,7 +69,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     "enqueue" in {
 
-      testQueue.enqueue(1, Result.succ(1))
+      testQueue.enqueue(IdxValue(1, 1, Result.succ(1)))
 
       val expectedData = Result.succ(4)
       val actualData = testQueue.dequeueOption().get._1.value
@@ -81,7 +81,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
     "clean" in {
 
       val cleanResult = testQueue.clean()
-      cleanResult.enqueue(1, Result.succ(1))
+      cleanResult.enqueue(IdxValue(1, 1, Result.succ(1)))
 
       cleanResult.size shouldBe 1
     }
@@ -108,6 +108,23 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
       actualData shouldBe expectedData
 
+    }
+
+    def getTestQueue: MutablePQueue[Int] = {
+      val testQueue = MutablePQueue[Int]()
+
+      (0 to 1000)
+        .foreach(i => testQueue.enqueue(IdxValue(2 * i.toLong, 2 * i.toLong + 1, Result.succ(i))))
+
+      testQueue
+    }
+
+    "rewindTo-1" in {
+      getTestQueue.rewindTo(0).size shouldBe 1001
+      getTestQueue.rewindTo(1).size shouldBe 1001
+      getTestQueue.rewindTo(1).headOption.get.start shouldBe 1
+      getTestQueue.rewindTo(23).headOption.get.start shouldBe 23
+      getTestQueue.rewindTo(100000).size shouldBe 0
     }
 
   }

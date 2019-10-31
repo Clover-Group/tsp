@@ -16,8 +16,8 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class BasicInfluxToJdbcTest
     extends FlatSpec

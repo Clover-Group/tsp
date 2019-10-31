@@ -6,7 +6,6 @@ import ru.itclover.tsp.core._
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.reflectiveCalls
 import scala.reflect.ClassTag
 
 class FootprintBench extends FlatSpec with Matchers {
@@ -25,9 +24,11 @@ class FootprintBench extends FlatSpec with Matchers {
     val start = System.nanoTime()
     val sm = StateMachine[Id]
     val initialState = pattern.initialState()
-    val collect = new ArrayBuffer[Long](events.size)
-    sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += x.index, 1000)
-    (System.nanoTime() - start) / 1000000
+    val collect = new ArrayBuffer[(Long, Long)](events.size)
+    sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += (x.start -> x.end), 1000)
+    val time = (System.nanoTime() - start) / 1000000
+    println(time)
+    time
   }
 
   def repeat[T, S <: PState[T, S]](times: Int, amount: Int, pattern: Pattern[TestEvent, S, T]): Long = {
@@ -36,10 +37,9 @@ class FootprintBench extends FlatSpec with Matchers {
     ts / times
   }
 
-  it should "process pattern by ASTPatternGenerator correctly" in {
+  it should "benchmark" in {
 
     val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
-    val expectedTime = 3000
 
     val patternString = gen
       .build(
@@ -50,8 +50,10 @@ class FootprintBench extends FlatSpec with Matchers {
       .right
       .get
       ._1
-    val actualTime = repeat(5, 1000000, patternString)
-    assert(actualTime > expectedTime)
+
+//    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
+    val actualTime = repeat(5, 1000, patternString)
+    println(actualTime)
 
   }
 

@@ -1,6 +1,5 @@
 package ru.itclover.tsp.dsl
 
-import cats.Order
 import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
@@ -17,8 +16,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey,
-  idxOrd: Order[Idx]
+  @transient fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
@@ -155,10 +153,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
-            case TimeInterval(_, max)    => max < fwi.window.toMillis
-            case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
-            case _                       => true
-          })
+              case TimeInterval(_, max)    => max < fwi.window.toMillis
+              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
+              case _                       => true
+            })
           val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)

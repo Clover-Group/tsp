@@ -1,79 +1,69 @@
 package ru.itclover.tsp.core
 
-import cats.Monad
+import cats.{Monad, Traverse}
 import cats.syntax.flatMap._
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import scala.language.higherKinds
 
-object StateMachine {
+class StateMachine[F[_]: Monad: Traverse] {
+  private val log = Logger("StateMachineV2")
 
-  def apply[F[_]: Monad: cats.Traverse] = new {
+  /**
+    * Runs stateMachine for given `pattern` and `events`. Use `seedState` as an initial State.
+    * Calls `consume` for every output result.
+    *
+    * @param pattern to be applied to `events`
+    * @param events bunch of events to be processed
+    * @param seedState initial state
+    * @param consume function to be called for each output
+    * @param groupSize internal chunks size. Default is 1000
+    * @tparam Event intput events type
+    * @tparam Out output type
+    * @tparam State internal State type
+    * @return F[State] there State's queue is empty. It allows to avoid memory leaks.
+    */
+  def run[Event, Out, State <: PState[Out, State]](
+    pattern: Pattern[Event, State, Out],
+    events: Iterable[Event],
+    seedState: State,
+    consume: IdxValue[Out] => F[Unit] = (_: IdxValue[Out]) => Monad[F].pure(()),
+    groupSize: Int = 1000
+  ): F[State] = {
 
-    private val log = Logger("StateMachineV2")
+    var counter = 0
+    import cats.instances.list._
 
-    /**
-      * Runs stateMachine for given `pattern` and `events`. Use `seedState` as an initial State.
-      * Calls `consume` for every output result.
-      *
-      * @param pattern to be applied to `events`
-      * @param events bunch of events to be processed
-      * @param seedState initial state
-      * @param consume function to be called for each output
-      * @param groupSize internal chunks size. Default is 1000
-      * @tparam Event intput events type
-      * @tparam Out output type
-      * @tparam State internal State type
-      * @return F[State] there State's queue is empty. It allows to avoid memory leaks.
-      */
-    def run[Event, Out, State <: PState[Out, State]](
-      pattern: Pattern[Event, State, Out],
-      events: Iterable[Event],
-      seedState: State,
-      consume: IdxValue[Out] => F[Unit] = (_: IdxValue[Out]) => Monad[F].pure(()),
-      groupSize: Int = 1000
-    ): F[State] = {
+    val finalState: F[State] = events.iterator
+      .grouped(groupSize)
+      .foldLeft(Monad[F].pure(seedState)) {
+        case (state, evs) =>
+          // log.debug(s"After $counter rows")
+          counter += groupSize
 
-      var counter = 0
-      import cats.instances.list._
+          state
+            .flatMap(s => pattern.apply[F, List](s, evs.toList))
+            .flatMap { newState =>
+              {
 
-      val finalState: F[State] = events.iterator
-        .grouped(groupSize)
-        .foldLeft(Monad[F].pure(seedState)) {
-          case (state, evs) =>
-            // log.debug(s"After $counter rows")
-            counter += groupSize
-
-            state
-              .flatMap(s => pattern.apply[F, List](s, evs.toList))
-              .flatMap { newState =>
-                {
-
-                  val outputs = newState.queue.toSeq
-                  val drainedState = newState.copyWith(PQueue.empty)
-                  val allConsumed: F[Unit] = outputs.foldLeft(Monad[F].pure(())) {
-                    case (t, out) => t.flatMap(_ => consume(out))
-                  }
-
-                  Monad[F].map(allConsumed)(_ => drainedState)
+                val outputs = newState.queue.toSeq
+                val drainedState = newState.copyWith(PQueue.empty)
+                val allConsumed: F[Unit] = outputs.foldLeft(Monad[F].pure(())) {
+                  case (t, out) => t.flatMap(_ => consume(out))
                 }
-              }
-        }
 
-      log.debug("Finished")
-      finalState
-    }
+                Monad[F].map(allConsumed)(_ => drainedState)
+              }
+            }
+      }
+
+    log.debug("Finished")
+    finalState
   }
 
 }
 
-abstract class AbstractStateMachine[Event, Out, State <: PState[Out, State], F[_], Cont[_]] {
-  ConfigFactory.load().getBoolean("general.is-debug")
-  Logger("AbstractPatternMapper")
+object StateMachine {
 
-  def pattern: Pattern[Event, State, Out]
-
-  def initialState(): Unit
-
+  def apply[F[_]: Monad: Traverse] = new StateMachine[F]
 }

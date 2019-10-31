@@ -1,7 +1,7 @@
 package ru.itclover.tsp.io.input
 
 import java.util.UUID
-import org.apache.flink.types.Row
+import ru.itclover.tsp.RowWithIdx
 
 @SerialVersionUID(91000L)
 case class KafkaInputConf(
@@ -10,10 +10,10 @@ case class KafkaInputConf(
   group: String = UUID.randomUUID().toString,
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
-  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
   fieldsTypes: Map[String, String],
-) extends InputConf[Row, Symbol, Any] {
+) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
   def defaultEventsGapMs: Long = 0L
