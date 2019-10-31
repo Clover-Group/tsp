@@ -69,7 +69,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   ): Vector[DataStream[Incident]] =
     for {
       sourceBucket <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
-      stream = source.createStream()
+      stream = source.createStream
       patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
     } yield {
       import source.timeExtractor

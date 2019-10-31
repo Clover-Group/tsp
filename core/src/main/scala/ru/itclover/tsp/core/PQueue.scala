@@ -94,7 +94,7 @@ object PQueue {
   // Lazy variant of PQueue with func
   case class IdxMapPQueue[A, T](queue: PQueue[A], func: IdxValue[A] => Result[T]) extends PQueue[T] {
     override def size: Int = queue.size
-    override def headOption: Option[IdxValue[T]] = queue.headOption.map(x => x.copy(value = func(x)))
+    override def headOption: Option[IdxValue[T]] = queue.headOption.map(x => x.map(_ => func(x)))
     override def dequeue(): (IdxValue[T], PQueue[T]) = {
       val (idx, pqueue) = queue.dequeue()
       (idx.map(_ => func(idx)), IdxMapPQueue(pqueue, func))
