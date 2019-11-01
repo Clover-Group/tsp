@@ -115,7 +115,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       .par
 
     // todo this is the temporal hack to run rules on few threads.
-    mappers.tasksupport = PatternsSearchJob.taskSupport
+    // mappers.tasksupport = PatternsSearchJob.taskSupport
 
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
