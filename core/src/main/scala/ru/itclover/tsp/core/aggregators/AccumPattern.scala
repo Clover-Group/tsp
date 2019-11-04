@@ -2,7 +2,7 @@ package ru.itclover.tsp.core.aggregators
 
 import cats.syntax.foldable._
 import cats.syntax.functor._
-import cats.{Foldable, Functor, Monad, Order}
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.io.TimeExtractor
@@ -13,55 +13,48 @@ import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-trait AggregatorPatterns[Event, S <: PState[T, S], T] extends Pattern[Event, S, T]
+trait AggregatorPatterns[Event, S, T] extends Pattern[Event, S, T]
 
-case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Out](
+case class AggregatorPState[InnerState, InnerOut, AState](
   innerState: InnerState,
+  innerQueue: PQueue[InnerOut],
   astate: AState,
-  override val queue: QI[Out],
   indexTimeMap: m.Queue[(Idx, Time)]
-)(
-  implicit idxOrd: Order[Idx]
-) extends PState[Out, AggregatorPState[InnerState, AState, Out]] {
-  override def copyWith(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
-}
+)
 
-abstract class AccumPattern[
-  Event: IdxExtractor: TimeExtractor,
-  Inner <: PState[InnerOut, Inner],
+abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, InnerOut, Out, AState <: AccumState[
   InnerOut,
-  Out,
-  AState <: AccumState[InnerOut, Out, AState]
-](implicit idxOrd: Order[Idx])
-    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out] {
+  Out
+]] extends AggregatorPatterns[Event, AggregatorPState[InnerState, InnerOut, AState], Out] {
 
   val window: Window
 
-  def inner: Pattern[Event, Inner, InnerOut]
+  def inner: Pattern[Event, InnerState, InnerOut]
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    state: AggregatorPState[Inner, AState, Out],
+    state: AggregatorPState[InnerState, InnerOut, AState],
+    queue: PQueue[Out],
     event: Cont[Event]
-  ): F[AggregatorPState[Inner, AState, Out]] = {
+  ): F[(AggregatorPState[InnerState, InnerOut, AState], PQueue[Out])] = {
 
     val idxTimeMapWithNewEvents =
       event.foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b.index -> b.time); a }
 
     inner
-      .apply[F, Cont](state.innerState, event)
-      .map(
-        newInnerState => {
-          val (newInnerQueue, newAState, newResults, updatedIndexTimeMap) =
-            processQueue(newInnerState.queue, state.astate, state.queue, idxTimeMapWithNewEvents)
+      .apply[F, Cont](state.innerState, state.innerQueue, event)
+      .map {
+        case (newInnerState, newInnerQueue) => {
+          val (updatedInnerQueue, newAState, newResults, updatedIndexTimeMap) =
+            processQueue(newInnerQueue, state.astate, queue, idxTimeMapWithNewEvents)
 
           AggregatorPState(
-            newInnerState.copyWith(newInnerQueue),
+            newInnerState,
+            updatedInnerQueue,
             newAState,
-            newResults,
             updatedIndexTimeMap
-          )(idxOrd)
+          ) -> newResults
         }
-      )
+      }
   }
 
   @tailrec
@@ -88,7 +81,7 @@ abstract class AccumPattern[
 
 }
 
-trait AccumState[In, Out, +Self <: AccumState[In, Out, Self]] extends Product with Serializable {
+trait AccumState[In, Out] extends Product with Serializable {
 
   /** This method is called for each IdxValue produced by inner patterns.
     * @param window - defines time window for accumulation.
@@ -97,5 +90,5 @@ trait AccumState[In, Out, +Self <: AccumState[In, Out, Self]] extends Product wi
     * @param idxValue - result from inner pattern.
     * @return Tuple of updated state and queue of results to be emitted from this pattern.
     */
-  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
+  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (this.type, QI[Out])
 }
