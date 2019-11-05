@@ -9,6 +9,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
@@ -148,18 +149,22 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   "Cases 1-15" should "work in wide table" in {
     (1 to 15).foreach { id =>
       Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest("15wide", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
+        FindPatternsRequest(s"15wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
         route ~> check {
           status shouldEqual StatusCodes.OK
-          checkByQuery(id.toDouble :: incidentsCount(id).toDouble :: Nil, s"SELECT MAX(id), COUNT(*) FROM events_wide_test WHERE id = $id")
+          checkByQuery(id.toDouble :: incidentsCount(id).toDouble :: Nil, s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
     }
   }
 
-//  "Cases 1-15" should "work in narrow table" in {
-//    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("15narrow", narrowInputConf, narrowOutputConf, casesPatterns)) ~>
-//      route ~> check {
-//      status shouldEqual StatusCodes.OK
-//    }
-//  }
+  "Cases 1-15" should "work in narrow table" in {
+    (1 to 15).foreach { id =>
+      Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"15narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))) ~>
+        route ~> check {
+        status shouldEqual StatusCodes.OK
+        checkByQuery(id.toDouble :: incidentsCount(id).toDouble :: Nil, s"SELECT $id, COUNT(*) FROM events_narrow_test WHERE id = $id")
+      }
+    }
+  }
 }
