@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http
 
 import java.net.URLDecoder
-
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.actor.ActorSystem
@@ -12,7 +11,9 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.runtime.state.memory.MemoryStateBackend
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
@@ -122,6 +123,20 @@ object Launcher extends App with HttpService {
     port.map(p => (host, p))
   }
 
+  /**
+  * Method for flink enironment configuration
+    * @param env flink execution environment
+    */
+  def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
+
+    env.setStateBackend(new MemoryStateBackend())
+    val config = env.getCheckpointConfig
+    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+
+    env
+
+  }
+
   def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort.flatMap {
     case (clusterHost, clusterPort) =>
       log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
@@ -130,13 +145,13 @@ object Launcher extends App with HttpService {
 
       Either.cond(
         jarPath.endsWith(".jar"),
-        StreamExecutionEnvironment.createRemoteEnvironment(clusterHost, clusterPort, jarPath),
+        configureEnv(StreamExecutionEnvironment.createRemoteEnvironment(clusterHost, clusterPort, jarPath)),
         s"Jar path is invalid: `$jarPath` (no jar extension)"
       )
   }
 
   def createLocalEnv: Either[String, StreamExecutionEnvironment] = {
     log.info(s"Starting local Flink with monitoring in $monitoringUri")
-    Right(StreamExecutionEnvironment.createLocalEnvironment())
+    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironment()))
   }
 }
