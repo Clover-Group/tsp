@@ -82,7 +82,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   def assert[S <: PState[Boolean, S]](inner: Pattern[E, S, Boolean]): MapPattern[E, Boolean, Unit, S] =
     inner.flatMap(innerBool => if (innerBool) Result.succUnit else Result.fail)
 
-  def field[T](f: E => T): SimplePattern[E, T] = new SimplePattern(f.andThen(Result.succ))
+  def field[T](f: E => T): SimplePattern[E, T] = SimplePattern(f.andThen(Result.succ))
 
   def const[T](a: T): ConstPattern[E, T] = ConstPattern(Result.succ(a))
 
@@ -128,9 +128,13 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   ]] =
     windowStatistic(inner, w).map(wsr => wsr.failMillis)
 
-  def lag[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = PreviousValue(inner, w)
-
   def timer[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
+
+  // tries to join sequential segments together
+  // todo add segmentation there it needs
+  def segmentizer[T, S <: PState[T, S]](inner: Pattern[E, S, T]) = SegmentizerPattern(inner)
+
+  def lag[T, S <: PState[T, S]](inner: Pattern[E, S, T], w: Window) = SegmentizerPattern(PreviousValue(inner, w))
 
   def sum[T: Group, S <: PState[T, S]](
     inner: Pattern[E, S, T],
@@ -149,6 +153,9 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
     implicit f: Fractional[T]
   ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, GroupAccumState[T], GroupAccumResult[T]]] =
     GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
+}
 
-//  abs(lag(x) - x) > 0 for 10m
+object Patterns {
+
+  def apply[E: IdxExtractor: TimeExtractor]: Patterns[E] = new Patterns[E] {}
 }

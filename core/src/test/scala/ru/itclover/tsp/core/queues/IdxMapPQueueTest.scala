@@ -13,10 +13,10 @@ class IdxMapPQueueTest extends WordSpec with Matchers {
 
   "lazy variant of pattern queue" should {
 
-    val transferQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
+    val transferQueue = MutablePQueue[Int]()
 
     (0 to 20)
-      .foreach(i => transferQueue.enqueue(i.toLong, Result.succ(i)))
+      .foreach(i => transferQueue.enqueue(IdxValue(i.toLong, i.toLong, Result.succ(i))))
 
     val testQueue = IdxMapPQueue[Int, Int](transferQueue, (item => item.value))
 
@@ -82,7 +82,7 @@ class IdxMapPQueueTest extends WordSpec with Matchers {
 
       val expectedData = "Cannot enqueue to IdxMapPQueue! Bad logic"
 
-      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(1, Result.succ(1))
+      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(IdxValue(1,1, Result.succ(1)))
       val actualData = thrownException.getMessage
 
       actualData shouldBe expectedData

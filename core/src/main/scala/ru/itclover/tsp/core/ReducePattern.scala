@@ -1,13 +1,18 @@
 package ru.itclover.tsp.core
-import cats.implicits._
-import cats.{Foldable, Functor, Monad, Order}
-import ru.itclover.tsp.core.Pattern.{Idx, QI}
+import cats.instances.list._
+import cats.syntax.functor._
+import cats.syntax.traverse._
+import cats.{Foldable, Functor, Monad}
+import ru.itclover.tsp.core.Pattern.QI
 
 import scala.annotation.tailrec
 import scala.language.higherKinds
 
-/** Reduce Pattern */
-
+/** Reduce Pattern.
+  * Complex pattern combining Seq of inner patterns (all of them have to have the same type).
+  * Each inner can be transformed using `transform` function, filtered using `filterCond`.
+  * Final result is left-folded of `initial` and Seq of inner results with function `func`.
+  * */
 class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   val patterns: Seq[Pattern[Event, S, T1]]
 )(
@@ -15,16 +20,12 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
   val transform: Result[T2] => Result[T2],
   val filterCond: Result[T1] => Boolean,
   val initial: Result[T2]
-)(
-  implicit idxOrd: Order[Idx]
 ) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: ReducePState[S, T1, T2],
     events: Cont[Event]
   ): F[ReducePState[S, T1, T2]] = {
-    //val leftF = left.apply(oldState.left, events)
-    //val rightF = right.apply(oldState.right, events)
     val patternsF: List[F[S]] = patterns.zip(oldState.states).map { case (p, s) => p.apply[F, Cont](s, events) }.toList
     val patternsG: F[List[S]] = patternsF.traverse(identity)
     for (pG <- patternsG) yield {
@@ -50,16 +51,22 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
         case x =>
           val ivs = x.map(_.get) // it's safe since it does not contain None
           val values = ivs.map(_.value)
-          val indices = ivs.map(_.index)
-          // we emit result only if results on all sides come at the same time
-          if (indices.forall(i => idxOrd.eqv(i, ivs.head.index))) {
-            val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
-            inner(queues.map(q => q.behead()), result.enqueue(IdxValue(ivs.head.index, res)))
-            // otherwise skip results from one of sides (with minimum index)
-          } else {
-            val idxOfMinIndex = indices.zipWithIndex.minBy(_._1)._2
-            inner(queues.zipWithIndex.map { case (q, i) => if (i == idxOfMinIndex) q.behead() else q }, result)
-          }
+          val starts = ivs.map(_.start)
+          val ends = ivs.map(_.end)
+
+          // we emit result only if results on all sides have result for same interval of indexes
+          val commonStart = starts.max
+          val commonEnd = ends.min
+          val newQueue = queues.map(_.rewindTo(commonEnd + 1))
+          val newResult =
+            if (commonEnd >= commonStart) {
+              val res: Result[T2] = transform(values.filter(filterCond).foldLeft(initial)(func))
+              result.enqueue(IdxValue(commonStart, commonEnd, res))
+            } else {
+              result
+            }
+
+          inner(newQueue, newResult)
       }
     }
 
