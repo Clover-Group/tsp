@@ -31,7 +31,7 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
         AndThenPState(
           newFirstOutput._1,
           updatedFirstQueue,
-          newSecondOutput._2,
+          newSecondOutput._1,
           updatedSecondQueue
         ) -> finalQueue
       }
