@@ -23,7 +23,7 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
         val idx = e.index(idxExtractor)
         Some(IdxValue(idx, idx, value)) -> queue
       }
-      case ((Some(x @ IdxValue(start, end@_, prevValue)), queue), e) => {
+      case ((Some(x @ IdxValue(start, end @ _, prevValue)), queue), e) => {
         val value = f(e)
         val idx = e.index(idxExtractor)
         // if new value is the same as previous than just expand segment

@@ -70,7 +70,10 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) <= time)
 
         val finalNewLastValue = outputs.foldLeft(newLastValue) {
-          case (cmr, elem) => cmr.map(lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1))
+          case (cmr, elem) =>
+            cmr.map(
+              lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1)
+            )
         }
 
         // add new element to queue

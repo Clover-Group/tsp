@@ -35,7 +35,7 @@ class SimplePatternTest extends FlatSpec with Matchers {
 
     val out = runAndCollectOutput(events)
     out.size shouldBe (100)
-    out.foreach(x => x.start shouldBe( x.end))
+    out.foreach(x => x.start shouldBe (x.end))
   }
 
   it should "collect points to segments for same values" in {

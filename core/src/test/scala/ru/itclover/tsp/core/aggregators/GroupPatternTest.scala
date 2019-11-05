@@ -33,7 +33,7 @@ class GroupPatternTest extends WordSpec with Matchers {
       val groupPattern = GroupPattern(innerPattern, 10.seconds).map(_.sum)
 
       val collect = new ArrayBuffer[IdxValue[Int]]()
-        StateMachine[Id].run(groupPattern, events, groupPattern.initialState(), (x: IdxValue[Int]) => collect += x)
+      StateMachine[Id].run(groupPattern, events, groupPattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
       collect.size shouldBe 100
       collect.foreach(x => {
@@ -44,10 +44,7 @@ class GroupPatternTest extends WordSpec with Matchers {
     }
 
     //todo
-    "don't fail if there is only few Fails in a window" in {
-
-
-    }
+    "don't fail if there is only few Fails in a window" in {}
 
     //todo
     "fail if all events in window are Fails" in {}

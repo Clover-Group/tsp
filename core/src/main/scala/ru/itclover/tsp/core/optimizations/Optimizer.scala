@@ -16,7 +16,8 @@ import scala.language.{existentials, higherKinds}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
-  def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
+  def optimizations[T] =
+    Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
 
   def optimizable[T](pat: Pat[E, T]): Boolean =
     optimizations[T].exists(_.isDefinedAt(pat))
