@@ -1,4 +1,4 @@
-package ru.itclover.tsp.core
+package ru.itclover.tsp.core.patterns
 
 import org.scalatest.{Matchers, WordSpec}
 
