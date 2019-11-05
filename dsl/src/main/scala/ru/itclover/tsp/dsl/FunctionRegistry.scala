@@ -69,7 +69,7 @@ object DefaultFunctions extends LazyLogging{
     x match {
       case value: Result[_]                                          => value.asInstanceOf[Result[T]]
       case value: T                                                  => Result.succ(value)
-      case null => log.warn(s"Null value arrived with type $ct"); fromNull[T]
+      case null => logger.warn(s"Null value arrived with type $ct"); fromNull[T]
       case value if ct.runtimeClass.isAssignableFrom(value.getClass) => Result.succ(value.asInstanceOf[T])
       case v: Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
         Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
