@@ -36,7 +36,6 @@ case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
       return
     }
 
-    //todo move it to another place
     val firstElement = elements.head
     val mapFunction = mapResults(firstElement) // do not inline!
     val mappedPattern: MapPattern[E, Inner, Out, State] = MapPattern(pattern)(in => Result.succ(mapFunction(in)))
