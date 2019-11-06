@@ -13,28 +13,26 @@ import scala.language.higherKinds
   * Each inner can be transformed using `transform` function, filtered using `filterCond`.
   * Final result is left-folded of `initial` and Seq of inner results with function `func`.
   * */
-class ReducePattern[Event, S <: PState[T1, S], T1, T2](
+class ReducePattern[Event, S, T1, T2](
   val patterns: Seq[Pattern[Event, S, T1]]
 )(
   val func: (Result[T2], Result[T1]) => Result[T2],
   val transform: Result[T2] => Result[T2],
   val filterCond: Result[T1] => Boolean,
   val initial: Result[T2]
-) extends Pattern[Event, ReducePState[S, T1, T2], T2] {
+) extends Pattern[Event, ReducePState[S, T1], T2] {
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    oldState: ReducePState[S, T1, T2],
+    oldState: ReducePState[S, T1],
+    oldQueue: PQueue[T2],
     events: Cont[Event]
-  ): F[ReducePState[S, T1, T2]] = {
-    val patternsF: List[F[S]] = patterns.zip(oldState.states).map { case (p, s) => p.apply[F, Cont](s, events) }.toList
-    val patternsG: F[List[S]] = patternsF.traverse(identity)
+  ): F[(ReducePState[S, T1], PQueue[T2])] = {
+    val patternsF: List[F[(S, PQueue[T1])]] =
+      patterns.zip(oldState.stateAndQueues).map { case (p, (s, q)) => p.apply[F, Cont](s, q, events) }.toList
+    val patternsG: F[List[(S, PQueue[T1])]] = patternsF.traverse(identity)
     for (pG <- patternsG) yield {
-      val (updatedQueues, newFinalQueue) =
-        processQueues(pG.map(_.queue), oldState.queue)
-      ReducePState(
-        pG.zip(updatedQueues).map { case (p, q) => p.copyWith(q) },
-        newFinalQueue
-      )
+      val (updatedQueues, newFinalQueue) = processQueues(pG.map(_._2), oldQueue)
+      ReducePState(pG.zip(updatedQueues).map { case ((p, _), q) => p -> q }) -> newFinalQueue
     }
   }
 
@@ -73,15 +71,9 @@ class ReducePattern[Event, S <: PState[T1, S], T1, T2](
     inner(qs, resultQ)
   }
 
-  override def initialState(): ReducePState[S, T1, T2] =
-    ReducePState(patterns.map(_.initialState()), PQueue.empty)
+  override def initialState(): ReducePState[S, T1] = ReducePState(
+    patterns.map(p => p.initialState() -> PQueue.empty[T1])
+  )
 }
 
-case class ReducePState[State <: PState[T1, State], T1, T2](
-  states: Seq[State],
-  override val queue: QI[T2]
-) extends PState[T2, ReducePState[State, T1, T2]] {
-  override def copyWith(queue: QI[T2]): ReducePState[State, T1, T2] = this.copy(queue = queue)
-}
-
-case object ReducePState {}
+case class ReducePState[State, T1](stateAndQueues: Seq[(State, PQueue[T1])])
