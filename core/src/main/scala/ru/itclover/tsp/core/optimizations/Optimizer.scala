@@ -10,6 +10,7 @@ import ru.itclover.tsp.core.aggregators.{
 }
 import ru.itclover.tsp.core.{Pat, _}
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.optimizations.Optimizer.S
 
 import scala.language.{existentials, higherKinds}
 
@@ -27,7 +28,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       case (x, _)                                => x
     }
 
-  def optimize[S, T](pattern: Pattern[E, S, T]): Pattern[E, S, T] = forceState(optimizePat(pattern))
+  def optimize[T](pattern: Pat[E, T]): Pattern[E, S[T], T] = forceState(optimizePat(pattern))
 
   private def optimizePat[T](pattern: Pat[E, T]): Pat[E, T] = {
 
@@ -116,4 +117,10 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   // unmet restrictions.
   private def forceState[T](pat: Pat[E, T]): Pattern[E, S[T], T] =
     pat.asInstanceOf[Pattern[E, S[T], T]]
+}
+
+object Optimizer {
+  // Fake type to return from Optimizer. Needs to meet the
+  // constraints of Pattern type parameters.
+  type S[T]
 }

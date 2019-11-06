@@ -24,7 +24,8 @@ case class AggregatorPState[InnerState, InnerOut, AState](
 
 abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, InnerOut, Out, AState <: AccumState[
   InnerOut,
-  Out
+  Out,
+  AState
 ]] extends AggregatorPatterns[Event, AggregatorPState[InnerState, InnerOut, AState], Out] {
 
   val window: Window
@@ -81,7 +82,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
 
 }
 
-trait AccumState[In, Out] extends Product with Serializable {
+trait AccumState[In, Out, Self <: AccumState[In, Out, Self]] extends Product with Serializable {
 
   /** This method is called for each IdxValue produced by inner patterns.
     * @param window - defines time window for accumulation.
@@ -90,5 +91,5 @@ trait AccumState[In, Out] extends Product with Serializable {
     * @param idxValue - result from inner pattern.
     * @return Tuple of updated state and queue of results to be emitted from this pattern.
     */
-  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (this.type, QI[Out])
+  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
 }

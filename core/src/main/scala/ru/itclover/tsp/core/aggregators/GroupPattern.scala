@@ -34,7 +34,7 @@ case class GroupPattern[Event: IdxExtractor: TimeExtractor, S, T: Group](
 }
 
 case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], windowQueue: m.Queue[GroupAccumValue[T]])
-    extends AccumState[T, GroupAccumResult[T]] {
+    extends AccumState[T, GroupAccumResult[T], GroupAccumState[T]] {
 
   override def updated(
     window: Window,

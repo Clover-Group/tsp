@@ -23,7 +23,7 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   )
 }
 
-case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumState[T, Unit] {
+case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumState[T, Unit, TimerAccumState[T]] {
 
   @inline
   override def updated(

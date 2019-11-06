@@ -20,7 +20,7 @@ class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val window: Window = MaxWindow
 }
 
-protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment] {
+protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment, TimestampAdderAccumState[T]] {
 
   @inline
   override def updated(

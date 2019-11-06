@@ -26,7 +26,7 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
 case class WindowStatisticAccumState[T](
   lastValue: Option[WindowStatisticResult],
   windowQueue: m.Queue[WindowStatisticQueueInstance]
-) extends AccumState[T, WindowStatisticResult] {
+) extends AccumState[T, WindowStatisticResult, WindowStatisticAccumState[T]] {
   override def updated(
     window: Window,
     times: m.Queue[(Idx, Time)],

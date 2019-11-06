@@ -24,7 +24,7 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State, Out](
 }
 
 // todo simplify
-case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T] {
+case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
   override def updated(
     window: Window,
     times: m.Queue[(Idx, Time)],
