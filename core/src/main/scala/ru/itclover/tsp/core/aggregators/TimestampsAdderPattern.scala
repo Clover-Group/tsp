@@ -7,20 +7,20 @@ import ru.itclover.tsp.core._
 
 import scala.collection.{mutable => m}
 
-class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
+class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T]
 ) extends AccumPattern[Event, S, T, Segment, TimestampAdderAccumState[T]] {
-  override def initialState(): AggregatorPState[S, TimestampAdderAccumState[T], Segment] = AggregatorPState(
+  override def initialState(): AggregatorPState[S, T, TimestampAdderAccumState[T]] = AggregatorPState(
     inner.initialState(),
+    innerQueue = PQueue.empty,
     astate = TimestampAdderAccumState[T](),
-    queue = PQueue.empty,
     indexTimeMap = m.Queue.empty
   )
 
   override val window: Window = MaxWindow
 }
 
-protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment, TimestampAdderAccumState[T]] {
+protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment] {
 
   @inline
   override def updated(
