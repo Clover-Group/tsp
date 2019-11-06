@@ -3,22 +3,22 @@ package ru.itclover.tsp.core.aggregators
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
+import ru.itclover.tsp.core.{Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 
 //todo docs
 //todo simplify
-case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
+case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T]] {
-  override def initialState(): AggregatorPState[S, WindowStatisticAccumState[T], WindowStatisticResult] =
+  override def initialState(): AggregatorPState[S, T, WindowStatisticAccumState[T]] =
     AggregatorPState(
       innerState = inner.initialState(),
+      innerQueue = PQueue.empty,
       astate = WindowStatisticAccumState(None, m.Queue.empty),
-      queue = PQueue.empty,
       indexTimeMap = m.Queue.empty
     )
 }
@@ -26,7 +26,7 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S]
 case class WindowStatisticAccumState[T](
   lastValue: Option[WindowStatisticResult],
   windowQueue: m.Queue[WindowStatisticQueueInstance]
-) extends AccumState[T, WindowStatisticResult, WindowStatisticAccumState[T]] {
+) extends AccumState[T, WindowStatisticResult] {
   override def updated(
     window: Window,
     times: m.Queue[(Idx, Time)],
