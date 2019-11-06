@@ -16,8 +16,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   implicit class AndThenSyntax[S, T](pattern: Pat[S, T]) {
 
-    def andThen[S2, T2](nextPattern: Pat[S2, T2]): AndThenPattern[E, T, T2, S, S2] =
-      AndThenPattern(pattern, nextPattern)
+    def andThen[S2, T2](nextPattern: Pat[S2, T2]): AndThenPattern[E, T, T2, S, S2] = AndThenPattern(pattern, nextPattern)
   }
 
   implicit class OrderingPatternSyntax[S, T: Ordering](pattern: Pat[S, T]) {
@@ -89,44 +88,29 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   def windowStatistic[T, S](i: Pattern[E, S, T], w: Window): WindowStatistic[E, S, T] =
     WindowStatistic(i, w)
 
-  def truthCount[T, S](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+  def truthCount[T, S](inner: Pattern[E, S, T], w: Window): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
     S,
     WindowStatisticAccumState[T],
     WindowStatisticResult
   ]] = windowStatistic(inner, w).map(wsr => wsr.successCount)
 
-  def truthMillis[T, S](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+  def truthMillis[T, S](inner: Pattern[E, S, T], w: Window): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
     S,
     WindowStatisticAccumState[T],
     WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.successMillis)
+  ]] = windowStatistic(inner, w).map(wsr => wsr.successMillis)
 
-  def failCount[T, S](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+  def failCount[T, S](inner: Pattern[E, S, T], w: Window): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
     S,
     WindowStatisticAccumState[T],
     WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.failCount)
+  ]] = windowStatistic(inner, w).map(wsr => wsr.failCount)
 
-  def failMillis[T, S](
-    inner: Pattern[E, S, T],
-    w: Window
-  ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
+  def failMillis[T, S](inner: Pattern[E, S, T], w: Window): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[
     S,
     WindowStatisticAccumState[T],
     WindowStatisticResult
-  ]] =
-    windowStatistic(inner, w).map(wsr => wsr.failMillis)
+  ]] = windowStatistic(inner, w).map(wsr => wsr.failMillis)
 
   def timer[T, S](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
 
