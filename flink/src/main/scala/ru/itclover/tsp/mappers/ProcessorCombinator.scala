@@ -5,13 +5,12 @@ import org.apache.flink.streaming.api.scala.function.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.Window
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.RowWithIdx
-import ru.itclover.tsp.core.PState
 import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.collection.GenSeq
 import scala.reflect.ClassTag
 
-case class ProcessorCombinator[In, S <: PState[Inner, S]: ClassTag, Inner, Out](
+case class ProcessorCombinator[In, S: ClassTag, Inner, Out](
   mappers: GenSeq[PatternProcessor[In, S, Inner, Out]],
   timeExtractor: TimeExtractor[In]
 ) extends ProcessWindowFunction[In, Out, String, Window] {

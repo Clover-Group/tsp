@@ -18,7 +18,7 @@ import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
-import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
@@ -42,7 +42,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   import decoders._
   import source.{eventCreator, keyCreator, kvExtractor}
 
-  def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
+  def patternsSearchStream[OutE: TypeInformation, OutKey, S](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
@@ -82,7 +82,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
-  def incidentsFromPatterns[T, S <: PState[Segment, S]: ClassTag](
+  def incidentsFromPatterns[T, S: ClassTag](
     stream: DataStream[In],
     patterns: Seq[RichPattern[In, Segment, S]],
     forwardedFields: Seq[(Symbol, InKey)],
@@ -158,14 +158,14 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
 object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
-  type RichPattern[E, T, S <: PState[T, S]] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
+  type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
 
   val taskSupport = new ForkJoinTaskSupport()
 
-  def preparePatterns[E, S <: PState[Segment, S], EKey, EItem](
+  def preparePatterns[E, S, EKey, EItem](
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double,
@@ -210,7 +210,7 @@ object PatternsSearchJob {
     res
   }
 
-  def bucketizePatterns[E, T, S <: PState[T, S]](
+  def bucketizePatterns[E, T, S](
     patterns: Seq[RichPattern[E, T, S]],
     parallelism: Int
   ): Vector[Bucket[RichPattern[E, T, S]]] = {
