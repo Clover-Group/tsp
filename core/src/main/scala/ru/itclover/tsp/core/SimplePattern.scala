@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
+import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
-import ru.itclover.tsp.core.Pattern.{IdxExtractor, QI}
 
 import scala.language.higherKinds
 
@@ -44,10 +44,17 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
   override def initialState(): SimplePState.type = SimplePState
 }
 
-case class SimplePattern[Event: IdxExtractor, T](override val f: Event => Result[T])
-    extends SimplePatternLike[Event, T] {
+class SimplePattern[Event: IdxExtractor, T](override val f: Event => Result[T])
+    extends SimplePatternLike[Event, T]
+    with Serializable {
 
   override def idxExtractor: IdxExtractor[Event] = implicitly
+}
+
+object SimplePattern {
+  def apply[Event: IdxExtractor, T](f: Event => Result[T]) = new SimplePattern(f)
+
+  def unapply[Event, T](arg: SimplePatternLike[Event, T]): Option[Event => Result[T]] = Option(arg.f)
 }
 
 case object SimplePState
