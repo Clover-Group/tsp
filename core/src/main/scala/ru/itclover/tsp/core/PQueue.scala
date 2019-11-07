@@ -115,9 +115,8 @@ object PQueue {
 
   object MapPQueue {
 
-    def apply[A, T](queue: PQueue[A], func: A => Result[T]): IdxMapPQueue[A, T] = IdxMapPQueue(queue, {
-      idx: IdxValue[A] =>
-        idx.value.flatMap(func)
+    def apply[A, T](queue: PQueue[A], func: A => Result[T]): PQueue[T] = IdxMapPQueue(queue, { idx: IdxValue[A] =>
+      idx.value.flatMap(func)
     })
   }
 }

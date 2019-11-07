@@ -11,14 +11,14 @@ import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 
 /* Timer */
-case class TimerPattern[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
+case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, Unit, TimerAccumState[T]] {
-  override def initialState(): AggregatorPState[S, TimerAccumState[T], Unit] = AggregatorPState(
+  override def initialState(): AggregatorPState[S, T, TimerAccumState[T]] = AggregatorPState(
     inner.initialState(),
+    innerQueue = PQueue.empty,
     astate = TimerAccumState(m.Queue.empty),
-    queue = PQueue.empty,
     indexTimeMap = m.Queue.empty
   )
 }

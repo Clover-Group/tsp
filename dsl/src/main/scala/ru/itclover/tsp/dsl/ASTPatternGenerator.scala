@@ -6,10 +6,19 @@ import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.{
+  decodeToAny,
+  decodeToBoolean,
+  decodeToDouble,
+  decodeToInt,
+  decodeToLong,
+  decodeToString
+}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+trait AnyState[T]
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
@@ -22,8 +31,6 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   @transient val richPatterns = new Patterns[Event] {}
 
   private val log = Logger("ASTPGenLogger")
-
-  trait AnyState[T] extends PState[T, AnyState[T]]
 
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _]): Pattern[Event, AnyState[T], T] =
     p.asInstanceOf[Pattern[Event, AnyState[T], T]]

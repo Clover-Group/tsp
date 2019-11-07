@@ -9,7 +9,7 @@ import scala.Ordering.Implicits._
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 
-case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out, State], Out](
+case class PreviousValue[Event: IdxExtractor: TimeExtractor, State, Out](
   override val inner: Pattern[Event, State, Out],
   override val window: Window
 ) extends AccumPattern[Event, State, Out, Out, PreviousValueAccumState[Out]] {
@@ -17,8 +17,8 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State <: PState[Out
   override def initialState() =
     AggregatorPState(
       inner.initialState(),
-      PreviousValueAccumState(PQueue.empty),
       PQueue.empty,
+      PreviousValueAccumState(PQueue.empty),
       m.Queue.empty
     )
 }
@@ -54,8 +54,8 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
 
         q.headOption match {
           case Some(IdxValue(_, _, Succ((t, result)))) if t.plus(window) <= time => inner(q.behead(), Some(result))
-          case Some(IdxValue(_, _, Fail)) => inner(q.behead(), v)
-          case _ => (v, q)
+          case Some(IdxValue(_, _, Fail))                                        => inner(q.behead(), v)
+          case _                                                                 => (v, q)
         }
       }
 

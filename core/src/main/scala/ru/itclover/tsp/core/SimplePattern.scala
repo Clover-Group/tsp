@@ -1,33 +1,33 @@
 package ru.itclover.tsp.core
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
+import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
-import ru.itclover.tsp.core.Pattern.{IdxExtractor, QI}
 
 import scala.language.higherKinds
 
 // TODO Rename to FunctionP(attern)?
 /** Simple Pattern */
-trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
+trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
   def idxExtractor: IdxExtractor[Event]
   val f: Event => Result[T]
-  private val maxSegmentSize = 100000000 // todo make some di here
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    oldState: SimplePState[T],
+    oldState: SimplePState.type,
+    oldQueue: PQueue[T],
     events: Cont[Event]
-  ): F[SimplePState[T]] = {
-    val (lastElement, newQueue) = events.foldLeft(Option.empty[IdxValue[T]] -> oldState.queue) {
+  ): F[(SimplePState.type, PQueue[T])] = {
+    val (lastElement, newQueue) = events.foldLeft(Option.empty[IdxValue[T]] -> oldQueue) {
       case ((None, queue), e) => {
         val value = f(e)
         val idx = e.index(idxExtractor)
         Some(IdxValue(idx, idx, value)) -> queue
       }
-      case ((Some(x @ IdxValue(start, end@_, prevValue)), queue), e) => {
+      case ((Some(x @ IdxValue(start, end @ _, prevValue)), queue), e) => {
         val value = f(e)
         val idx = e.index(idxExtractor)
         // if new value is the same as previous than just expand segment
-        if (value.equals(prevValue) && (idx - start <= maxSegmentSize)) {
+        if (value.equals(prevValue)) {
           Some(IdxValue(start, idx, value)) -> queue
         } else {
           // otherwise put previous segment to the queue and start new segment
@@ -38,25 +38,28 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState[T], T] {
     // Add last element if exist
     val finalQueue = lastElement.map(t => newQueue.enqueue(t)).getOrElse(newQueue)
 
-    Monad[F].pure(SimplePState(finalQueue))
+    Monad[F].pure(SimplePState -> finalQueue)
   }
 
+  override def initialState(): SimplePState.type = SimplePState
 }
 
-case class SimplePattern[Event: IdxExtractor, T](override val f: Event => Result[T])
-    extends SimplePatternLike[Event, T] {
-  override def initialState(): SimplePState[T] = SimplePState(PQueue.empty)
+class SimplePattern[Event: IdxExtractor, T](override val f: Event => Result[T])
+    extends SimplePatternLike[Event, T]
+    with Serializable {
 
   override def idxExtractor: IdxExtractor[Event] = implicitly
 }
 
-case class SimplePState[T](override val queue: QI[T]) extends PState[T, SimplePState[T]] {
-  override def copyWith(queue: QI[T]): SimplePState[T] = this.copy(queue = queue)
+object SimplePattern {
+  def apply[Event: IdxExtractor, T](f: Event => Result[T]) = new SimplePattern(f)
+
+  def unapply[Event, T](arg: SimplePatternLike[Event, T]): Option[Event => Result[T]] = Option(arg.f)
 }
+
+case object SimplePState
 
 case class ConstPattern[Event: IdxExtractor, T](value: Result[T]) extends SimplePatternLike[Event, T] {
   override val f: Event => Result[T] = _ => value
-  override def initialState(): SimplePState[T] = SimplePState(PQueue.empty)
-
   override def idxExtractor: IdxExtractor[Event] = implicitly
 }

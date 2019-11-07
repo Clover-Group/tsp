@@ -25,7 +25,7 @@ object Pat {
   * @tparam T Type of the results in the S
   * @tparam S Holds State for the next step AND results (wrong named `queue`)
   */
-trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializable {
+trait Pattern[Event, S, T] extends Pat[Event, T] with Serializable {
 
   /** @return initial state. Has to be called only once */
   def initialState(): S
@@ -37,7 +37,11 @@ trait Pattern[Event, S <: PState[T, S], T] extends Pat[Event, T] with Serializab
     * @tparam Cont Container for yet another chunk of Events
     * @return new state wrapped in F[_]
     */
-  @inline def apply[F[_]: Monad, Cont[_]: Foldable: Functor](oldState: S, events: Cont[Event]): F[S]
+  @inline def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
+    oldState: S,
+    queue: PQueue[T],
+    events: Cont[Event]
+  ): F[(S, PQueue[T])]
 }
 
 case class IdxValue[+T](start: Idx, end: Idx, value: Result[T]) {
