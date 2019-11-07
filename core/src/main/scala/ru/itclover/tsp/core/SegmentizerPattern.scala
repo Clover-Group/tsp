@@ -9,7 +9,7 @@ import scala.annotation.tailrec
 /*
 Joins together sequential outputs of the inner pattern with the same value. It reduces amount of produced results.
  */
-case class SegmentizerPattern[Event, T, InnerState <: PState[T, InnerState]](inner: Pattern[Event, InnerState, T])
+case class SegmentizerPattern[Event, T, InnerState](inner: Pattern[Event, InnerState, T])
     extends Pattern[Event, SegmentizerPState[InnerState, T], T] {
 //todo tests
 
@@ -29,21 +29,21 @@ case class SegmentizerPattern[Event, T, InnerState <: PState[T, InnerState]](inn
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: SegmentizerPState[InnerState, T],
+    queue: PQueue[T],
     event: Cont[Event]
-  ): F[SegmentizerPState[InnerState, T]] =
-    inner(oldState.innerState, event).map(innerResult => {
-      innerResult.queue.dequeueOption() match {
-        case None => SegmentizerPState(innerResult, oldState.queue)
-        case Some((head, tail)) =>
-          val newQueue = inner(tail, head, oldState.queue) // do not inline!
-          SegmentizerPState(innerResult.copyWith(PQueue.empty), newQueue)
+  ): F[(SegmentizerPState[InnerState, T], PQueue[T])] =
+    inner(oldState.innerState, oldState.innerQueue, event).map {
+      case (innerResult, innerQueue) => {
+        innerQueue.dequeueOption() match {
+          case None => oldState.copy(innerState = innerResult) -> queue
+          case Some((head, tail)) =>
+            val newQueue = inner(tail, head, queue) // do not inline!
+            SegmentizerPState(innerResult, PQueue.empty[T]) -> newQueue
+        }
       }
-    })
+    }
 
   override def initialState(): SegmentizerPState[InnerState, T] = SegmentizerPState(inner.initialState(), PQueue.empty)
 }
 
-case class SegmentizerPState[InnerState, T](innerState: InnerState, override val queue: QI[T])
-    extends PState[T, SegmentizerPState[InnerState, T]] {
-  override def copyWith(queue: QI[T]): SegmentizerPState[InnerState, T] = this.copy(queue = queue)
-}
+case class SegmentizerPState[InnerState, T](innerState: InnerState, innerQueue: QI[T])

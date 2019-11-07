@@ -16,7 +16,8 @@ import scala.language.{existentials, higherKinds}
 
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
-  def optimizations[T] = Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
+  def optimizations[T] =
+    Seq(optimizeInners[T], coupleOfTwoSimple[T], coupleOfTwoConst[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
 
   def optimizable[T](pat: Pat[E, T]): Boolean =
     optimizations[T].exists(_.isDefinedAt(pat))
@@ -94,9 +95,9 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
     case x: TimestampsAdderPattern[E, _, _] if optimizable(x.inner) =>
       new TimestampsAdderPattern(forceState(optimizePat(x.inner)))
     case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
-      def cast[St <: PState[Ty, St], Ty](
+      def cast[St, Ty](
         pats: Seq[Pat[E, Ty]]
-      ): Seq[Pattern[E, St, Ty]] forSome { type St <: PState[Ty, St] } =
+      ): Seq[Pattern[E, St, Ty]] forSome { type St } =
         pats.asInstanceOf[Seq[Pattern[E, St, Ty]]]
       new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
     }
@@ -121,5 +122,5 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 object Optimizer {
   // Fake type to return from Optimizer. Needs to meet the
   // constraints of Pattern type parameters.
-  type S[T] <: PState[T, S[T]]
+  type S[T]
 }
