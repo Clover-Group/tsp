@@ -88,18 +88,18 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           case 2 =>
             log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
+            val fun: PFunction = registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
+              .getOrElse(
+                sys.error(
+                  s"Function ${fc.functionName} with argument types " +
+                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                )
+              )._1
             CouplePattern(p1, p2)(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
-                      .getOrElse(
-                        sys.error(
-                          s"Function ${fc.functionName} with argument types " +
-                          s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
-                        )
-                      )
-                      ._1(
+                      fun(
                         Seq(rx, ry) // <--- TSP-182 fails here
                       )
 
