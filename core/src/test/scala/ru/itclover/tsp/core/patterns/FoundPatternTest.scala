@@ -4,9 +4,9 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.{Incident, IncidentInstances, Segment, Time}
 
 /**
-  * Test class for founded pattern
+  * Test class for found pattern
   */
-class FoundedPatternTest extends WordSpec with Matchers {
+class FoundPatternTest extends WordSpec with Matchers {
 
   "retrieve incident" should {
 

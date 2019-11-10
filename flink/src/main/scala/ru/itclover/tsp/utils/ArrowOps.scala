@@ -4,7 +4,18 @@ import java.io.{File, FileInputStream}
 
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowReader, SeekableReadChannel}
-import org.apache.arrow.vector.{BaseValueVector, BigIntVector, BitVector, FieldVector, Float4Vector, Float8Vector, IntVector, SmallIntVector, VarCharVector, VectorDefinitionSetter}
+import org.apache.arrow.vector.{
+  BaseValueVector,
+  BigIntVector,
+  BitVector,
+  FieldVector,
+  Float4Vector,
+  Float8Vector,
+  IntVector,
+  SmallIntVector,
+  VarCharVector,
+  VectorDefinitionSetter
+}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
 import org.apache.flink.types.Row
@@ -15,7 +26,7 @@ import scala.collection.mutable
 object ArrowOps {
 
   /**
-  * Types mapping from Apache Arrow to Scala types
+    * Types mapping from Apache Arrow to Scala types
     * @return
     */
   def typesMap = Map(
@@ -29,7 +40,7 @@ object ArrowOps {
   )
 
   /**
-  * Method for retrieving typed value from vector
+    * Method for retrieving typed value from vector
     * @param valueVector vector with raw value
     * @return typed value
     */
@@ -51,7 +62,7 @@ object ArrowOps {
   }
 
   /**
-  * Method for retrieving schema and reader from input file
+    * Method for retrieving schema and reader from input file
     * @param input file with input data
     * @param allocatorValue value for root allocator
     * @return tuple with schema and reader
@@ -70,21 +81,20 @@ object ArrowOps {
   }
 
   /**
-  *  Method for schema fields
+    * Method for schema fields
     * @param schema schema from Apache Arrow
     * @return list of fields(string)
     */
   def getSchemaFields(schema: Schema): List[String] = {
 
-    schema.getFields
-          .asScala
-          .map(_.getName)
-          .toList
+    schema.getFields.asScala
+      .map(_.getName)
+      .toList
 
   }
 
   /**
-  * Retrieve data in Apache Flink rows
+    * Retrieve data in Apache Flink rows
     * @param input arrow schema and reader
     * @return flink rows
     */
@@ -100,13 +110,13 @@ object ArrowOps {
     val result: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
     val objectsList: mutable.ListBuffer[Any] = mutable.ListBuffer.empty[Any]
 
-    while(readCondition){
+    while (readCondition) {
 
       rowCount = schemaRoot.getRowCount
 
-      for (i <- 0 until rowCount){
+      for (i <- 0 until rowCount) {
 
-        for(field <- schemaFields){
+        for (field <- schemaFields) {
 
           val valueVector = schemaRoot.getVector(field)
           objectsList += retrieveFieldValue(valueVector).getObject(i)
@@ -114,7 +124,7 @@ object ArrowOps {
         }
 
         val row = new Row(objectsList.size)
-        for(i <- objectsList.indices){
+        for (i <- objectsList.indices) {
           row.setField(i, objectsList(i))
         }
 
