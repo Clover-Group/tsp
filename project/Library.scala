@@ -135,4 +135,6 @@ object Library {
       .excludeAll(ExclusionRule("io.netty", "netty-common"))
       .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
   )
+
+  val jol: Seq[ModuleID] = Seq("org.openjdk.jol" % "jol-core"% "0.9")
 }
