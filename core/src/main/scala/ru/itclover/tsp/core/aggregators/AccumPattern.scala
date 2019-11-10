@@ -76,7 +76,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
 
         val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
 
-        processQueue(updatedQueue, newAState, results.enqueue(newResults.toSeq: _*), updatedIdxTimeMap)
+        processQueue(updatedQueue, newAState, PQueue.spillQueueToAnother(newResults, results), updatedIdxTimeMap)
     }
   }
 
