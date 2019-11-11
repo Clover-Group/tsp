@@ -28,7 +28,7 @@ object Launcher extends App with HttpService {
   val parallel = 1024
 
   // TSP-214 Fix
-  val req_timeout = 1 // in mins
+  val req_timeout = 120 // in mins
 
   implicit val system: ActorSystem = ActorSystem(
     "TSP-system",
