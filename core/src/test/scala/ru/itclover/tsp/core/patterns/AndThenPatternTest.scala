@@ -3,12 +3,14 @@ package ru.itclover.tsp.core.patterns
 import java.time.Instant
 
 import cats.Id
+import cats.instances.boolean._
+import cats.implicits._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
-import ru.itclover.tsp.core.{IdxValue,Patterns, StateMachine}
+import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine, Window}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -57,6 +59,15 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => out += x, 1)
 
     out.size shouldBe 110
+
+  }
+
+  it should "parse complex rule" in {
+
+    import cats.instances.boolean._
+    import cats.implicits._
+    //val pattern1 = p.field(_.row > 50).and(p.count(p.field(_.row), Window(100)) > 10)
+    //val pattern2 = p.assert(p.lag(field(_.row > 10), Window(100)))
 
   }
 
