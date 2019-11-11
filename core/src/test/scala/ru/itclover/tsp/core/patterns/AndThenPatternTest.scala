@@ -8,12 +8,11 @@ import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
-import ru.itclover.tsp.core.{AndThenPattern, CouplePState, IdxValue, MapPState, Patterns, SimplePState, StateMachine}
+import ru.itclover.tsp.core.{IdxValue,Patterns, StateMachine}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
-//todo add tests!
 class AndThenPatternTest extends FlatSpec with Matchers {
 
   val p: Patterns[EInt] = Patterns[EInt]
@@ -35,17 +34,19 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
   it should "parse combination of and, andThen in rule" in {
 
-    val pattern = p.assert(
-      (
-        field(_.row) > const(10)
+    val pattern = p
+      .assert(
+        (
+          field(_.row) > const(10)
         ).and(
-        field(_.ts) > const(1000)
+          field(_.ts) > const(1000)
+        )
       )
-    ).andThen(
-      p.assert(
-        field(_.col) =!= const(0)
+      .andThen(
+        p.assert(
+          field(_.col) =!= const(0)
+        )
       )
-    )
 
     val events = (for (time <- Timer(from = Instant.now());
                        idx  <- Increment;
