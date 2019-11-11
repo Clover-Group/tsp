@@ -146,6 +146,7 @@ lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
+      ++ Library.jol.map(_ % "test")
   )
 
 lazy val config = project.in(file("config"))

@@ -20,6 +20,8 @@ trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
 
   def timed(duration: Duration): TimeSeriesGenerator[T] = Timed(this, duration)
 
+  def repeat(count: Int): TimeSeriesGenerator[T] = Repeated(this, count)
+
   def run(seconds: Int): Seq[T] = (1 to seconds).map(_.seconds).map(this)
 
   override def isDefinedAt(x: Duration): Boolean = x >= 0.seconds && x <= howLong
@@ -110,6 +112,13 @@ case class Timed[T](inner: TimeSeriesGenerator[T], dur: Duration) extends TimeSe
   override def apply(v1: Duration): T = inner.apply(v1)
 
   override def howLong: Duration = dur
+}
+
+case class Repeated[T](inner: TimeSeriesGenerator[T], times: Int) extends TimeSeriesGenerator[T] {
+  assert(inner.howLong != Duration.Inf)
+  override def howLong: Duration = inner.howLong * times
+
+  override def apply(v1: Duration): T = inner.apply(Duration.fromNanos(v1.toNanos % inner.howLong.toNanos))
 }
 
 /**
