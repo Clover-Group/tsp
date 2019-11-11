@@ -63,7 +63,6 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
   it should "parse complex rule" in {
     val pattern1 = p.field(_.row > 50).and(p.truthCount(p.assert(p.field(_.row) > p.const(10)), Window(10)) > p.const(0))
-    //val pattern2 = p.assert(p.lag(field(_.row > 10), Window(100)))
 
     val events = (for (time <- Timer(from = Instant.now());
                        idx  <- Increment;
