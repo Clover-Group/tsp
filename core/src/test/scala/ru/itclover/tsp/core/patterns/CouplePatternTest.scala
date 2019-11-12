@@ -7,7 +7,8 @@ import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine}
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core.utils.{RandomInRange, Timer}
+import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
+import ru.itclover.tsp.core.utils.{RandomInRange, TimeSeriesGenerator, Timer}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
@@ -28,7 +29,7 @@ class CouplePatternTest extends WordSpec with Matchers {
       val rnd: Random = new Random()
 
       val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- RandomInRange(0, 10)(rnd);
+                         idx  <- Increment;
                          row  <- RandomInRange(0, 10)(new Random()).timed(10.seconds))
         yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 10)
 
