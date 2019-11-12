@@ -26,6 +26,15 @@ object PQueue {
 
   def empty[T]: PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
 
+  // Removes elements from PQueue until predicate is true
+  @scala.annotation.tailrec
+  def unwindWhile[T](queue: PQueue[T])(func: IdxValue[T] => Boolean): PQueue[T] = {
+    queue.headOption match {
+      case Some(x) if func(x) => unwindWhile(queue.behead())(func)
+      case _                  => queue
+    }
+  }
+
   // PQueue with mutable queue backend. This is the default implementation used in the majority of patterns
   case class MutablePQueue[T](queue: java.util.Deque[IdxValue[T]]) extends PQueue[T] {
 
