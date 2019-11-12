@@ -20,11 +20,11 @@ class StateMachineTest extends FlatSpec with Matchers {
     StateMachine[Id].run(pat, Seq(event), pat.initialState(), (x: IdxValue[Int]) => collect += x)
 
     // Instantiate an output state manually
-    val eventsQueue = PQueue(IdxValue(1, 1, Result.succ(0)))
-    val expState = SimplePState[Int](eventsQueue)
+    val eventsQueue = PQueue(IdxValue(0, 0, Result.succ(0)))
 
     // Temporary, until custom Equality[IdxValue] is implemented
-    expState.queue.size shouldBe collect.size
+    eventsQueue.size shouldBe collect.size
+    eventsQueue.toSeq.zip(collect).forall(ab => ab._1 == ab._2) shouldBe true
   }
 
 }

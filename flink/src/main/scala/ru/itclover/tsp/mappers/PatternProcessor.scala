@@ -10,7 +10,7 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 
 import scala.collection.mutable.ListBuffer
 
-case class PatternProcessor[E, State <: PState[Inner, State], Inner, Out](
+case class PatternProcessor[E, State, Inner, Out](
   pattern: Pattern[E, State, Inner],
   patternMaxWindow: Long,
   mapResults: E => Inner => Out,

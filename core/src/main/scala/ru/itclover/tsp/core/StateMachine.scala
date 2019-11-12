@@ -23,7 +23,7 @@ class StateMachine[F[_]: Monad: Traverse] {
     * @tparam State internal State type
     * @return F[State] there State's queue is empty. It allows to avoid memory leaks.
     */
-  def run[Event, Out, State <: PState[Out, State]](
+  def run[Event, Out, State](
     pattern: Pattern[Event, State, Out],
     events: Iterable[Event],
     seedState: State,
@@ -42,17 +42,15 @@ class StateMachine[F[_]: Monad: Traverse] {
           counter += groupSize
 
           state
-            .flatMap(s => pattern.apply[F, List](s, evs.toList))
-            .flatMap { newState =>
-              {
+            .flatMap(s => pattern.apply[F, List](s, PQueue.empty, evs.toList))
+            .flatMap {
+              case (newState, newQueue) => {
 
-                val outputs = newState.queue.toSeq
-                val drainedState = newState.copyWith(PQueue.empty)
-                val allConsumed: F[Unit] = outputs.foldLeft(Monad[F].pure(())) {
+                val allConsumed: F[Unit] = newQueue.toSeq.foldLeft(Monad[F].pure(())) {
                   case (t, out) => t.flatMap(_ => consume(out))
                 }
 
-                Monad[F].map(allConsumed)(_ => drainedState)
+                Monad[F].map(allConsumed)(_ => newState)
               }
             }
       }
