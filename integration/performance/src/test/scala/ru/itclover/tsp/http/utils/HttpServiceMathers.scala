@@ -2,6 +2,7 @@ package ru.itclover.tsp.http.utils
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.google.common.util.concurrent.ThreadFactoryBuilder
@@ -34,7 +35,7 @@ trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpServi
       )
     )
 
-  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
   val log = Logger("HttpServiceMathers")
 

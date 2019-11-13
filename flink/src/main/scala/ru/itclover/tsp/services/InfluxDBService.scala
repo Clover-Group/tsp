@@ -4,6 +4,8 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 
 import okhttp3.OkHttpClient
+import org.apache.flink.api.common.typeinfo.TypeInformation
+import cats.syntax.either._
 import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}
 import org.influxdb.dto.Query
 import org.influxdb.{InfluxDB, InfluxDBException, InfluxDBFactory}

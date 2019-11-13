@@ -43,15 +43,17 @@ This packs requests from the **/tsp/test/reqs** folder into batches
  immediately and displays the error information. If the execution
  of a batch takes more than a given timeout (defaults to 180 seconds,
  or 3 minutes), a warning will be displayed.
+<<<<<<< HEAD
  
  
- #### 5.Profiling
+ #### Profiling
  
 ![YourKit logo](https://www.yourkit.com/images/yklogo.png) 
-
+ 
 YourKit supports open source projects with innovative and intelligent tools for monitoring and profiling Java and .NET applications. YourKit is the creator of [YourKit Java Profiler](https://www.yourkit.com/java/profiler/), [YourKit .NET Profiler](https://www.yourkit.com/.net/profiler/), and [YourKit YouMonitor](https://www.yourkit.com/youmonitor/). 
+=======
 
-#### 6. Running a custom test
+#### 5. Running a custom test
 
 If you want to launch a custom test, copy your test file into the **/tsp/test/regression** folder and run it with the following:
 
@@ -66,3 +68,4 @@ If you found a bug in TSP, please fill the bug report in Jira. Your bug report s
 2. Request message body
 3. Validation message body
 4. A table of **string/int** entries for the request and entity_id in the output table
+>>>>>>> integration

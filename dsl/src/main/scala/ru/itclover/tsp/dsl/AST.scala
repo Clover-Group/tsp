@@ -4,7 +4,7 @@ import cats.implicits._
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.{Result, Window}
 import ru.itclover.tsp.dsl.PatternMetadataInstances.monoid
-import UtilityTypes.ParseException
+import ru.itclover.tsp.utils.UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 

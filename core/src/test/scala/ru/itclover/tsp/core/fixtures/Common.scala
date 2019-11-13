@@ -7,22 +7,19 @@ import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.TimeExtractor
 
 // Dummy event
-sealed case class Event[A](ts: Long, idx: Idx, row: A, col: A)
-
-object Event {
-  // Dummy extractor
-  implicit val extractor: IdxExtractor[Common.EInt] = IdxExtractor.of(_.idx)
-
-  implicit val timeExtractor: TimeExtractor[Common.EInt] = TimeExtractor.of(t => Time(t.ts))
-}
+case class Event[A](ts: Long, row: A, col: A)
 
 object Common {
 
   type EInt = Event[Int]
 
-  val event: Event[Int] = Event[Int](0L, 0L, 0, 0)
+  val event: Event[Int] = Event[Int](0L, 0, 0)
 
   // Dummy event processing
-  def procEvent(ev: EInt): Long = ev.row.toLong
+  def procEvent(ev: EInt): Long = ev.row
 
+  // Dummy extractor
+  implicit val extractor: TsIdxExtractor[EInt] = new TsIdxExtractor(procEvent)
+
+  implicit val timeExtractor: TimeExtractor[EInt] = TimeExtractor.of(t => Time(t.ts))
 }

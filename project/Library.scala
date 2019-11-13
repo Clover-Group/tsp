@@ -20,7 +20,7 @@ object Version {
   val scalaCheck = "1.14.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.33.0"
+  val testContainers = "0.28.0"
   val testContainersKafka = "1.12.1"
   val postgres = "42.2.6"
 
@@ -156,7 +156,5 @@ object Library {
     "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs,
     "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
-
-  val jol: Seq[ModuleID] = Seq("org.openjdk.jol" % "jol-core"% "0.9")
 
 }

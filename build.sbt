@@ -19,17 +19,12 @@ lazy val launcher = "ru.itclover.tsp.http.Launcher"
 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  wartremoverWarnings ++= Warts.unsafe,
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
   // Comment for production builds
-  addCompilerPlugin(scalafixSemanticdb),
   scalacOptions --= Seq(
     "-Xfatal-warnings"
-  ),
-  scalacOptions ++= Seq(
-    "-Yrangepos",
   ),
   // don't release subprojects
   githubRelease := null,
@@ -150,7 +145,6 @@ lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
-      ++ Library.jol.map(_ % "test")
   )
 
 lazy val config = project.in(file("config"))

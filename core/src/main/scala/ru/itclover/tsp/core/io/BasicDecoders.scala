@@ -41,14 +41,14 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
 
   implicit val decodeToLong: Decoder[Any, Long] = new AnyDecoder[Long] {
     override def apply(x: Any): Long = x match {
-      case i: Int              => i.toLong
+      case i: Int              => i
       case l: Long             => l
       case n: java.lang.Number => n.longValue()
       case s: String =>
         try {
-          Helper.strToLong(s)
+          Helper.strToInt(s)
         } catch {
-          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Long, exception: ${e.toString}")
+          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
       case null => throw new RuntimeException(s"Cannot parse null to Long")
     }
@@ -91,6 +91,5 @@ object DoubleDecoderInstances extends BasicDecoders[Double] {
 // Hack for String.toInt implicit method
 object Helper {
   def strToInt(s: String): Int = s.toInt
-  def strToLong(s: String): Long = s.toLong
   def strToDouble(s: String): Double = s.toDouble
 }

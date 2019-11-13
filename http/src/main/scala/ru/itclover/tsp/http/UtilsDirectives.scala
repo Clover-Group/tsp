@@ -6,12 +6,12 @@ import akka.http.scaladsl.server.{Directive, RejectionHandler}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object UtilsDirectives {
 
   def logRequest(logFn: String => Unit)(implicit rejectionHandler: RejectionHandler): Directive[Unit] =
-    extractRequestContext.flatMap { _ =>
+    extractRequestContext.flatMap { ctx =>
       mapRequest { req =>
         logFn(requestToString(req))
         req
@@ -34,7 +34,7 @@ object UtilsDirectives {
   def responseToString(r: HttpResponse): String = s"HttpResponse(\n\tstatus=${r._1},\n\theaders=`${r._2}`," +
   s"\n\tentity=`${r._3}`,\n\tprotocol=${r._4}\n)"
 
-  def entityAsString(entity: HttpEntity)(implicit m: Materializer): Future[String] = {
+  def entityAsString(entity: HttpEntity)(implicit m: Materializer, ex: ExecutionContext): Future[String] = {
     val charset = entity.getContentType().getCharsetOption.orElse(HttpCharsets.`UTF-8`)
     entity.dataBytes
       .map(_.decodeString(charset.nioCharset()))

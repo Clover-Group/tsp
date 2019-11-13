@@ -2,13 +2,13 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
-import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
@@ -16,8 +16,8 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.duration.DurationInt
 
 class BasicInfluxToJdbcTest
     extends FlatSpec
@@ -44,27 +44,19 @@ class BasicInfluxToJdbcTest
       )
     )
 
-  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout(implicit system: ActorSystem) = RouteTestTimeout(300.seconds)
 
   val influxPort = 8138
 
   val influxContainer =
-    new InfluxDBContainer(
-      "influxdb:1.5",
-      influxPort -> 8086 :: Nil,
-      s"http://localhost:$influxPort",
-      "Test",
-      "default",
-      waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
-    )
+    new InfluxDBContainer("influxdb:1.5", influxPort -> 8086 :: Nil, s"http://localhost:$influxPort", "Test", "default")
 
   val jdbcPort = 8157
   implicit val jdbcContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     jdbcPort -> 8123 :: 9072 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$jdbcPort/default",
-    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
+    s"jdbc:clickhouse://localhost:$jdbcPort/default"
   )
 
   override val container = MultipleContainers(LazyContainer(jdbcContainer), LazyContainer(influxContainer))
@@ -105,10 +97,10 @@ class BasicInfluxToJdbcTest
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
     Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
     Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(jdbcContainer.executeUpdate)
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
@@ -121,12 +113,12 @@ class BasicInfluxToJdbcTest
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        2.0 :: Nil,
+        2 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        1.0 :: Nil,
+        1 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
       )
@@ -142,12 +134,12 @@ class BasicInfluxToJdbcTest
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        0.0 :: Nil,
+        0 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        2.0 :: Nil,
+        2 :: Nil,
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )

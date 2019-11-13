@@ -1,6 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.io.{Decoder, TimeExtractor}
 
 import scala.reflect.ClassTag
 
@@ -10,9 +11,9 @@ object PatternsValidator {
     patterns: Seq[RawPattern],
     fieldsTypes: Map[String, String]
   )(
-    //implicit timeExtractor: TimeExtractor[Event],
+    implicit timeExtractor: TimeExtractor[Event],
     //toNumberExtractor: Extractor[Event, Int, Any],
-    //doubleDecoder: Decoder[Any, Double]
+    doubleDecoder: Decoder[Any, Double]
   ): Seq[(RawPattern, Either[Throwable, AST])] =
     // Since it's only the validation, we don't need any tolerance fraction here.
     patterns.map(

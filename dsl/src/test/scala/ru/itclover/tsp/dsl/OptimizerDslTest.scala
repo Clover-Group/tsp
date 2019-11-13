@@ -4,14 +4,14 @@ import org.scalatest.EitherValues._
 
 import scala.reflect.ClassTag
 import ru.itclover.tsp.core.CouplePattern
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.{CouplePattern, MapPattern, Pat, SimplePattern}
 import ru.itclover.tsp.core.optimizations.Optimizer
 
 import scala.reflect.ClassTag
 
-class OptimizerDslTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class OptimizerDslTest extends FlatSpec with Matchers with PropertyChecks {
   import TestEvents._
 
   val fieldsClasses = Map(

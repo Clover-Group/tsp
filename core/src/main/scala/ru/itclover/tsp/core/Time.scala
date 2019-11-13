@@ -30,7 +30,7 @@ object Time {
 
   implicit def scalaDurationWindow(d: scala.concurrent.duration.Duration): Window = Window(toMillis = d.toMillis)
 
-  implicit def floatWindow(d: Float): Window = Window(toMillis = Math.round(d.toDouble * 1000))
+  implicit def floatWindow(d: Float): Window = Window(toMillis = Math.round(d * 1000))
 
   implicit def doubleWindow(d: Double): Window = Window(toMillis = Math.round(d * 1000))
 

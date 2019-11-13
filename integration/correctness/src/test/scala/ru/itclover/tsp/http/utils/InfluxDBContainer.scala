@@ -3,6 +3,7 @@ package ru.itclover.tsp.http.utils
 import com.dimafeng.testcontainers.SingleContainer
 import org.influxdb.InfluxDB
 import org.influxdb.dto.{Query, QueryResult}
+import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 import ru.itclover.tsp.services.InfluxDBService

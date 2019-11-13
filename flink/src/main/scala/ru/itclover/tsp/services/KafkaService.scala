@@ -3,13 +3,17 @@ package ru.itclover.tsp.services
 import java.util.Properties
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.{ObjectNode, ValueNode}
 
 import scala.util.Try
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, KafkaDeserializationSchema}
+import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
+import org.apache.flink.streaming.connectors.kafka.internal.KafkaFetcher
+import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserializationSchema
 import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord

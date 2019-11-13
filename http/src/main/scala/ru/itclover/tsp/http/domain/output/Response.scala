@@ -1,8 +1,8 @@
 package ru.itclover.tsp.http.domain.output
 
 import akka.http.scaladsl.model.StatusCodes.ServerError
-import ru.itclover.tsp.http.utils.Exceptions
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, RuntimeErr}
+import ru.itclover.tsp.utils.Exceptions
 
 sealed trait Response[T] extends Product with Serializable
 

@@ -1,12 +1,12 @@
 package ru.itclover.tsp.dsl
 
 import org.scalatest.EitherValues._
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.reflect.ClassTag
 
-class PatternGeneratorTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class PatternGeneratorTest extends FlatSpec with Matchers with PropertyChecks {
   import TestEvents._
 
   val fieldsClasses = Map(

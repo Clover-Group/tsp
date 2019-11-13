@@ -15,8 +15,8 @@ import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.routes._
-import ru.itclover.tsp.http.utils.Exceptions
-import ru.itclover.tsp.http.utils.Exceptions.InvalidRequest
+import ru.itclover.tsp.utils.Exceptions
+import ru.itclover.tsp.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
 import scala.concurrent.ExecutionContextExecutor
@@ -45,15 +45,15 @@ trait HttpService extends RoutesProtocols {
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, blockingExecutorContext)
       monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
-      validation <- ValidationRoutes.fromExecutionContext()
+      validation <- ValidationRoutes.fromExecutionContext(monitoringUri)
     } yield jobs ~ monitoring ~ validation
 
     log.debug("composeRoutes finished")
     res
   }
 
-  def route: Route = {
-    log.debug ("route started")
+  def route = {
+    log.debug("route started")
     val res = (logRequestAndResponse & handleErrors) {
       ignoreTrailingSlash {
         composeRoutes.run(executionContext).andThen { futureRoute =>

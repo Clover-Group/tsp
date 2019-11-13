@@ -1,22 +1,33 @@
 package ru.itclover.tsp.core.queues
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.core.PQueue.MutablePQueue
+import ru.itclover.tsp.core.PQueue.{IdxMapPQueue, MutablePQueue}
 import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 
 import scala.collection.mutable
 
 /**
-  * Test class for mutable pattern queue
+  * Test class for lazy variant of PQueue
   */
-class MutablePQueueTest extends WordSpec with Matchers {
+class IdxMapPQueueTest extends WordSpec with Matchers {
 
-  "mutable pattern queue" should {
+  "lazy variant of pattern queue" should {
 
-    val testQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
+    val transferQueue = MutablePQueue[Int](new mutable.Queue[IdxValue[Int]])
 
-    (0 to 1000)
-      .foreach(i => testQueue.enqueue(i, Result.succ(i)))
+    (0 to 20)
+      .foreach(i => transferQueue.enqueue(i, Result.succ(i)))
+
+    val testQueue = IdxMapPQueue[Int, Int](transferQueue, (item => item.value))
+
+    "return it's size" in {
+
+      val expectedData = 21
+      val actualData = testQueue.size
+
+      actualData shouldBe expectedData
+
+    }
 
     "retrieve head option" in {
 
@@ -29,7 +40,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     "dequeue" in {
 
-      val expectedData = 1000
+      val expectedData = 20
       val actualData = testQueue.dequeue()._2.size
 
       actualData shouldBe expectedData
@@ -67,12 +78,12 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     }
 
-    "enqueue" in {
+    "not to enqueue" in {
 
-      testQueue.enqueue(1, Result.succ(1))
+      val expectedData = "Cannot enqueue to IdxMapPQueue! Bad logic"
 
-      val expectedData = Result.succ(4)
-      val actualData = testQueue.dequeueOption().get._1.value
+      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(1, Result.succ(1))
+      val actualData = thrownException.getMessage
 
       actualData shouldBe expectedData
 
@@ -81,32 +92,22 @@ class MutablePQueueTest extends WordSpec with Matchers {
     "clean" in {
 
       val cleanResult = testQueue.clean()
-      cleanResult.enqueue(1, Result.succ(1))
 
-      cleanResult.size shouldBe 1
+      cleanResult.size shouldBe 0
+
     }
 
     "convert to sequence" in {
 
       val expectedResult = mutable.Queue[Succ[Int]]()
 
-      (5 to 1000)
+      (4 to 20)
         .foreach(item => expectedResult.enqueue(Succ(item)))
-      expectedResult.enqueue(Succ(1))
 
       val seq = testQueue.toSeq
       val actualResult = seq.map(item => item.value)
 
       actualResult shouldBe expectedResult
-
-    }
-
-    "return it's size" in {
-
-      val expectedData = 997
-      val actualData = testQueue.size
-
-      actualData shouldBe expectedData
 
     }
 

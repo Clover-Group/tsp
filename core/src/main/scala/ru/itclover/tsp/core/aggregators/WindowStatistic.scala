@@ -3,22 +3,21 @@ package ru.itclover.tsp.core.aggregators
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{Pattern, Time, Window, _}
+import ru.itclover.tsp.core.{PState, Pattern, Time, Window, _}
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 
-//todo docs
-//todo simplify
-case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
+// TOOD@fabura Docs? Rename?
+case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S <: PState[T, S], T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T]] {
-  override def initialState(): AggregatorPState[S, T, WindowStatisticAccumState[T]] =
+  override def initialState(): AggregatorPState[S, WindowStatisticAccumState[T], WindowStatisticResult] =
     AggregatorPState(
       innerState = inner.initialState(),
-      innerQueue = PQueue.empty,
       astate = WindowStatisticAccumState(None, m.Queue.empty),
+      queue = PQueue.empty,
       indexTimeMap = m.Queue.empty
     )
 }
@@ -29,28 +28,10 @@ case class WindowStatisticAccumState[T](
 ) extends AccumState[T, WindowStatisticResult, WindowStatisticAccumState[T]] {
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
-    idxValue: IdxValue[T]
-  ): (WindowStatisticAccumState[T], QI[WindowStatisticResult]) = {
-    val isSuccess = idxValue.value.isSuccess
-    val (newLastValue, newWindowQueue, newOutputQueue) =
-      times.foldLeft(Tuple3(lastValue, windowQueue, PQueue.empty[WindowStatisticResult])) {
-        case ((lastValue, windowQueue, outputQueue), (idx, time)) =>
-          addOnePoint(time, idx, window, isSuccess, lastValue, windowQueue, outputQueue)
-      }
-
-    WindowStatisticAccumState[T](newLastValue, newWindowQueue) -> newOutputQueue
-  }
-
-  def addOnePoint(
-    time: Time,
     idx: Idx,
-    window: Window,
-    isSuccess: Boolean,
-    lastValue: Option[WindowStatisticResult],
-    windowQueue: m.Queue[WindowStatisticQueueInstance],
-    outputQueue: QI[WindowStatisticResult]
-  ): (Option[WindowStatisticResult], m.Queue[WindowStatisticQueueInstance], QI[WindowStatisticResult]) = {
+    time: Time,
+    value: Result[T]
+  ): (WindowStatisticAccumState[T], QI[WindowStatisticResult]) = {
 
     // add new element to queue
     val (newLastValue, newWindowStatisticQueueInstance) =
@@ -61,28 +42,76 @@ case class WindowStatisticAccumState[T](
             val elem = WindowStatisticQueueInstance(
               idx = idx,
               time = time,
-              isSuccess = isSuccess,
+              isSuccess = value.isSuccess,
               // count success and fail times by previous result, not current!
               successTimeFromPrevious = if (cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0,
               failTimeFromPrevious = if (!cmr.lastWasSuccess) time.toMillis - cmr.time.toMillis else 0
             )
 
-            val newLV = cmr.copy(time = time, lastWasSuccess = isSuccess).plusChange(elem, window)
+            val newLV = WindowStatisticResult(
+              idx = idx,
+              time = time,
+              lastWasSuccess = value.isSuccess,
+              successCount = cmr.successCount + (if (value.isSuccess) 1 else 0),
+              successMillis = cmr.successMillis + math.min(elem.successTimeFromPrevious, window.toMillis),
+              failCount = cmr.failCount + (if (value.isFail) 1 else 0),
+              failMillis = cmr.failMillis + math.min(elem.failTimeFromPrevious, window.toMillis)
+            )
 
             newLV -> elem
           }
         }
         .getOrElse(
-          WindowStatisticResult(idx, time, isSuccess, if (isSuccess) 1 else 0, 0, if (!isSuccess) 1 else 0, 0)
-          -> WindowStatisticQueueInstance(idx, time, isSuccess = isSuccess)
+          WindowStatisticResult(
+            idx,
+            time,
+            value.isSuccess,
+            if (value.isSuccess) 1 else 0,
+            0,
+            if (value.isFail) 1 else 0,
+            0
+          )
+          -> WindowStatisticQueueInstance(
+            idx,
+            time,
+            isSuccess = value.isSuccess,
+            successTimeFromPrevious = 0,
+            failTimeFromPrevious = 0
+          )
         )
 
     //remove outdated elements from queue
     val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) < time)
 
-    val finalNewLastValue = outputs.foldLeft(newLastValue) { case (cmr, elem) => cmr.minusChange(elem, window) }
+    val finalNewLastValue = outputs.foldLeft(newLastValue) {
+      case (cmr, elem) =>
+        val maxChangeTime =
+          lastValue.map(lv => window.toMillis - (lv.time.toMillis - elem.time.toMillis)).getOrElse(Long.MaxValue)
 
-    // we have to correct result because of the most early event in queue can contain additional time which is not in window.
+        if (elem.isSuccess) {
+          WindowStatisticResult(
+            idx,
+            time,
+            lastWasSuccess = value.isSuccess,
+            successCount = cmr.successCount - 1,
+            successMillis = cmr.successMillis - math.min(maxChangeTime, elem.successTimeFromPrevious),
+            failCount = cmr.failCount,
+            failMillis = cmr.failMillis - math.min(maxChangeTime, elem.failTimeFromPrevious)
+          )
+        } else {
+          WindowStatisticResult(
+            idx,
+            time,
+            lastWasSuccess = value.isSuccess,
+            successCount = cmr.successCount,
+            successMillis = cmr.successMillis - math.min(maxChangeTime, elem.successTimeFromPrevious),
+            failCount = cmr.failCount - 1,
+            failMillis = cmr.failMillis - math.min(maxChangeTime, elem.failTimeFromPrevious)
+          )
+        }
+    }
+
+    // we have to correct result because of the most early event in queue can contain additional time with is not in window.
     val correctedLastValue = updatedWindowQueue.headOption
       .map { cmqi =>
         val maxChangeTime = window.toMillis - (finalNewLastValue.time.toMillis - cmqi.time.toMillis)
@@ -97,9 +126,9 @@ case class WindowStatisticAccumState[T](
       .getOrElse(finalNewLastValue)
 
     val finalWindowQueue = { updatedWindowQueue.enqueue(newWindowStatisticQueueInstance); updatedWindowQueue }
-    val updatedOutputQueue = outputQueue.enqueue(IdxValue(idx, idx, Result.succ(correctedLastValue)))
-
-    Tuple3(Some(correctedLastValue), finalWindowQueue, updatedOutputQueue)
+    WindowStatisticAccumState(Some(correctedLastValue), finalWindowQueue) -> PQueue(
+      IdxValue(idx, Result.succ(correctedLastValue))
+    )
   }
 
 }
@@ -108,8 +137,8 @@ case class WindowStatisticQueueInstance(
   idx: Idx,
   time: Time,
   isSuccess: Boolean,
-  successTimeFromPrevious: Long = 0,
-  failTimeFromPrevious: Long = 0
+  successTimeFromPrevious: Long,
+  failTimeFromPrevious: Long
 )
 
 // OPTIMIZE memory, make successCount and failCount - Int
@@ -124,33 +153,4 @@ case class WindowStatisticResult(
 ) {
   def totalMillis: Idx = successMillis + failMillis
   def totalCount: Idx = successCount + failCount
-
-  def plusChange(wsqi: WindowStatisticQueueInstance, window: Window): WindowStatisticResult = this.copy(
-    successCount = successCount + (if (wsqi.isSuccess) 1 else 0),
-    successMillis = successMillis + math.min(wsqi.successTimeFromPrevious, window.toMillis),
-    failCount = failCount + (if (!wsqi.isSuccess) 1 else 0),
-    failMillis = failMillis + math.min(wsqi.failTimeFromPrevious, window.toMillis)
-  )
-
-  def minusChange(wsqi: WindowStatisticQueueInstance, window: Window): WindowStatisticResult = {
-    val pastTime = time.toMillis - wsqi.time.toMillis
-    val maxChangeTime = Math.max(0, window.toMillis - pastTime)
-
-    if (wsqi.isSuccess) {
-      this.copy(
-        successCount = successCount - 1,
-        successMillis = successMillis - math.min(maxChangeTime, wsqi.successTimeFromPrevious),
-        failCount = failCount,
-        failMillis = failMillis - math.min(maxChangeTime, wsqi.failTimeFromPrevious)
-      )
-    } else {
-      this.copy(
-        successCount = successCount,
-        successMillis = successMillis - math.min(maxChangeTime, wsqi.successTimeFromPrevious),
-        failCount = failCount - 1,
-        failMillis = failMillis - math.min(maxChangeTime, wsqi.failTimeFromPrevious)
-      )
-    }
-  }
-
 }

@@ -30,7 +30,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
   val inputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
-    query = "select * from Test.Bigdata_HI limit 10000000",
+    query = "select * from Test.Bigdata_HI limit 100",
     driverName = container.driverName,
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
@@ -56,9 +56,9 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
   "Basic assertions" should "work for wide dense table" in {
@@ -72,8 +72,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(1275.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
-      checkByQuery(1832.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
+      checkByQuery(1275 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
+      checkByQuery(1832 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
       // Performance
       execTimeS should be <= realDataMaxTimeSec
     }

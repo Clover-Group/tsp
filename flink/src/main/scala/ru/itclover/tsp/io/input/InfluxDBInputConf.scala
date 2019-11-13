@@ -1,6 +1,6 @@
 package ru.itclover.tsp.io.input
 
-import ru.itclover.tsp.RowWithIdx
+import org.apache.flink.types.Row
 import ru.itclover.tsp.services.InfluxDBService
 
 /**
@@ -36,12 +36,12 @@ case class InfluxDBInputConf(
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,
-  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
   defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(2)
-) extends InputConf[RowWithIdx, Symbol, Any] {
+) extends InputConf[Row, Symbol, Any] {
 
   val influxConf = InfluxDBService.InfluxConf(url, dbName, userName, password, 200L)
 }

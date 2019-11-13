@@ -142,7 +142,7 @@ case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMateri
         successOrErr <- Unmarshal(response.entity).to[Either[MonitoringError, EmptyResponse]]
       } yield successOrErr
       resp.flatMap {
-        case Right(_)  => Future.successful(Some(()))
+        case Right(_)  => Future.successful(Some(Unit))
         case Left(err) => Future.failed(err.toThrowable)
       }
     case None => Future.successful(None)
