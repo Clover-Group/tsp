@@ -14,10 +14,11 @@ import org.apache.flink.streaming.api.windowing.triggers.{CountTrigger, Trigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
-import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
-import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
+import ru.itclover.tsp.core.{Incident, RawPattern, _}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
@@ -38,14 +39,14 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   import PatternsSearchJob._
   import decoders._
-  import source.{kvExtractor, eventCreator, keyCreator}
+  import source.{eventCreator, keyCreator, kvExtractor}
 
-  def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
+  def patternsSearchStream[OutE: TypeInformation, OutKey, S](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
   ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
-    import source.{transformedExtractor, transformedTimeExtractor}
+    import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
@@ -80,7 +81,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
     }
 
-  def incidentsFromPatterns[T, S <: PState[Segment, S]: ClassTag](
+  def incidentsFromPatterns[T, S: ClassTag](
     stream: DataStream[In],
     patterns: Seq[RichPattern[In, Segment, S]],
     forwardedFields: Seq[(Symbol, InKey)],
@@ -105,28 +106,28 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           pattern,
           meta.sumWindowsMs,
           toIncidents.apply,
-          source.conf.eventsMaxGapMs,
-          source.emptyEvent
-        )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
+          source.conf.eventsMaxGapMs
+        )(timeExtractor, source.idxExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
     }
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.transformedPartitioner)
-    val windowed = if (useWindowing) {
-      keyedStream
-        .window(
-          TumblingEventTimeWindows
-            .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-            .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-        )
-    } else {
-      keyedStream
-        .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-        .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
-    }
+    val windowed =
+      if (useWindowing) {
+        keyedStream
+          .window(
+            TumblingEventTimeWindows
+              .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+          )
+      } else {
+        keyedStream
+          .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+          .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+      }
     val processed = windowed
       .process[Incident](
-        ProcessorCombinator[In, S, Segment, Incident](mappers)
+        ProcessorCombinator[In, S, Segment, Incident](mappers, timeExtractor)
       )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
@@ -149,35 +150,31 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
 object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
-  type RichPattern[E, T, S <: PState[T, S]] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
+  type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
 
-  def preparePatterns[E, S <: PState[Segment, S], EKey, EItem](
+  def preparePatterns[E, S, EKey, EItem](
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double,
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
-    getTime: TimeExtractor[E]
+    getTime: TimeExtractor[E],
+    idxExtractor: IdxExtractor[E] /*,
+    dDecoder: Decoder[EItem, Double]*/
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
 
-    val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
-
-//    Pattern that transforms IdxValue[T] into IdxValue[Segment(fromTime, toTime)],
-//     useful when you need not a single point, but the whole time-segment as the result.
-//     __Note__ - all inner patterns should be using exactly __TsIdxExtractor__, or segment bounds would be incorrect.
-    def segmentize[T](idxVal: IdxValue[T]): Result[Segment] = {
-      val fromTs = tsToIdx.idxToTs(idxVal.start)
-      val toTs = tsToIdx.idxToTs(idxVal.end)
-      Result.succ(Segment(Time(toMillis = fromTs), Time(toMillis = toTs)))
-    }
-
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap, tsToIdx)
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
+      idxExtractor,
+      getTime,
+      extractor,
+      fieldsIdxMap
+    )
     val res = Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
@@ -185,7 +182,12 @@ object PatternsSearchJob {
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
-              p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+              p =>
+                (
+                  new TimestampsAdderPattern(SegmentizerPattern(p._1))
+                    .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+                  p._2
+                )
             )
         // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
@@ -198,7 +200,7 @@ object PatternsSearchJob {
     res
   }
 
-  def bucketizePatterns[E, T, S <: PState[T, S]](
+  def bucketizePatterns[E, T, S](
     patterns: Seq[RichPattern[E, T, S]],
     parallelism: Int
   ): Vector[Bucket[RichPattern[E, T, S]]] = {
@@ -249,8 +251,8 @@ object PatternsSearchJob {
         log.debug("saveStream finished")
         res
       case _ =>
-        val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
-        outputConf.getOutputFormat.close()
+        val outputFormat = outputConf.getOutputFormat
+        val res = stream.writeUsingOutputFormat(outputFormat)
         log.debug("saveStream finished")
         res
     }

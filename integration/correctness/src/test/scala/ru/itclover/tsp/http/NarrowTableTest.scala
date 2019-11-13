@@ -2,14 +2,13 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers.ForAllTestContainer
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.types.Row
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
@@ -17,8 +16,8 @@ import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
@@ -52,7 +51,7 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
-  val transformation = NarrowDataUnfolding[Row, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
+  val transformation = NarrowDataUnfolding[RowWithIdx, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
 
   val inputConf = JDBCInputConf(
     sourceId = 123,

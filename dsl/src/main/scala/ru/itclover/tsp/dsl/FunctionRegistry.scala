@@ -2,10 +2,8 @@ package ru.itclover.tsp.dsl
 
 import java.io.Serializable
 
+import com.typesafe.scalalogging.LazyLogging
 import ru.itclover.tsp.core.{Fail, Result, Succ}
-
-//import scala.collection.mutable
-import com.typesafe.scalalogging.Logger
 
 import scala.reflect.ClassTag
 
@@ -33,9 +31,7 @@ case class FunctionRegistry(
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
 }
 
-object DefaultFunctions {
-
-  val log = Logger("DefaultFunctionRegistry")
+object DefaultFunctions extends LazyLogging{
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
@@ -60,7 +56,7 @@ object DefaultFunctions {
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       // TODO: maybe some other cases
       case _ =>
-        log.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
+        logger.warn(s"$x (of type ${x.getClass.getName}) cannot be cast to $ct")
         Result.fail
     }
 
@@ -84,7 +80,7 @@ object DefaultFunctions {
       ('mul, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
             },
@@ -94,7 +90,7 @@ object DefaultFunctions {
       ('div, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
             },
@@ -104,7 +100,7 @@ object DefaultFunctions {
       ('add, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
               case _                    => Result.fail
             },
@@ -114,7 +110,7 @@ object DefaultFunctions {
       ('sub, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.minus(t0, t1))
               case _                    => Result.fail
             },
@@ -124,7 +120,7 @@ object DefaultFunctions {
       ('mul, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
             },
@@ -134,7 +130,7 @@ object DefaultFunctions {
       ('div, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
             },
@@ -149,79 +145,79 @@ object DefaultFunctions {
     Map(
       ('abs, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.abs(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.abs(_)),
           astType
         )
       ),
       ('sin, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.sin(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.sin(_)),
           astType
         )
       ),
       ('cos, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.cos(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.cos(_)),
           astType
         )
       ),
       ('tan, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.tan(_)),
           astType
         )
       ),
       ('tg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.tan(_)),
           astType
         )
       ),
       ('cot, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(1.0 / Math.tan(_)),
           astType
         )
       ),
       ('ctg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(1.0 / Math.tan(_)),
           astType
         )
       ),
       ('sind, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.sin(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.sin(Math.toRadians(x))),
           astType
         )
       ),
       ('cosd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.cos(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.cos(Math.toRadians(x))),
           astType
         )
       ),
       ('tand, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('tgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('cotd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('ctgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs.head).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       )
@@ -229,34 +225,34 @@ object DefaultFunctions {
   }
 
   def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
-    // val log = Logger("LogicalLogger")
-
     // TSP-182 - Workaround for correct type inference
 
     val btype = BooleanASTType
 
-    def func(sym: Symbol, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] =
-      //log.debug(s"func($sym): Arg0 = $xs(0), Arg1 = $xs(1)")
-      //log.info(s"Args = ${(xs(0), xs.lift(1).getOrElse(Unit))}")
-      //log.info(s"Arg results = ${(toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
-      (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(Unit))) match {
+    def func(sym: Symbol, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] = {
+
+      //log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
+      //log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
+      //log.info(s"Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
+      (toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit))) match {
         case (Succ(x0), Succ(x1)) =>
           sym match {
 
             case 'and => Result.succ(l.and(x0, x1))
-            case 'or  => Result.succ(l.or(x0, x1))
+            case 'or => Result.succ(l.or(x0, x1))
             case 'xor => Result.succ(l.xor(x0, x1))
-            case 'eq  => Result.succ(l.eq(x0, x1))
+            case 'eq => Result.succ(l.eq(x0, x1))
             case 'neq => Result.succ(l.neq(x0, x1))
-            case _    => Result.fail
+            case _ => Result.fail
           }
         case (Succ(x0), Fail) =>
           sym match {
             case 'not => Result.succ(l.not(x0))
-            case _    => Result.fail
+            case _ => Result.fail
           }
         case _ => Result.fail
       }
+    }
 
     Map(
       //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
@@ -280,7 +276,7 @@ object DefaultFunctions {
       ('lt, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
             },
@@ -290,7 +286,7 @@ object DefaultFunctions {
       ('le, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
             },
@@ -300,7 +296,7 @@ object DefaultFunctions {
       ('gt, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
             },
@@ -310,7 +306,7 @@ object DefaultFunctions {
       ('ge, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
             },
@@ -320,7 +316,7 @@ object DefaultFunctions {
       ('eq, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -330,7 +326,7 @@ object DefaultFunctions {
       ('ne, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
+            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -340,7 +336,7 @@ object DefaultFunctions {
       ('lt, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
             },
@@ -350,7 +346,7 @@ object DefaultFunctions {
       ('le, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
             },
@@ -360,7 +356,7 @@ object DefaultFunctions {
       ('gt, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
             },
@@ -370,7 +366,7 @@ object DefaultFunctions {
       ('ge, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
             },
@@ -380,7 +376,7 @@ object DefaultFunctions {
       ('eq, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -390,7 +386,7 @@ object DefaultFunctions {
       ('ne, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
+            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -458,11 +454,9 @@ object DefaultFunctions {
         case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))
         case _                              => Result.fail
       }
-    }, DoubleASTType, { x: Result[Any] =>
-      x match {
-        case Succ((sum: Double, count: Double)) => Result.succ(sum / count)
-        case _                                  => Result.fail
-      }
+    }, DoubleASTType, {
+      case Succ((sum: Double, count: Double)) => Result.succ(sum / count)
+      case _                                  => Result.fail
     }, (0.0, 0.0)))
   )
 

@@ -157,4 +157,6 @@ object Library {
     "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
 
+  val jol: Seq[ModuleID] = Seq("org.openjdk.jol" % "jol-core"% "0.9")
+
 }
