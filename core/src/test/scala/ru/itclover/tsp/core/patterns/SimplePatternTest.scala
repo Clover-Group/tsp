@@ -1,4 +1,4 @@
-package ru.itclover.tsp.core
+package ru.itclover.tsp.core.patterns
 
 import java.time.Instant
 
@@ -8,6 +8,7 @@ import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
+import ru.itclover.tsp.core.{IdxValue, Patterns, Result, StateMachine}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -34,7 +35,7 @@ class SimplePatternTest extends FlatSpec with Matchers {
 
     val out = runAndCollectOutput(events)
     out.size shouldBe (100)
-    out.foreach(x => x.start shouldBe( x.end))
+    out.foreach(x => x.start shouldBe (x.end))
   }
 
   it should "collect points to segments for same values" in {
