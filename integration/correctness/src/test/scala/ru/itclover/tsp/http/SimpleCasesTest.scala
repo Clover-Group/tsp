@@ -64,26 +64,26 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     RawPattern("10", "POilDieselOut = 9.53 or SpeedThrustMin = 51"),
     RawPattern("11", "POilDieselOut < 9.50 until SpeedThrustMin > 51"),
     RawPattern("12", "abs(SpeedThrustMin + POilDieselOut) > 40"),
-    RawPattern("13", "avg(SpeedThrustMin, 3 sec) = 22"),
+    RawPattern("13", "avg(SpeedThrustMin, 2 sec) = 22"),
     RawPattern("14", "avgOf(POilDieselOut, SpeedThrustMin) > 0"),
     RawPattern("15", "lag(POilDieselOut) < 0")
   )
 
   val incidentsCount = Map(
-    1 -> 1,
-    2 -> 1,
-    3 -> 1,
+    1 -> 9,
+    2 -> 5,
+    3 -> 3,
     4 -> 1,
-    5 -> 2,
-    6 -> 2,
+    5 -> 6,
+    6 -> 6,
     7 -> 1,
     8 -> 1,
     9 -> 1,
     10 -> 1,
     11 -> 1,
-    12 -> 1,
+    12 -> 2,
     13 -> 1,
-    14 -> 1,
+    14 -> 3,
     15 -> 1,
   )
 
@@ -109,8 +109,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(600000))),
-    parallelism = Some(1)
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(1000))),
   )
 
   val wideRowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
@@ -133,17 +132,17 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test/cases-narrow-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/test/cases-wide-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${Files.readResource("/sql/test/cases-narrow.csv").drop(1).mkString("\n")}")
-    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${Files.readResource("/sql/test/cases-wide.csv").drop(1).mkString("\n")}")
+    Files.readResource("/sql/test/cases-narrow-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
+    Files.readResource("/sql/test/cases-wide-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
+    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${Files.readResource("/sql/test/cases-narrow-new.csv").drop(1).mkString("\n")}")
+    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${Files.readResource("/sql/test/cases-wide-new.csv").drop(1).mkString("\n")}")
     Files.readResource("/sql/test/cases-sinks-schema.sql").mkString.split(";").foreach(container.executeUpdate)
 
   }
 
   "Data" should "load properly" in {
-    checkByQuery(27 :: Nil, "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
-    checkByQuery(47 :: Nil, "SELECT COUNT(*) FROM math_test")
+    checkByQuery(List(List(27.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
+    checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")
   }
 
   "Cases 1-15" should "work in wide table" in {
@@ -151,10 +150,15 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
       Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"15wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
         route ~> check {
+        withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
-          checkByQuery(id.toDouble :: incidentsCount(id).toDouble :: Nil, s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+        }
+          //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
     }
+    checkByQuery(incidentsCount.map {
+      case (k, v) => List(k.toDouble, v.toDouble)
+    }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id")
   }
 
   "Cases 1-15" should "work in narrow table" in {
@@ -162,9 +166,14 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
       Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"15narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))) ~>
         route ~> check {
-        status shouldEqual StatusCodes.OK
-        checkByQuery(id.toDouble :: incidentsCount(id).toDouble :: Nil, s"SELECT $id, COUNT(*) FROM events_narrow_test WHERE id = $id")
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_narrow_test WHERE id = $id")
       }
     }
+    checkByQuery(incidentsCount.map {
+      case (k, v) => List(k.toDouble, v.toDouble)
+    }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id")
   }
 }

@@ -96,24 +96,24 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        2.0 :: Nil,
+        List(List(2.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
 
       checkByQuery(
-        1.0 :: Nil,
+        List(List(1.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        1.0 :: Nil,
+        List(List(1.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 2 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65002'"
       )
 
       checkByQuery(
-        1.0 :: Nil,
+        List(List(1.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
       )
@@ -129,12 +129,12 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        0.0 :: Nil,
+        List(List(0.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
       checkByQuery(
-        2.0 :: Nil,
+        List(List(2.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
         "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
