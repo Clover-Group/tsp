@@ -52,9 +52,13 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
         case (_, None) => default
         case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
           if (value1.isFail) {
-            inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
+            inner(
+              first.behead(),
+              PQueue.unwindWhile(second)(_.end <= start1),
+              total.enqueue(IdxValue(start1, end1, Result.fail))
+            )
           } else if (value2.isFail) {
-            inner(first.rewindTo(end2 + 1), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
+            inner(first.rewindTo(end2), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
           } else { // at this moment both first and second results are not Fail.
             // late event from second, just skip it
             // first            |-------|
@@ -72,7 +76,7 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
             // first   |-------|
             // second       |-------|
             else {
-              val end = Math.min(end1, end2)
+              val end = Math.min(end1 + 1, end2)
               val start = Math.max(start1, start2)
               val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
               inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))

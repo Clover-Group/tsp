@@ -14,7 +14,7 @@ import scala.collection.{mutable => m}
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
-) extends AccumPattern[Event, S, T, Unit, TimerAccumState[T]] {
+) extends AccumPattern[Event, S, T, Boolean, TimerAccumState[T]] {
   override def initialState(): AggregatorPState[S, T, TimerAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
@@ -23,14 +23,14 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   )
 }
 
-case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumState[T, Unit, TimerAccumState[T]] {
+case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumState[T, Boolean, TimerAccumState[T]] {
 
   @inline
   override def updated(
     window: Window,
     times: m.Queue[(Idx, Time)],
     idxValue: IdxValue[T]
-  ): (TimerAccumState[T], QI[Unit]) = {
+  ): (TimerAccumState[T], QI[Boolean]) = {
 
     val (updatedWindowQueue, newOptResult) = idxValue.value match {
       // clean queue in case of fail. Return fails for all events in queue
@@ -48,7 +48,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
           case (_, t) => t.plus(window) <= end
         }
 
-        val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, Result.succUnit)
+        val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, Result.succ(true))
         (updatedWindowQueue, newOptResult)
     }
     (TimerAccumState(updatedWindowQueue), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
@@ -57,7 +57,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
   private def createIdxValue(
     optStart: Option[(Idx, Time)],
     optEnd: Option[(Idx, Time)],
-    result: Result[Unit]
-  ): Option[IdxValue[Unit]] =
+    result: Result[Boolean]
+  ): Option[IdxValue[Boolean]] =
     Apply[Option].map2(optStart, optEnd)((start, end) => IdxValue(start._1, end._1, result))
 }

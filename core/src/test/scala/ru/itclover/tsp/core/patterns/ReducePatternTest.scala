@@ -1,4 +1,4 @@
-package ru.itclover.tsp.core
+package ru.itclover.tsp.core.patterns
 
 import java.time.Instant
 
@@ -10,6 +10,7 @@ import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Constant, Timer}
+import ru.itclover.tsp.core._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
