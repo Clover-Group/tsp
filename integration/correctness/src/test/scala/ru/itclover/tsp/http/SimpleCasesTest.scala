@@ -80,7 +80,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     8 -> 1,
     9 -> 1,
     10 -> 1,
-    11 -> 1,
+    11 -> 3,
     12 -> 2,
     13 -> 1,
     14 -> 3,
