@@ -30,12 +30,12 @@ class TimerPatternTest extends WordSpec with Matchers {
                          idx  <- Increment;
                          row  <- Constant(0).timed(40.seconds).after(Constant(1)))
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
-      val collect = new ArrayBuffer[IdxValue[Unit]]()
-      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
+      val collect = new ArrayBuffer[IdxValue[Boolean]]()
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Boolean]) => collect += x)
 
       //returns 2 intervals
       collect.size shouldBe 2
-      collect(0) shouldBe IdxValue(0, 29, Succ(()))
+      collect(0) shouldBe IdxValue(0, 29, Succ(true))
       collect(1) shouldBe IdxValue(30, 99, Fail)
     }
 
@@ -45,13 +45,13 @@ class TimerPatternTest extends WordSpec with Matchers {
                          idx  <- Increment;
                          row  <- Constant(1).timed(40.seconds).after(Constant(0)))
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
-      val collect = new ArrayBuffer[IdxValue[Unit]]()
-      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Unit]) => collect += x)
+      val collect = new ArrayBuffer[IdxValue[Boolean]]()
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Boolean]) => collect += x)
 
       //returns 2 intervals
 //      collect.size shouldBe 2
       collect(0) shouldBe IdxValue(0, 39, Fail)
-      collect(1) shouldBe IdxValue(40, 89, Succ(()))
+      collect(1) shouldBe IdxValue(40, 89, Succ(true))
     }
   }
 
