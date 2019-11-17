@@ -3,7 +3,6 @@ package ru.itclover.tsp.http.utils
 import java.sql.{Connection, DriverManager, ResultSet}
 
 import com.dimafeng.testcontainers.SingleContainer
-import org.junit.runner.Description
 import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 

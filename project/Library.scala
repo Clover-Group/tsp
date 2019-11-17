@@ -20,7 +20,7 @@ object Version {
   val scalaCheck = "1.14.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.28.0"
+  val testContainers = "0.33.0"
   val testContainersKafka = "1.12.1"
   val postgres = "42.2.6"
 

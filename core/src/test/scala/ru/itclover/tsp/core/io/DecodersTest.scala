@@ -82,7 +82,7 @@ class DecodersTest extends WordSpec with Matchers {
       val testString = "test"
       val thrownException = the[RuntimeException] thrownBy longDecoder.apply(testString)
 
-      assert(thrownException.getMessage contains s"Cannot parse String ($testString) to Int")
+      assert(thrownException.getMessage contains s"Cannot parse String ($testString) to Long")
 
     }
 

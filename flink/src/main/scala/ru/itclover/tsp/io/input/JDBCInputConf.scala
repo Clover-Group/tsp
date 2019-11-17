@@ -1,5 +1,5 @@
 package ru.itclover.tsp.io.input
-import org.apache.flink.types.Row
+import ru.itclover.tsp.RowWithIdx
 
 /**
   * Source for anything that support JDBC connection
@@ -33,10 +33,10 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(1),
   timestampMultiplier: Option[Double] = Some(1000.0)
-) extends InputConf[Row, Symbol, Any]
+) extends InputConf[RowWithIdx, Symbol, Any]

@@ -15,7 +15,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.utils.ErrorsADT.{GenericConfigError, GenericRuntimeErr}
-import ru.itclover.tsp.utils.Exceptions.InvalidRequest
+import ru.itclover.tsp.http.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
 import scala.concurrent.duration.Duration

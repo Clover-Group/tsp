@@ -5,7 +5,6 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import ru.itclover.tsp.mappers.PatternProcessor
 import spray.json.DefaultJsonProtocol
 
-import scala.language.implicitConversions
 
 object MonitoringServiceModel {
 

@@ -1,32 +1,36 @@
 package ru.itclover.tsp.dsl
 
-import cats.Order
 import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.{
+  decodeToAny,
+  decodeToBoolean,
+  decodeToDouble,
+  decodeToInt,
+  decodeToLong,
+  decodeToString
+}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+trait AnyState[T]
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey,
-  idxOrd: Order[Idx]
+  @transient fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event] {}
 
   private val log = Logger("ASTPGenLogger")
-
-  trait AnyState[T] extends PState[T, AnyState[T]]
 
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _]): Pattern[Event, AnyState[T], T] =
     p.asInstanceOf[Pattern[Event, AnyState[T], T]]
@@ -50,14 +54,14 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case id: Identifier =>
         id.valueType match {
           case IntASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Int, AnyState[Int]](id.value)
           case LongASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Long, AnyState[Long]](id.value)
           case DoubleASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
-            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value, id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value, id.value)
+            new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
+          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -155,10 +159,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
-            case TimeInterval(_, max)    => max < fwi.window.toMillis
-            case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
-            case _                       => true
-          })
+              case TimeInterval(_, max)    => max < fwi.window.toMillis
+              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
+              case _                       => true
+            })
           val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)

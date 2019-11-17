@@ -7,7 +7,7 @@ import scala.collection.{mutable => m}
 
 object QueueUtils {
 
-  private val trueFunction = (x: Any) => true
+  private val trueFunction = (_: Any) => true
 
   def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) =
     if (predicate.eq(trueFunction)) (queue, m.Queue.empty)
@@ -23,14 +23,19 @@ object QueueUtils {
       inner(m.Queue.empty, queue)
     }
 
-  @tailrec
-  def rollMap(idx: Idx, q: m.Queue[(Idx, Time)])(implicit ord: Order[Idx]): (Time, m.Queue[(Idx, Time)]) = {
-    assert(q.nonEmpty, "IdxTimeMap should not be empty!") // .. understandable exception?
-    q.dequeue match {
-      case (index, time) =>
-        if (ord.eqv(index, idx)) (time, q)
-        else if (ord.lt(index, idx)) rollMap(idx, q)
-        else sys.error("Invalid state!") // .. same?
+  /**
+    * Splits inner `q` at point idx, so all records with id < idx are in first returned queue, and all with id >= idx are in second.
+    */
+  def splitAtIdx(q: m.Queue[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(
+    implicit ord: Order[Idx]
+  ): (m.Queue[(Idx, Time)], m.Queue[(Idx, Time)]) = {
+    takeWhileFromQueue(q) {
+      if (marginToFirst) {
+        case (idx1: Idx, _: Time) => ord.lteqv(idx1, idx)
+      } else {
+        case (idx1: Idx, _: Time) => ord.lt(idx1, idx)
+      }
     }
   }
+
 }

@@ -1,30 +1,25 @@
 package ru.itclover.tsp.transformers
 
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.common.functions.RichFlatMapFunction
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.streaming.api.functions.ProcessFunction
-import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.types.Row
+import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.KeyCreator
 //import ru.itclover.tsp.phases.NumericPhases.InKeyNumberExtractor
 //import ru.itclover.tsp.EvalUtils
-import ru.itclover.tsp.core.{Pattern, Time}
+import ru.itclover.tsp.core.Time
 //import ru.itclover.tsp.core.Time.TimeNonTransformedExtractor
-import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.io.EventCreator
+import ru.itclover.tsp.io.input.{NarrowDataUnfolding, WideDataFilling}
 //import ru.itclover.tsp.phases.Phases.{AnyExtractor, AnyNonTransformedExtractor}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
-import ru.itclover.tsp.utils.KeyCreatorInstances._
 
 import scala.collection.mutable
 import scala.util.{Success, Try}
-import scala.util.control.NonFatal
 
 trait SparseDataAccumulator
 
@@ -33,7 +28,7 @@ trait SparseDataAccumulator
   * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param extraFieldNames - will be added to every emitting event
   */
-case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
+class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
@@ -44,7 +39,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
   keyCreator: KeyCreator[InKey]
-) extends ProcessFunction[InEvent, OutEvent]
+) extends KeyedProcessFunction[String, InEvent, OutEvent]
     with Serializable {
   // potential event values with receive time
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -205,12 +200,5 @@ object SparseRowsDataAccumulator {
           )
       })
       .getOrElse(sys.error("No data transformation config specified"))
-  }
-
-  def emptyEvent[InEvent, InKey](
-    streamSource: StreamSource[InEvent, InKey, Any]
-  )(implicit eventCreator: EventCreator[InEvent, InKey]): InEvent = {
-    val toKey = streamSource.fieldToEKey
-    eventCreator.emptyEvent(streamSource.fieldsIdxMap.map { case (k, v) => (toKey(k), v) })
   }
 }
