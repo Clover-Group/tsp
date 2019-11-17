@@ -82,7 +82,7 @@ class MapPQueueTest extends WordSpec with Matchers {
 
       val expectedData = "Cannot enqueue to IdxMapPQueue! Bad logic"
 
-      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(IdxValue(1,1, Result.succ(1)))
+      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(IdxValue(1, 1, Result.succ(1)))
       val actualData = thrownException.getMessage
 
       actualData shouldBe expectedData
