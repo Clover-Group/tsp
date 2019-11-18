@@ -45,7 +45,7 @@ class PatternGeneratorTest extends FlatSpec with Matchers with ScalaCheckPropert
   }
 
   "Pattern generator" should "not generate invalid patterns" in {
-    gen.build("boolSensor > 0 for 30 sec", 0.0, fieldsClasses).left.value shouldBe a[Throwable]
+    gen.build("1notAValidName > 0 for 30 sec", 0.0, fieldsClasses).left.value shouldBe a[Throwable]
   }
 
   "Pattern generator" should "not build invalid patterns" in {
