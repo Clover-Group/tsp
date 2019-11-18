@@ -6,6 +6,8 @@ import java.nio.channels.FileChannel
 import java.nio.file.{Files, StandardOpenOption}
 import java.time.LocalDateTime
 
+import scala.util.Random
+
 object FileService {
 
   /**
@@ -16,7 +18,8 @@ object FileService {
   def convertBytes(input: Array[Byte]): File = {
 
     val currentTime = LocalDateTime.now().toString
-    val path = Files.createTempFile(s"temp_($currentTime)", ".temp")
+    val randomInd = Random.nextInt(Integer.MAX_VALUE)
+    val path = Files.createTempFile(s"temp_${randomInd}_($currentTime)", ".temp")
 
     val options = Set(
       StandardOpenOption.CREATE,

@@ -39,7 +39,7 @@ object Version {
   val simulacrum = "0.15.0"
   val sentry = "1.7.27"
 
-  val arrow = "0.14.1"
+  val arrow = "0.15.1"
   val parquet = "0.11.0"
   val hadoopClient = "3.2.1"
   val parquetCodecs = "1.10.1"

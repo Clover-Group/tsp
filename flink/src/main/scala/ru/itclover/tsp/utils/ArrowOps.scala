@@ -1,23 +1,14 @@
 package ru.itclover.tsp.utils
 
-import java.io.{File, FileInputStream}
+import java.io.{File, FileInputStream, FileOutputStream}
 
 import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowReader, SeekableReadChannel}
-import org.apache.arrow.vector.{
-  BaseValueVector,
-  BigIntVector,
-  BitVector,
-  FieldVector,
-  Float4Vector,
-  Float8Vector,
-  IntVector,
-  SmallIntVector,
-  VarCharVector,
-  VectorDefinitionSetter
-}
+import org.apache.arrow.vector.dictionary.DictionaryProvider
+import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter, ArrowReader, SeekableReadChannel}
+import org.apache.arrow.vector.{BaseValueVector, BigIntVector, BitVector, FieldVector, Float4Vector, Float8Vector, IntVector, SmallIntVector, VarCharVector, VectorDefinitionSetter, VectorSchemaRoot}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
+import org.apache.arrow.vector.util.Text
 import org.apache.flink.types.Row
 
 import scala.collection.JavaConverters._
@@ -141,6 +132,81 @@ object ArrowOps {
     allocator.close()
 
     result
+
+  }
+
+  /**
+  * Method for writing data to arrow file
+    * @param input file for data, schema for data, data, allocator
+    */
+  def writeData(input: (File, Schema, mutable.ListBuffer[mutable.Map[String, Object]],  RootAllocator)): Unit = {
+
+    val (inputFile, schema, data, allocator) = input
+
+    val outStream = new FileOutputStream(inputFile)
+    val rootSchema = VectorSchemaRoot.create(schema, allocator)
+    val provider = new DictionaryProvider.MapDictionaryProvider()
+
+    val dataWriter = new ArrowFileWriter(
+      rootSchema,
+      provider,
+      outStream.getChannel
+    )
+
+    var counter = 0
+
+    dataWriter.start()
+
+    for(item <- data){
+
+       val fields = rootSchema.getSchema.getFields.asScala
+
+       for(field <- fields){
+
+         if(item.contains(field.getName)){
+
+           val data = item(field.getName)
+           val vector = rootSchema.getVector(field.getName)
+
+           val valueInfo = typesMap(vector.getMinorType)
+
+           //TODO: REFACTOR!!!
+           valueInfo.getName match {
+             case "int"              => vector.asInstanceOf[IntVector].setSafe(counter, data.asInstanceOf[Int])
+             case "boolean"          =>
+
+               var value: Int = 0
+               if(!data.asInstanceOf[Boolean]){
+                 value = 1
+               }
+               vector.asInstanceOf[BitVector].setSafe(counter, value)
+
+             case "java.lang.String" => vector.asInstanceOf[VarCharVector].setSafe(
+               counter, new Text(data.asInstanceOf[String]
+               )
+             )
+             case "float"            => vector.asInstanceOf[Float4Vector].setSafe(counter, data.asInstanceOf[Float])
+             case "double"           => vector.asInstanceOf[Float8Vector].setSafe(counter, data.asInstanceOf[Double])
+             case "long"             => vector.asInstanceOf[BigIntVector].setSafe(counter, data.asInstanceOf[Long])
+             case "short"            => vector.asInstanceOf[SmallIntVector].setSafe(counter, data.asInstanceOf[Short])
+             case _                  => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
+           }
+
+           counter += 1
+
+
+         }
+
+       }
+
+    }
+
+    dataWriter.writeBatch()
+    dataWriter.end()
+    dataWriter.close()
+
+    outStream.flush()
+    outStream.close()
 
   }
 
