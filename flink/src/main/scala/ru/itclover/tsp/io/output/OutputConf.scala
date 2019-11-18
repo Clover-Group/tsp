@@ -55,7 +55,6 @@ case class JDBCOutputConf(
 case class KafkaOutputConf(
   broker: String,
   topic: String,
-  serializer: String,
   rowSchema: RowSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
@@ -63,7 +62,7 @@ case class KafkaOutputConf(
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
-  def jsonSerializer: SerializationSchema[Row] = (element: Row) => {
+  def serializer: SerializationSchema[Row] = (element: Row) => {
     val out = new ByteArrayOutputStream
     val mapper = new ObjectMapper()
     val root = mapper.createObjectNode()

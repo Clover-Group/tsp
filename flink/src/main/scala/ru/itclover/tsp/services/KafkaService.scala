@@ -1,5 +1,6 @@
 package ru.itclover.tsp.services
 
+import java.io.File
 import java.util.Properties
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -14,6 +15,9 @@ import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import ru.itclover.tsp.io.input.KafkaInputConf
+import ru.itclover.tsp.utils.{ArrowOps, ParquetOps}
+
+import scala.collection.mutable
 
 class StreamEndException(message: String) extends Exception(message)
 
@@ -44,7 +48,35 @@ object KafkaService {
     // //props.setProperty("client.id", "client0")
     props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
 
-    new FlinkKafkaConsumer(conf.topic, new RowDeserializationSchema(fieldsIdxMap), props)
+    val deserializer = conf.serializer match {
+      case "json" => new RowDeserializationSchema(fieldsIdxMap)
+      case "arrow" => new ArrowRowDeserializationSchema()
+      case "parquet" => new ParquetRowDeserializationSchema()
+      case _ => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
+    }
+
+    new FlinkKafkaConsumer(conf.topic, deserializer, props)
+  }
+
+  def combineRows(input: mutable.ListBuffer[Row]): Row = {
+
+    val size = input.head.getArity * input.size
+    val row = new Row(size)
+    var counter = 0
+
+    input.foreach(rowInput => {
+
+      val arity = rowInput.getArity
+
+      (0 until arity).foreach(i =>{
+        row.setField(counter, rowInput.getField(i))
+        counter += 1
+      })
+
+    })
+
+    row
+
   }
 }
 
@@ -66,6 +98,43 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
   override def isEndOfStream(nextElement: Row): Boolean = false
 
   override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
+}
+
+class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
+
+  override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row = {
+
+    val tempFile: File = FileService.convertBytes(record.value())
+    val schemaAndReader = ArrowOps.retrieveSchemaAndReader(tempFile, Integer.MAX_VALUE)
+    val rowData = ArrowOps.retrieveData(schemaAndReader)
+    tempFile.delete()
+
+    KafkaService.combineRows(rowData)
+
+  }
+
+  override def isEndOfStream(nextElement: Row): Boolean = false
+
+  override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
+}
+
+class ParquetRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
+
+  override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row = {
+
+    val tempFile: File = FileService.convertBytes(record.value())
+    val schemaAndReader = ParquetOps.retrieveSchemaAndReader(tempFile)
+    val rowData = ParquetOps.retrieveData(schemaAndReader)
+    tempFile.delete()
+
+    KafkaService.combineRows(rowData)
+
+  }
+
+  override def isEndOfStream(nextElement: Row): Boolean = false
+
+  override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
+
 }
 
 class TimeOutFunction( // delay after which an alert flag is thrown

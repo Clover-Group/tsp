@@ -245,7 +245,7 @@ object PatternsSearchJob {
     log.debug("saveStream started")
     outputConf match {
       case kafkaConf: KafkaOutputConf =>
-        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.jsonSerializer)
+        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.serializer)
           .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
         val res = stream.addSink(producer)
         log.debug("saveStream finished")
