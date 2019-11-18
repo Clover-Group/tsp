@@ -1,13 +1,12 @@
 package ru.itclover.tsp.utils
 
 import java.io.File
-import java.nio.file.{Files => JavaFiles, Path, Paths}
+import java.nio.file.{Files => JavaFiles, Paths}
 import java.time.LocalDateTime
 
 import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.schema.{MessageType, OriginalType}
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.services.FileService
 
 import scala.collection.mutable
 import scala.util.Random

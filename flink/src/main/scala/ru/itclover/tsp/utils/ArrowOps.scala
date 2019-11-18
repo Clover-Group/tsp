@@ -182,8 +182,7 @@ object ArrowOps {
                vector.asInstanceOf[BitVector].setSafe(counter, value)
 
              case "java.lang.String" => vector.asInstanceOf[VarCharVector].setSafe(
-               counter, new Text(data.asInstanceOf[String]
-               )
+               counter, new Text(data.asInstanceOf[String])
              )
              case "float"            => vector.asInstanceOf[Float4Vector].setSafe(counter, data.asInstanceOf[Float])
              case "double"           => vector.asInstanceOf[Float8Vector].setSafe(counter, data.asInstanceOf[Double])
@@ -194,6 +193,8 @@ object ArrowOps {
 
            counter += 1
 
+           dataWriter.writeBatch()
+
 
          }
 
@@ -201,7 +202,6 @@ object ArrowOps {
 
     }
 
-    dataWriter.writeBatch()
     dataWriter.end()
     dataWriter.close()
 

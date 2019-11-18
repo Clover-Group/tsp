@@ -52,7 +52,7 @@ class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
       new Field(
         rowSchema.patternIdField.name,
         false,
-        new ArrowType.Binary(),
+        new ArrowType.Utf8,
         null
       ),
       new Field(
@@ -64,7 +64,7 @@ class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
       new Field(
         rowSchema.contextField.name,
         false,
-        new ArrowType.Binary(),
+        new ArrowType.Utf8,
         null
       )
     )
