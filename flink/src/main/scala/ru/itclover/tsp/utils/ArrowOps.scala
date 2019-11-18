@@ -139,7 +139,7 @@ object ArrowOps {
   * Method for writing data to Apache Arrow file
     * @param input file for data, schema for data, data, allocator
     */
-  def writeData(input: (File, Schema, mutable.ListBuffer[mutable.Map[String, Object]],  RootAllocator)): Unit = {
+  def writeData(input: (File, Schema, mutable.ListBuffer[mutable.Map[String, Any]],  RootAllocator)): Unit = {
 
     val (inputFile, schema, data, allocator) = input
 
