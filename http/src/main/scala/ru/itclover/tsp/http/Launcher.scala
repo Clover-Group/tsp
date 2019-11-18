@@ -37,6 +37,7 @@ object Launcher extends App with HttpService {
             |    http {
             |        server {
             |            request-timeout = $req_timeout min
+            |            idle-timeout = $req_timeout min
             |            backlog = $parallel
             |            pipelining-limit = $parallel
             |        }
