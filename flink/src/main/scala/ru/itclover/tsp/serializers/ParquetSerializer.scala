@@ -1,14 +1,15 @@
 package ru.itclover.tsp.serializers
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
+import java.time.LocalDateTime
 
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.types.Row
 import ru.itclover.tsp.io.output.RowSchema
-import ru.itclover.tsp.services.FileService
 import ru.itclover.tsp.utils.ParquetOps
 
 import scala.collection.mutable
+import scala.util.Random
 
 /**
   * Class for serializing Flink row to Apache Parquet format
@@ -18,7 +19,11 @@ class ParquetSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]  
 
   override def serialize(element: Row): Array[Byte] = {
 
-    val tempPath = FileService.createTemporaryFile()
+    val currentTime = LocalDateTime.now().toString
+    val randomInd = Random.nextInt(Integer.MAX_VALUE)
+
+    val tempDir = Files.createTempDirectory("test")
+    val tempPath = Paths.get(tempDir.normalize().toString, s"temp_${randomInd}_($currentTime)", ".temp")
     val tempFile = tempPath.toFile
 
     val stringSchema =
@@ -27,9 +32,9 @@ class ParquetSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]  
         | required double fromTsField;
         | required double toTsField;
         | required int32 ${rowSchema.appIdFieldVal._1.name};
-        | required string patternIdField;
+        | required binary patternIdField;
         | required double processingTsField;
-        | required string contextField;
+        | required binary contextField;
         |}""".stripMargin
 
     val data = mutable.ListBuffer(

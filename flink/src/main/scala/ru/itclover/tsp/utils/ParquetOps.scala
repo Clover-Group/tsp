@@ -215,6 +215,9 @@ object ParquetOps {
     val groupFactory = new SimpleGroupFactory(rowSchema)
     val filePath = new Path(inputFile.toURI)
 
+    val conf = new Configuration()
+    conf.set(GroupWriteSupport.PARQUET_EXAMPLE_SCHEMA, rowSchema.toString)
+
     val writer = new ParquetWriter[Group](
       filePath,
       new GroupWriteSupport(),
@@ -225,7 +228,7 @@ object ParquetOps {
       true,
       false,
       ParquetProperties.WriterVersion.PARQUET_2_0,
-      new Configuration()
+      conf
     )
 
     for(elem <- data){

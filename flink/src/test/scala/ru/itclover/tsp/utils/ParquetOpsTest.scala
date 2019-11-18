@@ -1,10 +1,16 @@
 package ru.itclover.tsp.utils
 
 import java.io.File
+import java.nio.file.{Files => JavaFiles, Path, Paths}
+import java.time.LocalDateTime
 
 import org.apache.parquet.hadoop.ParquetFileReader
 import org.apache.parquet.schema.{MessageType, OriginalType}
 import org.scalatest.{Matchers, WordSpec}
+import ru.itclover.tsp.services.FileService
+
+import scala.collection.mutable
+import scala.util.Random
 
 class ParquetOpsTest extends WordSpec with Matchers {
 
@@ -67,6 +73,46 @@ class ParquetOpsTest extends WordSpec with Matchers {
         rowData.head.getArity shouldBe 3
 
       })
+
+    }
+
+    "write data" in {
+
+      val currentTime = LocalDateTime.now().toString
+      val randomInd = Random.nextInt(Integer.MAX_VALUE)
+
+      val tempDir = JavaFiles.createTempDirectory("test")
+      val tempPath = Paths.get(tempDir.normalize().toString, s"temp_${randomInd}_($currentTime)", ".temp")
+      val tempFile = tempPath.toFile
+
+      val stringSchema =
+        s"""message test_data {
+           | required int32 a;
+           | required binary b;
+           |}""".stripMargin
+
+      val data = mutable.ListBuffer(
+
+        mutable.Map(
+          "a" -> Tuple2(4, "int"),
+          "b" -> Tuple2("test", "java.lang.String")
+        ),
+
+        mutable.Map(
+          "a" -> Tuple2(5, "int"),
+          "b" -> Tuple2("test1", "java.lang.String")
+        )
+
+      )
+
+      ParquetOps.writeData((tempFile, stringSchema, data))
+
+      val schemaAndReader = ParquetOps.retrieveSchemaAndReader(tempFile)
+      val rowData = ParquetOps.retrieveData(schemaAndReader)
+
+      rowData.head.getArity shouldBe 2
+
+      tempFile.delete()
 
     }
 
