@@ -5,12 +5,16 @@ import java.io.File
 import org.apache.flink.types.Row
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.apache.parquet.example.data.simple.SimpleGroup
+import org.apache.parquet.column.ParquetProperties
+import org.apache.parquet.example.data.Group
+import org.apache.parquet.example.data.simple.{SimpleGroup, SimpleGroupFactory}
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter
-import org.apache.parquet.hadoop.ParquetFileReader
+import org.apache.parquet.hadoop.{ParquetFileReader, ParquetWriter}
+import org.apache.parquet.hadoop.example.GroupWriteSupport
+import org.apache.parquet.hadoop.metadata.CompressionCodecName
 import org.apache.parquet.hadoop.util.HadoopInputFile
 import org.apache.parquet.io.ColumnIOFactory
-import org.apache.parquet.schema.{MessageType, OriginalType, PrimitiveType, Type}
+import org.apache.parquet.schema.{MessageType, MessageTypeParser, OriginalType, PrimitiveType, Type}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -194,6 +198,61 @@ object ParquetOps {
       })
 
     result
+
+  }
+
+  /**
+  * Method for writing data in Apache Parquet format
+    * @param input file for data, schema, data
+    */
+  def writeData(input: (File, String, mutable.ListBuffer[mutable.Map[String, (Any, String)]])): Unit = {
+
+    val (inputFile, schema, data) = input
+
+    val rowSchema = MessageTypeParser.parseMessageType(schema)
+    GroupWriteSupport.setSchema(rowSchema, new Configuration())
+
+    val groupFactory = new SimpleGroupFactory(rowSchema)
+    val filePath = new Path(inputFile.toURI)
+
+    val writer = new ParquetWriter[Group](
+      filePath,
+      new GroupWriteSupport(),
+      CompressionCodecName.BROTLI,
+      1024,
+      1024,
+      512,
+      true,
+      false,
+      ParquetProperties.WriterVersion.PARQUET_2_0,
+      new Configuration()
+    )
+
+    for(elem <- data){
+
+      val group = groupFactory.newGroup()
+
+      for((key, value) <- elem){
+
+        value._2 match {
+          case "long" => group.append(key, value._1.asInstanceOf[Long])
+          case "int"  => group.append(key, value._1.asInstanceOf[Int])
+
+          case "boolean"          => group.append(key, value._1.asInstanceOf[Boolean])
+          case "float"            => group.append(key, value._1.asInstanceOf[Float])
+          case "double"           => group.append(key, value._1.asInstanceOf[Double])
+          case "java.lang.String" => group.append(key, value._1.asInstanceOf[String])
+
+          case _ => throw new IllegalArgumentException(s"No mapper for type ${value._2}")
+        }
+
+      }
+
+      writer.write(group)
+
+    }
+
+    writer.close()
 
   }
 
