@@ -7,6 +7,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
 import org.codehaus.jackson.map.ObjectMapper
+import ru.itclover.tsp.serializers.{ArrowSerializer, JSONSerializer, ParquetSerializer}
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -63,20 +64,11 @@ case class KafkaOutputConf(
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
-  def dataSerializer: SerializationSchema[Row] = (element: Row) => {
-    val out = new ByteArrayOutputStream
-    val mapper = new ObjectMapper()
-    val root = mapper.createObjectNode()
-    root.put(rowSchema.sourceIdField.name, element.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
-    root.put(rowSchema.fromTsField.name, element.getField(rowSchema.beginInd).asInstanceOf[Double])
-    root.put(rowSchema.toTsField.name, element.getField(rowSchema.endInd).asInstanceOf[Double])
-    root.put(rowSchema.appIdFieldVal._1.name, element.getField(rowSchema.appIdInd).asInstanceOf[Int])
-    root.put(rowSchema.patternIdField.name, element.getField(rowSchema.patternIdInd).asInstanceOf[String])
-    root.put(rowSchema.processingTsField.name, element.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
-    root.put(rowSchema.contextField.name, element.getField(rowSchema.contextInd).asInstanceOf[String])
-    out.write(mapper.writeValueAsBytes(root))
-    out.close()
-    out.toByteArray
+  def dataSerializer: SerializationSchema[Row] = serializer match {
+    case "json" => new JSONSerializer(rowSchema)
+    case "arrow" => new ArrowSerializer(rowSchema)
+    case "parquet" => new ParquetSerializer(rowSchema)
+    case _ =>  throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 
 }

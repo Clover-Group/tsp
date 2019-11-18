@@ -1,7 +1,7 @@
 package ru.itclover.tsp.serializers
 
 import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.types.pojo.{ArrowType, Field, FieldType, Schema}
+import org.apache.arrow.vector.types.pojo.{ArrowType, Field, Schema}
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.types.Row
 import ru.itclover.tsp.io.output.RowSchema
