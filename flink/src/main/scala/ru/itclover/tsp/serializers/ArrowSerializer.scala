@@ -14,7 +14,7 @@ import scala.collection.JavaConverters._
 import java.nio.file.Files
 
 /**
-* Class for serializing Flink row to Apache Arrow format
+  * Class for serializing Flink row to Apache Arrow format
   * @param rowSchema schema of row
   */
 class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
@@ -74,13 +74,13 @@ class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
 
     val data = mutable.ListBuffer(
       mutable.Map(
-        rowSchema.sourceIdField.name -> element.getField(rowSchema.sourceIdInd).asInstanceOf[Int],
-        rowSchema.fromTsField.name -> element.getField(rowSchema.beginInd).asInstanceOf[Double],
-        rowSchema.toTsField.name -> element.getField(rowSchema.endInd).asInstanceOf[Double],
-        rowSchema.appIdFieldVal._1.name -> element.getField(rowSchema.appIdInd).asInstanceOf[Int],
-        rowSchema.patternIdField.name -> element.getField(rowSchema.patternIdInd).asInstanceOf[String],
+        rowSchema.sourceIdField.name     -> element.getField(rowSchema.sourceIdInd).asInstanceOf[Int],
+        rowSchema.fromTsField.name       -> element.getField(rowSchema.beginInd).asInstanceOf[Double],
+        rowSchema.toTsField.name         -> element.getField(rowSchema.endInd).asInstanceOf[Double],
+        rowSchema.appIdFieldVal._1.name  -> element.getField(rowSchema.appIdInd).asInstanceOf[Int],
+        rowSchema.patternIdField.name    -> element.getField(rowSchema.patternIdInd).asInstanceOf[String],
         rowSchema.processingTsField.name -> element.getField(rowSchema.processingTimeInd).asInstanceOf[Double],
-        rowSchema.contextField.name -> element.getField(rowSchema.contextInd).asInstanceOf[String]
+        rowSchema.contextField.name      -> element.getField(rowSchema.contextInd).asInstanceOf[String]
       )
     )
 

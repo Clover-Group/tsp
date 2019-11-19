@@ -65,10 +65,10 @@ case class KafkaOutputConf(
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
   def dataSerializer: SerializationSchema[Row] = serializer match {
-    case "json" => new JSONSerializer(rowSchema)
-    case "arrow" => new ArrowSerializer(rowSchema)
+    case "json"    => new JSONSerializer(rowSchema)
+    case "arrow"   => new ArrowSerializer(rowSchema)
     case "parquet" => new ParquetSerializer(rowSchema)
-    case _ =>  throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
+    case _         => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 
 }

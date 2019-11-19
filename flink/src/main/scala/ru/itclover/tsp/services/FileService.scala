@@ -11,7 +11,7 @@ import scala.util.Random
 object FileService {
 
   /**
-  * Method for creating temp file
+    * Method for creating temp file
     * @return temp file path
     */
   def createTemporaryFile(): Path = {
@@ -24,7 +24,7 @@ object FileService {
   }
 
   /**
-  * Method for converting input bytes to file
+    * Method for converting input bytes to file
     * @param input bytes for convert
     * @return file with input bytes
     */

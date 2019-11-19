@@ -1,10 +1,10 @@
 package ru.itclover.tsp.utils
 
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io.{ByteArrayInputStream, File, FileInputStream, FileOutputStream}
 
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.dictionary.DictionaryProvider
-import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter, ArrowReader, SeekableReadChannel}
+import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter, ArrowReader, ArrowStreamReader, SeekableReadChannel}
 import org.apache.arrow.vector.{BaseValueVector, BigIntVector, BitVector, FieldVector, Float4Vector, Float8Vector, IntVector, SmallIntVector, VarCharVector, VectorDefinitionSetter, VectorSchemaRoot}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
@@ -68,6 +68,24 @@ object ArrowOps {
     val reader = new ArrowFileReader(readChannel, allocator)
 
     (reader.getVectorSchemaRoot.getSchema, reader, allocator)
+
+  }
+
+  /**
+  * Method for retrieving schema and reader from bytes
+    * @param input bytes with input data
+    * @param allocatorValue value for root allocator
+    * @return tuple with schema and reader
+    */
+  def retrieveSchemaAndReader(input: Array[Byte], allocatorValue: Int): (Schema, ArrowReader, RootAllocator) = {
+
+    val allocator = new RootAllocator(allocatorValue)
+    val inputStream = new ByteArrayInputStream(input)
+
+    val reader = new ArrowStreamReader(inputStream, allocator)
+    val schema = reader.getVectorSchemaRoot.getSchema
+
+    (schema, reader, allocator)
 
   }
 
@@ -136,10 +154,10 @@ object ArrowOps {
   }
 
   /**
-  * Method for writing data to Apache Arrow file
+    * Method for writing data to Apache Arrow file
     * @param input file for data, schema for data, data, allocator
     */
-  def writeData(input: (File, Schema, mutable.ListBuffer[mutable.Map[String, Any]],  RootAllocator)): Unit = {
+  def writeData(input: (File, Schema, mutable.ListBuffer[mutable.Map[String, Any]], RootAllocator)): Unit = {
 
     val (inputFile, schema, data, allocator) = input
 
@@ -157,48 +175,50 @@ object ArrowOps {
 
     dataWriter.start()
 
-    for(item <- data){
+    for (item <- data) {
 
-       val fields = rootSchema.getSchema.getFields.asScala
+      val fields = rootSchema.getSchema.getFields.asScala
 
-       for(field <- fields){
+      for (field <- fields) {
 
-         if(item.contains(field.getName)){
+        if (item.contains(field.getName)) {
 
-           val data = item(field.getName)
-           val vector = rootSchema.getVector(field.getName)
+          val data = item(field.getName)
+          val vector = rootSchema.getVector(field.getName)
 
-           val valueInfo = typesMap(vector.getMinorType)
+          val valueInfo = typesMap(vector.getMinorType)
 
-           //TODO: REFACTOR!!!
-           valueInfo.getName match {
-             case "int"              => vector.asInstanceOf[IntVector].setSafe(counter, data.asInstanceOf[Int])
-             case "boolean"          =>
+          //TODO: REFACTOR!!!
+          valueInfo.getName match {
+            case "int" => vector.asInstanceOf[IntVector].setSafe(counter, data.asInstanceOf[Int])
+            case "boolean" =>
+              var value: Int = 0
+              if (!data.asInstanceOf[Boolean]) {
+                value = 1
+              }
+              vector.asInstanceOf[BitVector].setSafe(counter, value)
 
-               var value: Int = 0
-               if(!data.asInstanceOf[Boolean]){
-                 value = 1
-               }
-               vector.asInstanceOf[BitVector].setSafe(counter, value)
+            case "java.lang.String" =>
+              vector
+                .asInstanceOf[VarCharVector]
+                .setSafe(
+                  counter,
+                  new Text(data.asInstanceOf[String])
+                )
+            case "float"  => vector.asInstanceOf[Float4Vector].setSafe(counter, data.asInstanceOf[Float])
+            case "double" => vector.asInstanceOf[Float8Vector].setSafe(counter, data.asInstanceOf[Double])
+            case "long"   => vector.asInstanceOf[BigIntVector].setSafe(counter, data.asInstanceOf[Long])
+            case "short"  => vector.asInstanceOf[SmallIntVector].setSafe(counter, data.asInstanceOf[Short])
+            case _        => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
+          }
 
-             case "java.lang.String" => vector.asInstanceOf[VarCharVector].setSafe(
-               counter, new Text(data.asInstanceOf[String])
-             )
-             case "float"            => vector.asInstanceOf[Float4Vector].setSafe(counter, data.asInstanceOf[Float])
-             case "double"           => vector.asInstanceOf[Float8Vector].setSafe(counter, data.asInstanceOf[Double])
-             case "long"             => vector.asInstanceOf[BigIntVector].setSafe(counter, data.asInstanceOf[Long])
-             case "short"            => vector.asInstanceOf[SmallIntVector].setSafe(counter, data.asInstanceOf[Short])
-             case _                  => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
-           }
+          counter += 1
 
-           counter += 1
+          dataWriter.writeBatch()
 
-           dataWriter.writeBatch()
+        }
 
-
-         }
-
-       }
+      }
 
     }
 

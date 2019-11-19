@@ -115,17 +115,14 @@ class ParquetOpsTest extends WordSpec with Matchers {
            |}""".stripMargin
 
       val data = mutable.ListBuffer(
-
         mutable.Map(
           "a" -> Tuple2(4, "int"),
           "b" -> Tuple2("test", "java.lang.String")
         ),
-
         mutable.Map(
           "a" -> Tuple2(5, "int"),
           "b" -> Tuple2("test1", "java.lang.String")
         )
-
       )
 
       ParquetOps.writeData((tempFile, stringSchema, data))

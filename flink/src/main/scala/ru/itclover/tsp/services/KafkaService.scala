@@ -49,10 +49,10 @@ object KafkaService {
     props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
 
     val deserializer = conf.serializer match {
-      case "json" => new RowDeserializationSchema(fieldsIdxMap)
-      case "arrow" => new ArrowRowDeserializationSchema()
+      case "json"    => new RowDeserializationSchema(fieldsIdxMap)
+      case "arrow"   => new ArrowRowDeserializationSchema()
       case "parquet" => new ParquetRowDeserializationSchema()
-      case _ => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
+      case _         => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
     }
 
     new FlinkKafkaConsumer(conf.topic, deserializer, props)
@@ -68,7 +68,7 @@ object KafkaService {
 
       val arity = rowInput.getArity
 
-      (0 until arity).foreach(i =>{
+      (0 until arity).foreach(i => {
         row.setField(counter, rowInput.getField(i))
         counter += 1
       })
@@ -122,10 +122,8 @@ class ParquetRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row = {
 
-    val tempFile: File = FileService.convertBytes(record.value())
-    val schemaAndReader = ParquetOps.retrieveSchemaAndReader(tempFile)
+    val schemaAndReader = ParquetOps.retrieveSchemaAndReader(record.value())
     val rowData = ParquetOps.retrieveData(schemaAndReader)
-    tempFile.delete()
 
     KafkaService.combineRows(rowData)
 
@@ -138,7 +136,9 @@ class ParquetRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 }
 
 class TimeOutFunction( // delay after which an alert flag is thrown
-  val timeOut: Long, timeIndex: Int, fieldsCount: Int
+  val timeOut: Long,
+  timeIndex: Int,
+  fieldsCount: Int
 ) extends ProcessFunction[Row, Row] {
   // state to remember the last timer set
   private var lastTimer: ValueState[Long] = _

@@ -4,7 +4,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Random
 
-class FileServiceTest extends WordSpec with Matchers{
+class FileServiceTest extends WordSpec with Matchers {
 
   "FileService" should {
 

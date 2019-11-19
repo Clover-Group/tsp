@@ -8,11 +8,11 @@ import org.codehaus.jackson.map.ObjectMapper
 import ru.itclover.tsp.io.output.RowSchema
 
 /**
-* Class for serializing Flink row to JSON
+  * Class for serializing Flink row to JSON
   * @author trolley813
   * @param rowSchema schema of row
   */
-class JSONSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]{
+class JSONSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
   override def serialize(element: Row): Array[Byte] = {
 
     val out = new ByteArrayOutputStream

@@ -202,7 +202,7 @@ object ParquetOps {
 
         val row = new Row(objectsList.size)
 
-        for(i <- objectsList.indices){
+        for (i <- objectsList.indices) {
           row.setField(i, objectsList(i))
         }
 
@@ -216,7 +216,7 @@ object ParquetOps {
   }
 
   /**
-  * Method for writing data in Apache Parquet format
+    * Method for writing data in Apache Parquet format
     * @param input file for data, schema, data
     */
   def writeData(input: (File, String, mutable.ListBuffer[mutable.Map[String, (Any, String)]])): Unit = {
@@ -245,11 +245,11 @@ object ParquetOps {
       conf
     )
 
-    for(elem <- data){
+    for (elem <- data) {
 
       val group = groupFactory.newGroup()
 
-      for((key, value) <- elem){
+      for ((key, value) <- elem) {
 
         value._2 match {
           case "long" => group.append(key, value._1.asInstanceOf[Long])
