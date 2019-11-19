@@ -39,12 +39,17 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
         (m.Queue.empty[(Idx, Time)], newOptResult)
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
+        val start: Time = times.head._2.plus(window)
         val end: Time = times.last._2 // time corresponding to the idxValue.end
 
         // don't use ++ here, slow!
         val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
 
-        val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {
+        // discard older points (before the end of the window)
+        val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
+          case (_, t) => t < start
+        }
+        val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
           case (_, t) => t.plus(window) <= end
         }
 
