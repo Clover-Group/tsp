@@ -87,6 +87,20 @@ object ParquetOps {
   }
 
   /**
+    * Get schema and reader from bytes array
+    * @param input byte array to get schema and reader
+    * @return tuple with parquet schema and reader
+    * @author Bulat Fattakhov
+    */
+  def retrieveSchemaAndReader(input: Array[Byte]): (MessageType, ParquetFileReader) = {
+
+    val reader = ParquetFileReader.open(new ParquetStream(input))
+    val schema = reader.getFooter.getFileMetaData.getSchema
+
+    (schema, reader)
+  }
+
+  /**
     * Retrieve fields types from schema
     * @param schema parquet schema
     * @return map with field name as a key and types tuple as a value

@@ -34,6 +34,18 @@ class ParquetOpsTest extends WordSpec with Matchers {
 
     }
 
+    "retrieve schema and reader from bytes" in {
+
+      val testFile = testFiles.head
+      val byteData = JavaFiles.readAllBytes(testFile.toPath)
+
+      val schemaAndReader = ParquetOps.retrieveSchemaAndReader(byteData)
+
+      schemaAndReader._1.getClass shouldBe classOf[MessageType]
+      schemaAndReader._2.getClass shouldBe classOf[ParquetFileReader]
+
+    }
+
     "represent types of fields from schema" in {
 
       testFiles.foreach(file => {
@@ -72,6 +84,18 @@ class ParquetOpsTest extends WordSpec with Matchers {
         rowData.head.getArity shouldBe 3
 
       })
+
+    }
+
+    "retrieve data from bytes" in {
+
+      val testFile = testFiles.head
+      val byteData = JavaFiles.readAllBytes(testFile.toPath)
+
+      val schemaAndReader = ParquetOps.retrieveSchemaAndReader(byteData)
+      val rowData = ParquetOps.retrieveData(schemaAndReader)
+
+      rowData.head.getArity shouldBe 3
 
     }
 
