@@ -1,9 +1,13 @@
+//TODO: fails by java.lang.OutOfMemoryError: Metaspace
 //package ru.itclover.tsp.http
+//
+//import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 //
 //import akka.actor.ActorSystem
 //import akka.http.scaladsl.model.StatusCodes
 //import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 //import com.dimafeng.testcontainers._
+//import com.google.common.util.concurrent.ThreadFactoryBuilder
 //import com.typesafe.scalalogging.Logger
 //import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 //import org.scalatest.FlatSpec
@@ -15,7 +19,7 @@
 //import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 //import ru.itclover.tsp.utils.Files
 //
-//import scala.concurrent.ExecutionContextExecutor
+//import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 //import scala.concurrent.duration.DurationInt
 //import scala.util.Success
 //
@@ -25,6 +29,19 @@
 //  implicit override val streamEnvironment: StreamExecutionEnvironment =
 //    StreamExecutionEnvironment.createLocalEnvironment()
 //  streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+//
+//  // to run blocking tasks.
+//  val blockingExecutorContext: ExecutionContextExecutor =
+//    ExecutionContext.fromExecutor(
+//      new ThreadPoolExecutor(
+//        0, // corePoolSize
+//        Int.MaxValue, // maxPoolSize
+//        1000L, //keepAliveTime
+//        TimeUnit.MILLISECONDS, //timeUnit
+//        new SynchronousQueue[Runnable](), //workQueue
+//        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+//      )
+//    )
 //
 //  private val log = Logger("AccumsTest")
 //
@@ -106,7 +123,7 @@
 //  override def afterStart(): Unit = {
 //    super.beforeAll()
 //    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").map(container.executeUpdate)
-//    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+//    Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
 //  }
 //
 //  "Count window (count)" should "compute in time" in {
@@ -123,7 +140,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        1 :: Nil,
+//        List(List(0)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4990 AND to - from > 900"
 //      )
 //      // Performance
@@ -142,7 +159,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        1 :: Nil,
+//        List(List(0)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND to - from > 990"
 //      )
 //      // Performance
@@ -164,7 +181,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        1 :: Nil,
+//        List(List(0)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND to - from > 990"
 //      )
 //      // Performance
@@ -186,7 +203,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        1 :: Nil,
+//        List(List(0)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND to - from > 990"
 //      )
 //      // Performance
@@ -205,7 +222,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        2 :: Nil,
+//        List(List(0)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND to - from > 990"
 //      )
 //      // Performance
@@ -225,7 +242,7 @@
 //
 //      // Correctness
 //      checkByQuery(
-//        1 :: Nil,
+//        List(List(521)),
 //        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 467"
 //      )
 //      // Performance
