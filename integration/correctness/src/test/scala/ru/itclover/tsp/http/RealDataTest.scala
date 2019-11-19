@@ -86,7 +86,7 @@
 //  override def afterStart(): Unit = {
 //    super.beforeAll()
 //    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-//    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").foreach(container.executeUpdate)
+//    container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${Files.readResource("/sql/wide/source_bigdata.csv").drop(1).mkString("\n")}")
 //    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
 //  }
 //
