@@ -1,3 +1,4 @@
+/*
 package ru.itclover.tsp.http
 
 import com.dimafeng.testcontainers._
@@ -146,4 +147,4 @@ class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestCon
       execTimeS should be <= timedMaxTimeSec
     }
   }
-}
+}**/

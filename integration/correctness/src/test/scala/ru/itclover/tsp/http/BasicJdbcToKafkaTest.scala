@@ -93,6 +93,11 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
     Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
     Post("/streamJob/from-jdbc/to-kafka/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>

@@ -140,6 +140,11 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
   "Data" should "load properly" in {
     checkByQuery(List(List(27.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
     checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")

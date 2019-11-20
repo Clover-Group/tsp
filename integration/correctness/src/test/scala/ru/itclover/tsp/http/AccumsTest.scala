@@ -126,6 +126,11 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
     Files.readResource("/sql/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
   "Count window (count)" should "compute in time" in {
     Post(
       "/streamJob/from-jdbc/to-jdbc/?run_async=0",

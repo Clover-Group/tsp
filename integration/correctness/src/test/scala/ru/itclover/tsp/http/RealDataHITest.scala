@@ -91,6 +91,11 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
     Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
   "Basic assertions" should "work for wide dense table" in {
 
     Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>

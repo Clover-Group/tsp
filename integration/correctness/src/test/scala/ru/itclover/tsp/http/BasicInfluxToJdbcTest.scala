@@ -111,6 +111,11 @@ class BasicInfluxToJdbcTest
     Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
+  }
+
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
     Post(
