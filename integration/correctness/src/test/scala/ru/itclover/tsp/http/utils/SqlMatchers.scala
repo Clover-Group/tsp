@@ -19,7 +19,7 @@ trait SqlMatchers extends Matchers {
       override def next(): List[Double] = (1 to columnCount).map(resultSet.getDouble).toList
     }.toList
     // misleading, but unfortunately lower levels don't work
-    logger.error(
+    logger.info(
       s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
       s"actual values: [${toStringRepresentation(results)}]"
     )

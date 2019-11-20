@@ -132,11 +132,33 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test/cases-narrow-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/test/cases-wide-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
-    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${Files.readResource("/sql/test/cases-narrow-new.csv").drop(1).mkString("\n")}")
-    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${Files.readResource("/sql/test/cases-wide-new.csv").drop(1).mkString("\n")}")
-    Files.readResource("/sql/test/cases-sinks-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test/cases-narrow-schema-new.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test/cases-wide-schema-new.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    val mathCSVData = Files.readResource("/sql/test/cases-narrow-new.csv")
+                           .drop(1)
+                           .mkString("\n")
+
+    val rulesCSVData = Files.readResource("/sql/test/cases-wide-new.csv")
+                            .drop(1)
+                            .mkString("\n")
+
+    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${mathCSVData}")
+
+    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
+
+    Files.readResource("/sql/test/cases-sinks-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
 
   }
 

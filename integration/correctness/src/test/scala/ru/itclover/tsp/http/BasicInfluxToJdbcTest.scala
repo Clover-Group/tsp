@@ -105,10 +105,26 @@ class BasicInfluxToJdbcTest
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
-    Files.readResource("/sql/infl-test-db-schema.sql").mkString.split(";").foreach(influxContainer.executeQuery)
-    Files.readResource("/sql/wide/infl-source-inserts.influx").mkString.split(";").foreach(influxContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(jdbcContainer.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(jdbcContainer.executeUpdate)
+
+    Files.readResource("/sql/infl-test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(influxContainer.executeQuery)
+
+    Files.readResource("/sql/wide/infl-source-inserts.influx")
+         .mkString
+         .split(";")
+         .foreach(influxContainer.executeUpdate)
+
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(jdbcContainer.executeUpdate)
   }
 
   override def afterAll(): Unit = {

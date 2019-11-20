@@ -51,7 +51,11 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
-  val transformation = NarrowDataUnfolding[RowWithIdx, Symbol, Any]('key, 'value, Map('speed1 -> 1000, 'speed2 -> 1000))
+  val transformation = NarrowDataUnfolding[RowWithIdx, Symbol, Any](
+    'key,
+    'value,
+    Map('speed1 -> 1000, 'speed2 -> 1000)
+  )
 
   val inputConf = JDBCInputConf(
     sourceId = 123,
@@ -82,10 +86,26 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/narrow/source-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/narrow/source-inserts.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/narrow/source-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/narrow/source-inserts.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

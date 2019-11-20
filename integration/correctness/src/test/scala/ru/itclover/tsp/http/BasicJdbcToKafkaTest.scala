@@ -87,10 +87,26 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/wide/source-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/wide/source-inserts.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
   }
 
   override def afterAll(): Unit = {

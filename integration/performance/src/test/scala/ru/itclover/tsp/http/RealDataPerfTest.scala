@@ -56,10 +56,27 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/wide/bigdata-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${Files.readResource("/sql/wide/source_bigdata.csv").drop(1).mkString("\n")}")
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/wide/bigdata-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    val csvData = Files.readResource("/sql/wide/source_bigdata.csv")
+                       .drop(1)
+                       .mkString("\n")
+
+    container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${csvData}")
+
+    Files.readResource("/sql/wide/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
   }
 
   "Basic assertions" should "work for wide dense table" in {
