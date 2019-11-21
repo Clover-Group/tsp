@@ -32,11 +32,12 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
     idxValue: IdxValue[T]
   ): (TimerAccumState[T], QI[Boolean]) = {
 
-    val (updatedWindowQueue, newOptResult) = idxValue.value match {
+    idxValue.value match {
       // clean queue in case of fail. Return fails for all events in queue
       case Fail =>
+        val updatedWindowQueue = m.Queue.empty[(Idx, Time)]
         val newOptResult = createIdxValue(windowQueue.headOption.orElse(times.headOption), times.lastOption, Fail)
-        (m.Queue.empty[(Idx, Time)], newOptResult)
+        (TimerAccumState(updatedWindowQueue), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
         val start: Time = times.head._2.plus(window)
@@ -45,18 +46,24 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)]) extends AccumSt
         // don't use ++ here, slow!
         val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
 
-        // discard older points (before the end of the window)
-        val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
+        // output fail on older points (before the end of the window)
+        val (failOutputs, cleanedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {
           case (_, t) => t < start
         }
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
           case (_, t) => t.plus(window) <= end
         }
 
-        val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, Result.succ(true))
-        (updatedWindowQueue, newOptResult)
+        val newOptResultFail = createIdxValue(failOutputs.headOption, failOutputs.lastOption, Result.fail)
+        val newOptResultSucc = createIdxValue(outputs.headOption, outputs.lastOption, Result.succ(true))
+        val newResults = newOptResultSucc
+          .map(newOptResultFail.map(PQueue.apply).getOrElse(PQueue.empty).enqueue(_))
+          .getOrElse(PQueue.empty)
+        (
+          TimerAccumState(updatedWindowQueue),
+          newResults
+        )
     }
-    (TimerAccumState(updatedWindowQueue), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
   }
 
   private def createIdxValue(
