@@ -114,6 +114,8 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
 
   def timer[T, S](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
 
+  def skip[T, S](inner: Pattern[E, S, T], w: Window) = SkipPattern(inner, w)
+
   // tries to join sequential segments together
   // todo add segmentation there it needs
   def segmentizer[T, S](inner: Pattern[E, S, T]) = SegmentizerPattern(inner)
