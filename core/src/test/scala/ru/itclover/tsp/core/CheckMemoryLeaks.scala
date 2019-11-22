@@ -84,6 +84,18 @@ class CheckMemoryLeaks extends FlatSpec with Matchers {
     PatternMemoryCheck.finalStateSizeGenerator(pattern, generator, 1000000) should be < 10000L
   }
 
+  it should "not have memory leaks (SkipPattern)" in {
+
+    val pattern = skip(field(_.row), 10.seconds)
+
+    val generator =
+      Change(from = 0.0, to = 100.0, 100.seconds).after(Timed(Constant(100.0), 100.seconds)).repeat(1000000).map(_.toInt)
+
+    PatternMemoryCheck.finalStateSizeGenerator(pattern, generator, 100) should be < 10000L
+    PatternMemoryCheck.finalStateSizeGenerator(pattern, generator, 10000) should be < 10000L
+    PatternMemoryCheck.finalStateSizeGenerator(pattern, generator, 1000000) should be < 10000L
+  }
+
   it should "not have memory leaks (PreviousValue)" in {
 
     val pattern = lag(field(_.row), 10.seconds)

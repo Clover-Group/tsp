@@ -10,21 +10,21 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 
-/* Skip pattern */
-case class SkipPattern[Event: IdxExtractor: TimeExtractor, S, T](
+/* Wait pattern */
+case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
-) extends AccumPattern[Event, S, T, T, SkipAccumState[T]] {
-  override def initialState(): AggregatorPState[S, T, SkipAccumState[T]] = AggregatorPState(
+) extends AccumPattern[Event, S, T, T, WaitAccumState[T]] {
+  override def initialState(): AggregatorPState[S, T, WaitAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
-    astate = SkipAccumState(m.Queue.empty),
+    astate = WaitAccumState(m.Queue.empty),
     indexTimeMap = m.Queue.empty
   )
 }
 
-case class SkipAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean = false)
-    extends AccumState[T, T, SkipAccumState[T]] {
+case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean = false)
+    extends AccumState[T, T, WaitAccumState[T]] {
 
   /** This method is called for each IdxValue produced by inner patterns.
     *
@@ -39,7 +39,7 @@ case class SkipAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
     window: Window,
     times: m.Queue[(Idx, Time)],
     idxValue: IdxValue[T]
-  ): (SkipAccumState[T], QI[T]) = {
+  ): (WaitAccumState[T], QI[T]) = {
 
     val start = if (lastFail) times.head._2.minus(window) else times.head._2
     val end = if (idxValue.value.isFail) times.last._2.minus(window) else times.last._2
@@ -57,7 +57,7 @@ case class SkipAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
 
     val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, idxValue.value)
 
-    (SkipAccumState(updatedWindowQueue, idxValue.value.isFail), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
+    (WaitAccumState(updatedWindowQueue, idxValue.value.isFail), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
 
   }
 

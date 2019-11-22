@@ -68,7 +68,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
 
   def trileanFactor: Rule1[AST] = rule {
-    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws | skip
+    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws | waitRule
   }
 
   def booleanExpr: Rule1[AST] = rule {
@@ -357,10 +357,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     ~> ((s: Int, i: String) => Constant(s * i.toLong)))
   }
 
-  def skip: Rule1[AST] = rule {
+  def waitRule: Rule1[AST] = rule {
     (
-      ignoreCase("skip") ~ ws ~ "(" ~ ws ~ time ~ ws ~ "," ~ ws ~ trileanExpr ~ ws ~ ")" ~ ws ~> (
-        (w: Window, e: AST) => Skip(e, w)
+      ignoreCase("wait") ~ ws ~ "(" ~ ws ~ time ~ ws ~ "," ~ ws ~ trileanExpr ~ ws ~ ")" ~ ws ~> (
+        (w: Window, e: AST) => Wait(e, w)
       )
     )
   }
