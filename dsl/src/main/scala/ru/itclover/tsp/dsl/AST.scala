@@ -87,7 +87,7 @@ case class Timer(cond: AST, interval: TimeInterval, gap: Option[Window] = None) 
   override val valueType: ASTType = BooleanASTType
 }
 
-case class Skip(cond: AST, window: Window, gap: Option[Window] = None) extends AST {
+case class Wait(cond: AST, window: Window, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
   override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(window.toMillis))
 

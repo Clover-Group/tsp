@@ -67,8 +67,8 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     RawPattern("13", "avg(SpeedThrustMin, 2 sec) = 22"),
     RawPattern("14", "avgOf(POilDieselOut, SpeedThrustMin) > 0"),
     RawPattern("15", "lag(POilDieselOut) < 0"),
-    RawPattern("16", "skip(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)"),
-    RawPattern("17", "POilDieselOut = 9.53 andThen Skip(3 sec, POilDieselOut < 9.50 for 3 sec)")
+    RawPattern("16", "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)"),
+    RawPattern("17", "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)")
   )
 
   val incidentsCount = Map(
