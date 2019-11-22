@@ -10,7 +10,7 @@ import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
 
 class SinglePatternTest extends FlatSpec with Matchers {
-
+//todo write tests!
   def processEvent[A](e: Event[A]): Result[A] = Result.succ(e.row)
 
   it should "process SimplePattern correctly" in {
@@ -18,17 +18,6 @@ class SinglePatternTest extends FlatSpec with Matchers {
     val pat = new SimplePattern[EInt, Int](_ => processEvent(event))(Event.extractor)
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
-
-    res.queue.size shouldBe 0
-  }
-
-  it should "process SkipPattern correctly" in {
-
-    val pat = new SimplePattern[EInt, Int](_ => processEvent(event))(Event.extractor)
-
-    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
-
-    res.queue.size shouldBe 0
   }
 
   it should "process ExtractingPattern correctly" in {
@@ -45,8 +34,6 @@ class SinglePatternTest extends FlatSpec with Matchers {
     val pat = new ExtractingPattern('and)(Event.extractor, MyExtractor, dec)
 
     val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
-
-    res.queue.size shouldBe 0
   }
 
 }

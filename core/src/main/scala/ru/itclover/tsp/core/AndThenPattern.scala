@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.{Foldable, Functor, Monad, Order}
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
@@ -9,38 +9,36 @@ import scala.language.higherKinds
 
 /** AndThen  */
 //We lose T1 and T2 in output for performance reason only. If needed outputs of first and second stages can be returned as well
-case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, S2]](
-  first: Pattern[Event, S1, T1],
-  second: Pattern[Event, S2, T2]
-)(
-  implicit idxOrd: Order[Idx]
-) extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)] {
+case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], second: Pattern[Event, S2, T2])
+    extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)] {
 
   def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: AndThenPState[T1, T2, S1, S2],
+    oldQueue: PQueue[(Idx, Idx)],
     event: Cont[Event]
-  ): F[AndThenPState[T1, T2, S1, S2]] = {
+  ): F[(AndThenPState[T1, T2, S1, S2], PQueue[(Idx, Idx)])] = {
 
-    val firstF = first.apply[F, Cont](oldState.first, event)
-    val secondF = second.apply[F, Cont](oldState.second, event)
+    val firstF = first.apply[F, Cont](oldState.firstState, oldState.firstQueue, event)
+    val secondF = second.apply[F, Cont](oldState.secondState, oldState.secondQueue, event)
 
-    for (newFirstState  <- firstF;
-         newSecondState <- secondF)
+    for (newFirstOutput  <- firstF;
+         newSecondOutput <- secondF)
       yield {
         // process queues
         val (updatedFirstQueue, updatedSecondQueue, finalQueue) =
-          process(newFirstState.queue, newSecondState.queue, oldState.queue)
+          process(newFirstOutput._2, newSecondOutput._2, oldQueue)
 
         AndThenPState(
-          newFirstState.copyWith(updatedFirstQueue),
-          newSecondState.copyWith(updatedSecondQueue),
-          finalQueue
-        )
+          newFirstOutput._1,
+          updatedFirstQueue,
+          newSecondOutput._1,
+          updatedSecondQueue
+        ) -> finalQueue
       }
   }
 
   override def initialState(): AndThenPState[T1, T2, S1, S2] =
-    AndThenPState(first.initialState(), second.initialState(), PQueue.empty)
+    AndThenPState(first.initialState(), PQueue.empty, second.initialState(), PQueue.empty)
 
   private def process(firstQ: QI[T1], secondQ: QI[T2], totalQ: QI[(Idx, Idx)]): (QI[T1], QI[T2], QI[(Idx, Idx)]) = {
 
@@ -54,27 +52,31 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
         case (_, None) => default
         case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
           if (value1.isFail) {
-            inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Result.fail)))
+            inner(
+              first.behead(),
+              PQueue.unwindWhile(second)(_.end <= start1),
+              total.enqueue(IdxValue(start1, end1, Result.fail))
+            )
           } else if (value2.isFail) {
-            inner(first.rewindTo(end2 + 1), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
+            inner(first.rewindTo(end2), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
           } else { // at this moment both first and second results are not Fail.
             // late event from second, just skip it
             // first            |-------|
             // second  |------|
-            if (idxOrd.gt(start1, end2)) {
+            if (start1 > end2) {
               inner(first, second.behead(), total)
             }
             // Gap between first and second. Just behead first
             // first   |-------|
             // second             |------|
-            else if (idxOrd.lt(end1 + 1, start2)) {
+            else if (end1 + 1 < start2) {
               inner(first.behead(), second, total)
             }
             // First and second intersect
             // first   |-------|
             // second       |-------|
             else {
-              val end = Math.min(end1, end2)
+              val end = Math.min(end1 + 1, end2)
               val start = Math.max(start1, start2)
               val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
               inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
@@ -88,11 +90,9 @@ case class AndThenPattern[Event, T1, T2, S1 <: PState[T1, S1], S2 <: PState[T2, 
   }
 }
 
-case class AndThenPState[T1, T2, State1 <: PState[T1, State1], State2 <: PState[T2, State2]](
-  first: State1,
-  second: State2,
-  override val queue: QI[(Idx, Idx)]
-) extends PState[(Idx, Idx), AndThenPState[T1, T2, State1, State2]] {
-
-  override def copyWith(queue: QI[(Idx, Idx)]): AndThenPState[T1, T2, State1, State2] = this.copy(queue = queue)
-}
+case class AndThenPState[T1, T2, State1, State2](
+  firstState: State1,
+  firstQueue: PQueue[T1],
+  secondState: State2,
+  secondQueue: PQueue[T2]
+)

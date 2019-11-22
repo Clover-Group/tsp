@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.queues
 
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.core.PQueue.{IdxMapPQueue, MutablePQueue}
+import ru.itclover.tsp.core.PQueue.{MapPQueue, MutablePQueue}
 import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 
 import scala.collection.mutable
@@ -9,7 +9,7 @@ import scala.collection.mutable
 /**
   * Test class for lazy variant of PQueue
   */
-class IdxMapPQueueTest extends WordSpec with Matchers {
+class MapPQueueTest extends WordSpec with Matchers {
 
   "lazy variant of pattern queue" should {
 
@@ -18,7 +18,7 @@ class IdxMapPQueueTest extends WordSpec with Matchers {
     (0 to 20)
       .foreach(i => transferQueue.enqueue(IdxValue(i.toLong, i.toLong, Result.succ(i))))
 
-    val testQueue = IdxMapPQueue[Int, Int](transferQueue, (item => item.value))
+    val testQueue = MapPQueue[Int, Int](transferQueue, (item => item.value))
 
     "return it's size" in {
 
@@ -82,7 +82,7 @@ class IdxMapPQueueTest extends WordSpec with Matchers {
 
       val expectedData = "Cannot enqueue to IdxMapPQueue! Bad logic"
 
-      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(IdxValue(1,1, Result.succ(1)))
+      val thrownException = the[UnsupportedOperationException] thrownBy testQueue.enqueue(IdxValue(1, 1, Result.succ(1)))
       val actualData = thrownException.getMessage
 
       actualData shouldBe expectedData
