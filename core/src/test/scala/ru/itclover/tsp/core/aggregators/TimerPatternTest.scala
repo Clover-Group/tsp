@@ -34,9 +34,10 @@ class TimerPatternTest extends WordSpec with Matchers {
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Boolean]) => collect += x)
 
       //returns 2 intervals
-      collect.size shouldBe 2
-      collect(0) shouldBe IdxValue(0, 29, Succ(true))
-      collect(1) shouldBe IdxValue(30, 99, Fail)
+      collect.size shouldBe 3
+      collect(0) shouldBe IdxValue(0, 9, Fail)
+      collect(1) shouldBe IdxValue(10, 39, Succ(true))
+      collect(2) shouldBe IdxValue(40, 99, Fail)
     }
 
     "match-for-valid-2" in {
@@ -50,8 +51,8 @@ class TimerPatternTest extends WordSpec with Matchers {
 
       //returns 2 intervals
 //      collect.size shouldBe 2
-      collect(0) shouldBe IdxValue(0, 39, Fail)
-      collect(1) shouldBe IdxValue(40, 89, Succ(true))
+      collect(0) shouldBe IdxValue(0, 49, Fail)
+      collect(1) shouldBe IdxValue(50, 99, Succ(true))
     }
   }
 

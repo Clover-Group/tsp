@@ -47,10 +47,9 @@ class ReducePatternTest extends WordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[Int]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
-      //returns 2 intervals
-      collect.size shouldBe 2
-      collect(0) shouldBe IdxValue(0, 39, Succ(0))
-      collect(1) shouldBe IdxValue(40, 99, Succ(0))
+      // returns 1 interval (due to fusing on enqueue)
+      collect.size shouldBe 1
+      collect(0) shouldBe IdxValue(0, 99, Succ(0))
     }
 
     "should not produce output if one of inputs does not have output for some interval" in {
