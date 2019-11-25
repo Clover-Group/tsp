@@ -35,7 +35,7 @@ case class FunctionRegistry(
       case (n, t) => n == name && t.length == types.length
     }.toList.map {
       case x@((_, t), _) => (x, t.zip(types).map { case (to, from) => FunctionRegistry.castability(from, to) }.sum)
-    }.sortBy(_._2).find(_._2 > 0).map { case ((_, f), c) => (f, c) }
+    }.sortBy(-_._2).find(_._2 > 0).map { case ((_, f), c) => (f, c) }
 }
 
 object FunctionRegistry {
