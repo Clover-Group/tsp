@@ -36,7 +36,8 @@ class GroupPatternTest extends WordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[Int]]()
       StateMachine[Id].run(groupPattern, events, groupPattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
-      collect.size shouldBe 100
+      // 10 intervals due to fusing on enqueue
+      collect.size shouldBe 10
       collect.foreach(x => {
         x.value.isSuccess shouldBe true
         x.value.getOrElse(100) < 11 shouldBe true
