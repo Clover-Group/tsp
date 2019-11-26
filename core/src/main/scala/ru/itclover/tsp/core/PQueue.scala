@@ -65,7 +65,7 @@ object PQueue {
     } else None
     override def clean(): PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = {
-      idxValues.foreach(queue.offerLast)
+      idxValues.foreach(enqueueWithUniting)
       this
     }
     override def toSeq: Seq[IdxValue[T]] = {
@@ -93,6 +93,18 @@ object PQueue {
       }
 
       inner(this)
+    }
+
+    private def enqueueWithUniting(idxValue: IdxValue[T]): Unit = {
+      queue.peekLast match {
+        case null =>
+          queue.offerLast(idxValue)
+        case IdxValue(start, end, value) if value == idxValue.value =>
+          queue.pollLast()
+          queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
+        case _ =>
+          queue.offerLast(idxValue)
+      }
     }
   }
 

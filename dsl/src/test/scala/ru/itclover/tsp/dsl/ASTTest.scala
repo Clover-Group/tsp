@@ -46,7 +46,7 @@ class ASTTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
   "AST operations" should "require types" in {
     FunctionCall('and, Seq(Constant(true), Constant(false))).valueType shouldBe BooleanASTType
     a[ParseException] should be thrownBy FunctionCall('and, Seq(Constant(true))) // only 1 argument
-    a[ParseException] should be thrownBy FunctionCall('and, Seq(Constant(true), Constant(1))) // invalid types
+    a[ParseException] should be thrownBy FunctionCall('and, Seq(Constant(true), Constant("false"))) // invalid types
   }
 
   "Windowed operators" should "construct correctly" in {

@@ -66,7 +66,9 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     RawPattern("12", "abs(SpeedThrustMin + POilDieselOut) > 40"),
     RawPattern("13", "avg(SpeedThrustMin, 2 sec) = 22"),
     RawPattern("14", "avgOf(POilDieselOut, SpeedThrustMin) > 0"),
-    RawPattern("15", "lag(POilDieselOut) < 0")
+    RawPattern("15", "lag(POilDieselOut) < 0"),
+    RawPattern("16", "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)"),
+    RawPattern("17", "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)")
   )
 
   val incidentsCount = Map(
@@ -85,6 +87,8 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     13 -> 1,
     14 -> 3,
     15 -> 1,
+    16 -> 1,
+    17 -> 1,
   )
 
   val wideInputConf = JDBCInputConf(
@@ -132,12 +136,39 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test/cases-narrow-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/test/cases-wide-schema-new.sql").mkString.split(";").foreach(container.executeUpdate)
-    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${Files.readResource("/sql/test/cases-narrow-new.csv").drop(1).mkString("\n")}")
-    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${Files.readResource("/sql/test/cases-wide-new.csv").drop(1).mkString("\n")}")
-    Files.readResource("/sql/test/cases-sinks-schema.sql").mkString.split(";").foreach(container.executeUpdate)
 
+    Files.readResource("/sql/test/cases-narrow-schema-new.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test/cases-wide-schema-new.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    val mathCSVData = Files.readResource("/sql/test/cases-narrow-new.csv")
+                           .drop(1)
+                           .mkString("\n")
+
+    val rulesCSVData = Files.readResource("/sql/test/cases-wide-new.csv")
+                            .drop(1)
+                            .mkString("\n")
+
+    container.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${mathCSVData}")
+
+    container.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
+
+    Files.readResource("/sql/test/cases-sinks-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Data" should "load properly" in {
@@ -145,10 +176,10 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")
   }
 
-  "Cases 1-15" should "work in wide table" in {
-    (1 to 15).foreach { id =>
+  "Cases 1-17" should "work in wide table" in {
+    (1 to 17).foreach { id =>
       Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"15wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
+        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
@@ -161,10 +192,10 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id")
   }
 
-  "Cases 1-15" should "work in narrow table" in {
-    (1 to 15).foreach { id =>
+  "Cases 1-17" should "work in narrow table" in {
+    (1 to 17).foreach { id =>
       Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"15narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))) ~>
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK

@@ -42,7 +42,7 @@ class InfluxDBContainer(
 
   override def start(): Unit = {
     super.start()
-    val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L)
+    val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L, false)
     db = InfluxDBService.connectDb(conf) match {
       case Success(database)  => database
       case Failure(exception) => throw exception

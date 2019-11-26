@@ -65,12 +65,16 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   }
 
   implicit val decodeToString: Decoder[Any, String] = Decoder { x: Any =>
-    x.toString
+    if(x != null) x.toString else "[NULL]"
   }
 
   implicit val decodeToAny: Decoder[Any, Any] = Decoder { x: Any =>
     x
   }
+
+//  implicit val decodeToNull: Decoder[Any, Null] = Decoder { x: Any =>
+//    null
+//  }
 }
 
 object DoubleDecoderInstances extends BasicDecoders[Double] {
