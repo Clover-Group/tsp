@@ -51,6 +51,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
+      source.conf.eventsMaxGapMs,
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
@@ -159,6 +160,7 @@ object PatternsSearchJob {
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double,
+    eventsMaxGapMs: Long,
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
@@ -179,7 +181,7 @@ object PatternsSearchJob {
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
+            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
               p =>

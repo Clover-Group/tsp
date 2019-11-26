@@ -16,7 +16,7 @@ import scala.reflect.ClassTag
 //  def testFieldsIdxMap(anyStr: String) = 0
 //}
 
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: Map[Symbol, ClassTag[_]])
+class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGapMs: Long, fieldsTags: Map[Symbol, ClassTag[_]])
     extends Parser {
 
   // TODO: Move to params
@@ -51,7 +51,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
 
       val until = Assert(FunctionCall('not, Seq(b)))
       //val window = Window(86400000) // 24 hours
-      val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), Some(MinWindow))
+      val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), eventsMaxGapMs, Some(MinWindow))
       FunctionCall('and, Seq(timedCondition, until))
     })
     | trileanFactor)
@@ -59,7 +59,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   /*_*/
 
   protected def buildForExpr(phase: AST, ti: TimeInterval): AST =
-    Timer(Assert(phase.asInstanceOf[AST]), ti)
+    Timer(Assert(phase.asInstanceOf[AST]), ti, eventsMaxGapMs)
 
   // format: off
 

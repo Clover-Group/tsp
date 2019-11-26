@@ -101,7 +101,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       GroupPattern[E, S[T], T](newInner, window).asInstanceOf[Pat[E, T]]
     }
     case PreviousValue(inner, window) if optimizable(inner)   => PreviousValue(forceState(optimizePat(inner)), window)
-    case TimerPattern(inner, window) if optimizable(inner)    => TimerPattern(forceState(optimizePat(inner)), window)
+    case TimerPattern(inner, window, gap) if optimizable(inner)    => TimerPattern(forceState(optimizePat(inner)), window, gap)
     case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)
     case SegmentizerPattern(inner) if optimizable(inner)      => SegmentizerPattern(forceState(optimizePat(inner)))
     case WaitPattern(inner, window) if optimizable(inner)      => WaitPattern(forceState(optimizePat(inner)), window)

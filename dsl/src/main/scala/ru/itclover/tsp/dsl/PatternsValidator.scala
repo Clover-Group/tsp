@@ -14,9 +14,9 @@ object PatternsValidator {
     //toNumberExtractor: Extractor[Event, Int, Any],
     //doubleDecoder: Decoder[Any, Double]
   ): Seq[(RawPattern, Either[Throwable, AST])] =
-    // Since it's only the validation, we don't need any tolerance fraction here.
+    // Since it's only the validation, we don't need any tolerance fraction and max gap here.
     patterns.map(
-      p => (p, new ASTBuilder(p.sourceCode, 0.0, toClassTags(fieldsTypes)).start.run().toEither)
+      p => (p, new ASTBuilder(p.sourceCode, 0.0, 1000L, toClassTags(fieldsTypes)).start.run().toEither)
     )
 
   def toClassTags(fields: Map[String, String]): Map[Symbol, ClassTag[_]] = fields.map {

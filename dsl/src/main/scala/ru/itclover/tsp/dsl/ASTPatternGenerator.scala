@@ -33,9 +33,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   def build(
     sourceCode: String,
     toleranceFraction: Double,
+    eventsMaxGapMs: Long,
     fieldsTags: Map[Symbol, ClassTag[_]]
   ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
-    val ast = new ASTBuilder(sourceCode, toleranceFraction, fieldsTags).start.run()
+    val ast = new ASTBuilder(sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
 
   }
@@ -152,7 +153,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         )
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer =>
-        TimerPattern(generatePattern(t.cond), Window(t.interval.max))
+        TimerPattern(generatePattern(t.cond), Window(t.interval.max), t.maxGapMs)
       case s: Wait =>
         WaitPattern(generatePattern(s.cond), s.window)
       case fwi: ForWithInterval =>

@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -24,7 +25,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   val inputConf = JDBCInputConf(
