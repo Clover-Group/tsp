@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -22,13 +23,15 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
 
   override val log = Logger("RealDataPerfTest")
 
-  val port = 8136
+  val port = 8190
 
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9087 -> 9000 :: Nil,
+    port -> 8123 :: 9101 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    // HTTP port returns 200, native port returns 400
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   val inputConf = JDBCInputConf(
@@ -88,7 +91,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(2 :: Nil, "SELECT count(*) FROM events_ep2k")
+      checkByQuery(860.0 :: Nil, "SELECT count(*) FROM events_ep2k")
       // Performance
       execTimeS should be <= realDataMaxTimeSec
     }
