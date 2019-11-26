@@ -56,7 +56,7 @@ case class JDBCOutputConf(
 case class KafkaOutputConf(
   broker: String,
   topic: String,
-  serializer: String,
+  serializer: String = "json",
   rowSchema: RowSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
