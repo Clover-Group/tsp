@@ -68,7 +68,7 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
   }
 
   def trileanFactor: Rule1[AST] = rule {
-    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
+    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws | waitRule
   }
 
   def booleanExpr: Rule1[AST] = rule {
@@ -355,6 +355,14 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, fieldsTags: 
     ((str("+") ~> (() => 1) | str("-") ~> (() => -1) | str("") ~> (() => 1))
     ~ capture(oneOrMore(CharPredicate.Digit)) ~ ws
     ~> ((s: Int, i: String) => Constant(s * i.toLong)))
+  }
+
+  def waitRule: Rule1[AST] = rule {
+    (
+      ignoreCase("wait") ~ ws ~ "(" ~ ws ~ time ~ ws ~ "," ~ ws ~ trileanExpr ~ ws ~ ")" ~ ws ~> (
+        (w: Window, e: AST) => Wait(e, w)
+      )
+    )
   }
 
   /*_*/
