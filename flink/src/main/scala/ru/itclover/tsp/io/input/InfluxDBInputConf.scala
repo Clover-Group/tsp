@@ -40,8 +40,9 @@ case class InfluxDBInputConf(
   defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),
-  patternsParallelism: Option[Int] = Some(2)
+  patternsParallelism: Option[Int] = Some(2),
+  additionalTypeChecking: Option[Boolean] = Some(true),
 ) extends InputConf[RowWithIdx, Symbol, Any] {
 
-  val influxConf = InfluxDBService.InfluxConf(url, dbName, userName, password, 200L)
+  val influxConf = InfluxDBService.InfluxConf(url, dbName, userName, password, 200L, additionalTypeChecking.getOrElse(true))
 }

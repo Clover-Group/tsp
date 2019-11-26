@@ -8,4 +8,6 @@ class ExtractingPattern[Event: IdxExtractor, EKey, EItem, T, S](key: EKey)(
 ) extends SimplePattern[Event, T](e => {
       val r = extract(e, key)
       Result.succ(r)
-    })
+    }) {
+  override def toString: String = s"ExtractingPattern($key)"
+}

@@ -28,7 +28,7 @@ class StateMachine[F[_]: Monad: Traverse] {
     events: Iterable[Event],
     seedState: State,
     consume: IdxValue[Out] => F[Unit] = (_: IdxValue[Out]) => Monad[F].pure(()),
-    groupSize: Int = 1000
+    groupSize: Int = 100000
   ): F[State] = {
 
     var counter = 0

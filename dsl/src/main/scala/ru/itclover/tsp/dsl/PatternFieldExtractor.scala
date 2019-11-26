@@ -32,7 +32,7 @@ object PatternFieldExtractor {
     patterns
       .map { p =>
         gen
-          .build(p.sourceCode, 0.0, Map.empty)
+          .build(p.sourceCode, 0.0, 1000L, Map.empty)
           .map(_._2.fields.map(fieldToEKey))
           .getOrElse(Set.empty)
       }

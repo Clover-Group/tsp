@@ -1,6 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import cats.implicits._
+import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{Interval, TimeInterval}
 import ru.itclover.tsp.core.{Result, Window}
 import ru.itclover.tsp.dsl.PatternMetadataInstances.monoid
@@ -15,6 +16,8 @@ sealed trait AST extends Product with Serializable {
 
   def requireType(requirementType: ASTType, message: Any): Unit =
     if (valueType != requirementType) throw ParseException(message.toString)
+
+  val logger: Logger = Logger("AST")
 }
 
 case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
@@ -41,10 +44,17 @@ case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: 
   override val valueType: ASTType = fr.functions.get((functionName, arguments.map(_.valueType))) match {
     case Some((_, t)) => t
     case None =>
-      throw ParseException(
-        s"No function with name $functionName " +
-        s"and types (${arguments.map(_.valueType).mkString(", ")})"
-      )
+      fr.findBestFunctionMatch(functionName, arguments.map(_.valueType)) match {
+        case Some(((f, t), c)) =>
+          logger.warn(s"No function with exact name $functionName " +
+            s"and types (${arguments.map(_.valueType).mkString(", ")} found," +
+            s"using substitute function $f (with castability factor $c)")
+          t
+        case None => throw ParseException(
+          s"No function with name $functionName " +
+          s"and types (${arguments.map(_.valueType).mkString(", ")}) (the arguments were ${arguments.mkString(", ")})"
+        )
+    }
   }
 }
 
@@ -80,11 +90,18 @@ case class AndThen(first: AST, second: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
-case class Timer(cond: AST, interval: TimeInterval, gap: Option[Window] = None) extends AST {
+case class Timer(cond: AST, interval: TimeInterval, maxGapMs: Long, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
   override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(interval.max))
 
   override val valueType: ASTType = BooleanASTType
+}
+
+case class Wait(cond: AST, window: Window, gap: Option[Window] = None) extends AST {
+  // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
+  override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(window.toMillis))
+
+  override val valueType: ASTType = cond.valueType
 }
 
 case class Assert(cond: AST) extends AST {

@@ -112,7 +112,9 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
   ): MapPattern[E, WindowStatisticResult, Long, AggregatorPState[S, T, WindowStatisticAccumState[T]]] =
     windowStatistic(inner, w).map(wsr => wsr.failMillis)
 
-  def timer[T, S](inner: Pattern[E, S, T], w: Window) = TimerPattern(inner, w)
+  def timer[T, S](inner: Pattern[E, S, T], w: Window, gap: Long) = TimerPattern(inner, w, gap)
+
+  def skip[T, S](inner: Pattern[E, S, T], w: Window) = WaitPattern(inner, w)
 
   // tries to join sequential segments together
   // todo add segmentation there it needs

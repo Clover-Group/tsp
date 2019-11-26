@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -24,7 +25,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   val inputConf = JDBCInputConf(
@@ -56,9 +58,27 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
 
   override def afterStart(): Unit = {
     super.beforeAll()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/wide/source_bigdata_HI_115k.sql").mkString.split(";").foreach(container.executeUpdate)
-    Files.readResource("/sql/wide/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    Files.readResource("/sql/wide/bigdata-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
+
+    val csvData = Files.readResource("/sql/wide/source_bigdata.csv")
+                       .drop(1)
+                       .mkString("\n")
+
+    container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${csvData}")
+
+    Files.readResource("/sql/wide/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
   }
 
   "Basic assertions" should "work for wide dense table" in {
@@ -72,8 +92,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
-      checkByQuery(1275.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
-      checkByQuery(1832.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
+      checkByQuery(686.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 6")
+      checkByQuery(1078.0 :: Nil, "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4")
       // Performance
       execTimeS should be <= realDataMaxTimeSec
     }
