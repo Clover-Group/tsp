@@ -69,8 +69,10 @@ object KafkaService {
       val arity = rowInput.getArity
 
       (0 until arity).foreach(i => {
+
         row.setField(counter, rowInput.getField(i))
         counter += 1
+
       })
 
     })
