@@ -74,7 +74,7 @@ class CheckMemoryLeaks extends FlatSpec with Matchers {
 
   it should "not have memory leaks (TimerPattern)" in {
 
-    val pattern = timer(field(_.row), 10.seconds)
+    val pattern = timer(field(_.row), 10.seconds, 2000L)
 
     val generator =
       Change(from = 0.0, to = 100.0, 100.seconds).after(Timed(Constant(100.0), 100.seconds)).repeat(1000000).map(_.toInt)

@@ -20,7 +20,7 @@ class TimerPatternTest extends WordSpec with Matchers {
   import pat._
 
   // `row` stays === 0 during 10 seconds.
-  val pattern = timer(pat.assert(field(_.row) === const(0)), 10.seconds)
+  val pattern = timer(pat.assert(field(_.row) === const(0)), 10.seconds, 2000L)
 
   "timer pattern" should {
 

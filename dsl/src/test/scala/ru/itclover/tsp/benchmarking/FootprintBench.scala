@@ -45,6 +45,7 @@ class FootprintBench extends FlatSpec with Matchers {
       .build(
         "intSensor > 0 for 720 sec",
         0.0,
+        1000L,
         fieldsClasses
       )
       .right
