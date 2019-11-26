@@ -1,6 +1,7 @@
 package ru.itclover.tsp.core
 
 import cats.{Foldable, Functor, Monad, Order}
+import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.language.higherKinds
@@ -8,9 +9,12 @@ import scala.language.higherKinds
 trait Pat[Event, +T]
 
 object Pat {
+  val logger = Logger("Pat")
 
   def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
+    case _                   =>
+      throw new Exception(s"$arg is not a patterne")
   }
 }
 

@@ -41,7 +41,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-
+    import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -54,7 +54,12 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
             new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case StringASTType =>
+            new ExtractingPattern[Event, EKey, EItem, String, AnyState[String]](id.value)
+          case NullASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case AnyASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -76,19 +81,18 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           case 2 =>
             log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
+            val fun: PFunction = registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
+              .getOrElse(
+                sys.error(
+                  s"Function ${fc.functionName} with argument types " +
+                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                )
+              )._1
             CouplePattern(p1, p2)(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    registry.functions
-                      .getOrElse(
-                        (fc.functionName, fc.arguments.map(_.valueType)),
-                        sys.error(
-                          s"Function ${fc.functionName} with argument types " +
-                          s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
-                        )
-                      )
-                      ._1(
+                      fun(
                         Seq(rx, ry) // <--- TSP-182 fails here
                       )
 
