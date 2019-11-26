@@ -50,7 +50,7 @@ class BasicInfluxToJdbcTest
 
   val influxContainer =
     new InfluxDBContainer(
-      "influxdb:1.5",
+      "influxdb:1.7",
       influxPort -> 8086 :: Nil,
       s"http://localhost:$influxPort",
       "Test",
