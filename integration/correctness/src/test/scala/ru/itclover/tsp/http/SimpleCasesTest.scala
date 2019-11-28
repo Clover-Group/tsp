@@ -213,6 +213,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   override def afterAll(): Unit = {
     super.afterAll()
     clickhouseContainer.stop()
+    influxContainer.stop()
   }
 
   "Data" should "load properly" in {
