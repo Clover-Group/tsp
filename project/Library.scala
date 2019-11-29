@@ -141,9 +141,9 @@ object Library {
   )
 
   val parquetDeps: Seq[ModuleID] = Seq(
-    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient,
-    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient,
-    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs,
+    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
+    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
+    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs exclude("org.slf4j", "slf4j-log4j12") exclude("log4j", "log4j"),
     "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
 
