@@ -44,6 +44,9 @@ lazy val assemblySettings = Seq(
 
 )
 
+// to run only two test at once (to prevent too many containers creating and subsequent test failures)
+concurrentRestrictions in Global += Tags.limit(Tags.Test, 2)
+
 // make run command include the provided dependencies (for sbt run)
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
