@@ -4,6 +4,9 @@ import com.typesafe.scalalogging.Logger
 import org.scalactic.Equality
 import org.scalatest.{Assertion, Matchers}
 
+import scala.collection.JavaConverters._
+import scala.util.Try
+
 trait SqlMatchers extends Matchers {
 
   val logger = Logger("SqlMatchers")
@@ -22,6 +25,34 @@ trait SqlMatchers extends Matchers {
     logger.info(
       s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
       s"actual values: [${toStringRepresentation(results)}]"
+    )
+    implicit val customEqualityList: Equality[List[Double]] = (a: scala.List[Double], b: Any) => {
+      a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall {
+        case (x, y) => Math.abs(x - y) < epsilon
+      }
+    }
+    implicit val customEqualityTable: Equality[List[List[Double]]] = (a: List[List[Double]], b: Any) => {
+      a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[List[Double]]]).forall {
+        case (x, y) => customEqualityList.areEqual(x, y)
+      }
+    }
+    val unfound = expectedValues.filter(!results.contains(_))
+    val unexpected = results.filter(!expectedValues.contains(_))
+    withClue(s"Expected but not found: [${toStringRepresentation(unfound)}]; found [${toStringRepresentation(unexpected)}] instead") {
+      results should ===(expectedValues)
+    }
+  }
+
+  def checkInfluxByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(
+    implicit container: InfluxDBContainer
+  ): Assertion = {
+    val resultSet = container.executeQuery(query)
+    val results: List[Seq[Double]] = resultSet.getResults.get(0).getSeries.asScala
+      .map(_.getValues.asScala.map(_.asScala.tail.map(x=>Try(x.toString.toDouble).getOrElse(Double.NaN)).toList).toList)
+      .foldLeft(List.empty[Seq[Double]])(_ ++ _)
+    logger.info(
+      s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
+        s"actual values: [${toStringRepresentation(results)}]"
     )
     implicit val customEqualityList: Equality[List[Double]] = (a: scala.List[Double], b: Any) => {
       a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall {

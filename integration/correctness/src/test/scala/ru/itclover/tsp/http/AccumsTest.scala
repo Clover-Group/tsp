@@ -11,6 +11,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
+import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -52,7 +53,8 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9089 -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
-    s"jdbc:clickhouse://localhost:$port/default"
+    s"jdbc:clickhouse://localhost:$port/default",
+    waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
   val windowLength = 1000

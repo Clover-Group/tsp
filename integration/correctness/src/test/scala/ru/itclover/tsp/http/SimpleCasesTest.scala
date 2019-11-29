@@ -52,7 +52,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     waitStrategy = Some(Wait.forHttp("/"))
   )
 
-  val influxContainer =
+  implicit val influxContainer =
     new InfluxDBContainer(
       "influxdb:1.7",
       influxPort -> 8086 :: Nil,
@@ -139,7 +139,8 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
-    partitionFields = Seq('loco_num, 'section, 'upload_id)
+    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    additionalTypeChecking = Some(false)
   )
 
   val wideRowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
@@ -213,11 +214,13 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   override def afterAll(): Unit = {
     super.afterAll()
     clickhouseContainer.stop()
+    influxContainer.stop()
   }
 
   "Data" should "load properly" in {
     checkByQuery(List(List(27.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
     checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")
+    checkInfluxByQuery(List(List(27.0, 27.0, 27.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
   "Cases 1-17" should "work in wide table" in {
