@@ -25,7 +25,6 @@ object Version {
   val postgres = "42.2.6"
 
   val avro = "1.8.2"
-  val arrow = "0.14.1"
 
   val parboiled = "2.1.8"
 
@@ -39,6 +38,12 @@ object Version {
 
   val simulacrum = "0.15.0"
   val sentry = "1.7.27"
+
+  val arrow = "0.15.1"
+  val parquet = "0.11.0"
+  val hadoopClient = "3.2.1"
+  val parquetCodecs = "1.10.1"
+  val brotli = "0.1.1"
 
   val twitterUtil = "6.43.0"
 }
@@ -130,10 +135,16 @@ object Library {
     "ch.epfl.scala" %% "collection-strawman" % "0.9.0"
   )
 
-  val arrow = Seq(
-    ("org.apache.arrow" % "arrow-vector" % Version.arrow)
-      .excludeAll(ExclusionRule("io.netty", "netty-common"))
-      .excludeAll(ExclusionRule("io.netty", "netty-buffer"))
+  val arrowDeps: Seq[ModuleID] = Seq(
+    "org.apache.arrow" % "arrow-memory" % Version.arrow,
+    "org.apache.arrow" % "arrow-vector" % Version.arrow
+  )
+
+  val parquetDeps: Seq[ModuleID] = Seq(
+    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient,
+    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient,
+    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs,
+    "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
 
   val jol: Seq[ModuleID] = Seq("org.openjdk.jol" % "jol-core"% "0.9")

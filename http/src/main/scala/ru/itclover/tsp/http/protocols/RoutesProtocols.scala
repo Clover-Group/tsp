@@ -120,7 +120,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "additionalTypeChecking"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat8(
+  implicit val kafkaInpConfFmt = jsonFormat9(
     KafkaInputConf.apply
   )
 
@@ -138,7 +138,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
-  implicit val kafkaOutConfFmt = jsonFormat4(KafkaOutputConf.apply)
+  implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 

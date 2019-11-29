@@ -8,11 +8,12 @@ case class KafkaInputConf(
   brokers: String,
   topic: String,
   group: String = UUID.randomUUID().toString,
+  serializer: String = "json",
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
-  fieldsTypes: Map[String, String],
+  fieldsTypes: Map[String, String]
 ) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
