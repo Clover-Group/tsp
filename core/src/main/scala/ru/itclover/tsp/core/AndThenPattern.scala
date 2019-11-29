@@ -75,9 +75,10 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
             // First and second intersect
             // first   |-------|
             // second       |-------|
+            // result  |------------| (take union, not intersection)
             else {
-              val end = Math.min(end1 + 1, end2)
-              val start = Math.max(start1, start2)
+              val end = Math.max(end1 + 1, end2)
+              val start = Math.min(start1, start2)
               val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
               inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
             }
