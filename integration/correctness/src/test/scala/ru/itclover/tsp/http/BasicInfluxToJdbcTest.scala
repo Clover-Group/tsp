@@ -50,7 +50,7 @@ class BasicInfluxToJdbcTest
 
   val influxContainer =
     new InfluxDBContainer(
-      "influxdb:1.7",
+      "influxdb:1.5",
       influxPort -> 8086 :: Nil,
       s"http://localhost:$influxPort",
       "Test",
@@ -78,13 +78,14 @@ class BasicInfluxToJdbcTest
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id),
-    userName = Some("default")
+    userName = Some("default"),
+    additionalTypeChecking = Some(false)
   )
-  val typeCastingInputConf = inputConf.copy(query = """select *, speed as "speed(1)(2)" from SM_typeCasting_wide""")
+  val typeCastingInputConf = inputConf.copy(query = """select * from SM_typeCasting_wide""")
 
   val fillingInputConf = inputConf.copy(
-    query = """select * from SM_sparse_wide""",
-    dataTransformation = Some(WideDataFilling(Map('_0 -> 2000L, '_1 -> 2000L), None))
+    query = """select *, speed as "speed64" from SM_sparse_wide""",
+    dataTransformation = Some(WideDataFilling(Map('speed -> 2000L, 'pos -> 2000L), None))
   )
 
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
@@ -177,7 +178,7 @@ class BasicInfluxToJdbcTest
   }
 
   // TODO: Fix json format for arbitrary
-  /*"Data filling" should "work for wide sparse table" in {
+  "Data filling" should "work for wide sparse table" in {
 
     Post(
       "/streamJob/from-influxdb/to-jdbc/?run_async=0",
@@ -187,10 +188,10 @@ class BasicInfluxToJdbcTest
       status shouldEqual StatusCodes.OK
 
       checkByQuery(
-        0.0 :: Nil,
+        List(List(0.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 20 AND " +
           "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
     }
-  }*/
+  }
 }

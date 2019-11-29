@@ -10,8 +10,8 @@ import ru.itclover.tsp.core.{Pattern, StateMachine}
 
 object PatternMemoryCheck {
 
-  private def runAndReturnFinalState[A, S](pattern: Pattern[A, S, _], events: Seq[A]) = {
-    StateMachine[Id].run(pattern, events, pattern.initialState())
+  private def runAndReturnFinalState[A, S](pattern: Pattern[A, S, _], events: Seq[A], groupSize: Int) = {
+    StateMachine[Id].run(pattern, events, pattern.initialState(), groupSize = groupSize)
   }
 
   private def generateSeq(generator: TimeSeriesGenerator[Int], amount: Int) = {
@@ -21,14 +21,14 @@ object PatternMemoryCheck {
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = amount)
   }
 
-  def finalStateSize[A, S <: AnyRef](pattern: Pattern[A, S, _], events: Seq[A]): Long = {
-    val finalState = runAndReturnFinalState(pattern, events)
+  def finalStateSize[A, S <: AnyRef](pattern: Pattern[A, S, _], events: Seq[A], groupSize: Int): Long = {
+    val finalState = runAndReturnFinalState(pattern, events, groupSize)
     val layout = GraphLayout.parseInstance(finalState)
     layout.totalSize()
   }
 
-  def finalStateSize[A, S <: AnyRef](pattern: Pattern[A, S, _], event: A, amount: Int): Long = {
-    val finalState = runAndReturnFinalState(pattern, Seq.tabulate(amount)(_ => event))
+  def finalStateSize[A, S <: AnyRef](pattern: Pattern[A, S, _], event: A, amount: Int, groupSize: Int): Long = {
+    val finalState = runAndReturnFinalState(pattern, Seq.tabulate(amount)(_ => event), groupSize)
     val layout = GraphLayout.parseInstance(finalState)
     layout.totalSize()
   }
@@ -39,9 +39,10 @@ object PatternMemoryCheck {
   def finalStateSizeGenerator[S <: AnyRef](
     pattern: Pattern[Event[Int], S, _],
     generator: TimeSeriesGenerator[Int],
-    amount: Int
+    amount: Int,
+    groupSize: Int = 1000
   ): Long = {
-    val finalState = runAndReturnFinalState(pattern, generateSeq(generator, amount))
+    val finalState = runAndReturnFinalState(pattern, generateSeq(generator, amount), groupSize)
     val layout = GraphLayout.parseInstance(finalState)
     layout.totalSize()
   }
