@@ -7,10 +7,8 @@ import org.apache.flink.util.Collector
 import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.io.TimeExtractor
 
-import scala.reflect.ClassTag
-
-case class ProcessorCombinator[In, S: ClassTag, Inner, Out](
-  mappers: Seq[PatternProcessor[In, S, Inner, Out]],
+case class ProcessorCombinator[In, S, Inner, Out](
+  mappers: Seq[PatternProcessor[In, S, Out]],
   timeExtractor: TimeExtractor[In]
 ) extends ProcessWindowFunction[In, Out, String, Window] {
 
