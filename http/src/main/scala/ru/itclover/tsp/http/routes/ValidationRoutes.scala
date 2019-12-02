@@ -1,9 +1,6 @@
 package ru.itclover.tsp.http.routes
-// import akka.actor.ActorSystem
-import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
 import cats.data.Reader
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
@@ -13,9 +10,7 @@ import scala.concurrent.ExecutionContextExecutor
 
 object ValidationRoutes {
 
-  def fromExecutionContext(
-    monitoringUri: Uri
-  )(implicit am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] =
+  def fromExecutionContext(): Reader[ExecutionContextExecutor, Route] =
     Reader(_ => new ValidationRoutes {}.route)
 }
 

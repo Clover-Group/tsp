@@ -28,7 +28,7 @@ trait SparseDataAccumulator
   * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param extraFieldNames - will be added to every emitting event
   */
-case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
+class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
@@ -80,6 +80,7 @@ case class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
         val newValue = Try(extractValue(item, key))
         newValue match {
           case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
+          case _ => // do nothing
         }
       }
     }
@@ -200,12 +201,5 @@ object SparseRowsDataAccumulator {
           )
       })
       .getOrElse(sys.error("No data transformation config specified"))
-  }
-
-  def emptyEvent[InEvent, InKey](
-    streamSource: StreamSource[InEvent, InKey, Any]
-  )(implicit eventCreator: EventCreator[InEvent, InKey]): InEvent = {
-    val toKey = streamSource.fieldToEKey
-    eventCreator.emptyEvent(streamSource.fieldsIdxMap.map { case (k, v) => (toKey(k), v) })
   }
 }

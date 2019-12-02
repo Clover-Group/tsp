@@ -5,6 +5,13 @@ import ru.itclover.tsp.core.Time
 trait Extractor[Event, EKey, EItem] extends Serializable {
   // TODO Kind projector here
   def apply[T](e: Event, k: EKey)(implicit d: Decoder[EItem, T]): T
+
+  def comap[A](f: A => Event): Extractor[A, EKey, EItem] = {
+    def thisApply[T](e: Event, k: EKey)(d: Decoder[EItem, T]) = apply(e, k)(d)
+    new Extractor[A, EKey, EItem] {
+      override def apply[T](e: A, k: EKey)(implicit d: Decoder[EItem, T]): T = thisApply(f(e), k)(d)
+    }
+  }
 }
 
 trait KVExtractor[Event, EKey, EItem] extends Serializable {
@@ -14,6 +21,8 @@ trait KVExtractor[Event, EKey, EItem] extends Serializable {
 
 trait TimeExtractor[Event] extends Serializable {
   def apply(e: Event): Time
+
+  def comap[A](f: A => Event): TimeExtractor[A] = TimeExtractor.of(f.andThen(apply))
 }
 
 object TimeExtractor {

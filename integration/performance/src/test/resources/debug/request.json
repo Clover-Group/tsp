@@ -1,0 +1,492 @@
+{
+  "sink": {
+    "jdbcUrl": "jdbc:clickhouse://127.0.0.1:8191/default?stringtype=unspecified",
+    "password": "some_password",
+    "userName": "some_user",
+    "rowSchema": {
+      "toTsField": "to_ts",
+      "fromTsField": "from_ts",
+      "contextField": "context",
+      "appIdFieldVal": [
+        "type",
+        1
+      ],
+      "sourceIdField": "series_storage",
+      "patternIdField": "entity_id",
+      "forwardedFields": [
+        "loco_num",
+        "Section",
+        "upload_id"
+      ],
+      "processingTsField": "processing_ts"
+    },
+    "batchInterval": 50,
+    "tableName": "events_ep2k",
+    "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+    "parallelism": 1
+  },
+  "uuid": "73df70e5-2d4b-41af-9931-af940f8a4a50_1",
+  "source": {
+    "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, k31, psn2ain2_fault, u_k33, k32, u_km111_1, km111_2, km104, out_km58, u_km107_2, k19, km111_1, butp_controlcnt, sa19_1_trains, psn2_vpp_uout, out_km12, sa19_2_trains, k4, in_km52, u_k4, in_km45, pr_v2_ain2, in_km58, u_km105_2, out_k26, km107_1, psn1vpp_work, km105_2, out_k25, k8, in_km39, psn1ain2_not_sim, u_km101_2, psn2vpp_work, p_tc, u_km90_1, psn2ain2_work, out_km41, u_km104, u_km111_2, k5, out_km16, out_km45, in_km41, out_km39, km90_1, s19, u_km90_2, p_ur, out_km52, in_km12, km107_2, current_v, psn2ain2_not_sim, buo_controlcnt, sa20_1, out_km62, uline, in_km16, k10, k33, km101_2, km90_2, k7, in_km62, u_k5, u_km107_1, p_tm, i_op \nFROM ep2k_tmy_20190708_wide_rep \nWHERE upload_id = '322479' ORDER BY ts ASC",
+    "jdbcUrl": "jdbc:clickhouse://127.0.0.1:8191/default?user=some_user&password=some_password",
+    "sourceId": 121,
+    "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+    "parallelism": 1,
+    "datetimeField": "ts",
+    "eventsMaxGapMs": 60000,
+    "partitionFields": [
+      "loco_num",
+      "Section",
+      "upload_id"
+    ],
+    "defaultEventsGapMs": 2000,
+    "numParallelSources": 1,
+    "patternsParallelism": 1
+  },
+  "patterns": [
+    {
+      "id": "1290",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(out_km12) = 1 and out_km12 = 0 and in_km12 = 1 andThen in_km12 = 1 for  0.25 sec  andThen in_km12 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1294",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(out_km16) = 1 and out_km16 = 0 and in_km16 = 1 andThen in_km16 = 1 for  0.25 sec  andThen in_km16 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1326",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(out_km52) = 1 and out_km52 = 0 and in_km52 = 1 andThen in_km52 = 1 for  0.25 sec  andThen in_km52 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1339",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km90_1) = 1 and u_km90_1 = 1 and lag(km90_1) = 1 and km90_1 = 0 andThen km90_1 = 1 and u_km90_1 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1340",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km90_2) = 1 and u_km90_2 = 1 and lag(km90_2) = 1 and km90_2 = 0 andThen km90_2 = 1 and u_km90_2 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1342",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km101_2) = 1 and u_km101_2 = 1 and lag(km101_2) = 1 and km101_2 = 0 andThen km101_2 = 1 and u_km101_2 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1343",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km107_1) = 1 and u_km107_1 = 1 and lag(km107_1) = 1 and km107_1 = 0 andThen km107_1 = 1 and u_km107_1 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1345",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km111_1) = 1 and u_km111_1 = 1 and lag(km111_1) = 1 and km111_1 = 0 andThen km111_1 = 1 and u_km111_1 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1346",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km111_2) = 1 and u_km111_2 = 1 and lag(km111_2) = 1 and km111_2 = 0 andThen km111_2 = 1 and u_km111_2 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1348",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km105_2) = 1 and u_km105_2 = 1 and lag(km105_2) = 1 and km105_2 = 0 andThen km105_2 = 1 and u_km105_2 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1349",
+      "payload": {},
+      "sourceCode": "lag(k4) = 1 and lag(u_k4) = 1 and k4 = 0 and u_k4 = 1 andThen k4 = 1 and u_k4 = 1 and (buo_controlcnt - lag(buo_controlcnt) < 25) and (butp_controlcnt - lag(butp_controlcnt) < 25)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1350",
+      "payload": {},
+      "sourceCode": "lag(k5) = 1 and lag(u_k5) = 1 and k5 = 0 and u_k5 = 1 andThen k5 = 1 and u_k5 = 1 and (buo_controlcnt - lag(buo_controlcnt) < 25) and (butp_controlcnt - lag(butp_controlcnt) < 25)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1351",
+      "payload": {},
+      "sourceCode": "lag(k7) = 1 and k7 = 0 andThen k7 = 1 and (buo_controlcnt - lag(buo_controlcnt) < 25) and (butp_controlcnt - lag(butp_controlcnt) < 25)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1352",
+      "payload": {},
+      "sourceCode": "lag(k8) = 1 and k8 = 0 andThen k8 = 1 and (buo_controlcnt - lag(buo_controlcnt) < 25) and (butp_controlcnt - lag(butp_controlcnt) < 25)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1353",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(k10) = 1 and k10 = 0 andThen k10 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1354",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(k19) = 1 and k19 = 0 andThen k19 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1355",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(k31) = 1 and k31 = 0 andThen k31 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1356",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(k32) = 1 and k32 = 0 andThen k32 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1357",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(k33) = 1 and k33 = 0 andThen k33 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1359",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_k4) = 0 and u_k4 = 1 and k4 = 0 andThen u_k4 = 1 and k4 = 0 andThen k4 = 0 and u_k4 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1360",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_k5) = 0 and u_k5 = 1 and lag(k5) = 0 and k5 = 0 andThen k5 = 0 and u_k5 = 1 for  0.11 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1361",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_k33) = 0 and u_k33 = 1 and lag(k33) = 0 and k33 = 0 andThen k33 = 0 and u_k33 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1382",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km12) = 0 and out_km12 = 1 and in_km12 = 0 andThen in_km12 = 0 for  0.25 sec  andThen in_km12 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1390",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km16) = 0 and out_km16 = 1 and in_km16 = 0 andThen in_km16 = 0 for  0.25 sec  andThen in_km16 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1418",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km39) = 0 and out_km39 = 1 and in_km39 = 0 andThen in_km39 = 0 for  0.25 sec  andThen in_km39 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1420",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km41) = 0 and out_km41 = 1 and in_km41 = 0 andThen in_km41 = 0 for  0.25 sec  andThen in_km41 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1437",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km52) = 0 and out_km52 = 1 and in_km52 = 0 andThen in_km52 = 0 for  0.25 sec  andThen in_km52 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1447",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km58) = 0 and out_km58 = 1 and in_km58 = 0 andThen in_km58 = 0 for  0.25 sec  andThen in_km58 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1496",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km12) = 1 and out_km12 = 0 and in_km12 = 1 andThen out_km12 = 0 and in_km12 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1505",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km16) = 1 and out_km16 = 0 and in_km16 = 1 andThen out_km16 = 0 and in_km16 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1549",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km39) = 1 and out_km39 = 0 and in_km39 = 1 andThen out_km39 = 0 and in_km39 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1550",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km41) = 1 and out_km41 = 0 and in_km41 = 1 andThen out_km41 = 0 and in_km41 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1565",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km52) = 1 and out_km52 = 0 and in_km52 = 1 andThen out_km52 = 0 and in_km52 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1576",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km58) = 1 and out_km58 = 0 and in_km58 = 1 andThen out_km58 = 0 and in_km58 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1605",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km12) = 0 and out_km12 = 1 and in_km12 = 0 andThen in_km12 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1609",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km16) = 0 and out_km16 = 1 and in_km16 = 0 andThen in_km16 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1640",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(current_v) = 0 and current_v > 0 andThen current_v < 15 and (lag(i_op) = 0 and i_op = 1 for  1 min > 0 times)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1642",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km39) = 0 and out_km39 = 1 and in_km39 = 0 andThen out_km39 = 1 and in_km39 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1644",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km41) = 0 and out_km41 = 1 and in_km41 = 0 andThen out_km41 = 1 and in_km41 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1651",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km52) = 0 and out_km52 = 1 and in_km52 = 0 andThen out_km52 = 1 and in_km52 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1659",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km58) = 0 and out_km58 = 1 and in_km58 = 0 andThen out_km58 = 1 and in_km58 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1672",
+      "payload": {},
+      "sourceCode": "lag(u_km90_1) = 1 and lag(km90_1) = 1 and u_km90_1 = 1 and km90_1 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km90_1 = 1 and km90_1 = 0 andThen u_km90_1 = 1 and km90_1 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1675",
+      "payload": {},
+      "sourceCode": "lag(u_km90_2) = 1 and lag(km90_2) = 1 and u_km90_2 = 1 and km90_2 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km90_2 = 1 and km90_2 = 0 andThen u_km90_2 = 1 and km90_2 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1677",
+      "payload": {},
+      "sourceCode": "lag(u_km101_2) = 1 and lag(km101_2) = 1 and u_km101_2 = 1 and km101_2 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km101_2 = 1 and km101_2 = 0 andThen u_km101_2 = 1 and km101_2 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1678",
+      "payload": {},
+      "sourceCode": "lag(u_km107_1) = 1 and lag(km107_1) = 1 and u_km107_1 = 1 and km107_1 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km107_1 = 1 and km107_1 = 0 andThen u_km107_1 = 1 and km107_1 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1681",
+      "payload": {},
+      "sourceCode": "lag(u_km111_1) = 1 and lag(km111_1) = 1 and u_km111_1 = 1 and km111_1 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km111_1 = 1 and km111_1 = 0 andThen u_km111_1 = 1 and km111_1 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1682",
+      "payload": {},
+      "sourceCode": "lag(u_km111_2) = 1 and lag(km111_2) = 1 and u_km111_2 = 1 and km111_2 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km111_2 = 1 and km111_2 = 0 andThen u_km111_2 = 1 and km111_2 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1683",
+      "payload": {},
+      "sourceCode": "lag(u_km104) = 1 and lag(km104) = 1 and u_km104 = 1 and km104 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km104 = 1 and km104 = 0 andThen u_km104 = 1 and km104 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1685",
+      "payload": {},
+      "sourceCode": "lag(u_km105_2) = 1 and lag(km105_2) = 1 and u_km105_2 = 1 and km105_2 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km105_2 = 1 and km105_2 = 0 andThen u_km105_2 = 1 and km105_2 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1686",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km90_1) = 0 and u_km90_1 = 1 and lag(km90_1) = 0 and km90_1 = 0 andThen u_km90_1 = 1 and km90_1 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1687",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km90_2) = 0 and u_km90_2 = 1 and lag(km90_2) = 0 and km90_2 = 0 andThen u_km90_2 = 1 and km90_2 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1689",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km101_2) = 0 and u_km101_2 = 1 and lag(km101_2) = 0 and km101_2 = 0 andThen u_km101_2 = 1 and km101_2 = 0 for  0.18 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1690",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km107_1) = 0 and u_km107_1 = 1 and lag(km107_1) = 0 and km107_1 = 1 andThen u_km107_1 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1693",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km111_1) = 0 and u_km111_1 = 1 and lag(km111_1) = 0 and km111_1 = 0 andThen u_km111_1 = 1 and km111_1 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1696",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km111_2) = 0 and u_km111_2 = 1 and lag(km111_2) = 0 and km111_2 = 0 andThen u_km111_2 = 1 and km111_2 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1697",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km104) = 0 and u_km104 = 1 and lag(km104) = 0 and km104 = 0 andThen u_km104 = 1 and km104 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1699",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km105_2) = 0 and u_km105_2 = 1 and lag(km105_2) = 0 and km105_2 = 0 andThen u_km105_2 = 1 and km105_2 = 0 for  0.22 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "2579",
+      "payload": {},
+      "sourceCode": "lag(u_k4) = 1 and lag(k4) = 1 and u_k4 = 1 and k4 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_k4 = 1 and k4 = 0 andThen u_k4 = 1 and k4 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "2580",
+      "payload": {},
+      "sourceCode": "lag(u_k5) = 1 and lag(k5) = 1 and u_k5 = 1 and k5 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_k5 = 1 and k5 = 0 andThen u_k5 = 1 and k5 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "2587",
+      "payload": {},
+      "sourceCode": "lag(u_k33) = 1 and lag(k33) = 1 and u_k33 = 1 and k33 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_k33 = 1 and k33 = 0 andThen u_k33 = 1 and k33 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1336",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(out_km62) = 1 and out_km62 = 0 and in_km62 = 1 andThen in_km62 = 1 for  0.25 sec  andThen in_km62 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1451",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km62) = 0 and out_km62 = 1 and in_km62 = 0 andThen in_km62 = 0 for  0.25 sec  andThen in_km62 = 1 for  0.9 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1584",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km62) = 1 and out_km62 = 0 and in_km62 = 1 andThen out_km62 = 0 and in_km62 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1667",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km62) = 0 and out_km62 = 1 and in_km62 = 0 andThen in_km62 = 0 and out_km62 = 1 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1319",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(out_km45) = 1 and out_km45 = 0 and in_km45 = 1 andThen in_km45 = 1 for  0.25 sec  andThen in_km45 = 0 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1422",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km45) = 0 and out_km45 = 1 and in_km45 = 0 andThen in_km45 = 0 for  0.25 sec  andThen in_km45 = 1 for  0.6 sec > 0 times",
+      "forwardedFields": []
+    },
+    {
+      "id": "1643",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(out_km45) = 0 and out_km45 = 1 and in_km45 = 0 andThen out_km45 = 1 and in_km45 = 0 for  0.9 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1344",
+      "payload": {},
+      "sourceCode": "butp_controlcnt > 0 and buo_controlcnt > 0 and lag(u_km107_2) = 1 and u_km107_2 = 1 and lag(km107_2) = 1 and km107_2 = 0 andThen km107_2 = 1 and u_km107_2 = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1680",
+      "payload": {},
+      "sourceCode": "lag(u_km107_2) = 1 and lag(km107_2) = 1 and u_km107_2 = 1 and km107_2 = 1 andThen buo_controlcnt > 0 and butp_controlcnt > 0 and u_km107_2 = 1 and km107_2 = 0 andThen u_km107_2 = 1 and km107_2 = 0",
+      "forwardedFields": []
+    },
+    {
+      "id": "1691",
+      "payload": {},
+      "sourceCode": "buo_controlcnt > 0 and butp_controlcnt > 0 and lag(u_km107_2) = 0 and u_km107_2 = 1 and lag(km107_2) = 0 and km107_2 = 0 andThen u_km107_2 = 1 and km107_2 = 0 for  0.18 sec ",
+      "forwardedFields": []
+    },
+    {
+      "id": "1554",
+      "payload": {},
+      "sourceCode": "k8 = 1 and uline > 2200 and uline < 4000 and s19 = 1 and psn1vpp_work = 1 and ((psn2_vpp_uout > 590 and psn2_vpp_uout < 610) or (psn2_vpp_uout > 660 and psn2_vpp_uout < 680)) and lag(psn2ain2_work) = 1 and psn2ain2_work = 0 and (pr_v2_ain2 = 1 or psn2ain2_fault = 1)",
+      "forwardedFields": []
+    },
+    {
+      "id": "1556",
+      "payload": {},
+      "sourceCode": "k8 = 1 and uline > 2200 and uline < 4000 and s19 = 1 and psn2vpp_work = 1 and ((psn2_vpp_uout > 590 and psn2_vpp_uout < 610) or (psn2_vpp_uout > 660 and psn2_vpp_uout < 680)) and lag(psn2ain2_work) = 1 and psn2ain2_work = 0 and (pr_v2_ain2 = 1 or psn2ain2_fault = 1) and psn2ain2_not_sim = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1557",
+      "payload": {},
+      "sourceCode": "k8 = 1 and uline > 2200 and uline < 4000 and s19 = 1 and psn1vpp_work = 1 and ((psn2_vpp_uout > 590 and psn2_vpp_uout < 610) or (psn2_vpp_uout > 660 and psn2_vpp_uout < 680)) and lag(psn2ain2_work) = 1 and psn2ain2_work = 0 and (pr_v2_ain2 = 1 or psn2ain2_fault = 1) and psn1ain2_not_sim = 1",
+      "forwardedFields": []
+    },
+    {
+      "id": "1595",
+      "payload": {},
+      "sourceCode": "u_k4 = 0 and u_k5 = 0 and out_k25 = 0 and out_k26 = 0 and p_tc = 0 and p_tm < 4.8 and current_v > 20 and p_ur < 4.8 and ((sa20_1 = 1 and sa19_1_trains = 1) or (sa20_1 = 1 and sa19_2_trains = 1)) for  1 sec  andThen (lag(p_tm, 1 sec) - p_tm) >= 0.2",
+      "forwardedFields": []
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 package ru.itclover.tsp.core.aggregators
 
-import cats.implicits._
-import cats.{Foldable, Functor, Monad, Order}
+import cats.syntax.foldable._
+import cats.syntax.functor._
+import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.Pattern._
 import ru.itclover.tsp.core.io.TimeExtractor
@@ -12,92 +13,83 @@ import scala.annotation.tailrec
 import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
-trait AggregatorPatterns[Event, S <: PState[T, S], T] extends Pattern[Event, S, T]
+trait AggregatorPatterns[Event, S, T] extends Pattern[Event, S, T]
 
-case class AggregatorPState[InnerState, AState <: AccumState[_, Out, AState], Out](
+case class AggregatorPState[InnerState, InnerOut, AState](
   innerState: InnerState,
+  innerQueue: PQueue[InnerOut],
   astate: AState,
-  override val queue: QI[Out],
   indexTimeMap: m.Queue[(Idx, Time)]
-)(
-  implicit idxOrd: Order[Idx]
-) extends PState[Out, AggregatorPState[InnerState, AState, Out]] {
-  override def copyWith(queue: QI[Out]): AggregatorPState[InnerState, AState, Out] = this.copy(queue = queue)
-}
+)
 
-abstract class AccumPattern[
-  Event: IdxExtractor: TimeExtractor,
-  Inner <: PState[InnerOut, Inner],
+abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, InnerOut, Out, AState <: AccumState[
   InnerOut,
   Out,
-  AState <: AccumState[InnerOut, Out, AState]
-](implicit idxOrd: Order[Idx])
-    extends AggregatorPatterns[Event, AggregatorPState[Inner, AState, Out], Out] {
+  AState
+]] extends AggregatorPatterns[Event, AggregatorPState[InnerState, InnerOut, AState], Out] {
 
   val window: Window
 
-  def inner: Pattern[Event, Inner, InnerOut]
+  def inner: Pattern[Event, InnerState, InnerOut]
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    state: AggregatorPState[Inner, AState, Out],
+    state: AggregatorPState[InnerState, InnerOut, AState],
+    queue: PQueue[Out],
     event: Cont[Event]
-  ): F[AggregatorPState[Inner, AState, Out]] = {
+  ): F[(AggregatorPState[InnerState, InnerOut, AState], PQueue[Out])] = {
 
     val idxTimeMapWithNewEvents =
       event.foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b.index -> b.time); a }
 
     inner
-      .apply[F, Cont](state.innerState, event)
-      .map(
-        newInnerState => {
-          val (newInnerQueue, newAState, newResults, updatedIndexTimeMap) =
-            processQueue(newInnerState, state.astate, state.queue, idxTimeMapWithNewEvents)
+      .apply[F, Cont](state.innerState, state.innerQueue, event)
+      .map {
+        case (newInnerState, newInnerQueue) => {
+          val (updatedInnerQueue, newAState, newResults, updatedIndexTimeMap) =
+            processQueue(newInnerQueue, state.astate, queue, idxTimeMapWithNewEvents)
 
           AggregatorPState(
-            newInnerState.copyWith(newInnerQueue),
+            newInnerState,
+            updatedInnerQueue,
             newAState,
-            newResults,
             updatedIndexTimeMap
-          )(idxOrd)
+          ) -> newResults
         }
-      )
+      }
   }
 
+  @tailrec
   private def processQueue(
-    innerS: Inner,
+    innerQueue: QI[InnerOut],
     accumState: AState,
     results: QI[Out],
     indexTimeMap: m.Queue[(Idx, Time)]
   ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) = {
+    innerQueue.dequeueOption() match {
+      case None                                               => (innerQueue, accumState, results, indexTimeMap)
+      case Some((iv @ IdxValue(start, end, _), updatedQueue)) =>
+        // rewind all old records
+        val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start)
 
-    @tailrec
-    def innerFunc(
-      innerQueue: QI[InnerOut],
-      accumState: AState,
-      collectedNewResults: QI[Out],
-      indexTimeMap: m.Queue[(Idx, Time)]
-    ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) =
-      innerQueue.dequeueOption match {
-        case None => (innerQueue, accumState, collectedNewResults, indexTimeMap)
-        case Some((IdxValue(index, value), updatedQueue)) =>
-          val (newInnerResultTime, updatedIdxTimeMap) = QueueUtils.rollMap(index, indexTimeMap)(idxOrd)
+        //idxTimeMapForValue contains info about Idx->Time for all events in range [start, end]
+        val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, marginToFirst = true)
 
-          val (newAState, newResults) = accumState.updated(window, index, newInnerResultTime, value)
+        val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
 
-          innerFunc(
-            updatedQueue,
-            newAState,
-            collectedNewResults.enqueue(newResults.toSeq: _*),
-            updatedIdxTimeMap
-          )
-      }
-
-    innerFunc(innerS.queue, accumState, results, indexTimeMap)
+        processQueue(updatedQueue, newAState, PQueue.spillQueueToAnother(newResults, results), updatedIdxTimeMap)
+    }
   }
 
 }
 
-trait AccumState[In, Out, +Self <: AccumState[In, Out, Self]] extends Product with Serializable {
+trait AccumState[In, Out, Self <: AccumState[In, Out, Self]] extends Product with Serializable {
 
-  def updated(window: Window, idx: Idx, time: Time, value: Result[In]): (Self, QI[Out])
+  /** This method is called for each IdxValue produced by inner patterns.
+    * @param window - defines time window for accumulation.
+    * @param times - contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end].
+    *              Guaranteed to be non-empty.
+    * @param idxValue - result from inner pattern.
+    * @return Tuple of updated state and queue of results to be emitted from this pattern.
+    */
+  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
 }

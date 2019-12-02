@@ -8,14 +8,18 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 
 scalaVersion in ThisBuild := "2.12.7"
-resolvers in ThisBuild ++= Seq("Apache Development Snapshot Repository" at
-    "https://repository.apache.org/content/repositories/snapshots/", Resolver.mavenLocal)
+resolvers in ThisBuild ++= Seq(
+  "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
+  Resolver.mavenLocal,
+  "jitpack" at "https://jitpack.io"
+)
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
  
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
+  wartremoverWarnings ++= Warts.unsafe,
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
@@ -39,6 +43,9 @@ lazy val assemblySettings = Seq(
   javaOptions += "--add-modules=java.xml.bind" ,
 
 )
+
+// to run only two test at once (to prevent too many containers creating and subsequent test failures)
+concurrentRestrictions in Global += Tags.limit(Tags.Test, 2)
 
 // make run command include the provided dependencies (for sbt run)
 run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
@@ -145,6 +152,7 @@ lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
+      ++ Library.jol.map(_ % "test") ++ Library.arrowDeps ++ Library.parquetDeps
   )
 
 lazy val config = project.in(file("config"))
@@ -167,7 +175,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.arrow
+      Library.akkaHttp
   )
   .dependsOn(core, config, flink, dsl)
 

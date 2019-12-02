@@ -14,17 +14,16 @@ import org.apache.flink.streaming.api.windowing.triggers.{CountTrigger, Trigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
-import ru.itclover.tsp.core.Pattern.TsIdxExtractor
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
-import ru.itclover.tsp.core.{Incident, RawPattern, Time, _}
-import ru.itclover.tsp.dsl.{ASTPatternGenerator, PatternMetadata}
-import ru.itclover.tsp.io.input.{KafkaInputConf, SerializerInfo}
-import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf, RedisOutputConf}
+import ru.itclover.tsp.core.optimizations.Optimizer
+import ru.itclover.tsp.core.{Incident, RawPattern, _}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
+import ru.itclover.tsp.io.input.KafkaInputConf
+import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.services.RedisService
-import ru.itclover.tsp.transformers.{RedisSinkFunction, SparseRowsDataAccumulator}
-import ru.itclover.tsp.utils.Bucketizer
-import ru.itclover.tsp.utils.Bucketizer.Bucket
+import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 
@@ -39,25 +38,26 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   import PatternsSearchJob._
   import decoders._
-  import source.{kvExtractor, eventCreator, keyCreator}
+  import source.{eventCreator, keyCreator, kvExtractor}
 
-  def patternsSearchStream[OutE: TypeInformation, OutKey, S <: PState[Segment, S]](
+  def patternsSearchStream[OutE: TypeInformation, OutKey, S](
     rawPatterns: Seq[RawPattern],
     outputConf: OutputConf[OutE],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Vector[DataStreamSink[OutE]])] = {
-    import source.{transformedExtractor, transformedTimeExtractor}
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataStreamSink[OutE])] = {
+    import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
+      source.conf.eventsMaxGapMs,
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
-      val mapped = incidents.map(x => x.map(resultMapper))
-      (patterns, mapped.map(m => saveStream(m, outputConf)))
+      val mapped = incidents.map(resultMapper)
+      (patterns,  saveStream(mapped, outputConf))
     }
   }
 
@@ -65,36 +65,33 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
     forwardedFields: Seq[(Symbol, InKey)],
     useWindowing: Boolean
-  ): Vector[DataStream[Incident]] =
-    for {
-      sourceBucket <- bucketizePatterns(richPatterns, source.conf.numParallelSources.getOrElse(1))
-      stream = source.createStream
-      patternsBucket <- bucketizePatterns(sourceBucket.items, source.conf.patternsParallelism.getOrElse(1))
-    } yield {
-      import source.timeExtractor
-      val singleIncidents = incidentsFromPatterns(
-        applyTransformation(stream.assignAscendingTimestamps(timeExtractor(_).toMillis)),
-        patternsBucket.items,
-        forwardedFields,
-        useWindowing
-      )
-      if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
-    }
+  ): DataStream[Incident] = {
+    import source.timeExtractor
+    val stream = source.createStream
+    val singleIncidents = incidentsFromPatterns(
+      applyTransformation(stream.assignAscendingTimestamps(timeExtractor(_).toMillis)),
+      richPatterns,
+      forwardedFields,
+      useWindowing
+    )
+    if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
+  }
 
-  def incidentsFromPatterns[T, S <: PState[Segment, S]: ClassTag](
+  def incidentsFromPatterns[T](
     stream: DataStream[In],
-    patterns: Seq[RichPattern[In, Segment, S]],
+    patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
     forwardedFields: Seq[(Symbol, InKey)],
     useWindowing: Boolean
   ): DataStream[Incident] = {
 
-    import source.{transformedExtractor, transformedTimeExtractor => timeExtractor}
+    import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
 
     log.debug("incidentsFromPatterns started")
 
-    val mappers: Seq[PatternProcessor[In, S, Segment, Incident]] = patterns.map {
+    val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
         val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+
         val toIncidents = ToIncidentsMapper(
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
@@ -102,32 +99,35 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
           source.conf.partitionFields.map(source.fieldToEKey)
         )
-        PatternProcessor[In, S, Segment, Incident](
-          pattern,
-          meta.sumWindowsMs,
-          toIncidents.apply,
-          source.conf.eventsMaxGapMs,
-          source.emptyEvent
-        )(timeExtractor) //.asInstanceOf[StatefulFlatMapper[In, S, Incident]]
+
+        val optimizedPattern = new Optimizer[In].optimize(pattern)
+
+        val incidentPattern = MapWithContextPattern(optimizedPattern)(toIncidents.apply)
+
+        PatternProcessor[In, Optimizer.S[Segment], Incident](
+          incidentPattern,
+          source.conf.eventsMaxGapMs
+        )
     }
     val keyedStream = stream
       .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .keyBy(source.transformedPartitioner)
-    val windowed = if (useWindowing) {
-      keyedStream
-        .window(
-          TumblingEventTimeWindows
-            .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
-            .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-        )
-    } else {
-      keyedStream
-        .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-        .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
-    }
+    val windowed =
+      if (useWindowing) {
+        keyedStream
+          .window(
+            TumblingEventTimeWindows
+              .of(WindowingTime.milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+          )
+      } else {
+        keyedStream
+          .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+          .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+      }
     val processed = windowed
       .process[Incident](
-        ProcessorCombinator[In, S, Segment, Incident](mappers)
+        ProcessorCombinator(mappers, timeExtractor)
       )
       .setMaxParallelism(source.conf.maxPartitionsParallelism)
 
@@ -150,45 +150,46 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
 object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
-  type RichPattern[E, T, S <: PState[T, S]] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
+  type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
 
   val log = Logger("PatternsSearchJob")
   def maxPartitionsParallelism = 8192
 
-  def preparePatterns[E, S <: PState[Segment, S], EKey, EItem](
+  def preparePatterns[E, S, EKey, EItem](
     rawPatterns: Seq[RawPattern],
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double,
+    eventsMaxGapMs: Long,
     fieldsTags: Map[Symbol, ClassTag[_]]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
-    getTime: TimeExtractor[E]
+    getTime: TimeExtractor[E],
+    idxExtractor: IdxExtractor[E] /*,
+    dDecoder: Decoder[EItem, Double]*/
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
 
-    val tsToIdx = new TsIdxExtractor[E](getTime(_).toMillis)
-
-//    Pattern that transforms IdxValue[T] into IdxValue[Segment(fromTime, toTime)],
-//     useful when you need not a single point, but the whole time-segment as the result.
-//     __Note__ - all inner patterns should be using exactly __TsIdxExtractor__, or segment bounds would be incorrect.
-    def segmentize[T](idxVal: IdxValue[T]): Result[Segment] = {
-      val fromTs = tsToIdx.idxToTs(idxVal.start)
-      val toTs = tsToIdx.idxToTs(idxVal.end)
-      Result.succ(Segment(Time(toMillis = fromTs), Time(toMillis = toTs)))
-    }
-
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(tsToIdx, getTime, extractor, fieldsIdxMap, tsToIdx)
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
+      idxExtractor,
+      getTime,
+      extractor,
+      fieldsIdxMap
+    )
     val res = Traverse[List]
       .traverse(rawPatterns.toList)(
         p =>
           Validated
-            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, fieldsTags))
+            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
             .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
             .map(
-              p => (new IdxMapPattern(p._1)(segmentize).asInstanceOf[Pattern[E, AnyState[Segment], Segment]], p._2)
+              p =>
+                (
+                  new TimestampsAdderPattern(SegmentizerPattern(p._1))
+                    .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+                  p._2
+                )
             )
-        // TODO@trolley813 TimeMeasurementPattern wrapper for v2.Pattern
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(rawPatterns))
@@ -197,31 +198,6 @@ object PatternsSearchJob {
     log.debug("preparePatterns finished")
 
     res
-  }
-
-  def bucketizePatterns[E, T, S <: PState[T, S]](
-    patterns: Seq[RichPattern[E, T, S]],
-    parallelism: Int
-  ): Vector[Bucket[RichPattern[E, T, S]]] = {
-
-    log.debug("bucketizePatterns started")
-    // import Bucketizer.WeightExtractorInstances.phasesWeightExtrator
-    val patternsBuckets = if (parallelism > patterns.length) {
-      log.warn(
-        s"Patterns parallelism conf ($parallelism) is higher than amount of " +
-        s"phases - ${patterns.length}, setting patternsParallelism to amount of phases."
-      )
-      Bucketizer.bucketizeByWeight(patterns, patterns.length)(
-        Bucketizer.WeightExtractorInstances.phasesWeightExtractor[E, T, S]
-      )
-    } else {
-      Bucketizer.bucketizeByWeight(patterns, parallelism)(
-        Bucketizer.WeightExtractorInstances.phasesWeightExtractor[E, T, S]
-      )
-    }
-    log.info("Patterns Buckets:\n" + Bucketizer.bucketsToString(patternsBuckets))
-    log.debug("bucketizePatterns finished")
-    patternsBuckets
   }
 
   def reduceIncidents(incidents: DataStream[Incident]) = {
@@ -244,26 +220,14 @@ object PatternsSearchJob {
     log.debug("saveStream started")
     outputConf match {
       case kafkaConf: KafkaOutputConf =>
-        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.serializer)
+        val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.dataSerializer)
           .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
         val res = stream.addSink(producer)
         log.debug("saveStream finished")
         res
-
-      case redisConf: RedisOutputConf =>
-        val outputInfo = SerializerInfo(
-          key = redisConf.key,
-          serializerType = redisConf.serializer
-        )
-
-        val redisSink = new RedisSinkFunction(redisConf, outputInfo).asInstanceOf[RedisSinkFunction[E]]
-        val res = stream.addSink(redisSink)
-        log.debug("saveStream finished")
-        res
-
       case _ =>
-        val res = stream.writeUsingOutputFormat(outputConf.getOutputFormat)
-        outputConf.getOutputFormat.close()
+        val outputFormat = outputConf.getOutputFormat
+        val res = stream.writeUsingOutputFormat(outputFormat)
         log.debug("saveStream finished")
         res
     }

@@ -6,31 +6,21 @@ import org.apache.flink.api.common.io.RichInputFormat
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
 import org.apache.flink.core.io.InputSplit
+import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExtractor
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
+import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
+import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.{EventCreator, EventCreatorInstances}
-import ru.itclover.tsp.io.input.{
-  InfluxDBInputConf,
-  InfluxDBInputFormat,
-  InputConf,
-  JDBCInputConf,
-  KafkaInputConf,
-  NarrowDataUnfolding,
-  RedisInputConf,
-  SerializerInfo,
-  WideDataFilling
-}
-import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService, RedisService}
-import ru.itclover.tsp.utils.ErrorsADT._
-import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
-import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.services.{InfluxDBService, JdbcService, KafkaService}
 import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
-import scredis.serialization.Reader
+import ru.itclover.tsp.utils.ErrorsADT._
+import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success}
 import scala.collection.mutable
 
 /*sealed*/
@@ -38,8 +28,6 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def createStream: DataStream[Event]
 
   def conf: InputConf[Event, EKey, EItem]
-
-  def emptyEvent: Event
 
   def fieldsClasses: Seq[(Symbol, Class[_])]
 
@@ -56,6 +44,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def timeExtractor: TimeExtractor[Event]
 
   implicit def transformedTimeExtractor: TimeExtractor[Event]
+
+  implicit def idxExtractor: IdxExtractor[Event]
 
   implicit def extractor: Extractor[Event, EKey, EItem]
 
@@ -89,6 +79,8 @@ object StreamSource {
     }
 }
 
+case class RowWithIdx(idx: Idx, row: Row)
+
 object JdbcSource {
 
   def create(conf: JDBCInputConf, fields: Set[Symbol])(
@@ -114,7 +106,7 @@ case class JdbcSource(
   patternFields: Set[Symbol]
 )(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Symbol, Any] {
+) extends StreamSource[RowWithIdx, Symbol, Any] {
 
   import conf._
 
@@ -139,26 +131,18 @@ case class JdbcSource(
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
-  val emptyEvent = {
-    val r = new Row(fieldsIdx.length)
-    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
-    r
-  }
-
   override def createStream = {
-    val stream = streamEnv
-      .createInput(inputFormat)
-      .name(stageName)
-    parallelism match {
-      case Some(p) => stream.setParallelism(p)
-      case None    => stream
-    }
-  }
 
-  def nullEvent = {
-    val r = new Row(fieldsIdxMap.size)
-    fieldsIdxMap.foreach { case (_, ind) => r.setField(ind, 0) }
-    r
+    val stream = streamEnv.createInput(inputFormat).name(stageName)
+
+    val ascendingExtractor = new AscendingTimestampExtractor[RowWithIdx] {
+      override def extractAscendingTimestamp(element: RowWithIdx): Long = timeExtractor(element).toMillis
+    }
+
+    parallelism
+      .fold(stream)(stream.setParallelism)
+      .map(r => RowWithIdx(0, r)) // todo hack look in PatternProcessor for actual idx
+      .assignTimestampsAndWatermarks(ascendingExtractor)
   }
 
   override def fieldToEKey = { fieldId: Symbol =>
@@ -166,24 +150,28 @@ case class JdbcSource(
   // fieldsIdxMap(fieldId)
   }
 
-  override def partitioner = {
+  override def partitioner: RowWithIdx => String = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
-  override def transformedPartitioner = {
+  override def transformedPartitioner: RowWithIdx => String = {
     val serializablePI = transformedPartitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
   def tsMultiplier = timestampMultiplier.getOrElse {
-    log.info("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
+    log.trace("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
     1000.0
   }
 
-  override def timeExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
-  override def extractor = RowSymbolExtractor(fieldsIdxMap)
-  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
+  override def timeExtractor: TimeExtractor[RowWithIdx] = {
+    val rowExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
+    TimeExtractor.of(r => rowExtractor(r.row))
+  }
+  override def extractor = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
@@ -196,7 +184,8 @@ case class JdbcSource(
       .setRowTypeInfo(rowTypesInfo)
       .finish()
 
-  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+    EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 
@@ -204,8 +193,8 @@ case class JdbcSource(
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
-        createTypeInformation[Row],
+      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+        createTypeInformation[RowWithIdx],
         timeExtractor,
         kvExtractor,
         extractor,
@@ -217,8 +206,11 @@ case class JdbcSource(
       fieldsIdxMap
   }
 
-  implicit override def transformedTimeExtractor: TimeExtractor[Row] =
-    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, datetimeField)
+  implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, datetimeField).comap(_.row)
+
+  //todo refactor everything related to idxExtractor
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 }
 
 object InfluxDBSource {
@@ -245,7 +237,7 @@ case class InfluxDBSource(
   patternFields: Set[Symbol]
 )(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Symbol, Any] {
+) extends StreamSource[RowWithIdx, Symbol, Any] {
 
   import conf._
 
@@ -273,12 +265,6 @@ case class InfluxDBSource(
   val fieldsTypesInfo: Array[TypeInformation[_]] = fieldsClasses.map(c => TypeInformation.of(c._2)).toArray
   val rowTypesInfo = new RowTypeInfo(fieldsTypesInfo, fieldsClasses.map(_._1.toString.tail).toArray)
 
-  val emptyEvent = {
-    val r = new Row(fieldsIdx.length)
-    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
-    r
-  }
-
   override def createStream = {
     val serFieldsIdxMap = fieldsIdxMap // for task serialization
     val stream = streamEnv
@@ -303,27 +289,27 @@ case class InfluxDBSource(
           }
       })
       .name(stageName)
-    parallelism match {
+    (parallelism match {
       case Some(p) => stream.setParallelism(p)
       case None    => stream
-    }
+    }).map(r => RowWithIdx(0, r)) // todo hack look in PatternProcessor for actual idx
   }
 
   override def fieldToEKey = (fieldId: Symbol) => fieldId // fieldsIdxMap(fieldId)
 
   override def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
   override def transformedPartitioner = {
     val serializablePI = transformedPartitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
-  override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField)
-  override def extractor = RowSymbolExtractor(fieldsIdxMap)
-  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap)
+  override def timeExtractor = RowIsoTimeExtractor(timeIndex, datetimeField).comap(_.row)
+  override def extractor = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+  override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
   val inputFormat =
     InfluxDBInputFormat
@@ -337,7 +323,8 @@ case class InfluxDBSource(
       .and()
       .buildIt()
 
-  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+    EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 
@@ -345,8 +332,8 @@ case class InfluxDBSource(
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
-        createTypeInformation[Row],
+      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+        createTypeInformation[RowWithIdx],
         timeExtractor,
         kvExtractor,
         extractor,
@@ -358,8 +345,11 @@ case class InfluxDBSource(
       fieldsIdxMap
   }
 
-  implicit override def transformedTimeExtractor: TimeExtractor[Row] =
-    RowIsoTimeExtractor(transformedTimeIndex, datetimeField)
+  implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+    RowIsoTimeExtractor(transformedTimeIndex, datetimeField).comap(_.row)
+
+  //todo refactor everything related to idxExtractor
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 
 }
 
@@ -391,34 +381,30 @@ case class KafkaSource(
   patternFields: Set[Symbol]
 )(
   implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Symbol, Any] {
+) extends StreamSource[RowWithIdx, Symbol, Any] {
 
   val log = Logger[KafkaSource]
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   def fieldsIdxMap = fieldsIdx.toMap
 
-//  def fieldToEKey: Symbol => Int = { fieldId: Symbol =>
-//    fieldsIdxMap(fieldId)
-//  }
-
   override def fieldToEKey: Symbol => Symbol = (x => x)
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
   def tsMultiplier = conf.timestampMultiplier.getOrElse {
-    log.info("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
+    log.debug("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
     1000.0
   }
 
-  implicit def extractor: ru.itclover.tsp.core.io.Extractor[org.apache.flink.types.Row, Symbol, Any] =
-    RowSymbolExtractor(fieldsIdxMap)
-  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[org.apache.flink.types.Row] =
-    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, Symbol, Any] =
+    RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
 
   val stageName = "Kafka input processing stage"
 
-  def createStream: DataStream[Row] = {
+  def createStream: DataStream[RowWithIdx] = {
     val consumer = KafkaService.consumer(conf, fieldsIdxMap)
     consumer.setStartFromEarliest()
     streamEnv.enableCheckpointing(5000)
@@ -427,31 +413,25 @@ case class KafkaSource(
       .name(stageName)
     //.keyBy(_ => "nokey")
     //.process(new TimeOutFunction(5000, timeIndex, fieldsIdxMap.size))
-  }
-
-  val emptyEvent = {
-    val r = new Row(fieldsIdx.length)
-    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
-    r
-  }
+  }.map(r => RowWithIdx(0, r)) // todo hack look in PatternProcessor for actual idx
 
   def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
 
   def partitioner = {
     val serializablePI = partitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
   def transformedPartitioner = {
     val serializablePI = transformedPartitionsIdx
-    event: Row => serializablePI.map(event.getField).mkString
+    event: RowWithIdx => serializablePI.map(event.row.getField).mkString
   }
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
-        createTypeInformation[Row],
+      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+        createTypeInformation[RowWithIdx],
         timeExtractor,
         kvExtractor,
         extractor,
@@ -465,132 +445,19 @@ case class KafkaSource(
 
   val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
-  implicit override def transformedTimeExtractor: TimeExtractor[Row] =
-    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField)
+  implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
 
-  implicit override def transformedExtractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap)
-
-  implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
-
-  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
-
-  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
-}
-
-object RedisSource {
-
-  val log = Logger[RedisSource]
-
-  def create(conf: RedisInputConf, fields: Set[Symbol])(
-    implicit strEnv: StreamExecutionEnvironment
-  ): Either[ConfigErr, RedisSource] =
-    for {
-      types <- RedisService
-        .fetchFieldsTypesInfo(conf)
-        .toEither
-        .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
-      _ = log.info(s"Redis types found: $types")
-      source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => RedisSource(conf, types, nullField, fields).asRight
-        case None            => InvalidRequest("Source should contain at least one non partition and datetime field.").asLeft
-      }
-    } yield source
-
-}
-
-case class RedisSource(
-  conf: RedisInputConf,
-  fieldsClasses: Seq[(Symbol, Class[_])],
-  nullFieldId: Symbol,
-  patternFields: Set[Symbol]
-)(
-  implicit @transient streamEnv: StreamExecutionEnvironment
-) extends StreamSource[Row, Symbol, Any] {
-
-  val log: Logger = Logger[RedisSource]
-
-  def fieldsIdx: Seq[(Symbol, Int)] = fieldsClasses.map(_._1).zipWithIndex
-  override def fieldsIdxMap: Map[Symbol, Int] = fieldsIdx.toMap
-
-  def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
-  def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
-
-  def timeIndex = fieldsIdxMap(conf.datetimeField)
-
-  def tsMultiplier = {
-    log.info(s"No timestamp multiplier for Redis source")
-    1000.0
-  }
-
-  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
-
-  override def createStream: DataStream[Row] = {
-
-    val info = SerializerInfo(
-      key = conf.key,
-      serializerType = conf.serializer
-    )
-    val rows: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
-
-    val (client, deserializer) = RedisService.clientInstance(conf, info)
-
-    implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
-
-    import client.dispatcher
-    client.get[Array[Byte]](info.key).onComplete {
-      case Success(value) => rows += deserializer.deserialize(value.get, fieldsIdxMap)
-      case Failure(e)     => throw new Exception(e.getMessage)
-    }
-
-    client.quit().value.get.get
-
-    streamEnv.fromCollection(rows)
-
-  }
-
-  override def emptyEvent: Row = {
-    val r = new Row(fieldsIdx.length)
-    fieldsIdx.foreach { case (_, ind) => r.setField(ind, 0) }
-    r
-  }
-  override def fieldToEKey: Symbol => Symbol = (x => x)
-
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
-    case Some(_) =>
-      val acc = SparseRowsDataAccumulator[Row, Symbol, Any, Row](this, patternFields)(
-        createTypeInformation[Row],
-        timeExtractor,
-        kvExtractor,
-        extractor,
-        eventCreator,
-        keyCreator
-      )
-      acc.allFieldsIndexesMap
-    case None =>
-      fieldsIdxMap
-  }
-
-  override def partitioner: Row => String = { event: Row =>
-    partitionsIdx.map(event.getField).mkString
-  }
-
-  override def transformedPartitioner: Row => String = { event: Row =>
-    transformedPartitionsIdx.map(event.getField).mkString
-  }
-
-  implicit override def timeExtractor: TimeExtractor[Row] =
-    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
-
-  implicit override def transformedTimeExtractor: TimeExtractor[Row] =
-    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField)
-
-  implicit override def extractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap)
-
-  implicit override def transformedExtractor: Extractor[Row, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap)
+  implicit override def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] =
+    RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
-  implicit override def eventCreator: EventCreator[Row, Symbol] = EventCreatorInstances.rowSymbolEventCreator
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+    EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+  //todo refactor everything related to idxExtractor
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
+
 }

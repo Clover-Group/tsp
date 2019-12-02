@@ -9,6 +9,7 @@ case object LongASTType extends ASTType
 case object BooleanASTType extends ASTType
 case object DoubleASTType extends ASTType
 case object StringASTType extends ASTType
+case object NullASTType extends ASTType
 case object AnyASTType extends ASTType
 
 object ASTType {
@@ -20,6 +21,7 @@ object ASTType {
     case c if c.isAssignableFrom(classOf[Int])     => IntASTType
     case c if c.isAssignableFrom(classOf[Boolean]) => BooleanASTType
     case c if c.isAssignableFrom(classOf[String])  => StringASTType
+    case c if c.isAssignableFrom(classOf[Nothing]) => NullASTType
 
     // Extra check, in case type T i lost
     case c

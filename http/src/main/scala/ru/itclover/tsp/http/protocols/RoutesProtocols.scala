@@ -60,15 +60,16 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
           tp match {
             case JsString("NarrowDataUnfolding") => nduFormat[Event, EKey, EValue].read(cfg)
             case JsString("WideDataFilling")     => wdfFormat[Event, EKey, EValue].read(cfg)
-            case _                               => sys.error(s"Source data transformation: unknown type $tp")
+            case _                               => deserializationError(s"Source data transformation: unknown type $tp")
           }
-        case _ => sys.error(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
+        case _ =>
+          deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
       }
       override def write(obj: SourceDataTransformation[Event, EKey, EValue]): JsValue = {
         val c = obj.config match {
-          case ndu @ NarrowDataUnfolding(_, _, _, _) => ndu.toJson
-          case wdf @ WideDataFilling(_, _)           => wdf.toJson
-          case _                                     => sys.error("Unknown source data transformation")
+          case ndu: NarrowDataUnfolding[Event, EKey, EValue] => nduFormat[Event, EKey, EValue].write(ndu)
+          case wdf: WideDataFilling[Event, EKey, EValue]     => wdfFormat[Event, EKey, EValue].write(wdf)
+          case _                                             => deserializationError("Unknown source data transformation")
         }
         JsObject(
           "type"   -> obj.`type`.toJson,
@@ -115,10 +116,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "defaultToleranceFraction",
     "parallelism",
     "numParallelSources",
-    "patternsParallelism"
+    "patternsParallelism",
+    "additionalTypeChecking"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat8(
+  implicit val kafkaInpConfFmt = jsonFormat9(
     KafkaInputConf.apply
   )
 
@@ -140,7 +142,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
-  implicit val kafkaOutConfFmt = jsonFormat4(KafkaOutputConf.apply)
+  implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
 
   implicit val redisConfOutputFmt = jsonFormat5(RedisOutputConf.apply)
 
