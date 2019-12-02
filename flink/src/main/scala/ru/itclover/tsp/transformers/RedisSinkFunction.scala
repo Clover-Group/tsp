@@ -3,7 +3,6 @@ package ru.itclover.tsp.transformers
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunction}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.input.SerializerInfo
 import ru.itclover.tsp.io.output.RedisOutputConf
 import ru.itclover.tsp.services.RedisService
 import scredis.serialization.Reader
@@ -12,9 +11,10 @@ import java.time.LocalDateTime
 /**
   * Sink function impl for Redis sink
   * @param conf redis output conf
-  * @param info serializer info
+  * @param key key source for data
+  * @param serializerType transformation for data in redis
   */
-class RedisSinkFunction[ITEM](conf: RedisOutputConf, info: SerializerInfo) extends RichSinkFunction[Row] {
+class RedisSinkFunction[ITEM](conf: RedisOutputConf, key: String, serializerType: String) extends RichSinkFunction[Row] {
 
   /**
     * Method for sink impl
@@ -25,11 +25,11 @@ class RedisSinkFunction[ITEM](conf: RedisOutputConf, info: SerializerInfo) exten
 
     val logger = Logger[RedisSinkFunction[Row]]
 
-    val (client, serializer) = RedisService.clientInstance(this.conf, this.info)
+    val (client, serializer) = RedisService.clientInstance(this.conf, serializerType)
 
     implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
 
-    val resultKey = s"${info.key}_${LocalDateTime.now().toString}"
+    val resultKey = s"${key}_${LocalDateTime.now().toString}"
     logger.info(s"Result key for ${value} : $resultKey")
 
     client.set[Array[Byte]](resultKey, serializer.serialize(value, conf.rowSchema))

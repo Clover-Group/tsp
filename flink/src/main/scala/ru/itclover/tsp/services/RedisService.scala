@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
 
 import scala.util.Try
-import ru.itclover.tsp.io.input.{RedisInputConf, SerializerInfo}
+import ru.itclover.tsp.io.input.RedisInputConf
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 
 /**
@@ -109,10 +109,10 @@ object RedisService {
 
   /**
     * Mapping of serialization types to implementation instances
-    * @param info DeserializationInfo instance
+    * @param serializer information about serialization type
     * @return implementation instance
     */
-  def getSerialization(info: SerializerInfo) = info.serializerType match {
+  def getSerialization(serializer: String) = serializer match {
 
     case "json" => new JSONSerialization()
     case _      => null
@@ -127,6 +127,10 @@ object RedisService {
   def extractClient(redisURL: String): Redis = {
 
     val uri = new URI(redisURL)
+
+    if(!redisURL.contains("redis://")){
+      throw new IllegalArgumentException(s"Wrong type of Redis URL: $redisURL")
+    }
 
     new Redis(
       host = uri.getHost,
@@ -161,28 +165,28 @@ object RedisService {
   /**
     * Instantiating of redis client
     * @param conf redis input config
-    * @param info serialization info
+    * @param serializer information about serialization type
     * @return client, serializer
     */
-  def clientInstance(conf: RedisInputConf, info: SerializerInfo) = {
+  def clientInstance(conf: RedisInputConf, serializer: String) = {
 
     val client = extractClient(conf.url)
 
-    (client, getSerialization(info))
+    (client, getSerialization(serializer))
 
   }
 
   /**
     * Instantiating of redis client
     * @param conf redis output config
-    * @param info serialization info
+    * @param serializer information about serialization type
     * @return client, serializer
     */
-  def clientInstance(conf: RedisOutputConf, info: SerializerInfo) = {
+  def clientInstance(conf: RedisOutputConf, serializer: String) = {
 
     val client = extractClient(conf.url)
 
-    (client, getSerialization(info))
+    (client, getSerialization(serializer))
 
   }
 

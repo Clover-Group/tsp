@@ -3,16 +3,6 @@ package ru.itclover.tsp.io.input
 import org.apache.flink.types.Row
 
 /**
-  * Information for deserialization protocols
-  * @param key key from Redis
-  * @param serializerType deserialization type
-  */
-case class SerializerInfo(
-  key: String,
-  serializerType: String
-)
-
-/**
   * Source for Redis Input
   * @param url connection string to redis
   * @param datetimeField name of datetime field, could be timestamp and regular time (will be parsed by JodaTime)

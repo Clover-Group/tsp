@@ -1,5 +1,6 @@
 package ru.itclover.tsp.http
 
+/*
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.http.scaladsl.model.StatusCodes
@@ -113,3 +114,4 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   }
 
 }
+**/

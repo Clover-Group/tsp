@@ -72,3 +72,15 @@ case class KafkaOutputConf(
   }
 
 }
+
+case class RedisOutputConf(
+  url: String,
+  key: String,
+  serializer: String,
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = null
+}
