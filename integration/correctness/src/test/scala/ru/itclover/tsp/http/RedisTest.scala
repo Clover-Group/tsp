@@ -1,4 +1,3 @@
-/*
 package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
@@ -57,7 +56,7 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   val inputConf = RedisInputConf(
     url = redisURL,
     datetimeField = 'dt,
-    partitionFields = Seq('stocknum),
+    partitionFields = Seq('stock_num),
     fieldsTypes = Map(
       "dt" -> "float64",
       "stock_num" -> "string",
@@ -112,4 +111,4 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
 
   }
 
-}**/
+}

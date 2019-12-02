@@ -1,6 +1,6 @@
 package ru.itclover.tsp.io.input
 
-import org.apache.flink.types.Row
+import ru.itclover.tsp.RowWithIdx
 
 /**
   * Source for Redis Input
@@ -15,11 +15,11 @@ case class RedisInputConf(
   url: String,
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
-  dataTransformation: Option[SourceDataTransformation[Row, Symbol, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   fieldsTypes: Map[String, String],
   key: String,
   serializer: String
-) extends InputConf[Row, Symbol, Any] {
+) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
   def defaultEventsGapMs: Long = 0L
