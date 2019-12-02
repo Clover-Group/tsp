@@ -9,6 +9,7 @@ import ru.itclover.tsp.RowWithIdx
   * @param partitionFields fields by which data will be split and paralleled physically
   * @param fieldsTypes description of field and his type
   * @param key by what key get data from redis
+  * @param serializer format of data in redis
   */
 @SerialVersionUID(4815162342L)
 case class RedisInputConf(
@@ -18,7 +19,7 @@ case class RedisInputConf(
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   fieldsTypes: Map[String, String],
   key: String,
-  serializer: String
+  serializer: String = "json"
 ) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)

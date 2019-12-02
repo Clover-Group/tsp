@@ -14,6 +14,9 @@ import ru.itclover.tsp.utils.ArrowOps
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
+/**
+* Serialization for Apache Arrow format
+  */
 class ArrowSerialization extends Serialization[Array[Byte], Row]{
 
   override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {

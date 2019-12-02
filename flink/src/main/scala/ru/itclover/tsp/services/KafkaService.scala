@@ -54,6 +54,10 @@ object KafkaService {
   }
 }
 
+/**
+* Deserialization for JSON format
+  * @param fieldsIdxMap mapping of types from string and scala type
+  */
 class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDeserializationSchema[Row] {
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
     new JSONSerialization().deserialize(record.value(), fieldsIdxMap)
@@ -63,6 +67,9 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
   override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
 }
 
+/**
+* Deserialization for Apache Arrow format
+  */
 class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
@@ -74,6 +81,9 @@ class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
   override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
 }
 
+/**
+* Deserialization for Apache Parquet format
+  */
 class ParquetRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =

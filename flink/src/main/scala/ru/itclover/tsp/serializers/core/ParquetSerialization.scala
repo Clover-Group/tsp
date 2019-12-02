@@ -11,6 +11,9 @@ import ru.itclover.tsp.utils.ParquetOps
 import scala.collection.mutable
 import scala.util.Random
 
+/**
+* Sserialization for Apache Parquet format
+  */
 class ParquetSerialization extends Serialization[Array[Byte], Row]{
 
   override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {

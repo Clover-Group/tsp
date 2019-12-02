@@ -1,5 +1,6 @@
 package ru.itclover.tsp.services
 
+import org.apache.flink.types.Row
 import org.redisson.Redisson
 import org.redisson.api.RedissonClient
 import org.redisson.config.Config
@@ -7,7 +8,7 @@ import org.redisson.config.Config
 import scala.util.Try
 import ru.itclover.tsp.io.input.RedisInputConf
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
-import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization, ParquetSerialization}
+import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization, ParquetSerialization, Serialization}
 
 object RedisService {
 
@@ -44,7 +45,7 @@ object RedisService {
     * @param serializer information about serialization type
     * @return implementation instance
     */
-  def getSerialization(serializer: String) = serializer match {
+  def getSerialization(serializer: String): Serialization[Array[Byte], Row] = serializer match {
 
     case "json" => new JSONSerialization()
     case "parquet" => new ParquetSerialization()
@@ -73,7 +74,7 @@ object RedisService {
     * @param serializer information about serialization type
     * @return client, serializer
     */
-  def clientInstance(conf: RedisInputConf, serializer: String) = {
+  def clientInstance(conf: RedisInputConf, serializer: String): (RedissonClient, Serialization[Array[Byte], Row]) = {
 
     val client = extractClient(conf.url)
 
@@ -87,7 +88,7 @@ object RedisService {
     * @param serializer information about serialization type
     * @return client, serializer
     */
-  def clientInstance(conf: RedisOutputConf, serializer: String) = {
+  def clientInstance(conf: RedisOutputConf, serializer: String): (RedissonClient, Serialization[Array[Byte], Row]) = {
 
     val client = extractClient(conf.url)
 

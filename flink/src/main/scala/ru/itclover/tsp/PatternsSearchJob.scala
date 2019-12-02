@@ -227,11 +227,7 @@ object PatternsSearchJob {
         res
 
       case redisConf: RedisOutputConf =>
-        val redisSink = new RedisSinkFunction(
-          redisConf,
-          redisConf.key,
-          redisConf.serializer
-        ).asInstanceOf[RedisSinkFunction[E]]
+        val redisSink = new RedisSinkFunction(redisConf).asInstanceOf[RedisSinkFunction[E]]
         val res = stream.addSink(redisSink)
         log.debug("saveStream finished")
         res

@@ -502,14 +502,14 @@ case class RedisSource(
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
 
-  def timeIndex = fieldsIdxMap(conf.datetimeField)
+  def timeIndex: Int = fieldsIdxMap(conf.datetimeField)
 
-  def tsMultiplier = {
+  def tsMultiplier: Double = {
     log.info(s"No timestamp multiplier for Redis source")
     1000.0
   }
 
-  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
+  val transformedTimeIndex: Int = transformedFieldsIdxMap(conf.datetimeField)
 
   override def createStream: DataStream[RowWithIdx] = {
 
