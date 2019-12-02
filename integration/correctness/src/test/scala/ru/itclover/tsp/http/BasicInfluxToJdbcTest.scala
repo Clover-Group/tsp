@@ -1,4 +1,3 @@
-/*
 package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
@@ -146,14 +145,16 @@ class BasicInfluxToJdbcTest
       checkByQuery(
         List(List(2.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'"
+          "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
-      /*
+
       checkByQuery(
-        List(List()),
+        List(),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001' and visitParamExtractFloat(context, 'speed') = 20.0"
-      )**/
+        "visitParamExtractString(context, 'mechanism_id') = '65001' " +
+          "and visitParamExtractFloat(context, 'speed') = 20.0"
+      )
+
     }
   }
 
@@ -196,4 +197,3 @@ class BasicInfluxToJdbcTest
     }
   }
 }
-**/
