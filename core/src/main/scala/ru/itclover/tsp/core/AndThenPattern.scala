@@ -58,19 +58,22 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
               total.enqueue(IdxValue(start1, end1, Result.fail))
             )
           } else if (value2.isFail) {
-            inner(first.rewindTo(end2), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
+            // Do not return Fail for the first part yet, unless it is the end of the queue
+            first.size match {
+              case 1 => inner(first.rewindTo(end2 + 1), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
+              case _ => inner(first, second.behead(), total)}
           } else { // at this moment both first and second results are not Fail.
-            // late event from second, just skip it
+            // late event from second, just skip it and fail this part only.
             // first            |-------|
             // second  |------|
             if (start1 > end2) {
-              inner(first, second.behead(), total)
+              inner(first, second.behead(), total.enqueue(IdxValue(start2, end2, Fail)))
             }
-            // Gap between first and second. Just behead first
+            // Gap between first and second. Just behead first and fail this part only.
             // first   |-------|
             // second             |------|
             else if (end1 + 1 < start2) {
-              inner(first.behead(), second, total)
+              inner(first.behead(), second, total.enqueue(IdxValue(start1, end1, Fail)))
             }
             // First and second intersect
             // first   |-------|
