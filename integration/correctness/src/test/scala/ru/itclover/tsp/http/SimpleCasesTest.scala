@@ -21,7 +21,13 @@ import ru.itclover.tsp.utils.Files
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
-class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer with RoutesProtocols {
+class SimpleCasesTest
+    extends FlatSpec
+    with SqlMatchers
+    with ScalatestRouteTest
+    with HttpService
+    with ForAllTestContainer
+    with RoutesProtocols {
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
@@ -72,7 +78,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     RawPattern("5", "PowerPolling <= 20"),
     RawPattern("6", "PowerPolling <> 70"),
     RawPattern("7", "POilDieselOut > 9.52 and SpeedThrustMin = 51"),
-    RawPattern("8", "POilDieselOut >= 9.52 for 2 sec"),
+    RawPattern("8", "wait(2 sec, POilDieselOut >= 9.52 for 2 sec)"),
     RawPattern("9", "POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52"),
     RawPattern("10", "POilDieselOut = 9.53 or SpeedThrustMin = 51"),
     RawPattern("11", "POilDieselOut < 9.50 until SpeedThrustMin > 51"),
@@ -85,15 +91,15 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   )
 
   val incidentsCount = Map(
-    1 -> 9,
-    2 -> 5,
-    3 -> 3,
-    4 -> 1,
-    5 -> 6,
-    6 -> 6,
-    7 -> 1,
-    8 -> 1,
-    9 -> 1,
+    1  -> 9,
+    2  -> 5,
+    3  -> 3,
+    4  -> 1,
+    5  -> 6,
+    6  -> 6,
+    7  -> 1,
+    8  -> 1,
+    9  -> 1,
     10 -> 1,
     11 -> 2, // TODO: or 3?
     12 -> 2,
@@ -104,10 +110,60 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     17 -> 1,
   )
 
+  // type is explicitly specified to avoid writing pattern ID as Double
+  val incidentsTimestamps: List[List[Double]] = List(
+    List(1, 1549561527.0, 1549561527.0),
+    List(1, 1549561529.0, 1549561529.0),
+    List(1, 1552176056.0, 1552176056.0),
+    List(1, 1552176058.0, 1552176058.0),
+    List(1, 1552176061.0, 1552176061.0),
+    List(1, 1552860730.0, 1552860730.0),
+    List(1, 1552860728.0, 1552860728.0),
+    List(1, 1552860733.0, 1552860733.0),
+    List(1, 1552860735.0, 1552860735.0),
+    List(2, 1549561527.0, 1549561530.0),
+    List(2, 1552176056.0, 1552176059.0),
+    List(2, 1552176061.0, 1552176062.0),
+    List(2, 1552860728.0, 1552860731.0),
+    List(2, 1552860733.0, 1552860738.0),
+    List(3, 1549561526.0, 1549561530.0),
+    List(3, 1552176055.0, 1552176062.0),
+    List(3, 1552860727.0, 1552860738.0),
+    List(4, 1549561531.0, 1549561532.0),
+    List(5, 1549561526.0, 1549561526.0),
+    List(5, 1549561531.0, 1549561532.0),
+    List(5, 1552176055.0, 1552176055.0),
+    List(5, 1552176060.0, 1552176060.0),
+    List(5, 1552860727.0, 1552860727.0),
+    List(5, 1552860732.0, 1552860732.0),
+    List(6, 1549561526.0, 1549561529.0),
+    List(6, 1549561531.0, 1549561532.0),
+    List(6, 1552176055.0, 1552176058.0),
+    List(6, 1552176060.0, 1552176062.0),
+    List(6, 1552860727.0, 1552860730.0),
+    List(6, 1552860732.0, 1552860735.0),
+    List(7, 1552860727.0, 1552860731.0),
+    List(8, 1552860727.0, 1552860731.0),
+    List(9, 1552860727.0, 1552860738.0),
+    List(10, 1552860727.0, 1552860734.0),
+    List(11, 1549561526.0, 1549561532.0), // until the end of chunk
+    List(11, 1552176055.0, 1552176062.0), // until the end of chunk
+    // List(11, 1552860727.0, 1552860734.0), // TODO: must fire here, needs investigation
+    List(12, 1552176058.0, 1552176062.0),
+    List(12, 1552860727.0, 1552860738.0),
+    List(13, 1552176058.0, 1552176058.0),
+    List(14, 1549561526.0, 1549561532.0),
+    List(14, 1552176058.0, 1552176062.0),
+    List(14, 1552860727.0, 1552860738.0),
+    List(15, 1552176056.0, 1552176059.0),
+    List(16, 1552176055.0, 1552176062.0),
+    List(17, 1552860727.0, 1552860736.0),
+  )
+
   val wideInputConf = JDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
-    query =  "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
+    query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'ts,
     eventsMaxGapMs = 60000L,
@@ -119,7 +175,7 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   val narrowInputConf = JDBCInputConf(
     sourceId = 200,
     jdbcUrl = clickhouseContainer.jdbcUrl,
-    query =  "SELECT * FROM math_test ORDER BY dt",
+    query = "SELECT * FROM math_test ORDER BY dt",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
@@ -143,9 +199,14 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     additionalTypeChecking = Some(false)
   )
 
-  val wideRowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
-  val narrowRowSchema = RowSchema('series_storage, 'from, 'to, ('app, 2), 'id, 'timestamp, 'context, narrowInputConf.partitionFields)
-  val influxRowSchema = RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
+  val wideRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
+
+  val narrowRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 2), 'id, 'timestamp, 'context, narrowInputConf.partitionFields)
+
+  val influxRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
 
   val wideOutputConf = JDBCOutputConf(
     "events_wide_test",
@@ -168,34 +229,39 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test/cases-narrow-schema-new.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/test/cases-narrow-schema-new.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
-    Files.readResource("/sql/test/cases-wide-schema-new.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/test/cases-wide-schema-new.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
-    Files.readResource("/sql/infl-test-db-schema.sql")
+    Files
+      .readResource("/sql/infl-test-db-schema.sql")
       .mkString
       .split(";")
       .foreach(influxContainer.executeQuery)
 
-    val mathCSVData = Files.readResource("/sql/test/cases-narrow-new.csv")
-                           .drop(1)
-                           .mkString("\n")
+    val mathCSVData = Files
+      .readResource("/sql/test/cases-narrow-new.csv")
+      .drop(1)
+      .mkString("\n")
 
-    val rulesCSVData = Files.readResource("/sql/test/cases-wide-new.csv")
-                            .drop(1)
-                            .mkString("\n")
+    val rulesCSVData = Files
+      .readResource("/sql/test/cases-wide-new.csv")
+      .drop(1)
+      .mkString("\n")
 
-    Files.readResource("/sql/test/cases-narrow-new.influx")
+    Files
+      .readResource("/sql/test/cases-narrow-new.influx")
       .mkString
       .split(";")
       .foreach(influxContainer.executeUpdate)
@@ -204,10 +270,11 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
     clickhouseContainer.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
 
-    Files.readResource("/sql/test/cases-sinks-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/test/cases-sinks-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
   }
 
@@ -225,49 +292,74 @@ class SimpleCasesTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   "Cases 1-17" should "work in wide table" in {
     (1 to 17).foreach { id =>
-      Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))) ~>
-        route ~> check {
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))
+      ) ~>
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
-          //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
     }
-    checkByQuery(incidentsCount.map {
-      case (k, v) => List(k.toDouble, v.toDouble)
-    }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id")
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 
   "Cases 1-17" should "work in narrow table" in {
     (1 to 17).foreach { id =>
-      Post("/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))) ~>
-        route ~> check {
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))
+      ) ~>
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
-        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_narrow_test WHERE id = $id")
       }
     }
-    checkByQuery(incidentsCount.map {
-      case (k, v) => List(k.toDouble, v.toDouble)
-    }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id")
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 
   "Cases 1-17" should "work in influx table" in {
     (1 to 17).foreach { id =>
-      Post("/streamJob/from-influxdb/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id - 1)))) ~>
-        route ~> check {
+      Post(
+        "/streamJob/from-influxdb/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id - 1)))
+      ) ~>
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
-        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_influx_test WHERE id = $id")
       }
     }
-    checkByQuery(incidentsCount.map {
-      case (k, v) => List(k.toDouble, v.toDouble)
-    }.toList.sortBy(_.head), s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id")
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 }

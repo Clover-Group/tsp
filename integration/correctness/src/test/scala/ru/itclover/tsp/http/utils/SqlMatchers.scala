@@ -36,10 +36,12 @@ trait SqlMatchers extends Matchers {
         case (x, y) => customEqualityList.areEqual(x, y)
       }
     }
-    val unfound = expectedValues.filter(!results.contains(_))
-    val unexpected = results.filter(!expectedValues.contains(_))
+    val unfound = expectedValues.filter(x => !results.exists(y => customEqualityList.areEqual(x.toList, y)))
+    val unexpected = results.filter(x => !expectedValues.exists(y => customEqualityList.areEqual(x.toList, y)))
     withClue(s"Expected but not found: [${toStringRepresentation(unfound)}]; found [${toStringRepresentation(unexpected)}] instead") {
-      results should ===(expectedValues)
+      // results should ===(expectedValues)
+      unfound shouldBe empty
+      unexpected shouldBe empty
     }
   }
 
@@ -64,10 +66,12 @@ trait SqlMatchers extends Matchers {
         case (x, y) => customEqualityList.areEqual(x, y)
       }
     }
-    val unfound = expectedValues.filter(!results.contains(_))
-    val unexpected = results.filter(!expectedValues.contains(_))
+    val unfound = expectedValues.filter(x => !results.exists(y => customEqualityList.areEqual(x.toList, y)))
+    val unexpected = results.filter(x => !expectedValues.exists(y => customEqualityList.areEqual(x.toList, y)))
     withClue(s"Expected but not found: [${toStringRepresentation(unfound)}]; found [${toStringRepresentation(unexpected)}] instead") {
-      results should ===(expectedValues)
+      // results should ===(expectedValues)
+      unfound shouldBe empty
+      unexpected shouldBe empty
     }
   }
 
