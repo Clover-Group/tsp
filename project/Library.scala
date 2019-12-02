@@ -47,11 +47,11 @@ object Version {
 
   val twitterUtil = "6.43.0"
 
-  val redis = "2.2.6"
-
   val jolVersion = "0.9"
 
   val strawmanVersion = "0.9.0"
+
+  val redissonVersion = "3.11.6"
 
 }
 
@@ -164,8 +164,8 @@ object Library {
     "org.openjdk.jol" % "jol-core"% Version.jolVersion
   )
 
-  val redis: Seq[ModuleID] = Seq(
-    "com.github.scredis" %% "scredis" % Version.redis
+  val redisson: Seq[ModuleID] = Seq(
+    "org.redisson" % "redisson" % Version.redissonVersion
   )
 
 }

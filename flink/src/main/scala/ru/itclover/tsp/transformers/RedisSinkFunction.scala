@@ -5,8 +5,9 @@ import org.apache.flink.streaming.api.functions.sink.{RichSinkFunction, SinkFunc
 import org.apache.flink.types.Row
 import ru.itclover.tsp.io.output.RedisOutputConf
 import ru.itclover.tsp.services.RedisService
-import scredis.serialization.Reader
 import java.time.LocalDateTime
+
+import org.redisson.client.codec.ByteArrayCodec
 
 /**
   * Sink function impl for Redis sink
@@ -25,15 +26,15 @@ class RedisSinkFunction[ITEM](conf: RedisOutputConf, key: String, serializerType
 
     val logger = Logger[RedisSinkFunction[Row]]
 
-    val (client, serializer) = RedisService.clientInstance(this.conf, serializerType)
-
-    implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
+    val redisInfo = RedisService.clientInstance(this.conf, serializerType)
+    val client = redisInfo._1
+    val serializer = redisInfo._2
 
     val resultKey = s"${key}_${LocalDateTime.now().toString}"
     logger.info(s"Result key for ${value} : $resultKey")
 
-    client.set[Array[Byte]](resultKey, serializer.serialize(value, conf.rowSchema))
-    client.quit().value.get.get
+    val bucket = client.getBucket[Array[Byte]](resultKey, ByteArrayCodec.INSTANCE)
+    bucket.set(serializer.serialize(value, conf.rowSchema))
 
   }
 

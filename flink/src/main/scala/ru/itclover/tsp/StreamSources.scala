@@ -10,6 +10,7 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
+import org.redisson.client.codec.ByteArrayCodec
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.input._
@@ -19,10 +20,9 @@ import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.utils.ErrorsADT._
 import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
-import scredis.serialization.Reader
 
 import scala.collection.JavaConverters._
-import scala.util.{Success, Failure}
+import scala.util.{Failure, Success}
 import scala.collection.mutable
 
 /*sealed*/
@@ -512,19 +512,15 @@ case class RedisSource(
   val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
   override def createStream: DataStream[Row] = {
-    val rows: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
 
-    val (client, deserializer) = RedisService.clientInstance(conf, conf.serializer)
+    val redisInfo = RedisService.clientInstance(this.conf, this.conf.serializer)
+    val client = redisInfo._1
+    val serializer = redisInfo._2
 
-    implicit val reader: Reader[Array[Byte]] = (bytes: Array[Byte]) => bytes
-
-    import client.dispatcher
-    client.get[Array[Byte]](conf.key).onComplete {
-      case Success(value) => rows += deserializer.deserialize(value.get, fieldsIdxMap)
-      case Failure(e)     => throw new Exception(e.getMessage)
-    }
-
-    client.quit().value.get.get
+    val bucket = client.getBucket[Array[Byte]](conf.key, ByteArrayCodec.INSTANCE)
+    val rows = mutable.ListBuffer(
+      serializer.deserialize(bucket.get(), fieldsIdxMap)
+    )
 
     streamEnv.fromCollection(rows)
 
