@@ -1,13 +1,14 @@
+/*
 package ru.itclover.tsp.http
 
-/*
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
-import com.dimafeng.testcontainers.{Container, ForAllTestContainer, GenericContainer}
+import com.dimafeng.testcontainers.{ForAllTestContainer, GenericContainer}
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.redisson.client.codec.ByteArrayCodec
 import org.scalatest.{FlatSpec, Matchers}
 import org.testcontainers.containers.wait.strategy.Wait
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper
@@ -17,12 +18,12 @@ import ru.itclover.tsp.io.input.RedisInputConf
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
-import ru.itclover.tsp.io.input.SerializerInfo
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 import ru.itclover.tsp.services.RedisService
+
 import scala.collection.JavaConverters._
 
-class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with ForAllTestContainer with Matchers{
+class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with ForAllTestContainer with Matchers {
 
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
@@ -55,24 +56,24 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
 
   val inputConf = RedisInputConf(
     url = redisURL,
-    datetimeField='dt,
-    partitionFields=Seq('stocknum),
+    datetimeField = 'dt,
+    partitionFields = Seq('stocknum),
     fieldsTypes = Map(
       "dt" -> "float64",
       "stock_num" -> "string",
       "test_int" -> "int8",
       "test_string" -> "string"
     ),
-    key="test_key",
-    serializer="json"
+    key = "test_key",
+    serializer = "json"
   )
 
   val sinkSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = RedisOutputConf(
     url = redisURL,
-    key="test_key",
-    serializer="json",
+    key = "test_key",
+    serializer = "json",
     rowSchema = sinkSchema
   )
 
@@ -84,12 +85,8 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     super.beforeAll()
     Thread.sleep(8000)
 
-    val serializationInfo = SerializerInfo(
-      key=inputConf.key,
-      serializerType = inputConf.serializer
-    )
-
-    val (client, _) = RedisService.clientInstance(inputConf, serializationInfo)
+    val redisInfo = RedisService.clientInstance(inputConf, inputConf.serializer)
+    val client = redisInfo._1
 
     val testData = Map[String, Any](
       "dt" -> 1500000000.0,
@@ -101,17 +98,18 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     val mapper = new ObjectMapper()
     val jsonString = mapper.writeValueAsString(testData)
 
-    client.set[Array[Byte]](serializationInfo.key, jsonString.getBytes("UTF-8"))
+    val bucket = client.getBucket[Array[Byte]](inputConf.key, ByteArrayCodec.INSTANCE)
+    bucket.set(jsonString.getBytes("UTF-8"))
+
   }
 
   "Redis test assertions" should "work for redis source" in {
 
     Post("/streamJob/from-redis/to-redis/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
-    route ~> check {
+      route ~> check {
       status shouldBe StatusCodes.OK
     }
 
   }
 
-}
-**/
+}**/
