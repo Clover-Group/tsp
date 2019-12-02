@@ -58,8 +58,10 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
               total.enqueue(IdxValue(start1, end1, Result.fail))
             )
           } else if (value2.isFail) {
-            // Do not return Fail for the first part yet
-            inner(first/*.rewindTo(end2)*/, second.behead(), total/*.enqueue(IdxValue(start1, end2, Fail))*/)
+            // Do not return Fail for the first part yet, unless it is the end of the queue
+            first.size match {
+              case 1 => inner(first.rewindTo(end2 + 1), second.behead(), total.enqueue(IdxValue(start1, end2, Fail)))
+              case _ => inner(first, second.behead(), total)}
           } else { // at this moment both first and second results are not Fail.
             // late event from second, just skip it and fail this part only.
             // first            |-------|
