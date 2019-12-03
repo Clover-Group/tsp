@@ -1,3 +1,8 @@
+## 0.15.0-rc1
+- new data sources: Kafka, Redis
+- restored data transformations
+- multiple optimizations leading to speedup
+- new `wait()` construction
 ## 0.14.1
 - internal overhaul, some bug fixes
 ## 0.14.0
