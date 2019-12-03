@@ -21,9 +21,9 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.io.input.KafkaInputConf
-import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf}
+import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
-import ru.itclover.tsp.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.transformers.{RedisSinkFunction, SparseRowsDataAccumulator}
 import ru.itclover.tsp.utils.DataStreamOps.DataStreamOps
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 
@@ -225,6 +225,13 @@ object PatternsSearchJob {
         val res = stream.addSink(producer)
         log.debug("saveStream finished")
         res
+
+      case redisConf: RedisOutputConf =>
+        val redisSink = new RedisSinkFunction(redisConf).asInstanceOf[RedisSinkFunction[E]]
+        val res = stream.addSink(redisSink)
+        log.debug("saveStream finished")
+        res
+
       case _ =>
         val outputFormat = outputConf.getOutputFormat
         val res = stream.writeUsingOutputFormat(outputFormat)

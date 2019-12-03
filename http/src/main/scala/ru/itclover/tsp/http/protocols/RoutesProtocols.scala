@@ -6,7 +6,7 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf, RowSchema}
 import spray.json._
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
@@ -124,6 +124,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     KafkaInputConf.apply
   )
 
+  implicit val redisConfInputFmt = jsonFormat7(
+    RedisInputConf.apply
+  )
+
   implicit val rowSchemaFmt = jsonFormat(
     RowSchema.apply,
     "sourceIdField",
@@ -139,6 +143,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
   implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
+
+  implicit val redisConfOutputFmt = jsonFormat5(RedisOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 

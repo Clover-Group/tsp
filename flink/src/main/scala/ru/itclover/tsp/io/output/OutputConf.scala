@@ -1,13 +1,10 @@
 package ru.itclover.tsp.io.output
 
-import java.io.ByteArrayOutputStream
-
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
-import org.codehaus.jackson.map.ObjectMapper
-import ru.itclover.tsp.serializers.{ArrowSerializer, JSONSerializer, ParquetSerializer}
+import ru.itclover.tsp.serializers.KafkaSerializers.{ArrowSerializer, JSONSerializer, ParquetSerializer}
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -53,6 +50,15 @@ case class JDBCOutputConf(
 //  override def parallelism: Option[Int] = Some(1)
 //}
 
+/**
+* Sink for kafka connection
+  * @param broker host and port for kafka broker
+  * @param topic where is data located
+  * @param serializer format of data in kafka
+  * @param rowSchema schema of writing rows
+  * @param parallelism num of parallel task to write data
+  * @author Dmitry Galanin
+  */
 case class KafkaOutputConf(
   broker: String,
   topic: String,
@@ -71,4 +77,24 @@ case class KafkaOutputConf(
     case _         => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 
+}
+
+/**
+* Sink for redis connection
+  * @param url connection for redis, in format: redis://host:port/db
+  * @param key key for data retrieving
+  * @param serializer format of data in redis
+  * @param rowSchema schema of writing rows
+  * @param parallelism num of parallel task to write data
+  */
+case class RedisOutputConf(
+  url: String,
+  key: String,
+  serializer: String = "json",
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = null
 }

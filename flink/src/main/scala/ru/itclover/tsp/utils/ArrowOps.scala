@@ -188,27 +188,46 @@ object ArrowOps {
 
           val valueInfo = typesMap(vector.getMinorType)
 
-          //TODO: REFACTOR!!!
           valueInfo.getName match {
-            case "int" => vector.asInstanceOf[IntVector].setSafe(counter, data.asInstanceOf[Int])
+
+            case "int" =>
+              val tempVector = vector.asInstanceOf[IntVector]
+              tempVector.setSafe(counter, data.asInstanceOf[Int])
+
             case "boolean" =>
               var value: Int = 0
               if (!data.asInstanceOf[Boolean]) {
                 value = 1
               }
-              vector.asInstanceOf[BitVector].setSafe(counter, value)
+
+              val tempVector = vector.asInstanceOf[BitVector]
+              tempVector.setSafe(counter, value)
 
             case "java.lang.String" =>
-              vector
-                .asInstanceOf[VarCharVector]
-                .setSafe(
-                  counter,
-                  new Text(data.asInstanceOf[String])
-                )
-            case "float"  => vector.asInstanceOf[Float4Vector].setSafe(counter, data.asInstanceOf[Float])
-            case "double" => vector.asInstanceOf[Float8Vector].setSafe(counter, data.asInstanceOf[Double])
-            case "long"   => vector.asInstanceOf[BigIntVector].setSafe(counter, data.asInstanceOf[Long])
-            case "short"  => vector.asInstanceOf[SmallIntVector].setSafe(counter, data.asInstanceOf[Short])
+
+              val tempVector = vector.asInstanceOf[VarCharVector]
+              tempVector.setSafe(
+                counter,
+                new Text(data.asInstanceOf[String])
+              )
+
+            case "float"  =>
+              val tempVector = vector.asInstanceOf[Float4Vector]
+              tempVector.setSafe(counter, data.asInstanceOf[Float])
+
+            case "double" =>
+              val tempVector = vector.asInstanceOf[Float8Vector]
+              tempVector.setSafe(counter, data.asInstanceOf[Double])
+
+            case "long"   =>
+              val tempVector = vector.asInstanceOf[BigIntVector]
+              tempVector.setSafe(counter, data.asInstanceOf[Long])
+
+            case "short"  => {
+              val tempVector = vector.asInstanceOf[SmallIntVector]
+              tempVector.setSafe(counter, data.asInstanceOf[Short])
+            }
+
             case _        => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
           }
 

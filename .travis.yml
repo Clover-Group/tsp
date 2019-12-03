@@ -2,3 +2,5 @@ language: scala
 scala:
   - 2.12.9
 jdk: openjdk8
+
+sbt_args: -J-Dsun.net.maxDatagramSockets=1024
