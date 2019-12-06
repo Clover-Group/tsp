@@ -1,3 +1,6 @@
+## 0.15.0-rc2
+- `FILL(previous)` now ignored in InfluxDB helper queries
+- Kafka now does not read from earliest by default, using group offsets
 ## 0.15.0-rc1
 - new data sources: Kafka, Redis
 - restored data transformations
