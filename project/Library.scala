@@ -53,6 +53,8 @@ object Version {
 
   val redissonVersion = "3.11.6"
 
+  val spark = "2.4.4"
+
 }
 
 object Library {
@@ -168,4 +170,8 @@ object Library {
     "org.redisson" % "redisson" % Version.redissonVersion
   )
 
+  val sparkDeps: Seq[ModuleID] = Seq(
+    "org.apache.spark" %% "spark-sql" % Version.spark,
+    "org.apache.spark" %% "spark-streaming" % Version.spark
+  )
 }

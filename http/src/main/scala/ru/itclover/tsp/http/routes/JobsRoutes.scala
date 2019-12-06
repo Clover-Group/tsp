@@ -17,7 +17,7 @@ import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import ru.itclover.tsp._
-import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.core.{Incident, RawPattern}
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
@@ -30,6 +30,8 @@ import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
+import ru.itclover.tsp.spark
+import org.apache.spark.sql.{SparkSession, Row => SparkRow}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
@@ -157,7 +159,22 @@ trait JobsRoutes extends RoutesProtocols {
         matchResultToResponse(resultOrErr, uuid)
 
       }
-    }
+    } ~
+    // Spark job (currently JDBC-JDBC only)
+      path("sparkJob" / "from-jdbc" / "to-jdbc"./) {
+        entity(as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]) { request =>
+          import request._
+          val fields = PatternFieldExtractor.extract(patterns)
+
+          val resultOrErr = for {
+            source <- spark.io.JdbcSource.create(inputConf, fields)
+            _      <- createSparkStream(patterns, fields, inputConf, outConf, source)
+            result <- runStream(uuid, isAsync)
+          } yield result
+
+          matchResultToResponse(resultOrErr, uuid)
+        }
+      }
   }
 
   // TODO: Restore EKey type parameter
@@ -179,6 +196,38 @@ trait JobsRoutes extends RoutesProtocols {
       patterns,
       outConf,
       PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+    )
+    strOrErr.map {
+      case (parsedPatterns, stream) =>
+        // .. patternV2.format
+        val strPatterns = parsedPatterns.map {
+          case ((_, meta), _) =>
+            /*p.format(source.emptyEvent) +*/
+            s" ;; Meta=$meta"
+        }
+        log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
+        stream
+    }
+  }
+
+  def createSparkStream[E: TypeInformation, EItem](
+                                               patterns: Seq[RawPattern],
+                                               fields: Set[EKey],
+                                               inputConf: spark.io.InputConf[E, EKey, EItem],
+                                               outConf: spark.io.OutputConf[SparkRow],
+                                               source: spark.StreamSource[E, EKey, EItem]
+                                             )(implicit decoders: BasicDecoders[EItem]) = {
+    //streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
+
+    log.debug("createStream started")
+
+    import ru.itclover.tsp.spark.utils.EncoderInstances.sinkRowEncoder
+
+    val searcher = spark.PatternsSearchJob(source, fields, decoders)
+    val strOrErr = searcher.patternsSearchStream(
+      patterns,
+      outConf,
+      (x: Incident) => spark.utils.PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema).map(x)
     )
     strOrErr.map {
       case (parsedPatterns, stream) =>

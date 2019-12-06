@@ -175,9 +175,9 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp
+      Library.akkaHttp ++ Library.sparkDeps
   )
-  .dependsOn(core, config, flink, dsl)
+  .dependsOn(core, config, flink, spark, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
@@ -185,6 +185,12 @@ lazy val dsl = project.in(file("dsl"))
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
     libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
+
+lazy val spark = project.in(file("spark"))
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= Library.sparkDeps
+  ).dependsOn(core, config, dsl)
 
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)

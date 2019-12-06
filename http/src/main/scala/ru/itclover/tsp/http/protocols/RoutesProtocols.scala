@@ -8,6 +8,7 @@ import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf, RowSchema}
 import spray.json._
+import ru.itclover.tsp.spark
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
@@ -151,5 +152,45 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
 
+  // TODO: Remove type bounds for (In|Out)putConf?
+  implicit def sparkPatternsRequestFmt[IN <: spark.io.InputConf[_, _, _]: JsonFormat, OUT <: spark.io.OutputConf[_]: JsonFormat] =
+    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
+
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
+
+  implicit val sparkRowSchemaFmt = jsonFormat(
+    spark.io.RowSchema.apply,
+    "sourceIdField",
+    "fromTsField",
+    "toTsField",
+    "appIdFieldVal",
+    "patternIdField",
+    "processingTsField",
+    "contextField",
+    "forwardedFields"
+  )
+
+  implicit val sparkJdbcInpConfFmt = jsonFormat(
+    spark.io.JDBCInputConf.apply,
+    "sourceId",
+    "jdbcUrl",
+    "query",
+    "driverName",
+    "datetimeField",
+    "eventsMaxGapMs",
+    "defaultEventsGapMs",
+    "chunkSizeMs",
+    "partitionFields",
+    "userName",
+    "password",
+    //"dataTransformation",
+    "defaultToleranceFraction",
+    "parallelism",
+    "numParallelSources",
+    "patternsParallelism",
+    "timestampMultiplier"
+  )
+
+  implicit val sparkJdbcOutConfFmt = jsonFormat8(spark.io.JDBCOutputConf.apply)
+
 }
