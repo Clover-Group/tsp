@@ -1,0 +1,2 @@
+- `FILL(previous)` now ignored in InfluxDB helper queries
+- Kafka now does not read from earliest by default, using group offsets
