@@ -2,15 +2,20 @@ package ru.itclover.tsp.http.routes
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
-import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
+import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsSettings
 import ru.itclover.tsp.BuildInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
+import io.prometheus.client.CollectorRegistry
+import fr.davit.akka.http.metrics.prometheus.PrometheusRegistry
+import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers._
+import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.metrics
 
 import scala.concurrent.ExecutionContextExecutor
 // import ru.itclover.tsp.BuildInfo
@@ -44,7 +49,7 @@ object MonitoringRoutes {
   log.debug("fromExecutionContext finished")
 }
 
-trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
+trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
   implicit val executionContext: ExecutionContextExecutor
   implicit val actors: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -63,7 +68,19 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
 
   val noSuchJobWarn = "No such job or no connection to the FlinkMonitoring"
 
+  def checkResponse(elem: HttpResponse): Boolean =
+    elem.status.isInstanceOf[StatusCodes.ServerError] &&
+     elem.status.isInstanceOf[StatusCodes.ClientError]
+
   Logger[MonitoringRoutes]
+
+  val akkaPrometheusRegistry = PrometheusRegistry(
+    HttpMetricsSettings.default
+                       .withIncludeStatusDimension(true)
+                       .withIncludePathDimension(true)
+                       .withDefineError(checkResponse),
+    new CollectorRegistry()
+  )
 
   val route: Route = path("job" / Segment / "statusAndMetrics") { uuid =>
     onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {
@@ -101,5 +118,6 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
   } ~
   path("metainfo" / "getVersion") {
     complete(SuccessfulResponse(BuildInfo.version))
-  }
+  } ~
+  (get & path("metrics-prometheus"))(metrics(akkaPrometheusRegistry))
 }
