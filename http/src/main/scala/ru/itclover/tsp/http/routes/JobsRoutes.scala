@@ -31,11 +31,15 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, Re
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.spark
-import org.apache.spark.sql.{SparkSession, Row => SparkRow}
+import org.apache.spark.sql.{DataFrameWriter, SparkSession, Row => SparkRow}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
+import ru.itclover.tsp.spark.utils.ErrorsADT
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
+import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, Err => SparkErr, GenericRuntimeErr => SparkGenRTErr, RuntimeErr => SparkRTErr}
+
+import scala.reflect.ClassTag
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -166,13 +170,19 @@ trait JobsRoutes extends RoutesProtocols {
           import request._
           val fields = PatternFieldExtractor.extract(patterns)
 
-          val resultOrErr = for {
-            source <- spark.io.JdbcSource.create(inputConf, fields)
-            _      <- createSparkStream(patterns, fields, inputConf, outConf, source)
-            result <- runStream(uuid, isAsync)
-          } yield result
+//          val resultOrErr: Either[Err, Option[Unit]] = for {
+//            source <- spark.JdbcSource.create(inputConf, fields)
+//            stream <- createSparkStream(patterns, fields, inputConf, outConf, source)
+//            result <- runSparkStream(stream, isAsync)
+//          } yield result
 
-          matchResultToResponse(resultOrErr, uuid)
+          val source: Either[SparkConfErr, spark.JdbcSource] = spark.JdbcSource.create(inputConf, fields)
+          val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
+          val result: Either[SparkErr, Option[Unit]] = stream.flatMap(runSparkStream(_, isAsync))
+          val resultOrErr = result
+
+
+          matchSparkResultToResponse(resultOrErr, uuid)
         }
       }
   }
@@ -210,18 +220,17 @@ trait JobsRoutes extends RoutesProtocols {
     }
   }
 
-  def createSparkStream[E: TypeInformation, EItem](
+  def createSparkStream[E: ClassTag, EItem](
                                                patterns: Seq[RawPattern],
                                                fields: Set[EKey],
                                                inputConf: spark.io.InputConf[E, EKey, EItem],
                                                outConf: spark.io.OutputConf[SparkRow],
                                                source: spark.StreamSource[E, EKey, EItem]
-                                             )(implicit decoders: BasicDecoders[EItem]) = {
+                                             )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.Err, DataFrameWriter[SparkRow]] = {
     //streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
     log.debug("createStream started")
 
-    import ru.itclover.tsp.spark.utils.EncoderInstances.sinkRowEncoder
 
     val searcher = spark.PatternsSearchJob(source, fields, decoders)
     val strOrErr = searcher.patternsSearchStream(
@@ -256,6 +265,20 @@ trait JobsRoutes extends RoutesProtocols {
     res
   }
 
+  def runSparkStream(stream: DataFrameWriter[SparkRow], isAsync: Boolean): Either[SparkErr, Option[Unit]] = {
+    log.debug("runStream started")
+
+    val res = if (isAsync) { // Just detach job thread in case of async run
+      Future { stream.save() }(blockingExecutionContext)
+      Right(None)
+    } else { // Wait for the execution finish
+      Either.catchNonFatal(Some(stream.save())).leftMap(SparkGenRTErr(_))
+    }
+
+    log.debug("runStream finished")
+    res
+  }
+
   def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route = {
 
     log.debug("matchResultToResponse started")
@@ -273,6 +296,28 @@ trait JobsRoutes extends RoutesProtocols {
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
         complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
       }
+    }
+    log.debug("matchResultToResponse finished")
+
+    res
+
+  }
+
+  def matchSparkResultToResponse(result: Either[SparkErr, Option[Unit]], uuid: String): Route = {
+
+    log.debug("matchResultToResponse started")
+
+    val res = result match {
+      case Left(err: SparkConfErr) => complete((BadRequest, FailureResponse(err)))
+      case Left(err: SparkRTErr) =>
+        log.error("Error in processing", err.asInstanceOf[SparkGenRTErr].ex)
+        complete((InternalServerError, FailureResponse(err)))
+      // Async job - response with message about successful start
+      case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
+      // Sync job - response with message about successful ending
+      case Right(Some(_)) =>
+        val execTime = -1 // execResult.getNetRuntime(TimeUnit.SECONDS)
+        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
     }
     log.debug("matchResultToResponse finished")
 

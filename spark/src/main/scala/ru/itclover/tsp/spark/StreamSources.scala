@@ -1,15 +1,21 @@
 package ru.itclover.tsp.spark
 
-import org.apache.spark.sql.Dataset
-import org.apache.spark.streaming.dstream.DStream
+import cats.syntax.either._
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf}
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
 import ru.itclover.tsp.spark.utils.{JdbcService, RowWithIdx}
+//import ru.itclover.tsp.spark.utils.EncoderInstances._
+import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
-  def createStream: Dataset[Event]
+  def spark: SparkSession
+
+  def createStream: RDD[Event]
 
   def conf: InputConf[Event, EKey, EItem]
 
@@ -85,27 +91,56 @@ case class JdbcSource(
                        nullFieldId: Symbol,
                        patternFields: Set[Symbol]
                      ) extends StreamSource[RowWithIdx, Symbol, Any] {
-  override def createStream: Dataset[RowWithIdx] = ???
+  // TODO: Better place for Spark session
+  override val spark: SparkSession = SparkSession.builder()
+    .master("local")
+    .appName("JDBC SparkSession")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
 
-  override def fieldToEKey: Symbol => Symbol = ???
+  override def createStream: RDD[RowWithIdx] = {
+    spark.read
+      .format("jdbc")
+      .option("url", conf.jdbcUrl)
+      .option("dbtable", s"(${conf.query})")
+      .option("user", conf.userName.getOrElse(""))
+      .option("password", conf.password.getOrElse(""))
+      .load()
+      .rdd
+      .zipWithIndex()
+      .map{ case (x, i) => RowWithIdx(i + 1, x) }
+  }
 
-  override def fieldsIdxMap: Map[Symbol, Int] = ???
+  override def fieldToEKey: Symbol => Symbol = identity
 
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = ???
+  override def fieldsIdxMap: Map[Symbol, Int] = fieldsClasses.map(_._1).zipWithIndex.toMap
 
-  override def partitioner: RowWithIdx => String = ???
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = fieldsIdxMap // TODO: transformation
 
-  override def transformedPartitioner: RowWithIdx => String = ???
+  override def partitioner: RowWithIdx => String = _ => "" // TODO: partitioning
 
-  override implicit def timeExtractor: TimeExtractor[RowWithIdx] = ???
+  override def transformedPartitioner: RowWithIdx => String = _ => "" // TODO: partitioning
 
-  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] = ???
+  val timeIndex = fieldsIdxMap(conf.datetimeField)
+  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
-  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = ???
+  def tsMultiplier = conf.timestampMultiplier.getOrElse {
+    // log.trace("timestampMultiplier in JDBC source conf is not provided, use default = 1000.0")
+    1000.0
+  }
 
-  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = ???
+  override implicit def timeExtractor: TimeExtractor[RowWithIdx] = {
+    val rowExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
+    TimeExtractor.of((r: RowWithIdx) => rowExtractor(r.row))
+  }
 
-  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = ???
+  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] = timeExtractor // TODO: Transformation
 
-  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = ???
+  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
+
+  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+
+  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = extractor // TODO: Transformation
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 }

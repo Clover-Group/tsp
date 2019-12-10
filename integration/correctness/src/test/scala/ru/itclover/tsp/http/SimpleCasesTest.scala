@@ -17,6 +17,7 @@ import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
+import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, RowSchema => SparkRowSchema}
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
@@ -199,6 +200,18 @@ class SimpleCasesTest
     additionalTypeChecking = Some(false)
   )
 
+  val wideSparkInputConf = SparkJDBCInputConf(
+    sourceId = 100,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
+    driverName = clickhouseContainer.driverName,
+    datetimeField = 'ts,
+    eventsMaxGapMs = 60000L,
+    defaultEventsGapMs = 1000L,
+    chunkSizeMs = Some(900000L),
+    partitionFields = Seq('loco_num, 'section, 'upload_id)
+  )
+
   val wideRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
 
@@ -207,6 +220,9 @@ class SimpleCasesTest
 
   val influxRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
+
+  val wideSparkRowSchema =
+    SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideSparkInputConf.partitionFields)
 
   val wideOutputConf = JDBCOutputConf(
     "events_wide_test",
@@ -225,6 +241,13 @@ class SimpleCasesTest
   val influxOutputConf = JDBCOutputConf(
     "events_influx_test",
     influxRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val wideSparkOutputConf = SparkJDBCOutputConf(
+    "events_wide_spark_test",
+    wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
@@ -361,5 +384,30 @@ class SimpleCasesTest
       s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+  }
+
+  "Cases 1-17" should "work in wide table with Spark" in {
+    (1 to 17).foreach { id =>
+      Post(
+        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_wide_spark_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_spark_test ORDER BY id, from, to")
   }
 }

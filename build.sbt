@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
-  maxErrors := 5, 
+  maxErrors := 5
 )
 
 
@@ -190,12 +190,14 @@ lazy val spark = project.in(file("spark"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.sparkDeps
-  ).dependsOn(core, config, dsl)
+  )
+  .dependsOn(core, config, dsl)
 
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers,
+    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
   )
   .dependsOn(core, flink, http, config)
 

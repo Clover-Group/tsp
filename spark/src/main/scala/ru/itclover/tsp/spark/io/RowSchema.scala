@@ -1,5 +1,7 @@
 package ru.itclover.tsp.spark.io
 
+import org.apache.spark.sql.types.{DataType, DataTypes}
+
 import scala.collection.mutable
 
 case class RowSchema(
@@ -22,6 +24,10 @@ case class RowSchema(
 
   val fieldClasses: List[Class[_]] =
     List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[String], classOf[Double], classOf[String])
+
+  val fieldDatatypes: List[DataType] =
+    List(DataTypes.IntegerType, DataTypes.DoubleType, DataTypes.DoubleType, DataTypes.IntegerType,
+      DataTypes.StringType, DataTypes.DoubleType, DataTypes.StringType)
 
   val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
