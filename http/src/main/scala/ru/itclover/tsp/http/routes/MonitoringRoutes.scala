@@ -119,5 +119,5 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
   path("metainfo" / "getVersion") {
     complete(SuccessfulResponse(BuildInfo.version))
   } ~
-  (get & path("metrics-prometheus"))(metrics(akkaPrometheusRegistry))
+  (get & path("metrics-akka"))(metrics(akkaPrometheusRegistry))
 }
