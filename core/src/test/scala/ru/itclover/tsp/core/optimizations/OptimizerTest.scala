@@ -1,7 +1,7 @@
 package ru.itclover.tsp.core.optimizations
 
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.{Patterns, Window}
+import ru.itclover.tsp.core.Patterns
 import ru.itclover.tsp.core.fixtures.Common._
 
 class OptimizerTest extends FlatSpec with Matchers {
@@ -52,16 +52,16 @@ class OptimizerTest extends FlatSpec with Matchers {
     new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.SimplePattern[EInt, _]]
   }
 
-  it should "optimize couple(some, const) to map" in {
-    val pat = timer(field(_.col), Window(1000)).map(_ + 2) > const(3)
-
-    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.MapPattern[EInt, _, _, _]]
-  }
-
-  it should "optimize couple(const, some) to map" in {
-    val pat = const(3) > timer(field(_.col), Window(1000)).map(_ + 2)
-
-    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.MapPattern[EInt, _, _, _]]
-  }
+//  it should "optimize couple(some, const) to map" in {
+//    val pat = timer(field(_.col), Window(1000)).map(_ + 2) > const(3)
+//
+//    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.MapPattern[EInt, _, _, _]]
+//  }
+//
+//  it should "optimize couple(const, some) to map" in {
+//    val pat = const(3) > timer(field(_.col), Window(1000)).map(_ + 2)
+//
+//    new Optimizer[EInt].optimize(pat) shouldBe a[ru.itclover.tsp.core.MapPattern[EInt, _, _, _]]
+//  }
 
 }

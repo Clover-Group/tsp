@@ -1,32 +1,29 @@
 package ru.itclover.tsp.dsl
 
-import cats.Order
 import cats.kernel.instances.double._
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
-import ru.itclover.tsp.core.aggregators.{TimerPattern, WindowStatistic, WindowStatisticResult}
+import ru.itclover.tsp.core.aggregators.{WaitPattern, TimerPattern, WindowStatistic, WindowStatisticResult}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+trait AnyState[T]
 
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey,
-  idxOrd: Order[Idx]
+  @transient fieldToEKey: Symbol => EKey
 ) {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event] {}
 
   private val log = Logger("ASTPGenLogger")
-
-  trait AnyState[T] extends PState[T, AnyState[T]]
 
   implicit def toAnyStatePattern[T](p: Pattern[Event, _, _]): Pattern[Event, AnyState[T], T] =
     p.asInstanceOf[Pattern[Event, AnyState[T], T]]
@@ -36,15 +33,16 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   def build(
     sourceCode: String,
     toleranceFraction: Double,
+    eventsMaxGapMs: Long,
     fieldsTags: Map[Symbol, ClassTag[_]]
   ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
-    val ast = new ASTBuilder(sourceCode, toleranceFraction, fieldsTags).start.run()
+    val ast = new ASTBuilder(sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
 
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-
+    import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -57,7 +55,12 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
             new ExtractingPattern[Event, EKey, EItem, Double, AnyState[Double]](id.value)
           case BooleanASTType =>
             new ExtractingPattern[Event, EKey, EItem, Boolean, AnyState[Boolean]](id.value)
-          case AnyASTType => new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case StringASTType =>
+            new ExtractingPattern[Event, EKey, EItem, String, AnyState[String]](id.value)
+          case NullASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
+          case AnyASTType =>
+            new ExtractingPattern[Event, EKey, EItem, Any, AnyState[Any]](id.value)
         }
       case r: Range[_] => sys.error(s"Range ($r) is valid only in context of a pattern")
       case fc: FunctionCall =>
@@ -79,19 +82,18 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           case 2 =>
             log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
+            val fun: PFunction = registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
+              .getOrElse(
+                sys.error(
+                  s"Function ${fc.functionName} with argument types " +
+                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                )
+              )._1
             CouplePattern(p1, p2)(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    registry.functions
-                      .getOrElse(
-                        (fc.functionName, fc.arguments.map(_.valueType)),
-                        sys.error(
-                          s"Function ${fc.functionName} with argument types " +
-                          s"(${fc.arguments.map(_.valueType).mkString(",")}) not found"
-                        )
-                      )
-                      ._1(
+                      fun(
                         Seq(rx, ry) // <--- TSP-182 fails here
                       )
 
@@ -150,15 +152,18 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           v => if (v.isInstanceOf[(Idx, Idx)]) true else v
         )
       // TODO: Window -> TimeInterval in TimerPattern
-      case t: Timer => TimerPattern(generatePattern(t.cond), Window(t.interval.max))
+      case t: Timer =>
+        TimerPattern(generatePattern(t.cond), Window(t.interval.max), t.maxGapMs)
+      case s: Wait =>
+        WaitPattern(generatePattern(s.cond), s.window)
       case fwi: ForWithInterval =>
         MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
-            case TimeInterval(_, max)    => max < fwi.window.toMillis
-            case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
-            case _                       => true
-          })
+              case TimeInterval(_, max)    => max < fwi.window.toMillis
+              case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
+              case _                       => true
+            })
           val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
           fwi.interval match {
             case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)

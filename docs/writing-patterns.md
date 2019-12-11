@@ -73,6 +73,11 @@ Speed >= 0 and (Voltage > 3400 or Voltage < 2700)
 
 In all cases, parentheses can be used to override the default priority.
 
+- the `andThen` operator &#8212; holds if the right-hand side holds
+immediately after the left-hand side. _Note:the success interval of
+`andThen` is the union of the LHS and RHS (i.e. from the timestamp
+when LHS starts to the timestamp when RHS ends)._
+
 ### Conditions
 
 _Simple condition_ consists only of a boolean expression, such as:
@@ -114,15 +119,14 @@ Column1 > 0 for 30 sec >= 5 times (at least five times during the thirty-second 
 Column2 = 0 for 1 min < 5 seconds (less than five seconds during the minute window)
 ```
 
-After a `for` keyword, an optional `exactly` keyword is possible,
-denoting that TSP should wait for the exact specified time window, even
-if the result becomes clear before the end of it (for example,
-after the 5th occurrence of a pattern it's clear that a `>= 5 times`
-condition for that pattern is true).
+_Note: the success interval of the timed condition starts **after** 
+the window ends (i.e. when it becomes known that the condition holds.
+E.g. in the pattern `A > 0 for 2 hours`, if A holds from 9:00 to 12:00
+hours (during the same day), the reported interval of success will be
+from 11:00 to 12:00. See also `wait`)_
 
 _Combined pattern_ is a combination of the conditions (simple or timed)
-via the operators `and`, `or`, and `andThen` (the latter denotes
-sequential checking (1st _and then_ 2nd), when the patterns are timed).
+via the operators `and`, `or`, and `andThen`.
 
 Examples:
 ```
@@ -145,12 +149,15 @@ Column1 = 0 for 20 min andThen Column1 > 0 for 3 sec
 - `abs(x)` returns the absolute value of `x`.
 - `sigmoid(x, a)` returns the Fermi-Dirac sigmoid function, namely
 `1 / (1 + exp(-2 * x * a))`.
-#### Window functions (WIP)
+#### Window functions (aggregating by time)
 - `avg(x, time)` returns the value of `x` averaged over the period of
 `time`
 - `lag(x)` returns the previous value of `x`
 - `lag(x, time)` returns the value of `x` which was actual `time` ago
-#### Miscellaneous (WIP)
+- `wait(time, x)` shifts the start of a success for `x` 
+to the left (earlier) for `time` (which is equivalent to actual waiting.
+Especially useful for `andThen` conditions)
+#### Aggregating functions (by column)
 - `avgOf(x1, ..., xn, cond)` compute the average value of `xi` which
 satisfy the `cond` condition (NaN's are discarded anyway).
 Conditions are written using single underscore (`_`) as a meta-variable.

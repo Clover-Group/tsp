@@ -2,32 +2,32 @@ package ru.itclover.tsp.core
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
-import ru.itclover.tsp.core.Pattern.QI
 
 import scala.language.higherKinds
 
-//todo optimize Map(Simple) => Simple
-case class MapPattern[Event, T1, T2, InnerState <: PState[T1, InnerState]](inner: Pattern[Event, InnerState, T1])(
-  val func: T1 => Result[T2]
-) extends Pattern[Event, MapPState[InnerState, T1, T2], T2] {
+case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerState, T1])(val func: T1 => Result[T2])
+    extends Pattern[Event, InnerState, T2] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-    oldState: MapPState[InnerState, T1, T2],
+    oldState: InnerState,
+    oldQueue: PQueue[T2],
     event: Cont[Event]
-  ): F[MapPState[InnerState, T1, T2]] =
-    inner(oldState.innerState, event).map(innerResult => oldState.copy(innerState = innerResult))
+  ): F[(InnerState, PQueue[T2])] = {
 
-  override def initialState(): MapPState[InnerState, T1, T2] = MapPState(innerState = inner.initialState(), func)
-}
-
-case class MapPState[InnerState <: PState[T1, InnerState], T1, T2](
-  innerState: InnerState,
-  func: T1 => Result[T2]
-) extends PState[T2, MapPState[InnerState, T1, T2]] {
-  override def queue: QI[T2] = MapPQueue(innerState.queue, func)
-  override def copyWith(queue: QI[T2]): MapPState[InnerState, T1, T2] = {
-    val prevSize = innerState.queue.size.toLong
-    val toDrop: Long = prevSize - queue.size
-    assert(toDrop >= 0, "Illegal state, queue cannot grow in map")
-    this.copy(innerState = innerState.copyWith(innerState.queue.drop(toDrop)))
+    // we need to trim inner queue here to avoid memory leaks
+    val innerQueue = getInnerQueue(oldQueue)
+    inner(oldState, innerQueue, event).map {
+      case (innerResult, innerQueue) => innerResult -> MapPQueue[T1, T2](innerQueue, _.value.flatMap(func))
+    }
   }
+
+  private def getInnerQueue(queue: PQueue[T2]): PQueue[T1] = {
+    queue match {
+      case MapPQueue(innerQueue, _) if innerQueue.isInstanceOf[PQueue[T1]] => innerQueue.asInstanceOf[PQueue[T1]]
+      //this is for first call
+      case x if x.size == 0 => x.asInstanceOf[PQueue[T1]]
+      case _                => sys.error("Wrong logic! MapPattern.apply must be called only with MapPQueue")
+    }
+  }
+
+  override def initialState(): InnerState = inner.initialState()
 }

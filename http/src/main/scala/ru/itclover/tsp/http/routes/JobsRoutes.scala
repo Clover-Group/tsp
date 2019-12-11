@@ -8,14 +8,6 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
-import com.typesafe.scalalogging.Logger
-import org.apache.flink.streaming.api.scala._
-import ru.itclover.tsp.http.domain.input.FindPatternsRequest
-import ru.itclover.tsp.http.domain.output._
-import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.mappers._
-
-import scala.concurrent.{ExecutionContextExecutor, Future}
 import cats.data.Reader
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
@@ -35,17 +27,13 @@ import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.flink.MonitoringService
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import ru.itclover.tsp.mappers._
-
-import scala.concurrent.{ExecutionContextExecutor, Future}
-//import ru.itclover.tsp.io.EventCreatorInstances.rowEventCreator
+import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-import ru.itclover.tsp.io.input.{KafkaInputConf}
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -150,6 +138,25 @@ trait JobsRoutes extends RoutesProtocols {
 
         matchResultToResponse(resultOrErr, uuid)
       }
+    } ~
+    path("streamJob" / "from-redis" / "to-redis"./) {
+      entity(as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]) { request =>
+
+        import request._
+        val fields = PatternFieldExtractor.extract(patterns)
+
+        val resultOrErr = for {
+          source <- RedisSource.create(inputConf, fields)
+          _ = log.info("Redis create done")
+          _ <- createStream(patterns, fields, inputConf, outConf, source)
+          _ = log.info("Redis createStream done")
+          result <- runStream(uuid, isAsync)
+          _ = log.info("Redis runStream done")
+        } yield result
+
+        matchResultToResponse(resultOrErr, uuid)
+
+      }
     }
   }
 
@@ -184,10 +191,6 @@ trait JobsRoutes extends RoutesProtocols {
         log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
         stream
     }
-
-    log.debug("createStream finished")
-
-    strOrErr
   }
 
   def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] = {
@@ -209,8 +212,10 @@ trait JobsRoutes extends RoutesProtocols {
     log.debug("matchResultToResponse started")
 
     val res = result match {
-      case Left(err: ConfigErr)  => complete((BadRequest, FailureResponse(err)))
-      case Left(err: RuntimeErr) => complete((InternalServerError, FailureResponse(err)))
+      case Left(err: ConfigErr) => complete((BadRequest, FailureResponse(err)))
+      case Left(err: RuntimeErr) =>
+        log.error("Error in processing", err.asInstanceOf[GenericRuntimeErr].ex)
+        complete((InternalServerError, FailureResponse(err)))
       // Async job - response with message about successful start
       case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
       // Sync job - response with message about successful ending

@@ -1,12 +1,10 @@
 package ru.itclover.tsp.io.output
 
-import java.io.ByteArrayOutputStream
-
 import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
-import org.codehaus.jackson.map.ObjectMapper
+import ru.itclover.tsp.serializers.KafkaSerializers.{ArrowSerializer, JSONSerializer, ParquetSerializer}
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -52,9 +50,19 @@ case class JDBCOutputConf(
 //  override def parallelism: Option[Int] = Some(1)
 //}
 
+/**
+* Sink for kafka connection
+  * @param broker host and port for kafka broker
+  * @param topic where is data located
+  * @param serializer format of data in kafka
+  * @param rowSchema schema of writing rows
+  * @param parallelism num of parallel task to write data
+  * @author Dmitry Galanin
+  */
 case class KafkaOutputConf(
   broker: String,
   topic: String,
+  serializer: Option[String] = Some("json"),
   rowSchema: RowSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
@@ -62,20 +70,31 @@ case class KafkaOutputConf(
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
-  def serializer: SerializationSchema[Row] = (element: Row) => {
-    val out = new ByteArrayOutputStream
-    val mapper = new ObjectMapper()
-    val root = mapper.createObjectNode()
-    root.put(rowSchema.sourceIdField.name, element.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
-    root.put(rowSchema.fromTsField.name, element.getField(rowSchema.beginInd).asInstanceOf[Double])
-    root.put(rowSchema.toTsField.name, element.getField(rowSchema.endInd).asInstanceOf[Double])
-    root.put(rowSchema.appIdFieldVal._1.name, element.getField(rowSchema.appIdInd).asInstanceOf[Int])
-    root.put(rowSchema.patternIdField.name, element.getField(rowSchema.patternIdInd).asInstanceOf[String])
-    root.put(rowSchema.processingTsField.name, element.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
-    root.put(rowSchema.contextField.name, element.getField(rowSchema.contextInd).asInstanceOf[String])
-    out.write(mapper.writeValueAsBytes(root))
-    out.close()
-    out.toByteArray
+  def dataSerializer: SerializationSchema[Row] = serializer.getOrElse("json") match {
+    case "json"    => new JSONSerializer(rowSchema)
+    case "arrow"   => new ArrowSerializer(rowSchema)
+    case "parquet" => new ParquetSerializer(rowSchema)
+    case _         => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 
+}
+
+/**
+* Sink for redis connection
+  * @param url connection for redis, in format: redis://host:port/db
+  * @param key key for data retrieving
+  * @param serializer format of data in redis
+  * @param rowSchema schema of writing rows
+  * @param parallelism num of parallel task to write data
+  */
+case class RedisOutputConf(
+  url: String,
+  key: String,
+  serializer: String = "json",
+  rowSchema: RowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+
+  override def getOutputFormat: OutputFormat[Row] = null
 }

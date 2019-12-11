@@ -2,7 +2,6 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
@@ -75,6 +74,7 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   val outputConf = KafkaOutputConf(
     "127.0.0.1:9092",
     "SM_basic_patterns",
+    Some("json"),
     rowSchema
   )
 
@@ -88,10 +88,31 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
 
   override def afterStart(): Unit = {
     super.afterStart()
-    Files.readResource("/sql/test-db-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/wide/source-inserts.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
-    Files.readResource("/sql/sink-schema.sql").mkString.split(";").foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/wide/source-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/wide/source-inserts.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(clickhouseContainer.executeUpdate)
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
