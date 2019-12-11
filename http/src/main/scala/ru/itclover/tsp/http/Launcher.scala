@@ -1,22 +1,22 @@
 package ru.itclover.tsp.http
 
 import java.net.URLDecoder
+import java.nio.file.{Files, Paths}
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import cats.implicits._
-import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.runtime.state.memory.MemoryStateBackend
+import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
 
@@ -125,14 +125,29 @@ object Launcher extends App with HttpService {
   }
 
   /**
-  * Method for flink enironment configuration
+  * Method for flink environment configuration
     * @param env flink execution environment
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-    env.setStateBackend(new MemoryStateBackend())
+    env.enableCheckpointing(500)
+
     val config = env.getCheckpointConfig
     config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
+    config.setMinPauseBetweenCheckpoints(250)
+    config.setCheckpointTimeout(60000)
+    config.setTolerableCheckpointFailureNumber(5)
+    config.setMaxConcurrentCheckpoints(5)
+
+    val currentPath = System.getProperty("user.dir")
+    val checkpointsPath = Paths.get(s"${currentPath}/checkpoints")
+
+    if(!Files.exists(checkpointsPath)){
+      Files.createDirectories(checkpointsPath)
+    }
+
+    env.setStateBackend(new RocksDBStateBackend(checkpointsPath.toUri))
 
     env
 
