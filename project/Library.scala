@@ -93,7 +93,8 @@ object Library {
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
     "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
-    "org.apache.flink" % "flink-avro" % Version.flink
+    "org.apache.flink" % "flink-avro" % Version.flink,
+    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
   )
 
   val akka: Seq[ModuleID] = Seq(
