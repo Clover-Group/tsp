@@ -1,3 +1,6 @@
+## 0.15.0-rc4
+- added Prometheus monitoring
+- added RocksDB back-end for Flink checkpointing
 ## 0.15.0-rc3
 
 ## 0.15.0-rc2

@@ -1,2 +1,0 @@
-- added Prometheus monitoring
-- added RocksDB back-end for Flink checkpointing
