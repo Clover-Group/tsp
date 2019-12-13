@@ -1,3 +1,11 @@
+## 0.15.0-rc4
+- added Prometheus monitoring
+- added RocksDB back-end for Flink checkpointing
+## 0.15.0-rc3
+
+## 0.15.0-rc2
+- `FILL(previous)` now ignored in InfluxDB helper queries
+- Kafka now does not read from earliest by default, using group offsets
 ## 0.15.0-rc1
 - new data sources: Kafka, Redis
 - restored data transformations

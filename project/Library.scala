@@ -55,6 +55,8 @@ object Version {
 
   val spark = "2.4.4"
 
+  val akkaHttpMetrics = "0.6.0"
+
 }
 
 object Library {
@@ -92,7 +94,9 @@ object Library {
     "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
-    "org.apache.flink" % "flink-avro" % Version.flink
+    "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
+    "org.apache.flink" % "flink-avro" % Version.flink,
+    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
   )
 
   val akka: Seq[ModuleID] = Seq(
@@ -104,7 +108,8 @@ object Library {
   val akkaHttp: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
-    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
+    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp,
+    "fr.davit" %% "akka-http-metrics-prometheus" % Version.akkaHttpMetrics
   )
 
   val cats: Seq[ModuleID] = Seq(

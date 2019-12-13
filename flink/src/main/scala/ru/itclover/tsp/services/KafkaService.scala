@@ -43,7 +43,7 @@ object KafkaService {
     // //props.setProperty("client.id", "client0")
     props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
 
-    val deserializer = conf.serializer match {
+    val deserializer = conf.serializer.getOrElse("json") match {
       case "json"    => new RowDeserializationSchema(fieldsIdxMap)
       case "arrow"   => new ArrowRowDeserializationSchema()
       case "parquet" => new ParquetRowDeserializationSchema()

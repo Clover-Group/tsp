@@ -408,7 +408,8 @@ case class KafkaSource(
 
   def createStream: DataStream[RowWithIdx] = {
     val consumer = KafkaService.consumer(conf, fieldsIdxMap)
-    consumer.setStartFromEarliest()
+    // TODO: Make this parameter configurable
+    consumer.setStartFromGroupOffsets()
     streamEnv.enableCheckpointing(5000)
     streamEnv
       .addSource(consumer)
