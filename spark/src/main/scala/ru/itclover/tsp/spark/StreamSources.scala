@@ -91,6 +91,9 @@ case class JdbcSource(
                        nullFieldId: Symbol,
                        patternFields: Set[Symbol]
                      ) extends StreamSource[RowWithIdx, Symbol, Any] {
+  def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
+
   // TODO: Better place for Spark session
   override val spark: SparkSession = SparkSession.builder()
     .master("local")
@@ -117,9 +120,15 @@ case class JdbcSource(
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = fieldsIdxMap // TODO: transformation
 
-  override def partitioner: RowWithIdx => String = _ => "" // TODO: partitioning
+  override def partitioner: RowWithIdx => String = {
+    val serializablePI = partitionsIdx
+    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  }
 
-  override def transformedPartitioner: RowWithIdx => String = _ => "" // TODO: partitioning
+  override def transformedPartitioner: RowWithIdx => String = {
+    val serializablePI = transformedPartitionsIdx
+    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  }
 
   val timeIndex = fieldsIdxMap(conf.datetimeField)
   val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)

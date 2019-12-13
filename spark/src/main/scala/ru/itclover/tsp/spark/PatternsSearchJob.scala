@@ -105,17 +105,19 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
           source.conf.eventsMaxGapMs
         )
     }
-    val keyedRDD = stream//keyBy.(source.transformedPartitioner)
+    val keyedRDD = stream
+      .keyBy(source.transformedPartitioner)
+      //.partitionBy()
     val windowed: RDD[Iterable[In]] =
       if (useWindowing) {
         val chunkSize = 100000
         keyedRDD
-          .map((x: In) => ((idxExtractor(x) / chunkSize), x))
+          .map { case (k, x) => ((k, (idxExtractor(x) / chunkSize)), x)}
           .groupByKey()
           .map(_._2)
           //.window(Milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
       } else {
-        keyedRDD.map(List(_))
+        keyedRDD.map{ case (_, x) => List(x) }
       }
     val processed = windowed
       .flatMap[Incident](
