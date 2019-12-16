@@ -11,6 +11,10 @@ services:
       - "TSP_JAVA_OPTS=-Xms2G -Xmx4G" 
     restart: on-failure
     image: clovergrp/tsp:latest
+
+    volumes:
+      - /home/romanov/projects/test:/checkpoints
+
     ports:
       - "8080:8080"
   jobmanager:
@@ -20,6 +24,10 @@ services:
     ports:
       - "8081:8081"
     command: jobmanager
+
+    volumes:
+      - /home/romanov/projects/test:/checkpoints 
+
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
 
@@ -33,5 +41,9 @@ services:
     command: taskmanager
     links:
       - "jobmanager:jobmanager"
+
+    volumes:
+      - /home/romanov/projects/test:/checkpoints
+      
     environment:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
