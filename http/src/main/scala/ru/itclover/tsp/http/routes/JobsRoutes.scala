@@ -6,7 +6,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.ActorMaterializer
 import cats.data.Reader
 import cats.implicits._
@@ -55,136 +56,64 @@ trait JobsRoutes extends RoutesProtocols {
   private val log = Logger[JobsRoutes]
 
   val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
-    path("streamJob" / "from-jdbc" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- JdbcSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-influxdb" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-kafka" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- KafkaSource.create(inputConf, fields)
-          _ = log.info("Kafka create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
-          _ = log.info("Kafka createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Kafka runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-jdbc" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- JdbcSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-influxdb" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-kafka" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- KafkaSource.create(inputConf, fields)
-          _ = log.info("Kafka create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
-          _ = log.info("Kafka createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Kafka runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-redis" / "to-redis"./) {
-      entity(as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]) { request =>
-
-        import request._
-        val fields = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- RedisSource.create(inputConf, fields)
-          _ = log.info("Redis create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
-          _ = log.info("Redis createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Redis runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-
-      }
-    } ~
-    // Spark job (currently JDBC-JDBC only)
-      path("sparkJob" / "from-jdbc" / "to-jdbc"./) {
-        entity(as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]) { request =>
+      path ("streamJob" / """from-(\w+)""".r / """to-(\w+)""".r./) { case (from, to) =>
+        val um = (from, to) match {
+          case ("jdbc", "jdbc") => as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]
+          case ("influxdb", "jdbc") => as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]
+          case ("kafka", "jdbc") => as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]
+          case ("redis", "jdbc") => as[FindPatternsRequest[RedisInputConf, JDBCOutputConf]]
+          case ("jdbc", "kafka") => as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]
+          case ("influxdb", "kafka") => as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]
+          case ("kafka", "kafka") => as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]
+          case ("redis", "kafka") => as[FindPatternsRequest[RedisInputConf, KafkaOutputConf]]
+          case ("jdbc", "redis") => as[FindPatternsRequest[JDBCInputConf, RedisOutputConf]]
+          case ("influxdb", "redis") => as[FindPatternsRequest[InfluxDBInputConf, RedisOutputConf]]
+          case ("kafka", "redis") => as[FindPatternsRequest[KafkaInputConf, RedisOutputConf]]
+          case ("redis", "redis") => as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]
+          case _ => null // Not implemented, will crash with a 500
+        }
+        entity(um.asInstanceOf[FromRequestUnmarshaller[FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]]]]) { request: FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]] =>
           import request._
           val fields = PatternFieldExtractor.extract(patterns)
 
-//          val resultOrErr: Either[Err, Option[Unit]] = for {
-//            source <- spark.JdbcSource.create(inputConf, fields)
-//            stream <- createSparkStream(patterns, fields, inputConf, outConf, source)
-//            result <- runSparkStream(stream, isAsync)
-//          } yield result
+          val srcOrError = from match {
+            case "jdbc" => JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
+            case "influxdb" => InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
+            case "kafka" => KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
+            case "redis" => RedisSource.create(inputConf.asInstanceOf[RedisInputConf], fields)
+            //case _ => Left(ConfigErr)
+          }
 
-          val source: Either[SparkConfErr, spark.JdbcSource] = spark.JdbcSource.create(inputConf, fields)
-          val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
-          val result: Either[SparkErr, Option[Unit]] = stream.flatMap(runSparkStream(_, isAsync))
-          val resultOrErr = result
+          val resultOrErr = for {
+            source <- srcOrError
+            _      <- createStream(patterns, fields, inputConf, outConf, source)
+            result <- runStream(uuid, isAsync)
+          } yield result
 
-
-          matchSparkResultToResponse(resultOrErr, uuid)
+          matchResultToResponse(resultOrErr, uuid)
         }
-      }
+      } ~
+        path("sparkJob" / "from-jdbc" / "to-jdbc"./) {
+          val e = entity(as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]])
+          e { request =>
+            import request._
+            val fields = PatternFieldExtractor.extract(patterns)
+
+  //          val resultOrErr: Either[Err, Option[Unit]] = for {
+  //            source <- spark.JdbcSource.create(inputConf, fields)
+  //            stream <- createSparkStream(patterns, fields, inputConf, outConf, source)
+  //            result <- runSparkStream(stream, isAsync)
+  //          } yield result
+
+            val source: Either[SparkConfErr, spark.JdbcSource] = spark.JdbcSource.create(inputConf, fields)
+            val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
+            val result: Either[SparkErr, Option[Unit]] = stream.flatMap(runSparkStream(_, isAsync))
+            val resultOrErr = result
+
+
+            matchSparkResultToResponse(resultOrErr, uuid)
+          }
+        }
   }
 
   // TODO: Restore EKey type parameter
