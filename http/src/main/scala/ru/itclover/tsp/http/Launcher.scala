@@ -16,6 +16,7 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
@@ -132,6 +133,8 @@ object Launcher extends App with HttpService {
 
     env.enableCheckpointing(500)
 
+    val flinkParameters = env.getConfig.getGlobalJobParameters.toMap.asScala
+
     val config = env.getCheckpointConfig
     config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
     config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
@@ -140,14 +143,23 @@ object Launcher extends App with HttpService {
     config.setTolerableCheckpointFailureNumber(5)
     config.setMaxConcurrentCheckpoints(5)
 
-    val currentPath = System.getProperty("user.dir")
-    val checkpointsPath = Paths.get(s"${currentPath}/checkpoints")
+    var savePointsPath = ""
 
-    if(!Files.exists(checkpointsPath)){
-      Files.createDirectories(checkpointsPath)
+    if(flinkParameters.contains("state.savepoints.dir")){
+      savePointsPath = flinkParameters("state.savepoints.dir")
+    }else{
+      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
     }
 
-    env.setStateBackend(new RocksDBStateBackend(checkpointsPath.toUri))
+    val expectedStorages = Seq("s3", "hdfs", "file")
+    val storageIndex = savePointsPath.indexOf(":")
+    val inputStorageType = savePointsPath.substring(0, storageIndex)
+
+    if(!expectedStorages.contains(inputStorageType)){
+      throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+    }
+
+    env.setStateBackend(new RocksDBStateBackend(savePointsPath))
 
     env
 
