@@ -14,7 +14,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, RowSchema => SparkRowSchema}
@@ -47,7 +47,7 @@ class SimpleCasesTest
       )
     )
 
-  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout = RouteTestTimeout(10.seconds)
 
   val port = 8161
   val influxPort = 8144
@@ -68,6 +68,8 @@ class SimpleCasesTest
       "default",
       waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
     )
+
+  val kafkaContainer = KafkaContainer()
 
   override val container = MultipleContainers(LazyContainer(clickhouseContainer), LazyContainer(influxContainer))
 
@@ -200,6 +202,21 @@ class SimpleCasesTest
     additionalTypeChecking = Some(false)
   )
 
+  val wideKafkaInputConf = KafkaInputConf(
+    brokers = "127.0.0.1:9092",
+    topic = "2te116u_tmy_test_simple_rules",
+    datetimeField = 'dt,
+    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    fieldsTypes = Map("dt" -> "float64",
+      "upload_id" -> "string",
+      "loco_num" -> "string",
+      "section" -> "string",
+      "POilDieselOut" -> "float64",
+      "SpeedThrustMin" -> "float64",
+      "PowerPolling" -> "float64"
+    )
+  )
+
   val wideSparkInputConf = SparkJDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
@@ -221,6 +238,9 @@ class SimpleCasesTest
   val influxRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
 
+  val wideKafkaRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, wideKafkaInputConf.partitionFields)
+
   val wideSparkRowSchema =
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideSparkInputConf.partitionFields)
 
@@ -241,6 +261,13 @@ class SimpleCasesTest
   val influxOutputConf = JDBCOutputConf(
     "events_influx_test",
     influxRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val wideKafkaOutputConf = JDBCOutputConf(
+    "events_wide_kafka_test",
+    wideRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
@@ -298,6 +325,8 @@ class SimpleCasesTest
       .mkString
       .split(";")
       .foreach(clickhouseContainer.executeUpdate)
+
+
 
   }
 
@@ -362,7 +391,7 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 
-  "Cases 1-17" should "work in influx table" in {
+  "Cases 1-17" should "work in Influx table" in {
     (1 to 17).foreach { id =>
       Post(
         "/streamJob/from-influxdb/to-jdbc/?run_async=0",
@@ -382,6 +411,31 @@ class SimpleCasesTest
         .toList
         .sortBy(_.head),
       s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+  }
+
+  "Cases 1-17" should "work in wide Kafka table" in {
+    (1 to 17).foreach { id =>
+      Post(
+        "/streamJob/from-kafka/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
