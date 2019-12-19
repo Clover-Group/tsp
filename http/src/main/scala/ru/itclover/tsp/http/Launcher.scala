@@ -11,6 +11,7 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
 import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
 import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -164,7 +165,7 @@ object Launcher extends App with HttpService {
       }
       env.setStateBackend(new RocksDBStateBackend(savePointsPath))
     }
-
+    env.setRestartStrategy(RestartStrategies.noRestart)
     env
 
   }
