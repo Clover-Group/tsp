@@ -52,11 +52,11 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- JdbcSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
@@ -66,11 +66,11 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-influxdb" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
@@ -80,12 +80,12 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-kafka" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- KafkaSource.create(inputConf, fields)
           _ = log.info("Kafka create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
+          _ <- createStream(patterns, inputConf, outConf, source)
           _ = log.info("Kafka createStream done")
           result <- runStream(uuid, isAsync)
           _ = log.info("Kafka runStream done")
@@ -97,11 +97,11 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-jdbc" / "to-kafka"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- JdbcSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
@@ -111,11 +111,11 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-influxdb" / "to-kafka"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, fields, inputConf, outConf, source)
+          _      <- createStream(patterns, inputConf, outConf, source)
           result <- runStream(uuid, isAsync)
         } yield result
 
@@ -125,12 +125,12 @@ trait JobsRoutes extends RoutesProtocols {
     path("streamJob" / "from-kafka" / "to-kafka"./) {
       entity(as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]) { request =>
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- KafkaSource.create(inputConf, fields)
           _ = log.info("Kafka create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
+          _ <- createStream(patterns, inputConf, outConf, source)
           _ = log.info("Kafka createStream done")
           result <- runStream(uuid, isAsync)
           _ = log.info("Kafka runStream done")
@@ -143,12 +143,12 @@ trait JobsRoutes extends RoutesProtocols {
       entity(as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]) { request =>
 
         import request._
-        val fields = PatternFieldExtractor.extract(patterns)
+        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
         val resultOrErr = for {
           source <- RedisSource.create(inputConf, fields)
           _ = log.info("Redis create done")
-          _ <- createStream(patterns, fields, inputConf, outConf, source)
+          _ <- createStream(patterns, inputConf, outConf, source)
           _ = log.info("Redis createStream done")
           result <- runStream(uuid, isAsync)
           _ = log.info("Redis runStream done")
@@ -165,7 +165,6 @@ trait JobsRoutes extends RoutesProtocols {
 
   def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
-    fields: Set[EKey],
     inputConf: InputConf[E, EKey, EItem],
     outConf: OutputConf[Row],
     source: StreamSource[E, EKey, EItem]
@@ -174,7 +173,7 @@ trait JobsRoutes extends RoutesProtocols {
 
     log.debug("createStream started")
 
-    val searcher = PatternsSearchJob(source, fields, decoders)
+    val searcher = PatternsSearchJob(source, decoders)
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,

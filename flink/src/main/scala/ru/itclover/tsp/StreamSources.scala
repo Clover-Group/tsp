@@ -71,6 +71,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def eventCreator: EventCreator[Event, EKey]
 
   implicit def keyCreator: KeyCreator[EKey]
+
+  def patternFields: Set[EKey]
 }
 
 object StreamSource {
@@ -87,17 +89,28 @@ object JdbcSource {
 
   def create(conf: JDBCInputConf, fields: Set[Symbol])(
     implicit strEnv: StreamExecutionEnvironment
-  ): Either[ConfigErr, JdbcSource] =
+  ): Either[Err, JdbcSource] =
     for {
       types <- JdbcService
         .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
+      newFields <- checkKeysExistence(conf, fields)
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => JdbcSource(conf, types, nullField, fields).asRight
+        case Some(nullField) => JdbcSource(conf, types, nullField, newFields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
+
+
+  def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(keyColumn, _, _, _)) =>
+      JdbcService.fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
+        .toEither
+        .map(_.intersect(keys))
+        .leftMap[GenericRuntimeErr](e => GenericRuntimeErr(e, 5099))
+    case _ => Right(keys)
+  }
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
@@ -352,7 +365,6 @@ case class InfluxDBSource(
 
   //todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
-
 }
 
 object KafkaSource {

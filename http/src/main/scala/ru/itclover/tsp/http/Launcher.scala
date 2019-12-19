@@ -11,6 +11,7 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
 import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
@@ -20,6 +21,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
+import scala.util.Try
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
@@ -133,7 +135,7 @@ object Launcher extends App with HttpService {
 
     env.enableCheckpointing(500)
 
-    val flinkParameters = env.getConfig.getGlobalJobParameters.toMap.asScala
+    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
 
     val config = env.getCheckpointConfig
     config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
@@ -152,14 +154,16 @@ object Launcher extends App with HttpService {
     }
 
     val expectedStorages = Seq("s3", "hdfs", "file")
-    val storageIndex = savePointsPath.indexOf(":")
-    val inputStorageType = savePointsPath.substring(0, storageIndex)
 
-    if(!expectedStorages.contains(inputStorageType)){
-      throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+    if (savePointsPath.nonEmpty) {
+      val storageIndex = savePointsPath.indexOf(":")
+      val inputStorageType = savePointsPath.substring(0, storageIndex)
+
+      if(!expectedStorages.contains(inputStorageType)){
+        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+      }
+      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
     }
-
-    env.setStateBackend(new RocksDBStateBackend(savePointsPath))
 
     env
 
@@ -179,7 +183,8 @@ object Launcher extends App with HttpService {
   }
 
   def createLocalEnv: Either[String, StreamExecutionEnvironment] = {
+    val config = new Configuration()
     log.info(s"Starting local Flink with monitoring in $monitoringUri")
-    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironment()))
+    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)))
   }
 }
