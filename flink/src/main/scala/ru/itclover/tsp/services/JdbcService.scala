@@ -32,7 +32,10 @@ object JdbcService {
       connection <- connectionTry
       resultSet  <- Try(connection.createStatement().executeQuery(s"SELECT DISTINCT(${keyColumn.name}) FROM (${query})"))
     } yield {
-      Iterator.continually(Unit).takeWhile(_ => resultSet.next()).map(_ => Symbol(resultSet.getString(1))).toSet
+      new Iterator[String] {
+        def hasNext = resultSet.next()
+        def next() = resultSet.getString(1)
+      }.toStream.map(Symbol(_)).toSet
     }
   }
 }

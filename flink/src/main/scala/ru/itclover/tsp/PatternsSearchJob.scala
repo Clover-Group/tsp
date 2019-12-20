@@ -198,7 +198,7 @@ object PatternsSearchJob {
             )
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
-      .map(_.zip(rawPatterns))
+      .map(_.zip(filteredPatterns))
       .toEither
 
     log.debug("preparePatterns finished")

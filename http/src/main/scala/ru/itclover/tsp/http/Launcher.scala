@@ -95,7 +95,8 @@ object Launcher extends App with HttpService {
     case Left(err)  => throw new RuntimeException(err)
   }
 
-  streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
+  streamEnvironment.setParallelism(1)
+  streamEnvironment.setMaxParallelism(1)//(configs.getInt("flink.max-parallelism"))
 
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
@@ -134,38 +135,38 @@ object Launcher extends App with HttpService {
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-    env.enableCheckpointing(500)
-
-    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
-
-    val config = env.getCheckpointConfig
-    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
-    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-    config.setMinPauseBetweenCheckpoints(250)
-    config.setCheckpointTimeout(60000)
-    config.setTolerableCheckpointFailureNumber(5)
-    config.setMaxConcurrentCheckpoints(5)
-
-    var savePointsPath = ""
-
-    if(flinkParameters.contains("state.savepoints.dir")){
-      savePointsPath = flinkParameters("state.savepoints.dir")
-    }else{
-      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
-    }
-
-    val expectedStorages = Seq("s3", "hdfs", "file")
-
-    if (savePointsPath.nonEmpty) {
-      val storageIndex = savePointsPath.indexOf(":")
-      val inputStorageType = savePointsPath.substring(0, storageIndex)
-
-      if(!expectedStorages.contains(inputStorageType)){
-        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
-      }
-      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
-    }
-    env.setRestartStrategy(RestartStrategies.noRestart)
+//    env.enableCheckpointing(500)
+//
+//    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
+//
+//    val config = env.getCheckpointConfig
+//    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+//    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
+//    config.setMinPauseBetweenCheckpoints(250)
+//    config.setCheckpointTimeout(60000)
+//    config.setTolerableCheckpointFailureNumber(5)
+//    config.setMaxConcurrentCheckpoints(5)
+//
+//    var savePointsPath = ""
+//
+//    if(flinkParameters.contains("state.savepoints.dir")){
+//      savePointsPath = flinkParameters("state.savepoints.dir")
+//    }else{
+//      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
+//    }
+//
+//    val expectedStorages = Seq("s3", "hdfs", "file")
+//
+//    if (savePointsPath.nonEmpty) {
+//      val storageIndex = savePointsPath.indexOf(":")
+//      val inputStorageType = savePointsPath.substring(0, storageIndex)
+//
+//      if(!expectedStorages.contains(inputStorageType)){
+//        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+//      }
+//      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
+//    }
+//    env.setRestartStrategy(RestartStrategies.noRestart)
     env
 
   }

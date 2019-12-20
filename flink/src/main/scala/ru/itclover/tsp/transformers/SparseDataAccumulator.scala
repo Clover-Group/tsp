@@ -74,7 +74,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     val time = extractTime(item)
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)
-      event(key) = (value, time)
+      if (event.get(key).orNull == null || value != null) event(key) = (value, time)
     } else {
       allFieldsIndexesMap.keySet.foreach { key =>
         val newValue = Try(extractValue(item, key))
