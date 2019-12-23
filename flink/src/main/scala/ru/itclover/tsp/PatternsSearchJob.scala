@@ -211,7 +211,7 @@ object PatternsSearchJob {
 
     val res = incidents
       .assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
-      .keyBy(_.id)
+      .keyBy(p => (p.id, p.patternPayload))
       .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
         override def extract(element: Incident): Long = element.maxWindowMs
       }))
