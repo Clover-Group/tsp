@@ -1,0 +1,1 @@
+CREATE TABLE default.`ivolga_test_wide` (`ts` Float64, `upload_id` String, `stock_num` String, `car_2_TCU_out_E_Bog` Float32, `car_2_BCU_out_Indirect_Brake_Active` Nullable(Float32)) ENGINE = MergeTree() PARTITION BY toMonday(toDateTime(ts)) ORDER BY (stock_num, upload_id, ts) SAMPLE BY ts SETTINGS index_granularity = 8192

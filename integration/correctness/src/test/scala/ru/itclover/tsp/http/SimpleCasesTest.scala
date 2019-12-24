@@ -230,14 +230,26 @@ class SimpleCasesTest
   val narrowInputIvolgaConf = JDBCInputConf(
     sourceId = 400,
     jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM ivolga_test ORDER BY dt",
+    query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'dt,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
-    partitionFields = Seq('stock_num, 'value_str, 'upload_id),
+    partitionFields = Seq('stock_num,'upload_id),
     dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(1000))),
+  )
+
+  val wideInputIvolgaConf = JDBCInputConf(
+    sourceId = 500,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
+    driverName = clickhouseContainer.driverName,
+    datetimeField = 'ts,
+    eventsMaxGapMs = 60000L,
+    defaultEventsGapMs = 1000L,
+    chunkSizeMs = Some(900000L),
+    partitionFields = Seq('stock_num, 'upload_id)
   )
 
   val wideRowSchema =
@@ -251,6 +263,9 @@ class SimpleCasesTest
 
   val narrowIvolgaRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, narrowInputIvolgaConf.partitionFields)
+
+  val wideIvolgaRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 5), 'id, 'timestamp, 'context, wideInputIvolgaConf.partitionFields)
 
   val wideOutputConf = JDBCOutputConf(
     "events_wide_test",
@@ -275,6 +290,13 @@ class SimpleCasesTest
 
   val narrowOutputIvolgaConf = JDBCOutputConf(
     "events_narrow_ivolga_test",
+    narrowIvolgaRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val wideOutputIvolgaConf = JDBCOutputConf(
+    "events_wide_ivolga_test",
     narrowIvolgaRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -307,6 +329,12 @@ class SimpleCasesTest
       .split(";")
       .foreach(clickhouseContainer.executeUpdate)
 
+    Files
+      .readResource("/sql/test/cases-wide-schema-ivolga.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
+
     val mathCSVData = Files
       .readResource("/sql/test/cases-narrow-new.csv")
       .drop(1)
@@ -317,10 +345,16 @@ class SimpleCasesTest
       .drop(1)
       .mkString("\n")
 
-    val ivolgaCSVData = Files
+    val ivolgaNarrowCSVData = Files
       .readResource("/sql/test/cases-narrow-ivolga.csv")
       .drop(1)
       .mkString("\n")
+
+    val ivolgaWideCSVData = Files
+      .readResource("/sql/test/cases-wide-ivolga.csv")
+      .drop(1)
+      .mkString("\n")
+
 
     Files
       .readResource("/sql/test/cases-narrow-new.influx")
@@ -330,7 +364,9 @@ class SimpleCasesTest
 
     clickhouseContainer.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${mathCSVData}")
 
-    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test FORMAT CSV\n${ivolgaCSVData}")
+    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_narrow FORMAT CSV\n${ivolgaNarrowCSVData}")
+
+    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_wide FORMAT CSV\n${ivolgaWideCSVData}")
 
     clickhouseContainer.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
 
@@ -400,7 +436,7 @@ class SimpleCasesTest
         .sortBy(_.head),
       s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id"
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_narrow_test ORDER BY id, from, to")
   }
 
   "Cases 1-17" should "work in influx table" in {
@@ -427,7 +463,7 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 
-  "Cases 18-26" should "work in ivolga table" in {
+  "Cases 18-26" should "work in ivolga narrow table" in {
     (18 to 26).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -449,5 +485,29 @@ class SimpleCasesTest
       s"SELECT id, COUNT(*) FROM events_narrow_ivolga_test GROUP BY id ORDER BY id"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
+  }
+
+  "Cases 18-26" should "work in ivolga wide table" in {
+    (18 to 26).foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_wide_ivolga_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_ivolga_test ORDER BY id, from, to")
   }
 }
