@@ -41,7 +41,7 @@ object KafkaService {
     props.setProperty("bootstrap.servers", conf.brokers)
     props.setProperty("group.id", conf.group)
     // //props.setProperty("client.id", "client0")
-    props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
+    // props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
 
     val deserializer = conf.serializer.getOrElse("json") match {
       case "json"    => new RowDeserializationSchema(fieldsIdxMap)
