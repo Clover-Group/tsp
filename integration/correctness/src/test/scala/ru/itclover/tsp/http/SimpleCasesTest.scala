@@ -137,19 +137,19 @@ class SimpleCasesTest
   )
   val incidentsIvolgaCount = Map(
     18 -> 1,
-    19 -> 1,
+    19 -> 2,
     20 -> 1,
     21 -> 2,
-    22 -> 1,
+    22 -> 2,
     23 -> 1,
     24 -> 1,
     25 -> 1,
     26 -> 1,
     27 -> 1,
-    28 -> 1,
+    28 -> 2,
     29 -> 1,
     30 -> 2,
-    31 -> 1,
+    31 -> 2,
     32 -> 1,
     33 -> 1,
     34 -> 1,
@@ -216,20 +216,24 @@ class SimpleCasesTest
   val incidentsIvolgaTimestamps: List[List[Double]] = List(
     List(18, 1572120331.0, 1572120331.0),
     List(19, 1572120320.0, 1572120343.0),
+    List(19, 1572120345.0, 1572120367.0),
     List(20, 1572120321.0, 1572120344.0),
     List(21, 1572120320.0, 1572120320.0),
     List(21, 1572120339.0, 1572120339.0),
     List(22, 1572120332.0, 1572120332.0),
+    List(22, 1572120346.0, 1572120359.0),
     List(23, 1572120322.0, 1572120325.0),
     List(24, 1572120321.0, 1572120321.0),
     List(25, 1572120320.0, 1572120329.0),
     List(26, 1572120320.0, 1572120323.0),
     List(27, 1572120331.0, 1572120331.0),
     List(28, 1572120320.0, 1572120343.0),
+    List(28, 1572120345.0, 1572120367.0),
     List(29, 1572120321.0, 1572120344.0),
     List(30, 1572120320.0, 1572120320.0),
     List(30, 1572120339.0, 1572120339.0),
     List(31, 1572120332.0, 1572120332.0),
+    List(31, 1572120346.0, 1572120359.0),
     List(32, 1572120322.0, 1572120325.0),
     List(33, 1572120321.0, 1572120321.0),
     List(34, 1572120320.0, 1572120329.0),
@@ -291,7 +295,7 @@ class SimpleCasesTest
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num,'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(1000))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(15000L))),
   )
 
   val wideInputIvolgaConf = JDBCInputConf(
@@ -305,11 +309,8 @@ class SimpleCasesTest
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num, 'upload_id),
     dataTransformation = Some(WideDataFilling(
-      Map(
-        'car_4_BCU_out_Indirect_Brake_Active -> 1000L,
-        'car_2_BCU_out_Indirect_Brake_Active -> 1000L,
-        'PSN_1_is_working -> 1000L,
-      )))
+      Map.empty, defaultTimeout = Some(15000L))
+    )
   )
 
   val wideRowSchema =
@@ -470,7 +471,7 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_wide_test GROUP BY id ORDER BY id"
+      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
@@ -494,7 +495,7 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id"
+      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_narrow_test ORDER BY id, from, to")
   }
@@ -518,9 +519,9 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id"
+      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_influx_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_influx_test ORDER BY id, from, to")
   }
 
   "Cases 18-39" should "work in ivolga narrow table" in {
@@ -542,7 +543,7 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_narrow_ivolga_test GROUP BY id ORDER BY id"
+      s"SELECT number, c FROM (SELECT number FROM numbers(18, 22)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
     checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
   }
@@ -566,7 +567,7 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_wide_ivolga_test GROUP BY id ORDER BY id"
+      s"SELECT number, c FROM (SELECT number FROM numbers(18, 22)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
     checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_wide_ivolga_test ORDER BY id, from, to")
   }
