@@ -14,7 +14,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
@@ -87,7 +87,33 @@ class SimpleCasesTest
     RawPattern("14", "avgOf(POilDieselOut, SpeedThrustMin) > 0"),
     RawPattern("15", "lag(POilDieselOut) < 0"),
     RawPattern("16", "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)"),
-    RawPattern("17", "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)")
+    RawPattern("17", "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)"),
+    RawPattern("18", "car_2_TCU_out_E_Bog = 585"),
+    RawPattern("19", "car_2_TCU_out_E_Bog != 511"),
+    RawPattern("20", "car_2_TCU_out_E_Bog < 700"),
+    RawPattern("21", "car_2_TCU_out_E_Bog > 690"),
+    RawPattern("22", "car_2_TCU_out_E_Bog < 600 for 2 sec"),
+    RawPattern("23", "car_2_TCU_out_E_Bog > 600 for 2 sec andThen car_2_TCU_out_E_Bog < 600"),
+    RawPattern("24", "car_2_TCU_out_E_Bog = 530 and lag(car_2_TCU_out_E_Bog) = 700"),
+    RawPattern("25", "car_2_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_2_BCU_out_Indirect_Brake_Active = 0"),
+    RawPattern("26", "car_2_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_2_BCU_out_Indirect_Brake_Active = 1 for 3 sec)"),
+    RawPattern("27", "car_4_TCU_out_E_Bog = 585"),
+    RawPattern("28", "car_4_TCU_out_E_Bog != 511"),
+    RawPattern("29", "car_4_TCU_out_E_Bog < 700"),
+    RawPattern("30", "car_4_TCU_out_E_Bog > 690"),
+    RawPattern("31", "car_4_TCU_out_E_Bog < 600 for 2 sec"),
+    RawPattern("32", "car_4_TCU_out_E_Bog > 600 for 2 sec andThen car_4_TCU_out_E_Bog < 600"),
+    RawPattern("33", "car_4_TCU_out_E_Bog = 530 and lag(car_4_TCU_out_E_Bog) = 700"),
+    RawPattern("34", "car_4_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_4_BCU_out_Indirect_Brake_Active = 0"),
+    RawPattern("35", "car_4_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_4_BCU_out_Indirect_Brake_Active = 1 for 3 sec)"),
+    RawPattern("36", "ABKM_Brake_Pos > 1"),
+    RawPattern("37", "ABKM_Brake_Fail = 0"),
+    RawPattern("38", "PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)"),
+    RawPattern("39", "wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)"),
+    // for str value
+//    RawPattern("40", "SOC_2_UKV_UOVS = „OFF“ and lag(SOC_2_UKV_UOVS) = „FAILURE“"),
+//    RawPattern("41", "car_2_TCU_out_E_Bog = 700 and each([UKV], SOC_UKV_UOVS = „OFF“)"),
+//    RawPattern("42", "Wait(3 sec, SOC_2_UKV_UOVS = „FAILURE“)"),
   )
 
   val incidentsCount = Map(
@@ -108,6 +134,33 @@ class SimpleCasesTest
     15 -> 1,
     16 -> 1,
     17 -> 1,
+  )
+  val incidentsIvolgaCount = Map(
+    18 -> 1,
+    19 -> 1,
+    20 -> 1,
+    21 -> 2,
+    22 -> 1,
+    23 -> 1,
+    24 -> 1,
+    25 -> 1,
+    26 -> 1,
+    27 -> 1,
+    28 -> 1,
+    29 -> 1,
+    30 -> 2,
+    31 -> 1,
+    32 -> 1,
+    33 -> 1,
+    34 -> 1,
+    35 -> 1,
+    36 -> 0,
+    37 -> 0,
+    38 -> 1,
+    39 -> 1,
+//    40 -> 1,
+//    41 -> 1,
+//    42 -> 1,
   )
 
   // type is explicitly specified to avoid writing pattern ID as Double
@@ -160,6 +213,35 @@ class SimpleCasesTest
     List(17, 1552860727.0, 1552860736.0),
   )
 
+  val incidentsIvolgaTimestamps: List[List[Double]] = List(
+    List(18, 1572120331.0, 1572120331.0),
+    List(19, 1572120320.0, 1572120343.0),
+    List(20, 1572120321.0, 1572120344.0),
+    List(21, 1572120320.0, 1572120320.0),
+    List(21, 1572120339.0, 1572120339.0),
+    List(22, 1572120332.0, 1572120332.0),
+    List(23, 1572120322.0, 1572120325.0),
+    List(24, 1572120321.0, 1572120321.0),
+    List(25, 1572120320.0, 1572120329.0),
+    List(26, 1572120320.0, 1572120323.0),
+    List(27, 1572120331.0, 1572120331.0),
+    List(28, 1572120320.0, 1572120343.0),
+    List(29, 1572120321.0, 1572120344.0),
+    List(30, 1572120320.0, 1572120320.0),
+    List(30, 1572120339.0, 1572120339.0),
+    List(31, 1572120332.0, 1572120332.0),
+    List(32, 1572120322.0, 1572120325.0),
+    List(33, 1572120321.0, 1572120321.0),
+    List(34, 1572120320.0, 1572120329.0),
+    List(35, 1572120320.0, 1572120323.0),
+    List(38, 1572120346.0, 1572120352.0),
+    List(39, 1572120353.0, 1572120356.0),
+//    List(40, 1572120361.0, 1572120361.0),
+//    List(41, 1572120320.0, 1572120320.0),
+//    List(42, 1572120357.0, 1572120360.0),
+
+  )
+
   val wideInputConf = JDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
@@ -199,6 +281,37 @@ class SimpleCasesTest
     additionalTypeChecking = Some(false)
   )
 
+  val narrowInputIvolgaConf = JDBCInputConf(
+    sourceId = 400,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
+    driverName = clickhouseContainer.driverName,
+    datetimeField = 'dt,
+    eventsMaxGapMs = 60000L,
+    defaultEventsGapMs = 1000L,
+    chunkSizeMs = Some(900000L),
+    partitionFields = Seq('stock_num,'upload_id),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(1000))),
+  )
+
+  val wideInputIvolgaConf = JDBCInputConf(
+    sourceId = 500,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
+    driverName = clickhouseContainer.driverName,
+    datetimeField = 'ts,
+    eventsMaxGapMs = 60000L,
+    defaultEventsGapMs = 1000L,
+    chunkSizeMs = Some(900000L),
+    partitionFields = Seq('stock_num, 'upload_id),
+    dataTransformation = Some(WideDataFilling(
+      Map(
+        'car_4_BCU_out_Indirect_Brake_Active -> 1000L,
+        'car_2_BCU_out_Indirect_Brake_Active -> 1000L,
+        'PSN_1_is_working -> 1000L,
+      )))
+  )
+
   val wideRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
 
@@ -207,6 +320,12 @@ class SimpleCasesTest
 
   val influxRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
+
+  val narrowIvolgaRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, narrowInputIvolgaConf.partitionFields)
+
+  val wideIvolgaRowSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 5), 'id, 'timestamp, 'context, wideInputIvolgaConf.partitionFields)
 
   val wideOutputConf = JDBCOutputConf(
     "events_wide_test",
@@ -225,6 +344,20 @@ class SimpleCasesTest
   val influxOutputConf = JDBCOutputConf(
     "events_influx_test",
     influxRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val narrowOutputIvolgaConf = JDBCOutputConf(
+    "events_narrow_ivolga_test",
+    narrowIvolgaRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val wideOutputIvolgaConf = JDBCOutputConf(
+    "events_wide_ivolga_test",
+    narrowIvolgaRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
@@ -250,6 +383,18 @@ class SimpleCasesTest
       .split(";")
       .foreach(influxContainer.executeQuery)
 
+    Files
+      .readResource("/sql/test/cases-narrow-schema-ivolga.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
+
+    Files
+      .readResource("/sql/test/cases-wide-schema-ivolga.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
+
     val mathCSVData = Files
       .readResource("/sql/test/cases-narrow-new.csv")
       .drop(1)
@@ -260,6 +405,17 @@ class SimpleCasesTest
       .drop(1)
       .mkString("\n")
 
+    val ivolgaNarrowCSVData = Files
+      .readResource("/sql/test/cases-narrow-ivolga.csv")
+      .drop(1)
+      .mkString("\n")
+
+    val ivolgaWideCSVData = Files
+      .readResource("/sql/test/cases-wide-ivolga.csv")
+      .drop(1)
+      .mkString("\n")
+
+
     Files
       .readResource("/sql/test/cases-narrow-new.influx")
       .mkString
@@ -267,6 +423,10 @@ class SimpleCasesTest
       .foreach(influxContainer.executeUpdate)
 
     clickhouseContainer.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${mathCSVData}")
+
+    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_narrow FORMAT CSV\n${ivolgaNarrowCSVData}")
+
+    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_wide FORMAT CSV\n${ivolgaWideCSVData}")
 
     clickhouseContainer.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
 
@@ -336,7 +496,7 @@ class SimpleCasesTest
         .sortBy(_.head),
       s"SELECT id, COUNT(*) FROM events_narrow_test GROUP BY id ORDER BY id"
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_narrow_test ORDER BY id, from, to")
   }
 
   "Cases 1-17" should "work in influx table" in {
@@ -361,5 +521,53 @@ class SimpleCasesTest
       s"SELECT id, COUNT(*) FROM events_influx_test GROUP BY id ORDER BY id"
     )
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+  }
+
+  "Cases 18-39" should "work in ivolga narrow table" in {
+    (18 to 39).foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_narrow_ivolga_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
+  }
+
+  "Cases 18-39" should "work in ivolga wide table" in {
+    (18 to 39).foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT id, COUNT(*) FROM events_wide_ivolga_test GROUP BY id ORDER BY id"
+    )
+    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_wide_ivolga_test ORDER BY id, from, to")
   }
 }
