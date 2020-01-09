@@ -58,8 +58,13 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def itemToKeyDecoder: Decoder[EItem, EKey] // for narrow data widening
 
   implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(key, value, _, _)) =>
-      (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
+    case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
+      (r: Event) =>
+        // TODO: Maybe optimise that by using intermediate (non-serialised) dictionary
+        val valueColumn = mapping.getOrElse(Map.empty[EKey, List[EKey]]).toSeq.find {
+          case (_, list) => list.contains(key)
+        }.map(_._1).getOrElse(value)
+        (extractor.apply[EKey](r, key), extractor.apply[EItem](r, valueColumn)) // TODO: See that place better
     case Some(WideDataFilling(_, _)) =>
       (_: Event) => sys.error("Wide data filling does not need K-V extractor")
     case Some(_) =>
@@ -104,7 +109,7 @@ object JdbcSource {
 
 
   def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(keyColumn, _, _, _)) =>
+    case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
       JdbcService.fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
         .toEither
         .map(_.intersect(keys))

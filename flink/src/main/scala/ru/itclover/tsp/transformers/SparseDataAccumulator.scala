@@ -150,7 +150,7 @@ object SparseRowsDataAccumulator {
             ndu.fieldsTimeoutsMs
           val extraFields = fim
             .filterNot {
-              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.valueColumn
+              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.defaultValueColumn
             }
             .keys
             .toSeq

@@ -268,7 +268,7 @@ class SimpleCasesTest
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map(), Some(1000))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
   )
 
   val influxInputConf = InfluxDBInputConf(
@@ -295,7 +295,7 @@ class SimpleCasesTest
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num,'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(15000L))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(15000L))),
   )
 
   val wideInputIvolgaConf = JDBCInputConf(
