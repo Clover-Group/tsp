@@ -111,9 +111,9 @@ class SimpleCasesTest
     RawPattern("38", "PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)"),
     RawPattern("39", "wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)"),
     // for str value
-//    RawPattern("40", "SOC_2_UKV_UOVS = „OFF“ and lag(SOC_2_UKV_UOVS) = „FAILURE“"),
-//    RawPattern("41", "car_2_TCU_out_E_Bog = 700 and each([UKV], SOC_UKV_UOVS = „OFF“)"),
-//    RawPattern("42", "Wait(3 sec, SOC_2_UKV_UOVS = „FAILURE“)"),
+    RawPattern("40", "SOC_2_UKV1_UOVS = 'OFF' and lag(SOC_2_UKV1_UOVS) = 'FAILURE'"),
+    RawPattern("41", "car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'"),
+    RawPattern("42", "Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)"),
   )
 
   val incidentsCount = Map(
@@ -158,9 +158,9 @@ class SimpleCasesTest
     37 -> 0,
     38 -> 1,
     39 -> 1,
-//    40 -> 1,
-//    41 -> 1,
-//    42 -> 1,
+    40 -> 1,
+    41 -> 1,
+    42 -> 1,
   )
 
   // type is explicitly specified to avoid writing pattern ID as Double
@@ -240,9 +240,9 @@ class SimpleCasesTest
     List(35, 1572120320.0, 1572120323.0),
     List(38, 1572120346.0, 1572120352.0),
     List(39, 1572120353.0, 1572120356.0),
-//    List(40, 1572120361.0, 1572120361.0),
-//    List(41, 1572120320.0, 1572120320.0),
-//    List(42, 1572120357.0, 1572120360.0),
+    List(40, 1572120361.0, 1572120361.0),
+    List(41, 1572120320.0, 1572120320.0),
+    List(42, 1572120357.0, 1572120360.0),
 
   )
 
@@ -295,7 +295,7 @@ class SimpleCasesTest
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num,'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(15000L))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map('value_str -> List('SOC_2_UKV1_UOVS))), Some(15000L))),
   )
 
   val wideInputIvolgaConf = JDBCInputConf(
@@ -524,32 +524,8 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_influx_test ORDER BY id, from, to")
   }
 
-  "Cases 18-39" should "work in ivolga narrow table" in {
-    (18 to 39).foreach { id =>
-      Post(
-        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatterns(id - 1)))
-      ) ~>
-        route ~> check {
-        withClue(s"Pattern ID: $id") {
-          status shouldEqual StatusCodes.OK
-        }
-      }
-    }
-    checkByQuery(
-      incidentsIvolgaCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(18, 22)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
-    )
-    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
-  }
-
-  "Cases 18-39" should "work in ivolga wide table" in {
-    (18 to 39).foreach { id =>
+  "Cases 18-42" should "work in ivolga wide table" in {
+    (18 to 42).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatterns(id - 1)))
@@ -567,8 +543,32 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(18, 22)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
+      s"SELECT number, c FROM (SELECT number FROM numbers(18, 25)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
     )
     checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_wide_ivolga_test ORDER BY id, from, to")
+  }
+
+  "Cases 18-42" should "work in ivolga narrow table" in {
+    (18 to 42).foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatterns(id - 1)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      s"SELECT number, c FROM (SELECT number FROM numbers(18, 25)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
+    )
+    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
   }
 }
