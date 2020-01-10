@@ -33,7 +33,29 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def fieldsClasses: Seq[(Symbol, Class[_])]
 
+  def transformedFieldsClasses: Seq[(Symbol, Class[_])] = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
+      val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
+      val r = fieldsClasses ++ m.map {
+        case (col, list) => list.map(k => (eKeyToField(k), fieldsClasses.find {
+          case (s, _) => fieldToEKey(s) == col
+        }.map(_._2).getOrElse(defaultClass)))
+      }.flatten
+      r
+    case _ =>
+      fieldsClasses
+  }
+
+  def defaultClass: Class[_] = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(_, value, _, _, _)) =>
+      fieldsClasses.find { case (s, _) => fieldToEKey(s) == value }.map(_._2).getOrElse(classOf[Double])
+    case _ =>
+      classOf[Double]
+  }
+
   def fieldToEKey: Symbol => EKey
+
+  def eKeyToField: EKey => Symbol
 
   def fieldsIdxMap: Map[Symbol, Int]
 
@@ -58,8 +80,16 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def itemToKeyDecoder: Decoder[EItem, EKey] // for narrow data widening
 
   implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(key, value, _, _)) =>
-      (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
+    case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
+      (r: Event) =>
+        // TODO: Maybe optimise that by using intermediate (non-serialised) dictionary
+        val extractedKey = extractor.apply[EKey](r, key)
+        val valueColumn = mapping.getOrElse(Map.empty[EKey, List[EKey]]).toSeq.find {
+          case (_, list) =>
+            list.contains(extractedKey)
+        }.map(_._1).getOrElse(value)
+        val extractedValue = extractor.apply[EItem](r, valueColumn)
+        (extractedKey, extractedValue) // TODO: See that place better
     case Some(WideDataFilling(_, _)) =>
       (_: Event) => sys.error("Wide data filling does not need K-V extractor")
     case Some(_) =>
@@ -104,7 +134,7 @@ object JdbcSource {
 
 
   def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(keyColumn, _, _, _)) =>
+    case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
       JdbcService.fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
         .toEither
         .map(_.intersect(keys))
@@ -163,6 +193,10 @@ case class JdbcSource(
   override def fieldToEKey = { fieldId: Symbol =>
     fieldId
   // fieldsIdxMap(fieldId)
+  }
+
+  override def eKeyToField: Symbol => Symbol = { key: Symbol =>
+    key
   }
 
   override def partitioner: RowWithIdx => String = {
@@ -312,6 +346,8 @@ case class InfluxDBSource(
 
   override def fieldToEKey = (fieldId: Symbol) => fieldId // fieldsIdxMap(fieldId)
 
+  override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
+
   override def partitioner = {
     val serializablePI = partitionsIdx
     event: RowWithIdx => serializablePI.map(event.row.getField).mkString
@@ -403,6 +439,9 @@ case class KafkaSource(
   def fieldsIdxMap = fieldsIdx.toMap
 
   override def fieldToEKey: Symbol => Symbol = (x => x)
+
+  override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
+
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
@@ -540,6 +579,9 @@ case class RedisSource(
   }
 
   override def fieldToEKey: Symbol => Symbol = (x => x)
+
+  override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
+
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>

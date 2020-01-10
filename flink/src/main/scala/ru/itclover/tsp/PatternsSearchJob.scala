@@ -50,7 +50,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
       source.conf.eventsMaxGapMs,
-      source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
+      source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
       source.patternFields
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
