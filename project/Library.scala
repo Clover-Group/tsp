@@ -3,6 +3,7 @@ import sbt._
 object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.9.2"
+  val logbackContrib = "0.1.5"
 
   val config = "1.3.4"
 
@@ -70,7 +71,9 @@ object Library {
 
   val logging: Seq[ModuleID] = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
-    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
+    "ch.qos.logback.contrib" % "logback-jackson" % Version.logbackContrib,
+    "ch.qos.logback.contrib" % "logback-json-classic" % Version.logbackContrib
   )
 
   val config: Seq[ModuleID] = Seq(
