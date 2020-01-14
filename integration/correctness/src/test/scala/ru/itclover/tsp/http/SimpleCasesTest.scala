@@ -71,65 +71,49 @@ class SimpleCasesTest
 
   override val container = MultipleContainers(LazyContainer(clickhouseContainer), LazyContainer(influxContainer))
 
-  var sourcePatternsString = ""
+  var fileSourceString = ""
+  val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
-  val fileResult: Try[String] = Files.readFile("integration/correctness/src/test/resources/simple_cases/patterns.json")
+  val patternsPath = s"${filesPath}/core/patterns.json"
 
-  fileResult match {
+  val patternsString: Try[String] = Files.readFile(patternsPath)
+
+  patternsString match {
     case Success(some) => {
-      sourcePatternsString = some
+      fileSourceString = some
     }
   }
 
-  val jsonObject = sourcePatternsString.parseJson
+  var jsonObject = fileSourceString.parseJson
   val casesPatterns = jsonObject.convertTo[Seq[RawPattern]]
 
-  val incidentsCount = Map(
-    1  -> 9,
-    2  -> 5,
-    3  -> 3,
-    4  -> 1,
-    5  -> 6,
-    6  -> 6,
-    7  -> 1,
-    8  -> 1,
-    9  -> 1,
-    10 -> 1,
-    11 -> 2, // TODO: or 3?
-    12 -> 2,
-    13 -> 1,
-    14 -> 3,
-    15 -> 1,
-    16 -> 1,
-    17 -> 1,
-  )
-  val incidentsIvolgaCount = Map(
-    18 -> 1,
-    19 -> 2,
-    20 -> 1,
-    21 -> 2,
-    22 -> 2,
-    23 -> 1,
-    24 -> 1,
-    25 -> 1,
-    26 -> 1,
-    27 -> 1,
-    28 -> 2,
-    29 -> 1,
-    30 -> 2,
-    31 -> 2,
-    32 -> 1,
-    33 -> 1,
-    34 -> 1,
-    35 -> 1,
-    36 -> 0,
-    37 -> 0,
-    38 -> 1,
-    39 -> 1,
-    40 -> 1,
-    41 -> 1,
-    42 -> 1,
-  )
+  val coreIncidentsPath = s"${filesPath}/core/incidents.json"
+  val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
+
+  incidentsString match {
+    case Success(some) => {
+      fileSourceString = some
+    }
+  }
+
+  jsonObject = fileSourceString.parseJson
+  val coreRawIncidents = jsonObject.convertTo[Map[String, String]]
+
+  val incidentsCount = coreRawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+
+  val ivolgaIncidentsPath = s"${filesPath}/ivolga/incidents.json"
+  val ivolgaIncidentsString: Try[String] = Files.readFile(ivolgaIncidentsPath)
+
+  ivolgaIncidentsString match {
+    case Success(some) => {
+      fileSourceString = some
+    }
+  }
+
+  jsonObject = fileSourceString.parseJson
+  val ivolgaIncidents = jsonObject.convertTo[Map[String, String]]
+
+  val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
 
   // type is explicitly specified to avoid writing pattern ID as Double
   val incidentsTimestamps: List[List[Double]] = List(
