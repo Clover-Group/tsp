@@ -57,7 +57,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
   )
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
 
     Files.readResource("/sql/test-db-schema.sql")
          .mkString
@@ -79,6 +79,11 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
          .mkString
          .split(";")
          .foreach(container.executeUpdate)
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Basic assertions" should "work for wide dense table" in {

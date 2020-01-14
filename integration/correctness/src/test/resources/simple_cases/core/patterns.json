@@ -1,0 +1,422 @@
+[
+    {
+       "id":"1",
+       "sourceCode":"PowerPolling = 50",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"2",
+       "sourceCode":"PowerPolling > 20",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"3",
+       "sourceCode":"PowerPolling >= 20",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"4",
+       "sourceCode":"PowerPolling < 20",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"5",
+       "sourceCode":"PowerPolling <= 20",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"6",
+       "sourceCode":"PowerPolling <> 70",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"7",
+       "sourceCode":"POilDieselOut > 9.52 and SpeedThrustMin = 51",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"8",
+       "sourceCode":"wait(2 sec, POilDieselOut >= 9.52 for 2 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"9",
+       "sourceCode":"POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"10",
+       "sourceCode":"POilDieselOut = 9.53 or SpeedThrustMin = 51",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"11",
+       "sourceCode":"POilDieselOut < 9.50 until SpeedThrustMin > 51",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"12",
+       "sourceCode":"abs(SpeedThrustMin + POilDieselOut) > 40",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"13",
+       "sourceCode":"avg(SpeedThrustMin, 2 sec) = 22",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"14",
+       "sourceCode":"avgOf(POilDieselOut, SpeedThrustMin) > 0",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"15",
+       "sourceCode":"lag(POilDieselOut) < 0",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"16",
+       "sourceCode":"wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"17",
+       "sourceCode":"abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"18",
+       "sourceCode":"car_2_TCU_out_E_Bog = 585",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"19",
+       "sourceCode":"car_2_TCU_out_E_Bog != 511",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"20",
+       "sourceCode":"car_2_TCU_out_E_Bog < 700",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"21",
+       "sourceCode":"car_2_TCU_out_E_Bog > 690",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"22",
+       "sourceCode":"car_2_TCU_out_E_Bog < 600 for 2 sec",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"23",
+       "sourceCode":"car_2_TCU_out_E_Bog > 600 for 2 sec andThen car_2_TCU_out_E_Bog < 600",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"24",
+       "sourceCode":"car_2_TCU_out_E_Bog = 530 and lag(car_2_TCU_out_E_Bog) = 700",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"25",
+       "sourceCode":"car_2_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_2_BCU_out_Indirect_Brake_Active = 0",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"26",
+       "sourceCode":"car_2_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_2_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"27",
+       "sourceCode":"car_4_TCU_out_E_Bog = 585",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"28",
+       "sourceCode":"car_4_TCU_out_E_Bog != 511",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"29",
+       "sourceCode":"car_4_TCU_out_E_Bog < 700",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"30",
+       "sourceCode":"car_4_TCU_out_E_Bog > 690",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"31",
+       "sourceCode":"car_4_TCU_out_E_Bog < 600 for 2 sec",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"32",
+       "sourceCode":"car_4_TCU_out_E_Bog > 600 for 2 sec andThen car_4_TCU_out_E_Bog < 600",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"33",
+       "sourceCode":"car_4_TCU_out_E_Bog = 530 and lag(car_4_TCU_out_E_Bog) = 700",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"34",
+       "sourceCode":"car_4_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_4_BCU_out_Indirect_Brake_Active = 0",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"35",
+       "sourceCode":"car_4_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_4_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"36",
+       "sourceCode":"ABKM_Brake_Pos > 1",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"37",
+       "sourceCode":"ABKM_Brake_Fail = 0",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"38",
+       "sourceCode":"PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"39",
+       "sourceCode":"wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"40",
+       "sourceCode":"SOC_2_UKV1_UOVS = 'OFF' and lag(SOC_2_UKV1_UOVS) = 'FAILURE'",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"41",
+       "sourceCode":"car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    },
+    {
+       "id":"42",
+       "sourceCode":"Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)",
+       "payload":{
+ 
+       },
+       "forwardedFields":[
+ 
+       ]
+    }
+ ]
