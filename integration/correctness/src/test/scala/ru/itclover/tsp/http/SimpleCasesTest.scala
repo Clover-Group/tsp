@@ -528,6 +528,6 @@ class SimpleCasesTest
         .sortBy(_.head),
       firstValidationQuery.format("18, 25", "events_narrow_ivolga_test")
     )
-    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_narrow_test"))
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
   }
 }
