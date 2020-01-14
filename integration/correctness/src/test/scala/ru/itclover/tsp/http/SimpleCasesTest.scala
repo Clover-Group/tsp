@@ -85,54 +85,6 @@ class SimpleCasesTest
   val jsonObject = sourcePatternsString.parseJson
   val casesPatterns = jsonObject.convertTo[Seq[RawPattern]]
 
-  /* 
-  val casesPatterns = Seq(
-    RawPattern("1", "PowerPolling = 50"),
-    RawPattern("2", "PowerPolling > 20"),
-    RawPattern("3", "PowerPolling >= 20"),
-    RawPattern("4", "PowerPolling < 20"),
-    RawPattern("5", "PowerPolling <= 20"),
-    RawPattern("6", "PowerPolling <> 70"),
-    RawPattern("7", "POilDieselOut > 9.52 and SpeedThrustMin = 51"),
-    RawPattern("8", "wait(2 sec, POilDieselOut >= 9.52 for 2 sec)"),
-    RawPattern("9", "POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52"),
-    RawPattern("10", "POilDieselOut = 9.53 or SpeedThrustMin = 51"),
-    RawPattern("11", "POilDieselOut < 9.50 until SpeedThrustMin > 51"),
-    RawPattern("12", "abs(SpeedThrustMin + POilDieselOut) > 40"),
-    RawPattern("13", "avg(SpeedThrustMin, 2 sec) = 22"),
-    RawPattern("14", "avgOf(POilDieselOut, SpeedThrustMin) > 0"),
-    RawPattern("15", "lag(POilDieselOut) < 0"),
-    RawPattern("16", "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)"),
-    RawPattern("17", "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)"),
-    RawPattern("18", "car_2_TCU_out_E_Bog = 585"),
-    RawPattern("19", "car_2_TCU_out_E_Bog != 511"),
-    RawPattern("20", "car_2_TCU_out_E_Bog < 700"),
-    RawPattern("21", "car_2_TCU_out_E_Bog > 690"),
-    RawPattern("22", "car_2_TCU_out_E_Bog < 600 for 2 sec"),
-    RawPattern("23", "car_2_TCU_out_E_Bog > 600 for 2 sec andThen car_2_TCU_out_E_Bog < 600"),
-    RawPattern("24", "car_2_TCU_out_E_Bog = 530 and lag(car_2_TCU_out_E_Bog) = 700"),
-    RawPattern("25", "car_2_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_2_BCU_out_Indirect_Brake_Active = 0"),
-    RawPattern("26", "car_2_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_2_BCU_out_Indirect_Brake_Active = 1 for 3 sec)"),
-    RawPattern("27", "car_4_TCU_out_E_Bog = 585"),
-    RawPattern("28", "car_4_TCU_out_E_Bog != 511"),
-    RawPattern("29", "car_4_TCU_out_E_Bog < 700"),
-    RawPattern("30", "car_4_TCU_out_E_Bog > 690"),
-    RawPattern("31", "car_4_TCU_out_E_Bog < 600 for 2 sec"),
-    RawPattern("32", "car_4_TCU_out_E_Bog > 600 for 2 sec andThen car_4_TCU_out_E_Bog < 600"),
-    RawPattern("33", "car_4_TCU_out_E_Bog = 530 and lag(car_4_TCU_out_E_Bog) = 700"),
-    RawPattern("34", "car_4_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_4_BCU_out_Indirect_Brake_Active = 0"),
-    RawPattern("35", "car_4_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_4_BCU_out_Indirect_Brake_Active = 1 for 3 sec)"),
-    RawPattern("36", "ABKM_Brake_Pos > 1"),
-    RawPattern("37", "ABKM_Brake_Fail = 0"),
-    RawPattern("38", "PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)"),
-    RawPattern("39", "wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)"),
-    // for str value
-    RawPattern("40", "SOC_2_UKV1_UOVS = 'OFF' and lag(SOC_2_UKV1_UOVS) = 'FAILURE'"),
-    RawPattern("41", "car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'"),
-    RawPattern("42", "Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)"),
-  )
-  **/
-
   val incidentsCount = Map(
     1  -> 9,
     2  -> 5,
