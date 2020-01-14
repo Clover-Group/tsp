@@ -84,7 +84,7 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
     )
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
 
     Files.readResource("/sql/test-db-schema.sql")
          .mkString

@@ -81,7 +81,7 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   )
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
     Thread.sleep(8000)
 
     val redisInfo = RedisService.clientInstance(inputConf, inputConf.serializer)
@@ -100,6 +100,11 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     val bucket = client.getBucket[Array[Byte]](inputConf.key, ByteArrayCodec.INSTANCE)
     bucket.set(jsonString.getBytes("UTF-8"))
 
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Redis test assertions" should "work for redis source" in {

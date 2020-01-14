@@ -443,6 +443,7 @@ class SimpleCasesTest
     super.afterAll()
     clickhouseContainer.stop()
     influxContainer.stop()
+    container.stop()
   }
 
   "Data" should "load properly" in {
