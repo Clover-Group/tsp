@@ -122,7 +122,10 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           )
       } else {
         keyedStream
-          .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+          //.window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+            .window(TumblingEventTimeWindows
+              .of(WindowingTime.milliseconds(1))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]])
           .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
       }
     val processed = windowed

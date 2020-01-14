@@ -41,7 +41,9 @@ object KafkaService {
     props.setProperty("bootstrap.servers", conf.brokers)
     props.setProperty("group.id", conf.group)
     // //props.setProperty("client.id", "client0")
-    // props.setProperty("auto.offset.reset", "earliest"); // Always read topic from start
+    props.setProperty("auto.offset.reset", "earliest") // Always read topic from start if no offset is provided
+    props.setProperty("enable.auto.commit", "true") // Enable auto committing when checkpointing is disabled
+    props.setProperty("auto.commit.interval.ms", "1000") // Enable auto committing when checkpointing is disabled
 
     val deserializer = conf.serializer.getOrElse("json") match {
       case "json"    => new RowDeserializationSchema(fieldsIdxMap)
