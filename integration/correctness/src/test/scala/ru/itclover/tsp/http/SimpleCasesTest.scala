@@ -9,7 +9,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
-import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
@@ -17,7 +16,10 @@ import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
+import ru.itclover.tsp.utils.CollectionsOps._
+import spray.json._
 
+import scala.util.{Try,Success,Failure}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -70,6 +72,20 @@ class SimpleCasesTest
 
   override val container = MultipleContainers(LazyContainer(clickhouseContainer), LazyContainer(influxContainer))
 
+  var sourcePatternsString = ""
+
+  val fileResult: Try[String] = Files.readFile("integration/correctness/src/test/resources/simple_cases/patterns.json")
+
+  fileResult match {
+    case Success(some) => {
+      sourcePatternsString = some
+    }
+  }
+
+  val jsonObject = sourcePatternsString.parseJson
+  val casesPatterns = jsonObject.convertTo[Seq[RawPattern]]
+
+  /* 
   val casesPatterns = Seq(
     RawPattern("1", "PowerPolling = 50"),
     RawPattern("2", "PowerPolling > 20"),
@@ -115,6 +131,7 @@ class SimpleCasesTest
     RawPattern("41", "car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'"),
     RawPattern("42", "Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)"),
   )
+  **/
 
   val incidentsCount = Map(
     1  -> 9,
