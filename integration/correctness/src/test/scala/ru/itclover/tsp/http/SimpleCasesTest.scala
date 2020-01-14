@@ -19,6 +19,7 @@ import ru.itclover.tsp.utils.Files
 import spray.json._
 
 import scala.util.{Try,Success}
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -115,113 +116,38 @@ class SimpleCasesTest
 
   val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
 
+  val rawIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
+
+  Files.readResource("/simple_cases/core/timestamps.csv")
+       .foreach(elem => {
+
+          val elements = elem.split(",")
+          rawIncidentsTimestamps += List(
+            elements(0).toDouble,
+            elements(1).toDouble,
+            elements(2).toDouble
+          )   
+
+       }) 
+
   // type is explicitly specified to avoid writing pattern ID as Double
-  val incidentsTimestamps: List[List[Double]] = List(
-    List(1, 1549561527.0, 1549561527.0),
-    List(1, 1549561529.0, 1549561529.0),
-    List(1, 1552176056.0, 1552176056.0),
-    List(1, 1552176058.0, 1552176058.0),
-    List(1, 1552176061.0, 1552176061.0),
-    List(1, 1552860730.0, 1552860730.0),
-    List(1, 1552860728.0, 1552860728.0),
-    List(1, 1552860733.0, 1552860733.0),
-    List(1, 1552860735.0, 1552860735.0),
-    List(2, 1549561527.0, 1549561530.0),
-    List(2, 1552176056.0, 1552176059.0),
-    List(2, 1552176061.0, 1552176062.0),
-    List(2, 1552860728.0, 1552860731.0),
-    List(2, 1552860733.0, 1552860738.0),
-    List(3, 1549561526.0, 1549561530.0),
-    List(3, 1552176055.0, 1552176062.0),
-    List(3, 1552860727.0, 1552860738.0),
-    List(4, 1549561531.0, 1549561532.0),
-    List(5, 1549561526.0, 1549561526.0),
-    List(5, 1549561531.0, 1549561532.0),
-    List(5, 1552176055.0, 1552176055.0),
-    List(5, 1552176060.0, 1552176060.0),
-    List(5, 1552860727.0, 1552860727.0),
-    List(5, 1552860732.0, 1552860732.0),
-    List(6, 1549561526.0, 1549561529.0),
-    List(6, 1549561531.0, 1549561532.0),
-    List(6, 1552176055.0, 1552176058.0),
-    List(6, 1552176060.0, 1552176062.0),
-    List(6, 1552860727.0, 1552860730.0),
-    List(6, 1552860732.0, 1552860735.0),
-    List(7, 1552860727.0, 1552860731.0),
-    List(8, 1552860727.0, 1552860731.0),
-    List(9, 1552860727.0, 1552860738.0),
-    List(10, 1552860727.0, 1552860734.0),
-    List(11, 1549561526.0, 1549561532.0), // until the end of chunk
-    List(11, 1552176055.0, 1552176062.0), // until the end of chunk
-    // List(11, 1552860727.0, 1552860734.0), // TODO: must fire here, needs investigation
-    List(12, 1552176058.0, 1552176062.0),
-    List(12, 1552860727.0, 1552860738.0),
-    List(13, 1552176058.0, 1552176058.0),
-    List(14, 1549561526.0, 1549561532.0),
-    List(14, 1552176058.0, 1552176062.0),
-    List(14, 1552860727.0, 1552860738.0),
-    List(15, 1552176056.0, 1552176059.0),
-    List(16, 1552176055.0, 1552176062.0),
-    List(17, 1552860727.0, 1552860736.0),
-  )
+  val incidentsTimestamps: List[List[Double]] = rawIncidentsTimestamps.toList
 
-  val incidentsIvolgaTimestamps: List[List[Double]] = List(
-    List(18, 1572120331.0, 1572120331.0),
-    List(19, 1572120320.0, 1572120343.0),
-    List(19, 1572120345.0, 1572120367.0),
-    List(20, 1572120321.0, 1572120344.0),
-    List(21, 1572120320.0, 1572120320.0),
-    List(21, 1572120339.0, 1572120339.0),
-    List(22, 1572120332.0, 1572120332.0),
-    List(22, 1572120346.0, 1572120359.0),
-    List(23, 1572120322.0, 1572120325.0),
-    List(24, 1572120321.0, 1572120321.0),
-    List(25, 1572120320.0, 1572120329.0),
-    List(26, 1572120320.0, 1572120323.0),
-    List(27, 1572120331.0, 1572120331.0),
-    List(28, 1572120320.0, 1572120343.0),
-    List(28, 1572120345.0, 1572120367.0),
-    List(29, 1572120321.0, 1572120344.0),
-    List(30, 1572120320.0, 1572120320.0),
-    List(30, 1572120339.0, 1572120339.0),
-    List(31, 1572120332.0, 1572120332.0),
-    List(31, 1572120346.0, 1572120359.0),
-    List(32, 1572120322.0, 1572120325.0),
-    List(33, 1572120321.0, 1572120321.0),
-    List(34, 1572120320.0, 1572120329.0),
-    List(35, 1572120320.0, 1572120323.0),
-    List(38, 1572120346.0, 1572120352.0),
-    List(39, 1572120353.0, 1572120356.0),
-    List(40, 1572120361.0, 1572120361.0),
-    List(41, 1572120320.0, 1572120320.0),
-    List(42, 1572120357.0, 1572120360.0),
+  val ivolgaIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
 
-  )
+  Files.readResource("/simple_cases/ivolga/timestamps.csv")
+       .foreach(elem => {
 
-  val wideInputConf = JDBCInputConf(
-    sourceId = 100,
-    jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
-    driverName = clickhouseContainer.driverName,
-    datetimeField = 'ts,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
-    chunkSizeMs = Some(900000L),
-    partitionFields = Seq('loco_num, 'section, 'upload_id)
-  )
+          val elements = elem.split(",")
+          ivolgaIncidentsTimestamps += List(
+            elements(0).toDouble,
+            elements(1).toDouble,
+            elements(2).toDouble
+          )   
 
-  val narrowInputConf = JDBCInputConf(
-    sourceId = 200,
-    jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM math_test ORDER BY dt",
-    driverName = clickhouseContainer.driverName,
-    datetimeField = 'dt,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
-    chunkSizeMs = Some(900000L),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
-  )
+       }) 
+
+  val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
   val influxInputConf = InfluxDBInputConf(
     sourceId = 300,
@@ -237,85 +163,103 @@ class SimpleCasesTest
     additionalTypeChecking = Some(false)
   )
 
-  val narrowInputIvolgaConf = JDBCInputConf(
-    sourceId = 400,
+  val wideInputConf = JDBCInputConf(
+    sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
-    driverName = clickhouseContainer.driverName,
-    datetimeField = 'dt,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
-    chunkSizeMs = Some(900000L),
-    partitionFields = Seq('stock_num,'upload_id),
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map('value_str -> List('SOC_2_UKV1_UOVS))), Some(15000L))),
-  )
-
-  val wideInputIvolgaConf = JDBCInputConf(
-    sourceId = 500,
-    jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
+    query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'ts,
     eventsMaxGapMs = 60000L,
     defaultEventsGapMs = 1000L,
     chunkSizeMs = Some(900000L),
+    partitionFields = Seq('loco_num, 'section, 'upload_id)
+  )
+
+  val narrowInputConf = wideInputConf.copy(
+    sourceId = 200,
+    query = "SELECT * FROM math_test ORDER BY dt",
+    datetimeField = 'dt,
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
+  )
+
+  val narrowInputIvolgaConf = wideInputConf.copy(
+    sourceId = 400,
+    query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
+    datetimeField = 'dt,
+    partitionFields = Seq('stock_num,'upload_id),
+    dataTransformation = Some(
+      NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map('value_str -> List('SOC_2_UKV1_UOVS))), Some(15000L))
+    ),
+  )
+
+  val wideInputIvolgaConf = wideInputConf.copy(
+    sourceId = 500,
+    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     partitionFields = Seq('stock_num, 'upload_id),
     dataTransformation = Some(WideDataFilling(
       Map.empty, defaultTimeout = Some(15000L))
     )
   )
 
-  val wideRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
+  val wideRowSchema = RowSchema(
+    sourceIdField = 'series_storage,
+    fromTsField = 'from,
+    toTsField = 'to,
+    appIdFieldVal = ('app, 1),
+    patternIdField = 'id,
+    processingTsField = 'timestamp,
+    contextField = 'context,
+    forwardedFields = wideInputConf.partitionFields
+  )
 
-  val narrowRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 2), 'id, 'timestamp, 'context, narrowInputConf.partitionFields)
+  val narrowRowSchema = wideRowSchema.copy(
+    appIdFieldVal = ('app, 2),
+    forwardedFields = narrowInputConf.partitionFields
+  )
 
-  val influxRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 3), 'id, 'timestamp, 'context, influxInputConf.partitionFields)
+  val influxRowSchema = wideRowSchema.copy(
+    appIdFieldVal = ('app, 3),
+    forwardedFields = influxInputConf.partitionFields
+  )
 
-  val narrowIvolgaRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, narrowInputIvolgaConf.partitionFields)
+  val narrowIvolgaRowSchema = wideRowSchema.copy(
+    appIdFieldVal = ('app, 4),
+    forwardedFields = narrowInputIvolgaConf.partitionFields
+  )
 
-  val wideIvolgaRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 5), 'id, 'timestamp, 'context, wideInputIvolgaConf.partitionFields)
+  val wideIvolgaRowSchema = wideRowSchema.copy(
+    appIdFieldVal = ('app, 5),
+    forwardedFields = wideInputIvolgaConf.partitionFields
+  )
 
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
   val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
 
   val wideOutputConf = JDBCOutputConf(
-    "events_wide_test",
-    wideRowSchema,
-    chConnection,
-    chDriver
+    tableName = "events_wide_test",
+    rowSchema = wideRowSchema,
+    jdbcUrl = chConnection,
+    driverName = chDriver
   )
 
-  val narrowOutputConf = JDBCOutputConf(
-    "events_narrow_test",
-    narrowRowSchema,
-    chConnection,
-    chDriver
+  val narrowOutputConf = wideOutputConf.copy(
+    tableName = "events_narrow_test",
+    rowSchema = narrowRowSchema
   )
 
-  val influxOutputConf = JDBCOutputConf(
-    "events_influx_test",
-    influxRowSchema,
-    chConnection,
-    chDriver
+  val influxOutputConf = wideOutputConf.copy(
+    tableName = "events_influx_test",
+    rowSchema = influxRowSchema
   )
 
-  val narrowOutputIvolgaConf = JDBCOutputConf(
-    "events_narrow_ivolga_test",
-    narrowIvolgaRowSchema,
-    chConnection,
-    chDriver
+  val narrowOutputIvolgaConf = wideOutputConf.copy(
+    tableName = "events_narrow_ivolga_test",
+    rowSchema = narrowIvolgaRowSchema
   )
 
-  val wideOutputIvolgaConf = JDBCOutputConf(
-    "events_wide_ivolga_test",
-    narrowIvolgaRowSchema,
-    chConnection,
-    chDriver
+  val wideOutputIvolgaConf = wideOutputConf.copy(
+    tableName = "events_wide_ivolga_test",
+    rowSchema = wideIvolgaRowSchema
   )
 
   override def afterStart(): Unit = {
