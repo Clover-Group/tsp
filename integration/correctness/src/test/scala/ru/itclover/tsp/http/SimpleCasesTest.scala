@@ -16,10 +16,9 @@ import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
-import ru.itclover.tsp.utils.CollectionsOps._
 import spray.json._
 
-import scala.util.{Try,Success,Failure}
+import scala.util.{Try,Success}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -297,116 +296,106 @@ class SimpleCasesTest
   val wideIvolgaRowSchema =
     RowSchema('series_storage, 'from, 'to, ('app, 5), 'id, 'timestamp, 'context, wideInputIvolgaConf.partitionFields)
 
+  val chConnection = s"jdbc:clickhouse://localhost:$port/default"
+  val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
+
   val wideOutputConf = JDBCOutputConf(
     "events_wide_test",
     wideRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    chConnection,
+    chDriver
   )
 
   val narrowOutputConf = JDBCOutputConf(
     "events_narrow_test",
     narrowRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    chConnection,
+    chDriver
   )
 
   val influxOutputConf = JDBCOutputConf(
     "events_influx_test",
     influxRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    chConnection,
+    chDriver
   )
 
   val narrowOutputIvolgaConf = JDBCOutputConf(
     "events_narrow_ivolga_test",
     narrowIvolgaRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    chConnection,
+    chDriver
   )
 
   val wideOutputIvolgaConf = JDBCOutputConf(
     "events_wide_ivolga_test",
     narrowIvolgaRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    chConnection,
+    chDriver
   )
 
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files
-      .readResource("/sql/test/cases-narrow-schema-new.sql")
-      .mkString
-      .split(";")
-      .foreach(clickhouseContainer.executeUpdate)
+    val chScripts: Seq[String] = Seq(
+      "/sql/test/cases-narrow-schema-new.sql",
+      "/sql/test/cases-wide-schema-new.sql",
+      "/sql/test/cases-narrow-schema-ivolga.sql",
+      "/sql/test/cases-wide-schema-ivolga.sql",
+      "/sql/test/cases-sinks-schema.sql"
+    )
 
-    Files
-      .readResource("/sql/test/cases-wide-schema-new.sql")
-      .mkString
-      .split(";")
-      .foreach(clickhouseContainer.executeUpdate)
+    chScripts.foreach(elem => {
+
+      Files.readResource(elem)
+           .mkString
+           .split(";")
+           .foreach(clickhouseContainer.executeUpdate)
+
+    })
 
     Files
       .readResource("/sql/infl-test-db-schema.sql")
       .mkString
       .split(";")
       .foreach(influxContainer.executeQuery)
-
-    Files
-      .readResource("/sql/test/cases-narrow-schema-ivolga.sql")
-      .mkString
-      .split(";")
-      .foreach(clickhouseContainer.executeUpdate)
-
-    Files
-      .readResource("/sql/test/cases-wide-schema-ivolga.sql")
-      .mkString
-      .split(";")
-      .foreach(clickhouseContainer.executeUpdate)
-
-    val mathCSVData = Files
-      .readResource("/sql/test/cases-narrow-new.csv")
-      .drop(1)
-      .mkString("\n")
-
-    val rulesCSVData = Files
-      .readResource("/sql/test/cases-wide-new.csv")
-      .drop(1)
-      .mkString("\n")
-
-    val ivolgaNarrowCSVData = Files
-      .readResource("/sql/test/cases-narrow-ivolga.csv")
-      .drop(1)
-      .mkString("\n")
-
-    val ivolgaWideCSVData = Files
-      .readResource("/sql/test/cases-wide-ivolga.csv")
-      .drop(1)
-      .mkString("\n")
-
-
+    
     Files
       .readResource("/sql/test/cases-narrow-new.influx")
       .mkString
       .split(";")
       .foreach(influxContainer.executeUpdate)
+      
+    val insertInfo = Seq(
+      ("math_test", "/sql/test/cases-narrow-new.csv"),
+      ("ivolga_test_narrow", "/sql/test/cases-narrow-ivolga.csv"),
+      ("ivolga_test_wide", "/sql/test/cases-wide-ivolga.csv"),
+      ("`2te116u_tmy_test_simple_rules`", "/sql/test/cases-wide-new.csv")
+    )
 
-    clickhouseContainer.executeUpdate(s"INSERT INTO math_test FORMAT CSV\n${mathCSVData}")
+    insertInfo.foreach(elem => {
 
-    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_narrow FORMAT CSV\n${ivolgaNarrowCSVData}")
+      val insertData = Files.readResource(elem._2)
+                            .drop(1)
+                            .mkString("\n")
+                            
+      clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
-    clickhouseContainer.executeUpdate(s"INSERT INTO ivolga_test_wide FORMAT CSV\n${ivolgaWideCSVData}")
-
-    clickhouseContainer.executeUpdate(s"INSERT INTO `2te116u_tmy_test_simple_rules` FORMAT CSV\n${rulesCSVData}")
-
-    Files
-      .readResource("/sql/test/cases-sinks-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(clickhouseContainer.executeUpdate)
+    })
 
   }
+
+  val firstValidationQuery = """
+       SELECT number, c 
+       FROM (
+         SELECT number FROM numbers(%s)
+       ) 
+       LEFT JOIN (
+         SELECT id, COUNT(id) AS c FROM %s GROUP BY id
+       ) e ON number = e.id ORDER BY number
+  """
+
+  val secondValidationQuery = "SELECT id, from, to FROM %s ORDER BY id, from, to"
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -441,9 +430,9 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_test GROUP BY id) e ON number = e.id ORDER BY number"
+      firstValidationQuery.format("1, 17", "events_wide_test")
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
   }
 
   "Cases 1-17" should "work in narrow table" in {
@@ -465,9 +454,9 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_test GROUP BY id) e ON number = e.id ORDER BY number"
+      firstValidationQuery.format("1, 17", "events_narrow_test")
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_narrow_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
   "Cases 1-17" should "work in influx table" in {
@@ -489,9 +478,9 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(1, 17)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_influx_test GROUP BY id) e ON number = e.id ORDER BY number"
+      firstValidationQuery.format("1, 17", "events_influx_test")
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_influx_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
   }
 
   "Cases 18-42" should "work in ivolga wide table" in {
@@ -513,9 +502,9 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(18, 25)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_wide_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
+      firstValidationQuery.format("18, 25", "events_wide_ivolga_test")
     )
-    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_wide_ivolga_test ORDER BY id, from, to")
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
   }
 
   "Cases 18-42" should "work in ivolga narrow table" in {
@@ -537,8 +526,8 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT number, c FROM (SELECT number FROM numbers(18, 25)) LEFT JOIN (SELECT id, COUNT(id) AS c FROM events_narrow_ivolga_test GROUP BY id) e ON number = e.id ORDER BY number"
+      firstValidationQuery.format("18, 25", "events_narrow_ivolga_test")
     )
-    checkByQuery(incidentsIvolgaTimestamps, "SELECT id, from, to FROM events_narrow_ivolga_test ORDER BY id, from, to")
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_narrow_test"))
   }
 }
