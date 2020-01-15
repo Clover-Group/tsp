@@ -88,6 +88,22 @@ class SimpleCasesTest
   var jsonObject = fileSourceString.parseJson
   val casesPatterns = jsonObject.convertTo[Seq[RawPattern]]
 
+  var fileSourceStringIvolga = ""
+  val patternsPathIvolga = s"${filesPath}/ivolga/patterns.json"
+
+  val patternsStringIvolga: Try[String] = Files.readFile(patternsPathIvolga)
+
+  patternsStringIvolga match {
+    case Success(some) => {
+      fileSourceStringIvolga = some
+    }
+  }
+
+  var jsonObjectIvolga = fileSourceStringIvolga.parseJson
+  val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]]
+
+
+
   val coreIncidentsPath = s"${filesPath}/core/incidents.json"
   val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
 
@@ -338,8 +354,8 @@ class SimpleCasesTest
     checkInfluxByQuery(List(List(27.0, 27.0, 27.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
-  "Cases 1-17" should "work in wide table" in {
-    (1 to 17).foreach { id =>
+  "Cases 1-25" should "work in wide table" in {
+    (1 to 25).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))
@@ -358,13 +374,13 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 17", "events_wide_test")
+      firstValidationQuery.format("1, 25", "events_wide_test")
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
   }
 
-  "Cases 1-17" should "work in narrow table" in {
-    (1 to 17).foreach { id =>
+  "Cases 1-25" should "work in narrow table" in {
+    (1 to 25).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))
@@ -382,13 +398,13 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 17", "events_narrow_test")
+      firstValidationQuery.format("1, 25", "events_narrow_test")
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
-  "Cases 1-17" should "work in influx table" in {
-    (1 to 17).foreach { id =>
+  "Cases 1-25" should "work in influx table" in {
+    (1 to 25).foreach { id =>
       Post(
         "/streamJob/from-influxdb/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id - 1)))
@@ -406,7 +422,7 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 17", "events_influx_test")
+      firstValidationQuery.format("1, 25", "events_influx_test")
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
   }
@@ -415,7 +431,7 @@ class SimpleCasesTest
     (18 to 42).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id - 1)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -439,7 +455,7 @@ class SimpleCasesTest
     (18 to 42).foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id - 1)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
