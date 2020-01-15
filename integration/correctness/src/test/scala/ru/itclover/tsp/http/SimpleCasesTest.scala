@@ -102,8 +102,6 @@ class SimpleCasesTest
   var jsonObjectIvolga = fileSourceStringIvolga.parseJson
   val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]]
 
-
-
   val coreIncidentsPath = s"${filesPath}/core/incidents.json"
   val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
 
@@ -349,9 +347,9 @@ class SimpleCasesTest
   }
 
   "Data" should "load properly" in {
-    checkByQuery(List(List(27.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
+    checkByQuery(List(List(38.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
     checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")
-    checkInfluxByQuery(List(List(27.0, 27.0, 27.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
+    checkInfluxByQuery(List(List(38.0, 38.0, 38.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
   "Cases 1-25" should "work in wide table" in {
@@ -428,10 +426,10 @@ class SimpleCasesTest
   }
 
   "Cases 18-42" should "work in ivolga wide table" in {
-    (18 to 42).foreach { id =>
+    casesPatternsIvolga.indices.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id - 1)))
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -452,10 +450,10 @@ class SimpleCasesTest
   }
 
   "Cases 18-42" should "work in ivolga narrow table" in {
-    (18 to 42).foreach { id =>
+    casesPatternsIvolga.indices.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id - 1)))
+        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
