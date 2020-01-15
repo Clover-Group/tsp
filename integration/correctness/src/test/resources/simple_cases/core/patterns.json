@@ -170,253 +170,83 @@
        ]
     },
     {
-       "id":"18",
-       "sourceCode":"car_2_TCU_out_E_Bog = 585",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"18",
+      "sourceCode":"POilDieselOut = -0.12 for 2 sec > 2 times",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"19",
-       "sourceCode":"car_2_TCU_out_E_Bog != 511",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"19",
+      "sourceCode":"POilDieselOut = 0.12 for 4 sec > 2 times",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"20",
-       "sourceCode":"car_2_TCU_out_E_Bog < 700",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"20",
+      "sourceCode":"POilDieselOut = -0.13 for 3 sec < 3 times",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"21",
-       "sourceCode":"car_2_TCU_out_E_Bog > 690",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"21",
+      "sourceCode":"wait(3 sec, POilDieselOut < lag(POilDieselOut) and lag(POilDieselOut) > lag(lag(POilDieselOut)))",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"22",
-       "sourceCode":"car_2_TCU_out_E_Bog < 600 for 2 sec",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"22",
+      "sourceCode":"wait(3 sec, POilDieselOut = 9.49 and SpeedThrustMin = 53\tand PowerPolling = 71 andThen POilDieselOut = 9.48 for 3 sec > 0 times and SpeedThrustMin = 54 for 3 sec > 0 times and PowerPolling = 70 for 3 sec > 0 times)",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"23",
-       "sourceCode":"car_2_TCU_out_E_Bog > 600 for 2 sec andThen car_2_TCU_out_E_Bog < 600",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"23",
+      "sourceCode":"PowerPolling > 0 and lag(POilDieselOut) = 6.41 and POilDieselOut = 6.42 and SpeedThrustMin = 22 andThen wait(250 ms, SpeedThrustMin = 22 for 250 ms andThen wait(1100 ms, SpeedThrustMin = 23 for 1100 ms > 0 times))",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"24",
-       "sourceCode":"car_2_TCU_out_E_Bog = 530 and lag(car_2_TCU_out_E_Bog) = 700",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"24",
+      "sourceCode":"abs(POilDieselOut - 6.00) < 0.001 for 3 sec or  SpeedThrustMin = 37",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     },
     {
-       "id":"25",
-       "sourceCode":"car_2_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_2_BCU_out_Indirect_Brake_Active = 0",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"26",
-       "sourceCode":"car_2_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_2_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"27",
-       "sourceCode":"car_4_TCU_out_E_Bog = 585",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"28",
-       "sourceCode":"car_4_TCU_out_E_Bog != 511",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"29",
-       "sourceCode":"car_4_TCU_out_E_Bog < 700",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"30",
-       "sourceCode":"car_4_TCU_out_E_Bog > 690",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"31",
-       "sourceCode":"car_4_TCU_out_E_Bog < 600 for 2 sec",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"32",
-       "sourceCode":"car_4_TCU_out_E_Bog > 600 for 2 sec andThen car_4_TCU_out_E_Bog < 600",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"33",
-       "sourceCode":"car_4_TCU_out_E_Bog = 530 and lag(car_4_TCU_out_E_Bog) = 700",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"34",
-       "sourceCode":"car_4_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_4_BCU_out_Indirect_Brake_Active = 0",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"35",
-       "sourceCode":"car_4_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_4_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"36",
-       "sourceCode":"ABKM_Brake_Pos > 1",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"37",
-       "sourceCode":"ABKM_Brake_Fail = 0",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"38",
-       "sourceCode":"PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"39",
-       "sourceCode":"wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"40",
-       "sourceCode":"SOC_2_UKV1_UOVS = 'OFF' and lag(SOC_2_UKV1_UOVS) = 'FAILURE'",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"41",
-       "sourceCode":"car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
-       "id":"42",
-       "sourceCode":"Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+      "id":"25",
+      "sourceCode":"wait(1 sec, POilDieselOut = 4.00 for 1 sec andThen wait(2 sec, SpeedThrustMin = 12 for 2 sec))",
+      "payload":{
+
+      },
+      "forwardedFields":[
+
+      ]
     }
- ]
+]
