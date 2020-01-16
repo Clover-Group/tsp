@@ -18,7 +18,8 @@ import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 import spray.json._
 
-import scala.util.{Try,Success}
+import scala.annotation.tailrec
+import scala.util.{Success, Try}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
@@ -86,7 +87,7 @@ class SimpleCasesTest
   }
 
   var jsonObject = fileSourceString.parseJson
-  val casesPatterns = jsonObject.convertTo[Seq[RawPattern]]
+  val casesPatterns = jsonObject.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
   var fileSourceStringIvolga = ""
   val patternsPathIvolga = s"${filesPath}/ivolga/patterns.json"
@@ -100,7 +101,7 @@ class SimpleCasesTest
   }
 
   var jsonObjectIvolga = fileSourceStringIvolga.parseJson
-  val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]]
+  val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
   val coreIncidentsPath = s"${filesPath}/core/incidents.json"
   val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
@@ -327,13 +328,13 @@ class SimpleCasesTest
 
   }
 
-  val firstValidationQuery = """
+  def firstValidationQuery(table: String, numbers: Seq[Range]) = s"""
        SELECT number, c 
        FROM (
-         SELECT number FROM numbers(%s)
+         ${numbers.map(r => s"SELECT number FROM numbers(${r.start}, ${r.size})").mkString(" UNION ALL ")}
        ) 
        LEFT JOIN (
-         SELECT id, COUNT(id) AS c FROM %s GROUP BY id
+         SELECT id, COUNT(id) AS c FROM ${table} GROUP BY id
        ) e ON number = e.id ORDER BY number
   """
 
@@ -347,16 +348,16 @@ class SimpleCasesTest
   }
 
   "Data" should "load properly" in {
-    checkByQuery(List(List(38.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
-    checkByQuery(List(List(81.0)), "SELECT COUNT(*) FROM math_test")
-    checkInfluxByQuery(List(List(38.0, 38.0, 38.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
+    checkByQuery(List(List(53.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
+    checkByQuery(List(List(159.0)), "SELECT COUNT(*) FROM math_test")
+    checkInfluxByQuery(List(List(53.0, 53.0, 53.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
-  "Cases 1-25" should "work in wide table" in {
-    (1 to 25).foreach { id =>
+  "Cases 1-17, 43-50" should "work in wide table" in {
+    casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -372,16 +373,16 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 25", "events_wide_test")
+      firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
   }
 
-  "Cases 1-25" should "work in narrow table" in {
-    (1 to 25).foreach { id =>
+  "Cases 1-17, 43-50" should "work in narrow table" in {
+    casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -396,16 +397,16 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 25", "events_narrow_test")
+      firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
-  "Cases 1-25" should "work in influx table" in {
-    (1 to 25).foreach { id =>
+  "Cases 1-17, 43-50" should "work in influx table" in {
+    casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-influxdb/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -420,13 +421,13 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("1, 25", "events_influx_test")
+      firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
   }
 
   "Cases 18-42" should "work in ivolga wide table" in {
-    casesPatternsIvolga.indices.foreach { id =>
+    casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
@@ -444,13 +445,13 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("18, 25", "events_wide_ivolga_test")
+      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
   }
 
   "Cases 18-42" should "work in ivolga narrow table" in {
-    casesPatternsIvolga.indices.foreach { id =>
+    casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
@@ -468,8 +469,19 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery.format("18, 25", "events_narrow_ivolga_test")
+      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
+  }
+
+  def numbersToRanges(numbers: List[Int]): List[Range] = {
+    @tailrec
+    def inner(in: List[Int], acc: List[Range]): List[Range] = (in, acc) match {
+      case (Nil, a) => a.reverse
+      case (n :: tail, r :: tt) if n == r.end + 1 => inner(tail, (r.start to n) :: tt)
+      case (n :: tail, a) => inner(tail, (n to n) :: a)
+    }
+
+    inner(numbers, Nil)
   }
 }
