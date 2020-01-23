@@ -257,6 +257,15 @@ class SimpleCasesTest
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
 
+  val wideSparkInputIvolgaConf = wideSparkInputConf.copy(
+    sourceId = 500,
+    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
+    partitionFields = Seq('stock_num, 'upload_id),
+//    dataTransformation = Some(WideDataFilling(
+//      Map.empty, defaultTimeout = Some(15000L))
+//    )
+  )
+
   val narrowRowSchema = wideRowSchema.copy(
     appIdFieldVal = ('app, 2),
     forwardedFields = narrowInputConf.partitionFields
@@ -285,6 +294,11 @@ class SimpleCasesTest
 
   val wideSparkRowSchema =
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideSparkInputConf.partitionFields)
+
+  val wideIvolgaSparkRowSchema = wideSparkRowSchema.copy(
+    appIdFieldVal = ('app, 5),
+    forwardedFields = wideSparkInputIvolgaConf.partitionFields
+  )
 
   val wideOutputConf = JDBCOutputConf(
     tableName = "events_wide_test",
@@ -325,6 +339,11 @@ class SimpleCasesTest
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val wideSparkOutputIvolgaConf = wideSparkOutputConf.copy(
+    tableName = "events_wide_ivolga_spark_test",
+    rowSchema = wideIvolgaSparkRowSchema
   )
 
   override def afterStart(): Unit = {
@@ -582,8 +601,32 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      s"SELECT id, COUNT(*) FROM events_wide_spark_test GROUP BY id ORDER BY id"
+      firstValidationQuery("events_wide_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
-    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_spark_test ORDER BY id, from, to")
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
+  }
+
+  "Cases 18-42" should "work in ivolga wide table with Spark" in {
+    casesPatternsIvolga.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideSparkInputIvolgaConf, wideSparkOutputIvolgaConf, List(casesPatternsIvolga(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_wide_ivolga_spark_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_spark_test"))
   }
 }
