@@ -231,7 +231,7 @@
     },
     {
        "id":"41",
-       "sourceCode":"car_2_TCU_out_E_Bog = 700 and SOC_2_UKV1_UOVS = 'OFF'",
+       "sourceCode":"car_2_TCU_out_E_Bog = 700 and (SOC_2_UKV1_UOVS = 'OFF')",
        "payload":{
  
        },
