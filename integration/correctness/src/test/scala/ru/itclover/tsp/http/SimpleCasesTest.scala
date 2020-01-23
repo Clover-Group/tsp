@@ -257,9 +257,6 @@ class SimpleCasesTest
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
 
-  val wideRowSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideInputConf.partitionFields)
-
   val narrowRowSchema = wideRowSchema.copy(
     appIdFieldVal = ('app, 2),
     forwardedFields = narrowInputConf.partitionFields
@@ -540,11 +537,11 @@ class SimpleCasesTest
     inner(numbers, Nil)
   }
 
-  "Cases 1-17" should "work in wide Kafka table" in {
-    (1 to 17).foreach { id =>
+  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
+    casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-kafka/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -565,11 +562,11 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
   }
 
-  "Cases 1-17" should "work in wide table with Spark" in {
-    (1 to 17).foreach { id =>
+  "Cases 1-17, 43-50" should "work in wide table with Spark" in {
+    casesPatterns.keys.foreach { id =>
       Post(
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id - 1)))
+        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {

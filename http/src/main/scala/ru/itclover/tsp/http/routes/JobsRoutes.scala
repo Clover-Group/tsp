@@ -86,7 +86,7 @@ trait JobsRoutes extends RoutesProtocols {
 
           val resultOrErr = for {
             source <- srcOrError
-            _      <- createStream(patterns, fields, inputConf, outConf, source)
+            _      <- createStream(patterns, /*fields,*/ inputConf, outConf, source)
             result <- runStream(uuid, isAsync)
           } yield result
 
