@@ -74,7 +74,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     val time = extractTime(item)
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)
-      event(key) = (value, time)
+      if (event.get(key).orNull == null || value != null) event(key) = (value, time)
     } else {
       allFieldsIndexesMap.keySet.foreach { key =>
         val newValue = Try(extractValue(item, key))
@@ -85,27 +85,25 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       }
     }
     dropExpiredKeys(event, time)
-    if (!useUnfolding || (targetKeySet subsetOf event.keySet)) {
-      val list = mutable.ListBuffer.tabulate[(InKey, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
-      val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
-      event.foreach {
-        case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
-        case _                                     =>
-      }
-      //if (defaultTimeout.isEmpty) {
-      extraFieldNames.foreach { name =>
-        val value = extractValue(item, name)
-        if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
-      }
-      //}
-      val outEvent = eventCreator.create(list)
-      if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
-        out.collect(lastEvent)
-      }
-      lastTimestamp = time
-      lastEvent = outEvent
-      ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 5000)
+    val list = mutable.ListBuffer.tabulate[(InKey, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
+    val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
+    event.foreach {
+      case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
+      case _                                     =>
     }
+    //if (defaultTimeout.isEmpty) {
+    extraFieldNames.foreach { name =>
+      val value = extractValue(item, name)
+      if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+    }
+    //}
+    val outEvent = eventCreator.create(list)
+    if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
+      out.collect(lastEvent)
+    }
+    lastTimestamp = time
+    lastEvent = outEvent
+    ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 5000)
   }
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
@@ -152,7 +150,7 @@ object SparseRowsDataAccumulator {
             ndu.fieldsTimeoutsMs
           val extraFields = fim
             .filterNot {
-              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.valueColumn
+              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.defaultValueColumn
             }
             .keys
             .toSeq

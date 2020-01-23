@@ -121,7 +121,6 @@ trait JobsRoutes extends RoutesProtocols {
 
   def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
-    fields: Set[EKey],
     inputConf: InputConf[E, EKey, EItem],
     outConf: OutputConf[Row],
     source: StreamSource[E, EKey, EItem]
@@ -130,7 +129,7 @@ trait JobsRoutes extends RoutesProtocols {
 
     log.debug("createStream started")
 
-    val searcher = PatternsSearchJob(source, fields, decoders)
+    val searcher = PatternsSearchJob(source, decoders)
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,

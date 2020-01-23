@@ -8,8 +8,9 @@ abstract class SourceDataTransformation[Event, EKey, EValue](val `type`: String)
 
 case class NarrowDataUnfolding[Event, EKey, EValue](
   keyColumn: EKey,
-  valueColumn: EKey,
+  defaultValueColumn: EKey,
   fieldsTimeoutsMs: Map[EKey, Long],
+  valueColumnMapping: Option[Map[EKey, List[EKey]]] = None,
   defaultTimeout: Option[Long] = None
 ) extends SourceDataTransformation[Event, EKey, EValue]("NarrowDataUnfolding")
     with SourceDataTransformationConf {

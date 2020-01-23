@@ -14,7 +14,7 @@ services:
     ports:
       - "8080:8080"
   jobmanager:
-    image: flink:1.7.2-scala_2.12-alpine
+    image: flink:1.9-scala_2.12
     expose:
       - "6123"
     ports:
@@ -24,7 +24,7 @@ services:
       - JOB_MANAGER_RPC_ADDRESS=jobmanager
 
   taskmanager:
-    image: flink:1.7.2-scala_2.12-alpine
+    image: flink:1.9-scala_2.12
     expose:
       - "6121"
       - "6122"

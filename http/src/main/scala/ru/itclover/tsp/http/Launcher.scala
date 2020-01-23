@@ -11,14 +11,18 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
+import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
 import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
+import scala.util.Try
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
@@ -91,7 +95,8 @@ object Launcher extends App with HttpService {
     case Left(err)  => throw new RuntimeException(err)
   }
 
-  streamEnvironment.setMaxParallelism(configs.getInt("flink.max-parallelism"))
+  streamEnvironment.setParallelism(1)
+  streamEnvironment.setMaxParallelism(1)//(configs.getInt("flink.max-parallelism"))
 
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
@@ -130,25 +135,38 @@ object Launcher extends App with HttpService {
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-    env.enableCheckpointing(500)
-
-    val config = env.getCheckpointConfig
-    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
-    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-    config.setMinPauseBetweenCheckpoints(250)
-    config.setCheckpointTimeout(60000)
-    config.setTolerableCheckpointFailureNumber(5)
-    config.setMaxConcurrentCheckpoints(5)
-
-    val currentPath = System.getProperty("user.dir")
-    val checkpointsPath = Paths.get(s"${currentPath}/checkpoints")
-
-    if(!Files.exists(checkpointsPath)){
-      Files.createDirectories(checkpointsPath)
-    }
-
-    env.setStateBackend(new RocksDBStateBackend(checkpointsPath.toUri))
-
+//    env.enableCheckpointing(500)
+//
+//    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
+//
+//    val config = env.getCheckpointConfig
+//    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+//    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
+//    config.setMinPauseBetweenCheckpoints(250)
+//    config.setCheckpointTimeout(60000)
+//    config.setTolerableCheckpointFailureNumber(5)
+//    config.setMaxConcurrentCheckpoints(5)
+//
+//    var savePointsPath = ""
+//
+//    if(flinkParameters.contains("state.savepoints.dir")){
+//      savePointsPath = flinkParameters("state.savepoints.dir")
+//    }else{
+//      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
+//    }
+//
+//    val expectedStorages = Seq("s3", "hdfs", "file")
+//
+//    if (savePointsPath.nonEmpty) {
+//      val storageIndex = savePointsPath.indexOf(":")
+//      val inputStorageType = savePointsPath.substring(0, storageIndex)
+//
+//      if(!expectedStorages.contains(inputStorageType)){
+//        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+//      }
+//      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
+//    }
+//    env.setRestartStrategy(RestartStrategies.noRestart)
     env
 
   }
@@ -167,7 +185,8 @@ object Launcher extends App with HttpService {
   }
 
   def createLocalEnv: Either[String, StreamExecutionEnvironment] = {
+    val config = new Configuration()
     log.info(s"Starting local Flink with monitoring in $monitoringUri")
-    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironment()))
+    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)))
   }
 }

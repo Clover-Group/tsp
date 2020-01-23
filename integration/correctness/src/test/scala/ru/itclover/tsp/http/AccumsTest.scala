@@ -123,7 +123,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   )
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
 
     Files.readResource("/sql/test-db-schema.sql")
          .mkString
@@ -134,6 +134,11 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
          .mkString
          .split(";")
          .map(container.executeUpdate)
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Count window (count)" should "compute in time" in {
