@@ -7,14 +7,16 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.scalatest.FlatSpec
+import org.apache.flink.types.Row
+import org.scalatest.{FlatSpec, Assertion}
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling, InputConf}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema, OutputConf}
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.utils.Files
 import spray.json._
 
@@ -31,6 +33,83 @@ class SimpleCasesTest
     with HttpService
     with ForAllTestContainer
     with RoutesProtocols {
+
+  def readFile(filePath: String): String = {
+    var fileSourceString = ""
+    val patternsString: Try[String] = Files.readFile(filePath)
+
+    patternsString match {
+      case Success(some) => {
+         fileSourceString = some
+      }
+    }
+    
+    return fileSourceString
+  }
+
+  def readPatterns(filePath: String): Map[String, RawPattern] = {
+
+     val fileSourceString = readFile(filePath)
+
+     val jsonObject = fileSourceString.parseJson
+
+     return jsonObject.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
+
+  }
+
+  def readIncidents(filePath: String): Map[Int, Int] = {
+
+    val fileSourceString = readFile(filePath)
+    val jsonObject = fileSourceString.parseJson
+
+    val rawIncidents = jsonObject.convertTo[Map[String, String]]
+    return rawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+
+  }
+
+  def readTimestamps(filePath: String): List[List[Double]] = {
+
+    val result: ListBuffer[List[Double]] = ListBuffer.empty
+
+    Files.readResource(filePath)
+         .foreach(elem => {
+
+            val elements = elem.split(",")
+            result += List(
+              elements(0).toDouble,
+              elements(1).toDouble,
+              elements(2).toDouble
+            )   
+
+         }) 
+
+    // type is explicitly specified to avoid writing pattern ID as Double
+    return result.toList
+
+  }
+
+  def runDBValidation(
+    parameters: Map[String, String],
+    incidentsCount: Map[Int, Int],
+    timestamps: List[List[Double]],
+    patterns: Map[String, RawPattern],
+  ): Assertion = {
+
+    val ranges = numbersToRanges(patterns.keys.map(_.toInt).toList.sorted)
+
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery(parameters("table_name"), ranges)
+    )
+    checkByQuery(timestamps, secondValidationQuery.format(parameters("table_name")))
+
+  }
+
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
@@ -73,96 +152,16 @@ class SimpleCasesTest
 
   override val container = MultipleContainers(LazyContainer(clickhouseContainer), LazyContainer(influxContainer))
 
-  var fileSourceString = ""
   val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
-  val patternsPath = s"${filesPath}/core/patterns.json"
+  val casesPatterns = readPatterns(s"${filesPath}/core/patterns.json")
+  val casesPatternsIvolga = readPatterns(s"${filesPath}/ivolga/patterns.json")
 
-  val patternsString: Try[String] = Files.readFile(patternsPath)
+  val incidentsCount = readIncidents(s"${filesPath}/core/incidents.json")
+  val incidentsIvolgaCount = readIncidents(s"${filesPath}/ivolga/incidents.json")
 
-  patternsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
-
-  var jsonObject = fileSourceString.parseJson
-  val casesPatterns = jsonObject.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
-
-  var fileSourceStringIvolga = ""
-  val patternsPathIvolga = s"${filesPath}/ivolga/patterns.json"
-
-  val patternsStringIvolga: Try[String] = Files.readFile(patternsPathIvolga)
-
-  patternsStringIvolga match {
-    case Success(some) => {
-      fileSourceStringIvolga = some
-    }
-  }
-
-  var jsonObjectIvolga = fileSourceStringIvolga.parseJson
-  val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
-
-  val coreIncidentsPath = s"${filesPath}/core/incidents.json"
-  val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
-
-  incidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
-
-  jsonObject = fileSourceString.parseJson
-  val coreRawIncidents = jsonObject.convertTo[Map[String, String]]
-
-  val incidentsCount = coreRawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
-
-  val ivolgaIncidentsPath = s"${filesPath}/ivolga/incidents.json"
-  val ivolgaIncidentsString: Try[String] = Files.readFile(ivolgaIncidentsPath)
-
-  ivolgaIncidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
-
-  jsonObject = fileSourceString.parseJson
-  val ivolgaIncidents = jsonObject.convertTo[Map[String, String]]
-
-  val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
-
-  val rawIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
-
-  Files.readResource("/simple_cases/core/timestamps.csv")
-       .foreach(elem => {
-
-          val elements = elem.split(",")
-          rawIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )   
-
-       }) 
-
-  // type is explicitly specified to avoid writing pattern ID as Double
-  val incidentsTimestamps: List[List[Double]] = rawIncidentsTimestamps.toList
-
-  val ivolgaIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
-
-  Files.readResource("/simple_cases/ivolga/timestamps.csv")
-       .foreach(elem => {
-
-          val elements = elem.split(",")
-          ivolgaIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )   
-
-       }) 
-
-  val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
+  val incidentsTimestamps: List[List[Double]] = readTimestamps("/simple_cases/core/timestamps.csv")
+  val incidentsIvolgaTimestamps: List[List[Double]] = readTimestamps("/simple_cases/ivolga/timestamps.csv")
 
   val influxInputConf = InfluxDBInputConf(
     sourceId = 300,
@@ -354,6 +353,11 @@ class SimpleCasesTest
   }
 
   "Cases 1-17, 43-50" should "work in wide table" in {
+
+    val parameters: Map[String, String] = Map(
+      "table_name" -> "events_wide_test"
+    )
+
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -366,19 +370,22 @@ class SimpleCasesTest
         //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
     }
-    checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+
+    runDBValidation(
+      parameters,
+      incidentsCount,
+      incidentsTimestamps,
+      casesPatterns
     )
-    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
+
   }
 
   "Cases 1-17, 43-50" should "work in narrow table" in {
+
+    val parameters: Map[String, String] = Map(
+      "table_name" -> "events_narrow_test"
+    )
+
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -390,19 +397,21 @@ class SimpleCasesTest
         }
       }
     }
-    checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+
+    runDBValidation(
+      parameters,
+      incidentsCount,
+      incidentsTimestamps,
+      casesPatterns
     )
-    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
   "Cases 1-17, 43-50" should "work in influx table" in {
+
+    val parameters: Map[String, String] = Map(
+      "table_name" -> "events_influx_test"
+    )
+
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-influxdb/to-jdbc/?run_async=0",
@@ -414,19 +423,22 @@ class SimpleCasesTest
         }
       }
     }
-    checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+
+    runDBValidation(
+      parameters,
+      incidentsCount,
+      incidentsTimestamps,
+      casesPatterns
     )
-    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
+
   }
 
   "Cases 18-42" should "work in ivolga wide table" in {
+
+    val parameters: Map[String, String] = Map(
+      "table_name" -> "events_wide_ivolga_test"
+    ) 
+
     casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -438,19 +450,22 @@ class SimpleCasesTest
         }
       }
     }
-    checkByQuery(
-      incidentsIvolgaCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+
+    runDBValidation(
+      parameters,
+      incidentsIvolgaCount,
+      incidentsIvolgaTimestamps,
+      casesPatternsIvolga
     )
-    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
+
   }
 
   "Cases 18-42" should "work in ivolga narrow table" in {
+
+    val parameters: Map[String, String] = Map(
+      "table_name" -> "events_narrow_ivolga_test"
+    ) 
+
     casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -462,16 +477,13 @@ class SimpleCasesTest
         }
       }
     }
-    checkByQuery(
-      incidentsIvolgaCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+    
+    runDBValidation(
+      parameters,
+      incidentsIvolgaCount,
+      incidentsIvolgaTimestamps,
+      casesPatternsIvolga
     )
-    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
   }
 
   def numbersToRanges(numbers: List[Int]): List[Range] = {
