@@ -46,7 +46,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     )
     .toMap
   val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
-  val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
+  val arity: Int = allFieldsIndexesMap.size //fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
   val log = Logger("SparseDataAccumulator")
 
@@ -78,7 +78,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     //if (defaultTimeout.isEmpty) {
     extraFieldNames.foreach { name =>
       val value = extractValue(item, name)
-      if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+      if (value != null) list(allFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
     }
     //}
     val outEvent = eventCreator.create(list)

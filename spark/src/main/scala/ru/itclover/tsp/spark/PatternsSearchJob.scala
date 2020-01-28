@@ -135,7 +135,7 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
     case Some(_) =>
       import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
       val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
-      stream
+      stream.flatMap(acc.process)
     case None => stream
   }
 

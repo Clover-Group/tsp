@@ -424,127 +424,127 @@ class SimpleCasesTest
     checkInfluxByQuery(List(List(53.0, 53.0, 53.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
-//  "Cases 1-17, 43-50" should "work in wide table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//      route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    checkByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
-//  }
-//
-//  "Cases 1-17, 43-50" should "work in narrow table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//      route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//      }
-//    }
-//    checkByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
-//  }
-//
-//  "Cases 1-17, 43-50" should "work in influx table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-influxdb/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//      route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//      }
-//    }
-//    checkByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
-//  }
-//
-//  "Cases 18-42" should "work in ivolga wide table" in {
-//    casesPatternsIvolga.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//      }
-//    }
-//    checkByQuery(
-//      incidentsIvolgaCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
-//  }
-//
-//  "Cases 18-42" should "work in ivolga narrow table" in {
-//    casesPatternsIvolga.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//      }
-//    }
-//    checkByQuery(
-//      incidentsIvolgaCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
-//  }
-//
+  "Cases 1-17, 43-50" should "work in wide table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id)))
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
+  }
+
+  "Cases 1-17, 43-50" should "work in narrow table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id)))
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
+  }
+
+  "Cases 1-17, 43-50" should "work in influx table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/streamJob/from-influxdb/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id)))
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
+  }
+
+  "Cases 18-42" should "work in ivolga wide table" in {
+    casesPatternsIvolga.keys.foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
+  }
+
+  "Cases 18-42" should "work in ivolga narrow table" in {
+    casesPatternsIvolga.keys.foreach { id =>
+      Post(
+        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsIvolgaCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
+  }
+
   def numbersToRanges(numbers: List[Int]): List[Range] = {
     @tailrec
     def inner(in: List[Int], acc: List[Range]): List[Range] = (in, acc) match {
@@ -581,30 +581,30 @@ class SimpleCasesTest
 ////    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
 ////  }
 //
-//  "Cases 1-17, 43-50" should "work in wide table with Spark" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    checkByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_wide_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
-//  }
+  "Cases 1-17, 43-50" should "work in wide table with Spark" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_wide_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
+  }
 
   "Cases 18-42" should "work in ivolga wide table with Spark" in {
     casesPatternsIvolga.keys.foreach { id =>

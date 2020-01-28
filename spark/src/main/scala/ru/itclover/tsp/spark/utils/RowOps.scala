@@ -10,7 +10,7 @@ object RowOps {
   implicit class RowOps(private val row: Row) extends AnyVal {
 
     def getFieldOrThrow(i: Int): AnyRef =
-      if (row.schema.fields.length >= i) row.get(i).asInstanceOf[AnyRef]
+      if (row.toSeq.size >= i) row.get(i).asInstanceOf[AnyRef]
       else throw new RuntimeException(s"Cannot extract $i from row ${row.mkString(", ")}")
 
     def mkString(sep: String): String = "Row(" + row.schema.fields.indices.map(row.get).mkString(sep) + ")"
@@ -21,7 +21,7 @@ object RowOps {
   case class RowTsTimeExtractor(timeIndex: Int, tsMultiplier: Double, fieldId: Symbol) extends TimeExtractor[Row] {
 
     def apply(r: Row) = {
-      val millis = r.get(timeIndex - 1) match {
+      val millis = r.get(timeIndex) match {
         case d: java.lang.Double => (d * tsMultiplier).toLong
         case f: java.lang.Float  => (f * tsMultiplier).toLong
         case n: java.lang.Number => (n.doubleValue() * tsMultiplier).toLong
