@@ -18,6 +18,7 @@ import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
 import ru.itclover.tsp.spark.io.{JDBCOutputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 // import ru.itclover.tsp.spark.utils.EncoderInstances._
@@ -130,7 +131,13 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
   }
 
   // TODO: Remove that stub
-  def applyTransformation(stream: RDD[In]): RDD[In] = stream
+  def applyTransformation(stream: RDD[In]): RDD[In] = source.conf.dataTransformation match {
+    case Some(_) =>
+      import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
+      val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
+      stream
+    case None => stream
+  }
 
 //  def applyTransformation(stream: RDD[In]): RDD[In] = source.conf.dataTransformation match {
 //    case Some(_) =>

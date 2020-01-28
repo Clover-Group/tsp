@@ -19,7 +19,8 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
           Helper.strToDouble(s)
         } catch {
           case e: Exception =>
-            throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
+            //throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
+            Double.NaN
         }
       case null => Double.NaN
     }

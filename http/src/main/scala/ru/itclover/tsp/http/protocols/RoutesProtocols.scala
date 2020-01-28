@@ -9,6 +9,7 @@ import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf, RowSchema}
 import spray.json._
 import ru.itclover.tsp.spark
+import ru.itclover.tsp.spark.io.{SourceDataTransformation => SparkSDT, NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
@@ -158,6 +159,38 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 
+  implicit def sparkNduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    jsonFormat(SparkNDU[Event, EKey, EValue], "keyColumn", "defaultValueColumn", "fieldsTimeoutsMs", "valueColumnMapping","defaultTimeout")
+  implicit def sparkWdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    jsonFormat(SparkWDF[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
+
+  implicit def sparkSdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    new RootJsonFormat[SparkSDT[Event, EKey, EValue]] {
+      override def read(json: JsValue): SparkSDT[Event, EKey, EValue] = json match {
+        case obj: JsObject =>
+          val tp = obj.fields.getOrElse("type", sys.error("Source data transformation: missing type"))
+          val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
+          tp match {
+            case JsString("NarrowDataUnfolding") => sparkNduFormat[Event, EKey, EValue].read(cfg)
+            case JsString("WideDataFilling")     => sparkWdfFormat[Event, EKey, EValue].read(cfg)
+            case _                               => deserializationError(s"Source data transformation: unknown type $tp")
+          }
+        case _ =>
+          deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
+      }
+      override def write(obj: SparkSDT[Event, EKey, EValue]): JsValue = {
+        val c = obj.config match {
+          case ndu: SparkNDU[Event, EKey, EValue] => sparkNduFormat[Event, EKey, EValue].write(ndu)
+          case wdf: SparkWDF[Event, EKey, EValue] => sparkWdfFormat[Event, EKey, EValue].write(wdf)
+          case _                                  => deserializationError("Unknown source data transformation")
+        }
+        JsObject(
+          "type"   -> obj.`type`.toJson,
+          "config" -> c
+        )
+      }
+    }
+
   implicit val sparkRowSchemaFmt = jsonFormat(
     spark.io.RowSchema.apply,
     "sourceIdField",
@@ -183,7 +216,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "partitionFields",
     "userName",
     "password",
-    //"dataTransformation",
+    "dataTransformation",
     "defaultToleranceFraction",
     "parallelism",
     "numParallelSources",

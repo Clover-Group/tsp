@@ -16,7 +16,7 @@ trait InputConf[Event, EKey, EItem] extends Serializable {
   def defaultEventsGapMs: Long
   def chunkSizeMs: Option[Long] // Chunk size
 
-  // def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
+  def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
 
   def defaultToleranceFraction: Option[Double]
 
@@ -36,7 +36,7 @@ case class JDBCInputConf(
   partitionFields: Seq[Symbol],
   userName: Option[String] = None,
   password: Option[String] = None,
-  //dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   defaultToleranceFraction: Option[Double] = None,
   parallelism: Option[Int] = None,
   numParallelSources: Option[Int] = Some(1),

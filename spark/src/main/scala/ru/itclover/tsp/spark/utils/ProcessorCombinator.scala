@@ -22,7 +22,7 @@ case class ProcessorCombinator[In, S, Inner, Out](
     val sorted = elements.toBuffer.sortBy(timeExtractor.apply)
     if (sorted.head.isInstanceOf[RowWithIdx]) {
       val indexed =
-        sorted//.map(x => x.asInstanceOf[RowWithIdx].copy(idx = counter.incrementAndGet())).asInstanceOf[Iterable[In]]
+        sorted.map(x => x.asInstanceOf[RowWithIdx].copy(idx = counter.incrementAndGet())).asInstanceOf[Iterable[In]]
       mappers.flatMap(_.process( /*key,*/ indexed))
     } else {
       mappers.flatMap(_.process( /*key,*/ sorted))

@@ -6,9 +6,10 @@ import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
-import ru.itclover.tsp.spark.utils.{JdbcService, RowWithIdx}
+import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
 //import ru.itclover.tsp.spark.utils.EncoderInstances._
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 
@@ -45,20 +46,20 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   implicit def itemToKeyDecoder: Decoder[EItem, EKey] // for narrow data widening
 
-//  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
-//    case Some(NarrowDataUnfolding(key, value, _, _)) =>
-//      (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
-//    case Some(WideDataFilling(_, _)) =>
-//      (_: Event) => sys.error("Wide data filling does not need K-V extractor")
-//    case Some(_) =>
-//      (_: Event) => sys.error("Unsupported data transformation")
-//    case None =>
-//      (_: Event) => sys.error("No K-V extractor without data transformation")
-//  }
-//
-//  implicit def eventCreator: EventCreator[Event, EKey]
-//
-//  implicit def keyCreator: KeyCreator[EKey]
+  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(key, value, _, _, _)) =>
+      (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
+    case Some(WideDataFilling(_, _)) =>
+      (_: Event) => sys.error("Wide data filling does not need K-V extractor")
+    case Some(_) =>
+      (_: Event) => sys.error("Unsupported data transformation")
+    case None =>
+      (_: Event) => sys.error("No K-V extractor without data transformation")
+  }
+
+  implicit def eventCreator: EventCreator[Event, EKey]
+
+  implicit def keyCreator: KeyCreator[EKey]
 }
 
 object StreamSource {
@@ -118,7 +119,19 @@ case class JdbcSource(
 
   override def fieldsIdxMap: Map[Symbol, Int] = fieldsClasses.map(_._1).zipWithIndex.toMap
 
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = fieldsIdxMap // TODO: transformation
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(_) =>
+      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
 
   override def partitioner: RowWithIdx => String = {
     val serializablePI = partitionsIdx
@@ -143,13 +156,19 @@ case class JdbcSource(
     TimeExtractor.of((r: RowWithIdx) => rowExtractor(r.row))
   }
 
-  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] = timeExtractor // TODO: Transformation
+  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
 
   override implicit def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 
   override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
 
-  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = extractor // TODO: Transformation
+  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
   override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+    EventCreatorInstances.rowWithIdxSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }
