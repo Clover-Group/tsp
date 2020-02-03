@@ -49,7 +49,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
   val realDataMaxTimeSec = 300L
 
   override def afterStart(): Unit = {
-    super.beforeAll()
+    super.afterStart()
     Files.readResource("/debug/create-table.sql").mkString.split(";").map(container.executeUpdate)
 
     import scala.collection.JavaConverters._
@@ -61,6 +61,11 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
     container.executeUpdate(insertString)
 
     Files.readResource("/debug/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    container.stop()
   }
 
   "Basic assertions" should "work for wide dense table" in {

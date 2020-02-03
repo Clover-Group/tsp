@@ -25,7 +25,8 @@ case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerStat
       case MapPQueue(innerQueue, _) if innerQueue.isInstanceOf[PQueue[T1]] => innerQueue.asInstanceOf[PQueue[T1]]
       //this is for first call
       case x if x.size == 0 => x.asInstanceOf[PQueue[T1]]
-      case _                => sys.error("Wrong logic! MapPattern.apply must be called only with MapPQueue")
+      // TODO: Dangerous
+      case x                => x.asInstanceOf[PQueue[T1]] // sys.error("Wrong logic! MapPattern.apply must be called only with MapPQueue")
     }
   }
 

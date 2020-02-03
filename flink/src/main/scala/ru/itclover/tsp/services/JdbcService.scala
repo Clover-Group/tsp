@@ -22,4 +22,20 @@ object JdbcService {
       }
     }
   }
+
+  def fetchAvailableKeys(driverName: String, jdbcUrl: String, query: String, keyColumn: Symbol): Try[Set[Symbol]] = {
+    val classTry: Try[Class[_]] = Try(Class.forName(driverName))
+
+    val connectionTry = Try(DriverManager.getConnection(jdbcUrl))
+    for {
+      _          <- classTry
+      connection <- connectionTry
+      resultSet  <- Try(connection.createStatement().executeQuery(s"SELECT DISTINCT(${keyColumn.name}) FROM (${query})"))
+    } yield {
+      new Iterator[String] {
+        def hasNext = resultSet.next()
+        def next() = resultSet.getString(1)
+      }.toStream.map(Symbol(_)).toSet
+    }
+  }
 }

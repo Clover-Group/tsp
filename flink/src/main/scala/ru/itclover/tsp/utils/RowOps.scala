@@ -6,6 +6,8 @@ import org.apache.flink.types.Row
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.{Time => CoreTime}
 
+import scala.util.Try
+
 object RowOps {
   implicit class RowOps(private val row: Row) extends AnyVal {
 

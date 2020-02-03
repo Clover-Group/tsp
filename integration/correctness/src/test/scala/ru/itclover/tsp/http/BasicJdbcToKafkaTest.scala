@@ -74,7 +74,7 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   val outputConf = KafkaOutputConf(
     "127.0.0.1:9092",
     "SM_basic_patterns",
-    "json",
+    Some("json"),
     rowSchema
   )
 

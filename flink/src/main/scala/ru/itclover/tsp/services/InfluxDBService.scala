@@ -52,7 +52,7 @@ object InfluxDBService {
   }
 
   def fetchFirstNotNullValueSeries(db: InfluxDB, query: String, dbName: String) = {
-    val influxQuery = new Query(makeFirstNotNullQuery(query), dbName)
+    val influxQuery = new Query(makeFirstNotNullQuery(query.replaceAll("(?i)fill\\(previous\\)", "fill(none)")), dbName)
     for {
       result <- Try(db.query(influxQuery))
       _ <- if (result.hasError) Failure(new InfluxDBException(result.getError))

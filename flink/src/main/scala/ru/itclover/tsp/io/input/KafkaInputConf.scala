@@ -8,7 +8,7 @@ case class KafkaInputConf(
   brokers: String,
   topic: String,
   group: String = UUID.randomUUID().toString,
-  serializer: String = "json",
+  serializer: Option[String] = Some("json"),
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,

@@ -3,6 +3,7 @@ import sbt._
 object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.9.2"
+  val logbackContrib = "0.1.5"
 
   val config = "1.3.4"
 
@@ -53,6 +54,8 @@ object Version {
 
   val redissonVersion = "3.11.6"
 
+  val akkaHttpMetrics = "0.6.0"
+
 }
 
 object Library {
@@ -68,7 +71,9 @@ object Library {
 
   val logging: Seq[ModuleID] = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
-    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
+    "ch.qos.logback.contrib" % "logback-jackson" % Version.logbackContrib,
+    "ch.qos.logback.contrib" % "logback-json-classic" % Version.logbackContrib
   )
 
   val config: Seq[ModuleID] = Seq(
@@ -85,12 +90,14 @@ object Library {
   val flinkCore: Seq[ModuleID] = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink: Seq[ModuleID] = flinkCore ++ Seq(
-    "org.apache.flink" %% "flink-runtime-web" % Version.flink,
+    "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
     "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
-    "org.apache.flink" % "flink-avro" % Version.flink
+    "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
+    "org.apache.flink" % "flink-avro" % Version.flink,
+    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
   )
 
   val akka: Seq[ModuleID] = Seq(
@@ -102,7 +109,8 @@ object Library {
   val akkaHttp: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
-    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp
+    "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp,
+    "fr.davit" %% "akka-http-metrics-prometheus" % Version.akkaHttpMetrics
   )
 
   val cats: Seq[ModuleID] = Seq(

@@ -19,7 +19,7 @@ import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
-import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternFieldExtractor, PatternMetadata}
 import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.io.output.{KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
@@ -31,7 +31,6 @@ import scala.reflect.ClassTag
 
 case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
-  fields: Set[InKey],
   decoders: BasicDecoders[InItem]
 ) {
   // TODO: Restore InKey as a type parameter
@@ -51,7 +50,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
       source.conf.eventsMaxGapMs,
-      source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
+      source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
+      source.patternFields
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
@@ -122,7 +122,10 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           )
       } else {
         keyedStream
-          .window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+          //.window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+            .window(TumblingEventTimeWindows
+              .of(WindowingTime.milliseconds(1))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]])
           .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
       }
     val processed = windowed
@@ -141,7 +144,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       dataStream
         .keyBy(source.partitioner)
         .process(
-          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
+          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
+            source.patternFields)
         )
         .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
@@ -160,7 +164,8 @@ object PatternsSearchJob {
     fieldsIdxMap: Symbol => EKey,
     toleranceFraction: Double,
     eventsMaxGapMs: Long,
-    fieldsTags: Map[Symbol, ClassTag[_]]
+    fieldsTags: Map[Symbol, ClassTag[_]],
+    patternFields: Set[EKey]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
@@ -170,6 +175,10 @@ object PatternsSearchJob {
 
     log.debug("preparePatterns started")
 
+    val filteredPatterns = rawPatterns.filter(p =>
+      PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
+    )
+
     val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
       idxExtractor,
       getTime,
@@ -177,7 +186,7 @@ object PatternsSearchJob {
       fieldsIdxMap
     )
     val res = Traverse[List]
-      .traverse(rawPatterns.toList)(
+      .traverse(filteredPatterns.toList)(
         p =>
           Validated
             .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
@@ -192,7 +201,7 @@ object PatternsSearchJob {
             )
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
-      .map(_.zip(rawPatterns))
+      .map(_.zip(filteredPatterns))
       .toEither
 
     log.debug("preparePatterns finished")
@@ -205,7 +214,7 @@ object PatternsSearchJob {
 
     val res = incidents
       .assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
-      .keyBy(_.id)
+      .keyBy(p => (p.id, p.patternPayload))
       .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
         override def extract(element: Incident): Long = element.maxWindowMs
       }))

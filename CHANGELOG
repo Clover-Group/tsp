@@ -1,3 +1,34 @@
+## 0.15.0-rc13
+
+## 0.15.0-rc12
+
+## 0.15.0-rc11
+
+## 0.15.0-rc10
+
+## 0.15.0-rc9
+
+## 0.15.0-rc8
+
+## 0.15.0-rc7
+
+## 0.15.0-rc6
+
+## 0.15.0-rc5
+
+## 0.15.0-rc4
+- added Prometheus monitoring
+- added RocksDB back-end for Flink checkpointing
+## 0.15.0-rc3
+
+## 0.15.0-rc2
+- `FILL(previous)` now ignored in InfluxDB helper queries
+- Kafka now does not read from earliest by default, using group offsets
+## 0.15.0-rc1
+- new data sources: Kafka, Redis
+- restored data transformations
+- multiple optimizations leading to speedup
+- new `wait()` construction
 ## 0.14.1
 - internal overhaul, some bug fixes
 ## 0.14.0

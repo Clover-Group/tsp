@@ -62,7 +62,7 @@ case class JDBCOutputConf(
 case class KafkaOutputConf(
   broker: String,
   topic: String,
-  serializer: String = "json",
+  serializer: Option[String] = Some("json"),
   rowSchema: RowSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
@@ -70,7 +70,7 @@ case class KafkaOutputConf(
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
-  def dataSerializer: SerializationSchema[Row] = serializer match {
+  def dataSerializer: SerializationSchema[Row] = serializer.getOrElse("json") match {
     case "json"    => new JSONSerializer(rowSchema)
     case "arrow"   => new ArrowSerializer(rowSchema)
     case "parquet" => new ParquetSerializer(rowSchema)
