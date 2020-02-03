@@ -17,7 +17,7 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputCon
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, RowSchema => SparkRowSchema}
-import ru.itclover.tsp.spark.io.{WideDataFilling => SparkWDF}
+import ru.itclover.tsp.spark.io.{WideDataFilling => SparkWDF, NarrowDataUnfolding => SparkNDU}
 import spray.json._
 
 import scala.annotation.tailrec
@@ -257,6 +257,13 @@ class SimpleCasesTest
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
 
+  val narrowSparkInputConf = wideSparkInputConf.copy(
+    sourceId = 200,
+    query = "SELECT * FROM math_test ORDER BY dt",
+    datetimeField = 'dt,
+    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
+  )
+
   val wideSparkInputIvolgaConf = wideSparkInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
@@ -294,6 +301,11 @@ class SimpleCasesTest
 
   val wideSparkRowSchema =
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideSparkInputConf.partitionFields)
+
+  val narrowSparkRowSchema = wideSparkRowSchema.copy(
+    appIdFieldVal = ('app, 2),
+    forwardedFields = narrowInputConf.partitionFields
+  )
 
   val wideIvolgaSparkRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 5),
@@ -339,6 +351,11 @@ class SimpleCasesTest
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val narrowSparkOutputConf = wideSparkOutputConf.copy(
+    tableName = "events_narrow_spark_test",
+    rowSchema = narrowSparkRowSchema
   )
 
   val wideSparkOutputIvolgaConf = wideSparkOutputConf.copy(
@@ -580,12 +597,12 @@ class SimpleCasesTest
 ////    )
 ////    checkByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_test ORDER BY id, from, to")
 ////  }
-//
+
   "Cases 1-17, 43-50" should "work in wide table with Spark" in {
     casesPatterns.keys.foreach { id =>
       Post(
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17widespark_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
+        FindPatternsRequest(s"17wide_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
       ) ~>
         route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -604,6 +621,30 @@ class SimpleCasesTest
       firstValidationQuery("events_wide_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
+  }
+
+  "Cases 1-17, 43-50" should "work in narrow table with Spark" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowSparkInputConf, narrowSparkOutputConf, List(casesPatterns(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
   }
 
   "Cases 18-42" should "work in ivolga wide table with Spark" in {

@@ -30,7 +30,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
     val initialState = pattern.initialState()
     val firstElement = elements.head
     // if the last event occurred so long ago, clear the state
-    if (lastState == null || timeExtractor(firstElement).toMillis - lastTime.toMillis > eventsMaxGapMs) {
+    val gap = timeExtractor(firstElement).toMillis - lastTime.toMillis
+    if (lastState == null || gap > eventsMaxGapMs || gap < 0) {
       lastState = initialState
     }
 

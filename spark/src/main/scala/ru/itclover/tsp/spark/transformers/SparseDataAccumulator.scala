@@ -1,10 +1,11 @@
 package ru.itclover.tsp.spark.transformers
 
 import com.typesafe.scalalogging.Logger
+import org.apache.spark.sql.Row
 import ru.itclover.tsp.core.Pattern.Idx
 import ru.itclover.tsp.spark.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.spark.utils.KeyCreator
+import ru.itclover.tsp.spark.utils.{KeyCreator, RowWithIdx}
 import ru.itclover.tsp.core.Time
 //import ru.itclover.tsp.core.Time.TimeNonTransformedExtractor
 import ru.itclover.tsp.spark.utils.EventCreator
@@ -55,6 +56,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   // private var lastTimer: Long = _
 
   def process(item: InEvent): Seq[OutEvent] = {
+    item match {
+      case RowWithIdx(idx, row) if row.length == 0 => return if (lastEvent != null) Seq(lastEvent) else Seq.empty
+      case _ => // nothing, continue execution
+    }
     val time = extractTime(item)
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)

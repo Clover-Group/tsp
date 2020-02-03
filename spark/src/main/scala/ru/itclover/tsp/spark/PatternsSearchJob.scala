@@ -66,7 +66,7 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
     import source.timeExtractor
     val stream = source.createStream
     val singleIncidents = incidentsFromPatterns(
-      applyTransformation(stream/*.assignAscendingTimestamps(timeExtractor(_).toMillis)*/),
+      applyTransformation(stream/*.assignAscendingTimestamps(timeExtractor(_).toMillis)*/)(source.spark),
       richPatterns,
       forwardedFields,
       useWindowing
@@ -131,11 +131,14 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
   }
 
   // TODO: Remove that stub
-  def applyTransformation(stream: RDD[In]): RDD[In] = source.conf.dataTransformation match {
+  def applyTransformation(stream: RDD[In])(implicit spark: SparkSession): RDD[In] = source.conf.dataTransformation match {
     case Some(_) =>
       import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
       val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
-      stream.flatMap(acc.process)
+      stream
+        .union(spark.sparkContext.parallelize(List(source.eventCreator.create(Seq.empty))))
+        .coalesce(1)
+        .flatMap(acc.process)
     case None => stream
   }
 
