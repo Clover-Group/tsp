@@ -6,6 +6,7 @@ organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-proj
 maintainer in Docker := "Clover Group"
 dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
+dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
 scalaVersion in ThisBuild := "2.12.7"
 resolvers in ThisBuild ++= Seq(
@@ -234,12 +235,12 @@ git.useGitDescribe := true
 git.baseVersion := IO.read(file("./VERSION")) // if no tags are present
 val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 
-def nextVersion(v: String): String = Bump.Next.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+def nextVersion(v: String): String = Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
 
 git.gitTagToVersionNumber := {
   case VersionRegex(v, "") => Some(v)
   case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
-  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-$s")
+  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-preview${s.replaceFirst("-", "_")}")
   case VersionRegex(v, s) => Some(s"$v-$s")
   case _ => None
 }
