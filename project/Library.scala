@@ -31,7 +31,7 @@ object Version {
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.9.7"
+  val jackson = "2.6.7.1"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
 

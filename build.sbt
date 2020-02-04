@@ -15,7 +15,6 @@ resolvers in ThisBuild ++= Seq(
   "jitpack" at "https://jitpack.io"
 )
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
-
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
  
 lazy val commonSettings = Seq(
@@ -35,7 +34,8 @@ lazy val commonSettings = Seq(
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
-  maxErrors := 5
+  maxErrors := 5,
+  dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7",
 )
 
 
@@ -168,7 +168,8 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson,
+    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.6.7"
   )
   .dependsOn(core, config, dsl)
 
