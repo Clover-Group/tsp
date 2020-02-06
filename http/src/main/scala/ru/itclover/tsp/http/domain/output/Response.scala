@@ -10,7 +10,7 @@ sealed trait Response[T] extends Product with Serializable
 final case class SuccessfulResponse[T](response: T, messages: Seq[String] = Seq.empty) extends Response[T]
 
 object SuccessfulResponse {
-  case class ExecInfo(execTimeSec: Long, extraMetrics: Map[String, Option[Long]])
+  case class ExecInfo(execTimeSec: Double, extraMetrics: Map[String, Option[Long]])
 
   type FinishedJobResponse = SuccessfulResponse[ExecInfo]
 }

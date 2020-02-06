@@ -210,11 +210,13 @@ object PatternsSearchJob {
     res
   }
 
-  def reduceIncidents(incidents: RDD[Incident])(implicit spark: SparkSession): RDD[Incident] = {
+  def reduceIncidents(inc: RDD[Incident])(implicit spark: SparkSession): RDD[Incident] = {
     log.debug("reduceIncidents started")
 
     // WARNING: Non-parallelizable, TODO: better solution
     var seriesCount = 1
+
+    val incidents = inc.cache
 
     if (incidents.isEmpty) {
       return incidents

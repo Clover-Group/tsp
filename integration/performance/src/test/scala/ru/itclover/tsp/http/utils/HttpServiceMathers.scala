@@ -49,7 +49,7 @@ trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpServi
     }
   }
 
-  def checkAndGetExecTimeSec(): Long = {
+  def checkAndGetExecTimeSec(): Double = {
     status shouldEqual StatusCodes.OK
     val resp = unmarshal[FinishedJobResponse](responseEntity)
     resp shouldBe a[Success[_]]

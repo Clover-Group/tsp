@@ -107,7 +107,7 @@ trait JobsRoutes extends RoutesProtocols {
 
             val source: Either[SparkConfErr, spark.JdbcSource] = spark.JdbcSource.create(inputConf, fields)
             val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
-            val result: Either[SparkErr, Option[Unit]] = stream.flatMap(runSparkStream(_, isAsync))
+            val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
             val resultOrErr = result
 
 
@@ -193,14 +193,24 @@ trait JobsRoutes extends RoutesProtocols {
     res
   }
 
-  def runSparkStream(stream: DataFrameWriter[SparkRow], isAsync: Boolean): Either[SparkErr, Option[Unit]] = {
+  def runSparkStream(stream: DataFrameWriter[SparkRow], isAsync: Boolean): Either[SparkErr, Option[Long]] = {
     log.debug("runStream started")
 
     val res = if (isAsync) { // Just detach job thread in case of async run
-      Future { stream.save() }(blockingExecutionContext)
+      Future {
+        val start = System.nanoTime
+        stream.save()
+        val end = System.nanoTime
+        end - start
+      }(blockingExecutionContext)
       Right(None)
     } else { // Wait for the execution finish
-      Either.catchNonFatal(Some(stream.save())).leftMap(SparkGenRTErr(_))
+      Either.catchNonFatal{
+        val start = System.nanoTime
+        stream.save()
+        val end = System.nanoTime
+        Some(end - start)
+      }.leftMap(SparkGenRTErr(_))
     }
 
     log.debug("runStream finished")
@@ -231,7 +241,7 @@ trait JobsRoutes extends RoutesProtocols {
 
   }
 
-  def matchSparkResultToResponse(result: Either[SparkErr, Option[Unit]], uuid: String): Route = {
+  def matchSparkResultToResponse(result: Either[SparkErr, Option[Long]], uuid: String): Route = {
 
     log.debug("matchResultToResponse started")
 
@@ -243,8 +253,8 @@ trait JobsRoutes extends RoutesProtocols {
       // Async job - response with message about successful start
       case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
       // Sync job - response with message about successful ending
-      case Right(Some(_)) =>
-        val execTime = -1 // execResult.getNetRuntime(TimeUnit.SECONDS)
+      case Right(Some(value)) =>
+        val execTime = value * 1e-9 // execResult.getNetRuntime(TimeUnit.SECONDS)
         complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
     }
     log.debug("matchResultToResponse finished")

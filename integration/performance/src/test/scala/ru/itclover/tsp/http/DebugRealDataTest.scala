@@ -46,7 +46,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
     partitionFields = Seq('stock_num)
   )
 
-  val realDataMaxTimeSec = 300L
+  val realDataMaxTimeSec = 300.0
 
   override def afterStart(): Unit = {
     super.afterStart()

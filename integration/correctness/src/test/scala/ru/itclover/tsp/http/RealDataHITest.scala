@@ -127,8 +127,8 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
       checkByQuery(List(List(1078.0)), "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4") // was 1832
 
       // Performance
-      val fromT = timeRangeSec.head.toLong
-      val toT = timeRangeSec.last.toLong
+      val fromT = timeRangeSec.head.toDouble
+      val toT = timeRangeSec.last.toDouble
       execTimeS should ((be >= fromT).and(be <= toT))
     }
   }
