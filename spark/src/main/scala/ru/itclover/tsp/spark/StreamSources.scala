@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
 import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
@@ -171,4 +171,95 @@ case class JdbcSource(
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+}
+
+object KafkaSource {
+  def create(conf: KafkaInputConf, fields: Set[Symbol]): Either[ConfigErr, JdbcSource] = ???
+}
+
+case class KafkaSource(
+                        conf: KafkaInputConf,
+                        fieldsClasses: Seq[(Symbol, Class[_])],
+                        nullFieldId: Symbol,
+                        patternFields: Set[Symbol]
+                      ) extends StreamSource[RowWithIdx, Symbol, Any] {
+  override def spark: SparkSession = SparkSession.builder()
+    .master("local")
+    .appName("Kafka SparkSession")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
+
+
+  def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
+  def fieldsIdxMap = fieldsIdx.toMap
+
+  override def fieldToEKey: Symbol => Symbol = identity
+
+
+  def timeIndex = fieldsIdxMap(conf.datetimeField)
+
+  def tsMultiplier = conf.timestampMultiplier.getOrElse {
+    //log.debug("timestampMultiplier in Kafka source conf is not provided, use default = 1000.0")
+    1000.0
+  }
+
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, Symbol, Any] =
+    RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+  implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
+
+  val stageName = "Kafka input processing stage"
+
+  override def createStream: RDD[RowWithIdx] = spark.read
+    .format("kafka")
+    .option("kafka.bootstrap.servers", conf.brokers)
+    .option("subscribe", conf.topic)
+    .load()
+    .rdd
+    .zipWithIndex()
+    .map{ case (x, i) => RowWithIdx(i + 1, x) }
+
+  def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
+
+  def partitioner = {
+    val serializablePI = partitionsIdx
+    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  }
+
+  def transformedPartitioner = {
+    val serializablePI = transformedPartitionsIdx
+    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  }
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(_) =>
+      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
+
+  implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
+
+  implicit override def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] =
+    RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
+
+  implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+    EventCreatorInstances.rowWithIdxSymbolEventCreator
+
+  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+  //todo refactor everything related to idxExtractor
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 }

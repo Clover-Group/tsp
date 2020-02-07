@@ -1,5 +1,7 @@
 package ru.itclover.tsp.spark.io
 
+import java.util.UUID
+
 import ru.itclover.tsp.spark.utils.RowWithIdx
 
 trait InputConf[Event, EKey, EItem] extends Serializable {
@@ -43,3 +45,25 @@ case class JDBCInputConf(
   patternsParallelism: Option[Int] = Some(1),
   timestampMultiplier: Option[Double] = Some(1000.0)
 ) extends InputConf[RowWithIdx, Symbol, Any]
+
+case class KafkaInputConf(
+                           sourceId: Int,
+                           brokers: String,
+                           topic: String,
+                           group: String = UUID.randomUUID().toString,
+                           serializer: Option[String] = Some("json"),
+                           datetimeField: Symbol,
+                           partitionFields: Seq[Symbol],
+                           dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
+                           timestampMultiplier: Option[Double] = Some(1000.0),
+                           fieldsTypes: Map[String, String]
+                         ) extends InputConf[RowWithIdx, Symbol, Any] {
+
+  def chunkSizeMs: Option[Long] = Some(10L)
+  def defaultEventsGapMs: Long = 0L
+  def defaultToleranceFraction: Option[Double] = Some(0.1)
+  def eventsMaxGapMs: Long = 1L
+  def numParallelSources: Option[Int] = Some(1)
+  def parallelism: Option[Int] = Some(1)
+  def patternsParallelism: Option[Int] = Some(1)
+}

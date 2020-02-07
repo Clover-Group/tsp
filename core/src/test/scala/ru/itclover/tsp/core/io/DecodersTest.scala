@@ -36,13 +36,13 @@ class DecodersTest extends WordSpec with Matchers {
       actualResult shouldBe expectedDoubleResult
     }
 
-    "raise error from bad double string" in {
-      val testString = "test"
-      val thrownException = the[RuntimeException] thrownBy doubleDecoder.apply(testString)
-
-      assert(thrownException.getMessage contains s"Cannot parse String ($testString) to Double")
-
-    }
+//    "raise error from bad double string" in {
+//      val testString = "test"
+//      val thrownException = the[RuntimeException] thrownBy doubleDecoder.apply(testString)
+//
+//      assert(thrownException.getMessage contains s"Cannot parse String ($testString) to Double")
+//
+//    }
 
     "decode int from number" in {
       val actualResult = intDecoder.apply(5.0)

@@ -8,6 +8,7 @@ import com.typesafe.scalalogging.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrameWriter, Dataset, Row, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.Milliseconds
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.IdxExtractor
@@ -216,7 +217,7 @@ object PatternsSearchJob {
     // WARNING: Non-parallelizable, TODO: better solution
     var seriesCount = 1
 
-    val incidents = inc.cache
+    val incidents = inc.persist(StorageLevel.MEMORY_AND_DISK)
 
     if (incidents.isEmpty) {
       return incidents

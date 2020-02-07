@@ -93,9 +93,13 @@ trait JobsRoutes extends RoutesProtocols {
           matchResultToResponse(resultOrErr, uuid)
         }
       } ~
-        path("sparkJob" / "from-jdbc" / "to-jdbc"./) {
-          val e = entity(as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]])
-          e { request =>
+        path("sparkJob" / """from-(\w+)""".r / """to-(\w+)""".r./) { case (from, to) =>
+          val um = (from, to) match {
+            case ("jdbc", "jdbc") => as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]
+            case ("kafka", "jdbc") => as[FindPatternsRequest[spark.io.KafkaInputConf, spark.io.JDBCOutputConf]]
+            case _ => null // Not implemented, will crash with a 500
+          }
+          entity(um.asInstanceOf[FromRequestUnmarshaller[FindPatternsRequest[spark.io.InputConf[spark.utils.RowWithIdx, Symbol, Any], spark.io.OutputConf[SparkRow]]]]) { request =>
             import request._
             val fields = PatternFieldExtractor.extract(patterns)
 
@@ -105,7 +109,10 @@ trait JobsRoutes extends RoutesProtocols {
   //            result <- runSparkStream(stream, isAsync)
   //          } yield result
 
-            val source: Either[SparkConfErr, spark.JdbcSource] = spark.JdbcSource.create(inputConf, fields)
+            val source: Either[SparkConfErr, spark.JdbcSource] = from match {
+              case "jdbc" => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
+              case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
+            }
             val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
             val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
             val resultOrErr = result

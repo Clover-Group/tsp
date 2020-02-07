@@ -224,6 +224,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timestampMultiplier"
   )
 
+  implicit val sparkKafkaInpConfFmt = jsonFormat10(
+    spark.io.KafkaInputConf.apply
+  )
+
   implicit val sparkJdbcOutConfFmt = jsonFormat8(spark.io.JDBCOutputConf.apply)
 
 }
