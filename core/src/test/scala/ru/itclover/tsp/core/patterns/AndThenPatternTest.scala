@@ -9,7 +9,7 @@ import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
-import ru.itclover.tsp.core.{IdxValue, Patterns, Result, StateMachine, Window}
+import ru.itclover.tsp.core.{IdxValue, Pattern, Patterns, Result, StateMachine, Window}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -106,6 +106,38 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     StateMachine[Id].run(pattern1, events, pattern1.initialState(), (x: IdxValue[_]) => out += x, 1)
 
     out.size shouldBe 11
+    out(10) shouldBe IdxValue(10, 10, Result.succ(false))
+
+  }
+
+  it should "work correctly with TimerPattern" in {
+    import ru.itclover.tsp.core.Time._
+
+    def run[A, S, T](pattern: Pattern[A, S, T], events: Seq[A], groupSize: Long = 1000): ArrayBuffer[IdxValue[T]] = {
+      val out = new ArrayBuffer[IdxValue[T]]()
+      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[T]) => out += x, 1000)
+      out
+    }
+
+    val first = p.assert(p.field(_.row >= 10))
+    val second = p.timer(p.assert(p.field(_.col > 0)), 30.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(0).timed(10.seconds).after(Constant(10));
+                       col  <- Constant(0).timed(1.seconds).after(Constant(1)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val outFirst = run(first, events)
+    println(outFirst)
+
+    val outSecond = run(second, events)
+    println(outSecond)
+
+    val out = run(pattern, events)
+
+    out shouldBe Nil
     out(10) shouldBe IdxValue(10, 10, Result.succ(false))
 
   }
