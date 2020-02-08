@@ -179,7 +179,7 @@ object PatternsSearchJob {
       PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
     )
 
-    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
+    val pGenerator = new ASTPatternGenerator[E, EKey, EItem]()(
       idxExtractor,
       getTime,
       extractor,
