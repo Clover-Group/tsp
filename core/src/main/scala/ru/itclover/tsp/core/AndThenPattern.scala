@@ -92,6 +92,8 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
 
     inner(firstQ, secondQ, totalQ)
   }
+
+  override val patternTag: PatternTag = AndThenPatternTag
 }
 
 case class AndThenPState[T1, T2, State1, State2](

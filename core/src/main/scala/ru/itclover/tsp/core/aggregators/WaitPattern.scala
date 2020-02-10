@@ -1,11 +1,11 @@
 package ru.itclover.tsp.core.aggregators
 
-import cats.instances.option._
 import cats.Apply
+import cats.instances.option._
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.core.{Fail, IdxValue, PQueue, Pattern, Result, Succ, Time, Window}
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core._
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
@@ -21,6 +21,8 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
     astate = WaitAccumState(m.Queue.empty),
     indexTimeMap = m.Queue.empty
   )
+
+  override val patternTag: PatternTag = WaitPatternTag
 }
 
 case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean = false)

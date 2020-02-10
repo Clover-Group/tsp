@@ -22,6 +22,8 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
     astate = TimerAccumState(m.Queue.empty, (0L, Time(0L)), eventsMaxGapMs),
     indexTimeMap = m.Queue.empty
   )
+
+  override val patternTag: PatternTag = TimerPatternTag
 }
 
 case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastEnd: (Idx, Time), eventsMaxGapMs: Long)

@@ -10,4 +10,6 @@ class ExtractingPattern[Event: IdxExtractor, EKey, EItem, T, S](key: EKey)(
       Result.succ(r)
     }) {
   override def toString: String = s"ExtractingPattern($key)"
+
+  override val patternTag: PatternTag = ExtractingTag
 }

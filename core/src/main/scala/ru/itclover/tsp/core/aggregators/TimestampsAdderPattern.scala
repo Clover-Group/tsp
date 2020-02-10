@@ -18,6 +18,7 @@ class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   )
 
   override val window: Window = MaxWindow
+  override val patternTag: PatternTag = TimestampAdderPatternTag
 }
 
 protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment, TimestampAdderAccumState[T]] {
