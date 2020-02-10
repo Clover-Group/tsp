@@ -10,6 +10,8 @@ import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, Narro
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
 import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
+
+import scala.util.Try
 //import ru.itclover.tsp.spark.utils.EncoderInstances._
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 
@@ -174,7 +176,32 @@ case class JdbcSource(
 }
 
 object KafkaSource {
-  def create(conf: KafkaInputConf, fields: Set[Symbol]): Either[ConfigErr, JdbcSource] = ???
+  def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(Symbol, Class[_])]] = Try(conf.fieldsTypes.map {
+    case (fieldName, fieldType) =>
+      val fieldClass = fieldType match {
+        case "int8"    => classOf[Byte]
+        case "int16"   => classOf[Short]
+        case "int32"   => classOf[Int]
+        case "int64"   => classOf[Long]
+        case "float32" => classOf[Float]
+        case "float64" => classOf[Double]
+        case "boolean" => classOf[Boolean]
+        case "string"  => classOf[String]
+        case _         => classOf[Any]
+      }
+      (Symbol(fieldName), fieldClass)
+  }.toSeq)
+
+  def create(conf: KafkaInputConf, fields: Set[Symbol]): Either[ConfigErr, KafkaSource] =
+    for {
+      types <- fetchFieldsTypesInfo(conf)
+        .toEither
+        .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
+      source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
+        case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
+        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+      }
+    } yield source
 }
 
 case class KafkaSource(

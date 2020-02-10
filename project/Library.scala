@@ -187,6 +187,9 @@ object Library {
     ) exclude("log4j", "log4j"),
     "org.apache.spark" %% "spark-mllib" % Version.spark exclude(
       "org.slf4j", "slf4j-log4j12"
+    ) exclude("log4j", "log4j"),
+    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark exclude(
+      "org.slf4j", "slf4j-log4j12"
     ) exclude("log4j", "log4j")
   )
 }

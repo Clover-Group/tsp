@@ -109,7 +109,7 @@ trait JobsRoutes extends RoutesProtocols {
   //            result <- runSparkStream(stream, isAsync)
   //          } yield result
 
-            val source: Either[SparkConfErr, spark.JdbcSource] = from match {
+            val source: Either[SparkConfErr, spark.StreamSource[spark.utils.RowWithIdx, Symbol, Any]] = from match {
               case "jdbc" => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
               case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
             }
