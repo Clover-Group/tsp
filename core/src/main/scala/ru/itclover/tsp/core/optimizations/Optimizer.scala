@@ -73,6 +73,11 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       MapPattern(forceState(inner))(t => innerMap.func(t).flatMap(map.func))
   }
 
+  private def getOptimizer(tag:PatternTag): Unit = tag match {
+    case MapPatternTag => sys.exit(1)
+      
+  }
+
   private def optimizeInners[T]: OptimizeRule[T] = {
     case AndThenPattern(first, second) if optimizable(first) || optimizable(second) =>
       AndThenPattern(
