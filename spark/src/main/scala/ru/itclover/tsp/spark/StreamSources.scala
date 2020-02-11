@@ -3,7 +3,8 @@ package ru.itclover.tsp.spark
 import cats.syntax.either._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Dataset, Row, SparkSession, functions}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
@@ -237,11 +238,30 @@ case class KafkaSource(
 
   val stageName = "Kafka input processing stage"
 
+  val schema: StructType = StructType(
+    conf.fieldsTypes.map {
+      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
+        case "int8"    => ByteType
+        case "int16"   => ShortType
+        case "int32"   => IntegerType
+        case "int64"   => LongType
+        case "float32" => FloatType
+        case "float64" => DoubleType
+        case "boolean" => BooleanType
+        case "string"  => StringType
+        case _         => ObjectType(classOf[Any])
+      })
+    }.toSeq
+  )
+
   override def createStream: RDD[RowWithIdx] = spark.read
     .format("kafka")
     .option("kafka.bootstrap.servers", conf.brokers)
     .option("subscribe", conf.topic)
     .load()
+    .selectExpr("CAST(value AS STRING) as message")
+    .select(functions.from_json(functions.col("message"), schema).as("json"))
+    .select("json.*")
     .rdd
     .zipWithIndex()
     .map{ case (x, i) => RowWithIdx(i + 1, x) }
