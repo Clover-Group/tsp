@@ -121,6 +121,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     val first = p.assert(p.field(_.row >= 10))
     val second = p.timer(p.assert(p.field(_.col > 0)), 30.seconds, 1000L)
+    val third = p.timer(p.assert(p.field(_.col <= 0)), 30.seconds, 1000L)
     val pattern = first.andThen(second)
 
     val events = (for (time <- Timer(from = Instant.now());
@@ -134,6 +135,9 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     val outSecond = run(second, events)
     println(outSecond)
+
+    val outThird = run(third, events)
+    println(outThird)
 
     val out = run(pattern, events)
 

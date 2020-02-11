@@ -38,4 +38,13 @@ object QueueUtils {
     }
   }
 
+  /** Removes elements from m.Queue until predicate is true */
+  @scala.annotation.tailrec
+  def unwindWhile[T](queue: m.Queue[T])(func: T => Boolean): m.Queue[T] = {
+    queue.headOption match {
+      case Some(x) if func(x) => unwindWhile({ queue.dequeue(); queue })(func)
+      case _                  => queue
+    }
+  }
+
 }
