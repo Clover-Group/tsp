@@ -5,6 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, Row, SparkSession, functions}
+import org.apache.spark.sql.streaming.Trigger
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
@@ -254,7 +255,7 @@ case class KafkaSource(
     }.toSeq
   )
 
-  override def createStream: RDD[RowWithIdx] = spark.read
+  override def createStream: RDD[RowWithIdx] = spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", conf.brokers)
     .option("subscribe", conf.topic)
