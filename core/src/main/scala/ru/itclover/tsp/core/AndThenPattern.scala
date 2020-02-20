@@ -1,17 +1,17 @@
 package ru.itclover.tsp.core
 import cats.syntax.flatMap._
-import cats.syntax.functor._
 import cats.syntax.foldable._
-import cats.{Foldable, Functor, Monad}
+import cats.syntax.functor._
+import cats.{Apply, Foldable, Functor, Monad}
 import ru.itclover.tsp.core.AndThenPattern.TimeMap
+import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 import ru.itclover.tsp.core.aggregators.{TimerPattern, WaitPattern}
-import ru.itclover.tsp.core.io.TimeExtractor._
-import ru.itclover.tsp.core.Pattern.IdxExtractor._
 import ru.itclover.tsp.core.io.TimeExtractor
+import ru.itclover.tsp.core.io.TimeExtractor._
 
-import scala.collection.{mutable => m}
 import scala.annotation.tailrec
+import scala.collection.{mutable => m}
 import scala.language.higherKinds
 
 /** AndThen  */
@@ -32,7 +32,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
 
     // populate TimeMap with idx->time tuples for new events
     val idxTimeMapWithNewEvents =
-      event.foldLeft(oldState.indexTimeMap) { case (a, b) => a.enqueue(b.index -> b.time); a }
+      event.foldLeft(oldState.indexTimeMap) { case (a, b) => a += (b.index -> b.time) }
 
     for (newFirstOutput  <- firstF;
          newSecondOutput <- secondF)
@@ -52,66 +52,107 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
   }
 
   override def initialState(): AndThenPState[T1, T2, S1, S2] =
-    AndThenPState(first.initialState(), PQueue.empty, second.initialState(), PQueue.empty, m.Queue.empty)
+    AndThenPState(first.initialState(), PQueue.empty, second.initialState(), PQueue.empty, m.TreeMap.empty)
 
-  @tailrec
   private def process(
-    first: QI[T1],
-    second: QI[T2],
-    total: QI[(Idx, Idx)],
-    timeMap: TimeMap
+    firstQ: QI[T1],
+    secondQ: QI[T2],
+    totalQ: QI[(Idx, Idx)],
+    timeMapQ: TimeMap
   ): (QI[T1], QI[T2], QI[(Idx, Idx)], TimeMap) = {
+    import Time._
+    import cats.instances.option._
+    import Ordered._
 
-    def default: (QI[T1], QI[T2], QI[(Idx, Idx)], TimeMap) = (first, second, total, timeMap)
+    // dropWhile very expensive as it copies whole TreeMap every time.
+    def cleanTimeMap(timeMap: TimeMap, idx1: Idx, idx2: Idx): TimeMap =
+      timeMap.rangeImpl(Some(Math.min(idx1 - 1, idx2 - 1)), None)
 
-    (first.headOption, second.headOption) match {
-      case (None, _) => default
-      case (_, None) => default
-      case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
-        if (value1.isFail) {
-          process(
-            first.behead(),
-            PQueue.unwindWhile(second)(_.end <= start1),
-            total.enqueue(IdxValue(start1, end1, Fail)),
-            QueueUtils.unwindWhile(timeMap)(t => t._1 < start1)
-          )
-        } else if (value2.isFail) {
-          // Do not return Fail for the first part yet, unless it is the end of the queue
-          first.size match {
-            case 1 =>
-              process(
-                first.rewindTo(end2 + 1),
+    @tailrec
+    def inner(
+      first: QI[T1],
+      second: QI[T2],
+      total: QI[(Idx, Idx)],
+      timeMap: TimeMap
+    ): (QI[T1], QI[T2], QI[(Idx, Idx)], TimeMap) = {
+
+      def default: (QI[T1], QI[T2], QI[(Idx, Idx)], TimeMap) = (first, second, total, timeMap)
+
+      (first.headOption, second.headOption) match {
+        case (None, _) => default
+        case (_, None) => default
+        case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
+          val firstStart = timeMap(start1) + offset
+          val firstEnd = timeMap(end1) + offset
+//          println(s"First: ($start1 - $end1) ($firstStart - $firstEnd)")
+
+          // actually the second result starts after some offset.
+          val secondStart = timeMap(start2)
+          val secondEnd = timeMap(end2)
+//          println(s"Second: ($start2 - $end2) ($secondStart - $secondEnd)")
+
+          if (value1.isFail) {
+            inner(
+              first.behead(),
+              second.rewindTo(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)),
+              total.enqueue(IdxValue(start1, end1, Fail)),
+              cleanTimeMap(timeMap, start1, start2)
+            )
+          } else if (value2.isFail) {
+            inner(
+              first.rewindTo(QueueUtils.find(timeMap, secondEnd - offset).getOrElse(timeMap.head._1)),
+              second.behead(),
+              total.enqueue(IdxValue(start1, end2, Fail)),
+              cleanTimeMap(timeMap, start1, start2)
+            )
+          } else { // at this moment both first and second results are not Fail.
+
+            // late event from second, just skip it and fail this part only.
+            // first            |-------|
+            // second  |------|
+            if (firstStart > secondEnd) {
+              inner(
+                first,
                 second.behead(),
-                total.enqueue(IdxValue(start1, end2, Fail)),
-                QueueUtils.unwindWhile(timeMap)(t => t._1 < end2)
+                total.enqueue(IdxValue(start2, end2, Fail)),
+                timeMap.rangeImpl(Some(end2), None)
               )
-            case _ => process(first, second.behead(), total, QueueUtils.unwindWhile(timeMap)(t => t._1 < end2))
+            }
+            // Gap between first and second. Just behead first and fail this part only.
+            // first   |-------|
+            // second             |------|
+            else if (firstEnd < secondStart) {
+              inner(
+                first.behead(),
+                second,
+                total.enqueue(IdxValue(start1, end1, Fail)),
+                timeMap.rangeImpl(Some(end1), None)
+              )
+            }
+            // First and second intersect
+            // first   |-------|
+            // second       |-------|
+            // result       |--| (take intersection)
+            else {
+              val start = Math.max(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1), start2)
+              val end = Math.min(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), end2)
+              // todo nobody uses the output of AndThen pattern. Let's drop it later.
+              val newResult = IdxValue(start, end, Succ((start, end)))
+              inner(
+                first.rewindTo(end + 1),
+                second.rewindTo(end + 1),
+                total.enqueue(newResult),
+                timeMap.rangeImpl(Some(end), None)
+              )
+            }
           }
-        } else { // at this moment both first and second results are not Fail.
-          // late event from second, just skip it and fail this part only.
-          // first            |-------|
-          // second  |------|
-          if (start1 > end2) {
-            process(first, second.behead(), total.enqueue(IdxValue(start2, end2, Fail)))
-          }
-          // Gap between first and second. Just behead first and fail this part only.
-          // first   |-------|
-          // second             |------|
-          else if (end1 + 1 < start2) {
-            process(first.behead(), second, total.enqueue(IdxValue(start1, end1, Fail)))
-          }
-          // First and second intersect
-          // first   |-------|
-          // second       |-------|
-          // result  |------------| (take union, not intersection)
-          else {
-            val end = Math.max(end1 + 1, end2)
-            val start = Math.min(start1, start2)
-            val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
-            process(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
-          }
-        }
+      }
     }
+
+    // We use TreeMap.rangeImpl everywhere inside @inner function, which creates new view of the same RB-tree.
+    // To avoid memomy leaks we need to clone all remaining elements from timeMap to the new one calling .clone method.
+    val toReturn = inner(firstQ, secondQ, totalQ, timeMapQ)
+    toReturn.copy(_4 = toReturn._4.clone())
   }
 
   private val offset: Window = AndThenPattern.computeOffset(second)
@@ -129,7 +170,7 @@ case class AndThenPState[T1, T2, State1, State2](
 
 object AndThenPattern {
 
-  type TimeMap = m.Queue[(Idx, Time)]
+  type TimeMap = m.TreeMap[Idx, Time]
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def computeOffset(pattern: Pattern[_, _, _]): Window = {

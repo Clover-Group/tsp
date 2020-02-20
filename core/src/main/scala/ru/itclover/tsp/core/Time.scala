@@ -9,7 +9,12 @@ import scala.math.Ordering.Long
 
 case class Time(toMillis: Long) extends Serializable {
   def plus(window: Window): Time = Time(toMillis + window.toMillis)
+
+  def +(window: Window): Time = plus(window)
+
   def minus(window: Window): Time = Time(toMillis - window.toMillis)
+
+  def -(window: Window): Time = minus(window)
 
   override def toString: String = Time.DATE_TIME_FORMAT.format(Instant.ofEpochMilli(toMillis))
 

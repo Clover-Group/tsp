@@ -1,5 +1,6 @@
 package ru.itclover.tsp.core
 import cats.kernel.Order
+import ru.itclover.tsp.core.AndThenPattern.TimeMap
 import ru.itclover.tsp.core.Pattern.Idx
 
 import scala.annotation.tailrec
@@ -44,6 +45,20 @@ object QueueUtils {
     queue.headOption match {
       case Some(x) if func(x) => unwindWhile({ queue.dequeue(); queue })(func)
       case _                  => queue
+    }
+  }
+
+  // returns the first Idx in timeMap corresponding to the time after the given one.
+  def find(timeMap: TimeMap, time: Time): Option[Idx] = {
+    import Time._
+    import Ordered._
+
+    if (timeMap.isEmpty) None
+    else if (timeMap.last._2 < time) None
+    else if (timeMap.head._2 > time) Some(timeMap.head._1)
+    else {
+      val iterator = timeMap.iterator.dropWhile({ case (i, t) => t < time })
+      if (iterator.hasNext) Some(iterator.next()._1) else None
     }
   }
 
