@@ -44,6 +44,6 @@ object Result {
 
 case class Succ[T](t: T) extends Result[T]
 
-object Fail extends Result[Nothing] {
+object Fail extends Result[Nothing]{
   override def toString: String = "Fail"
 }

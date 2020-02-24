@@ -51,7 +51,7 @@ case class JDBCOutputConf(
 //}
 
 /**
-  * Sink for kafka connection
+* Sink for kafka connection
   * @param broker host and port for kafka broker
   * @param topic where is data located
   * @param serializer format of data in kafka
@@ -80,7 +80,7 @@ case class KafkaOutputConf(
 }
 
 /**
-  * Sink for redis connection
+* Sink for redis connection
   * @param url connection for redis, in format: redis://host:port/db
   * @param key key for data retrieving
   * @param serializer format of data in redis

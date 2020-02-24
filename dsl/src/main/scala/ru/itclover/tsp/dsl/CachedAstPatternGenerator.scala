@@ -11,5 +11,6 @@ class CachedAstPatternGenerator[Event, EKey, EItem]()(
   @transient fieldToEKey: Symbol => EKey
 ) extends ASTPatternGenerator[Event, EKey, EItem]()(idxExtractor, timeExtractor, extractor, fieldToEKey) {
 
+
   override def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = ???
 }

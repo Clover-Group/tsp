@@ -37,20 +37,10 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
     case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
       val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
       val r = fieldsClasses ++ m.map {
-          case (col, list) =>
-            list.map(
-              k =>
-                (
-                  eKeyToField(k),
-                  fieldsClasses
-                    .find {
-                      case (s, _) => fieldToEKey(s) == col
-                    }
-                    .map(_._2)
-                    .getOrElse(defaultClass)
-                )
-            )
-        }.flatten
+        case (col, list) => list.map(k => (eKeyToField(k), fieldsClasses.find {
+          case (s, _) => fieldToEKey(s) == col
+        }.map(_._2).getOrElse(defaultClass)))
+      }.flatten
       r
     case _ =>
       fieldsClasses
@@ -94,15 +84,10 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
       (r: Event) =>
         // TODO: Maybe optimise that by using intermediate (non-serialised) dictionary
         val extractedKey = extractor.apply[EKey](r, key)
-        val valueColumn = mapping
-          .getOrElse(Map.empty[EKey, List[EKey]])
-          .toSeq
-          .find {
-            case (_, list) =>
-              list.contains(extractedKey)
-          }
-          .map(_._1)
-          .getOrElse(value)
+        val valueColumn = mapping.getOrElse(Map.empty[EKey, List[EKey]]).toSeq.find {
+          case (_, list) =>
+            list.contains(extractedKey)
+        }.map(_._1).getOrElse(value)
         val extractedValue = extractor.apply[EItem](r, valueColumn)
         (extractedKey, extractedValue) // TODO: See that place better
     case Some(WideDataFilling(_, _)) =>
@@ -147,16 +132,15 @@ object JdbcSource {
       }
     } yield source
 
-  def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] =
-    conf.dataTransformation match {
-      case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
-        JdbcService
-          .fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
-          .toEither
-          .map(_.intersect(keys))
-          .leftMap[GenericRuntimeErr](e => GenericRuntimeErr(e, 5099))
-      case _ => Right(keys)
-    }
+
+  def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
+      JdbcService.fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
+        .toEither
+        .map(_.intersect(keys))
+        .leftMap[GenericRuntimeErr](e => GenericRuntimeErr(e, 5099))
+    case _ => Right(keys)
+  }
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
@@ -458,6 +442,7 @@ case class KafkaSource(
 
   override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
 
+
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
   def tsMultiplier = conf.timestampMultiplier.getOrElse {
@@ -585,11 +570,9 @@ case class RedisSource(
     val serializer = redisInfo._2
 
     val bucket = client.getBucket[Array[Byte]](conf.key, ByteArrayCodec.INSTANCE)
-    val rows = mutable
-      .ListBuffer(
-        serializer.deserialize(bucket.get(), fieldsIdxMap)
-      )
-      .map(r => RowWithIdx(0, r))
+    val rows = mutable.ListBuffer(
+      serializer.deserialize(bucket.get(), fieldsIdxMap)
+    ).map(r => RowWithIdx(0, r))
 
     streamEnv.fromCollection(rows)
 
@@ -598,6 +581,7 @@ case class RedisSource(
   override def fieldToEKey: Symbol => Symbol = (x => x)
 
   override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
+
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
