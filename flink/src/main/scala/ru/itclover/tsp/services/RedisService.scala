@@ -47,10 +47,10 @@ object RedisService {
     */
   def getSerialization(serializer: String): Serialization[Array[Byte], Row] = serializer match {
 
-    case "json"    => new JSONSerialization()
+    case "json" => new JSONSerialization()
     case "parquet" => new ParquetSerialization()
-    case "arrow"   => new ArrowSerialization()
-    case _         => throw new IllegalArgumentException(s"No serialization for type $serializer")
+    case "arrow" => new ArrowSerialization()
+    case _      => throw new IllegalArgumentException(s"No serialization for type $serializer")
 
   }
 

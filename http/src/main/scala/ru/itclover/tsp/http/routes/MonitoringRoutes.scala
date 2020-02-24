@@ -49,7 +49,7 @@ object MonitoringRoutes {
   log.debug("fromExecutionContext finished")
 }
 
-trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
+trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
   implicit val executionContext: ExecutionContextExecutor
   implicit val actors: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -70,54 +70,54 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
 
   def checkResponse(elem: HttpResponse): Boolean =
     elem.status.isInstanceOf[StatusCodes.ServerError] &&
-    elem.status.isInstanceOf[StatusCodes.ClientError]
+     elem.status.isInstanceOf[StatusCodes.ClientError]
 
   Logger[MonitoringRoutes]
 
   val akkaPrometheusRegistry = PrometheusRegistry(
     HttpMetricsSettings.default
-      .withIncludeStatusDimension(true)
-      .withIncludePathDimension(true)
-      .withDefineError(checkResponse),
+                       .withIncludeStatusDimension(true)
+                       .withIncludePathDimension(true)
+                       .withDefineError(checkResponse),
     new CollectorRegistry()
   )
 
   val route: Route = path("job" / Segment / "statusAndMetrics") { uuid =>
-      onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {
-        case Success(Some(detailsAndMetrics)) => complete((SuccessfulResponse(detailsAndMetrics)))
-        case Success(None)                    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-        case Failure(err)                     => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~
-    path("job" / Segment / "status") { uuid =>
-      onComplete(monitoring.queryJobInfo(uuid)) {
-        case Success(Some(details)) => complete((details))
-        case Success(None)          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-        case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~
-    path("job" / Segment / "exceptions") { uuid =>
-      onComplete(monitoring.queryJobExceptions(uuid)) {
-        case Success(Some(exceptions)) => complete((exceptions))
-        case Success(None)             => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-        case Failure(err)              => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~
-    path("job" / Segment / "stop") { uuid =>
-      onComplete(monitoring.sendStopQuery(uuid)) {
-        case Success(Some(_)) => complete((SuccessfulResponse(1)))
-        case Success(None)    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-        case Failure(err)     => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~
-    path("jobs" / "overview") {
-      onComplete(monitoring.queryJobsOverview) {
-        case Success(resp) => complete((resp))
-        case Failure(err)  => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~
-    path("metainfo" / "getVersion") {
-      complete(SuccessfulResponse(BuildInfo.version))
-    } ~
-    (get & path("metrics-akka"))(metrics(akkaPrometheusRegistry))
+    onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {
+      case Success(Some(detailsAndMetrics)) => complete((SuccessfulResponse(detailsAndMetrics)))
+      case Success(None)                    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)                     => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("job" / Segment / "status") { uuid =>
+    onComplete(monitoring.queryJobInfo(uuid)) {
+      case Success(Some(details)) => complete((details))
+      case Success(None)          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("job" / Segment / "exceptions") { uuid =>
+    onComplete(monitoring.queryJobExceptions(uuid)) {
+      case Success(Some(exceptions)) => complete((exceptions))
+      case Success(None)             => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)              => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("job" / Segment / "stop") { uuid =>
+    onComplete(monitoring.sendStopQuery(uuid)) {
+      case Success(Some(_)) => complete((SuccessfulResponse(1)))
+      case Success(None)    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)     => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("jobs" / "overview") {
+    onComplete(monitoring.queryJobsOverview) {
+      case Success(resp) => complete((resp))
+      case Failure(err)  => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("metainfo" / "getVersion") {
+    complete(SuccessfulResponse(BuildInfo.version))
+  } ~
+  (get & path("metrics-akka"))(metrics(akkaPrometheusRegistry))
 }

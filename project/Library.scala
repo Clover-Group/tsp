@@ -90,15 +90,15 @@ object Library {
   val flinkCore: Seq[ModuleID] = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink: Seq[ModuleID] = flinkCore ++ Seq(
-      "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
-      "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-      "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
-      "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-      "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
-      "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
-      "org.apache.flink" % "flink-avro" % Version.flink,
-      "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
-    )
+    "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
+    "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
+    "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
+    "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
+    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
+    "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
+    "org.apache.flink" % "flink-avro" % Version.flink,
+    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
+  )
 
   val akka: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
@@ -156,20 +156,20 @@ object Library {
   )
 
   val parquetDeps: Seq[ModuleID] = Seq(
-    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient exclude (
+    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient exclude(
       "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
-    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient exclude (
+    ) exclude("log4j", "log4j"),
+    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient exclude(
       "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
-    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs exclude (
+    ) exclude("log4j", "log4j"),
+    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs exclude(
       "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
+    ) exclude("log4j", "log4j"),
     "com.github.rdblue" % "brotli-codec" % Version.brotli
   )
 
   val jol: Seq[ModuleID] = Seq(
-    "org.openjdk.jol" % "jol-core" % Version.jolVersion
+    "org.openjdk.jol" % "jol-core"% Version.jolVersion
   )
 
   val redisson: Seq[ModuleID] = Seq(

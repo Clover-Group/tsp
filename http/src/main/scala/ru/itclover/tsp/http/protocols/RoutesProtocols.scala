@@ -47,14 +47,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
   implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
-    jsonFormat(
-      NarrowDataUnfolding[Event, EKey, EValue],
-      "keyColumn",
-      "defaultValueColumn",
-      "fieldsTimeoutsMs",
-      "valueColumnMapping",
-      "defaultTimeout"
-    )
+    jsonFormat(NarrowDataUnfolding[Event, EKey, EValue], "keyColumn", "defaultValueColumn", "fieldsTimeoutsMs", "valueColumnMapping","defaultTimeout")
   implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
     jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
 

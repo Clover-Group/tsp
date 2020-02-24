@@ -46,18 +46,15 @@ case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: 
     case None =>
       fr.findBestFunctionMatch(functionName, arguments.map(_.valueType)) match {
         case Some(((f, t), c)) =>
-          logger.warn(
-            s"No function with exact name $functionName " +
+          logger.warn(s"No function with exact name $functionName " +
             s"and types (${arguments.map(_.valueType).mkString(", ")} found," +
-            s"using substitute function $f (with castability factor $c)"
-          )
+            s"using substitute function $f (with castability factor $c)")
           t
-        case None =>
-          throw ParseException(
-            s"No function with name $functionName " +
-            s"and types (${arguments.map(_.valueType).mkString(", ")}) (the arguments were ${arguments.mkString(", ")})"
-          )
-      }
+        case None => throw ParseException(
+          s"No function with name $functionName " +
+          s"and types (${arguments.map(_.valueType).mkString(", ")}) (the arguments were ${arguments.mkString(", ")})"
+        )
+    }
   }
 }
 

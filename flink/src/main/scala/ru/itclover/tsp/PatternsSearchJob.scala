@@ -57,7 +57,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(resultMapper)
-      (patterns, saveStream(mapped, outputConf))
+      (patterns,  saveStream(mapped, outputConf))
     }
   }
 
@@ -122,12 +122,10 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           )
       } else {
         keyedStream
-        //.window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-          .window(
-            TumblingEventTimeWindows
+          //.window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
+            .window(TumblingEventTimeWindows
               .of(WindowingTime.milliseconds(1))
-              .asInstanceOf[WindowAssigner[In, FlinkWindow]]
-          )
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]])
           .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
       }
     val processed = windowed
@@ -146,10 +144,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       dataStream
         .keyBy(source.partitioner)
         .process(
-          SparseRowsDataAccumulator[In, InKey, InItem, In](
-            source.asInstanceOf[StreamSource[In, InKey, InItem]],
-            source.patternFields
-          )
+          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
+            source.patternFields)
         )
         .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
@@ -179,8 +175,8 @@ object PatternsSearchJob {
 
     log.debug("preparePatterns started")
 
-    val filteredPatterns = rawPatterns.filter(
-      p => PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
+    val filteredPatterns = rawPatterns.filter(p =>
+      PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
     )
 
     val pGenerator = new ASTPatternGenerator[E, EKey, EItem]()(

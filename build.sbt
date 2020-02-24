@@ -1,4 +1,6 @@
+
 /*** Settings ***/
+
 name := "TSP"
 organization in ThisBuild := "ru.itclover" // Fallback-settings for all sub-projects (ThisBuild task)
 maintainer in Docker := "Clover Group"
@@ -14,7 +16,7 @@ resolvers in ThisBuild ++= Seq(
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
-
+ 
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   wartremoverWarnings ++= Warts.unsafe,
@@ -24,28 +26,30 @@ lazy val commonSettings = Seq(
   // Comment for production builds
   addCompilerPlugin(scalafixSemanticdb),
   scalacOptions --= Seq(
-      "-Xfatal-warnings"
-    ),
+    "-Xfatal-warnings"
+  ),
   scalacOptions ++= Seq(
-      "-Yrangepos"
-    ),
+    "-Yrangepos",
+  ),
   // don't release subprojects
   javaOptions in test += "-Djdk.attach.allowAttachSelf",
   githubRelease := null,
   skip in publish := true,
-  maxErrors := 5
+  maxErrors := 5, 
 )
+
 
 lazy val assemblySettings = Seq(
   assemblyJarName := s"TSP_v${version.value}.jar",
-  javaOptions += "--add-modules=java.xml.bind"
+  javaOptions += "--add-modules=java.xml.bind" ,
+
 )
 
 // to run only one test at once (to prevent too many containers creating and subsequent test failures)
 concurrentRestrictions in Global += Tags.limit(Tags.Test, 1)
 
 // make run command include the provided dependencies (for sbt run)
-run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run))
+run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in(Compile, run), runner in(Compile, run))
 
 // make native packager use only the fat jar
 mappings in Universal := {
@@ -54,8 +58,8 @@ mappings in Universal := {
   val fatJar = (assembly in mainRunner).value
   // removing means filtering
   val filtered = universalMappings filter {
-      case (file, name) => !name.contains(".jar")
-    }
+    case (file, name) => !name.contains(".jar")
+  }
   // add the fat jar
   filtered :+ (fatJar -> ("lib/" + fatJar.getName))
 }
@@ -66,8 +70,8 @@ mappings in Docker := {
   val fatJar = (assembly in mainRunner).value
   // removing means filtering
   val filtered = universalMappings filter {
-      case (file, name) => !name.contains(".jar")
-    }
+    case (file, name) => !name.contains(".jar")
+  }
   // add the fat jar
   filtered :+ (fatJar -> ("lib/" + fatJar.getName))
 }
@@ -87,45 +91,48 @@ dockerCommands := Seq(
   ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
 )
 
+
 /*** Projects configuration ***/
-lazy val mainRunner = project
-  .in(file("mainRunner"))
-  .dependsOn(http)
+
+lazy val mainRunner = project.in(file("mainRunner")).dependsOn(http)
   .settings(commonSettings)
   .settings(
     // we set all provided dependencies to none, so that they are included in the classpath of mainRunner
     libraryDependencies := (libraryDependencies in http).value.map { module =>
-        if (module.configurations.contains("provided")) {
-          module.withConfigurations(configurations = None)
-        } else {
-          module
-        }
-      },
+      if (module.configurations.contains("provided")) {
+        module.withConfigurations(configurations = None)
+      } else {
+        module
+      }
+    },
     skip in publish := false,
     mainClass := Some(launcher),
     inTask(assembly)(assemblySettings),
+
+
 // bku: Customized assembly strategy to fix Merge errors on builds
-    assemblyMergeStrategy in assembly := {
-      case "git.properties" => MergeStrategy.first
-      case PathList("META-INF", xs @ _*) =>
-        xs map { _.toLowerCase } match {
-          case "manifest.mf" :: Nil | "index.list" :: Nil | "dependencies" :: Nil =>
-            MergeStrategy.discard
-          case ps @ x :: xs if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
-            MergeStrategy.discard
-          case "plexus" :: xs =>
-            MergeStrategy.discard
-          case "services" :: xs =>
-            MergeStrategy.filterDistinctLines
-          case "spring.schemas" :: Nil | "spring.handlers" :: Nil =>
-            MergeStrategy.filterDistinctLines
-          case _ => MergeStrategy.first
-        }
-      case "application.conf" => MergeStrategy.concat
-      case "reference.conf"   => MergeStrategy.concat
-      case _                  => MergeStrategy.first
+assemblyMergeStrategy in assembly := {
+case "git.properties"                              => MergeStrategy.first
+  case PathList("META-INF", xs @ _*) =>
+    xs map {_.toLowerCase} match {
+      case "manifest.mf" :: Nil | "index.list" :: Nil | "dependencies" :: Nil =>
+        MergeStrategy.discard
+      case ps @ x :: xs if ps.last.endsWith(".sf") || ps.last.endsWith(".dsa") =>
+        MergeStrategy.discard
+      case "plexus" :: xs =>
+        MergeStrategy.discard
+      case "services" :: xs =>
+        MergeStrategy.filterDistinctLines
+      case "spring.schemas" :: Nil | "spring.handlers" :: Nil =>
+        MergeStrategy.filterDistinctLines
+      case _ => MergeStrategy.first
     }
+  case "application.conf" => MergeStrategy.concat
+  case "reference.conf" => MergeStrategy.concat
+  case _ => MergeStrategy.first
+}
   )
+
 
 lazy val runTask = taskKey[Unit]("App runner")
 
@@ -135,13 +142,13 @@ lazy val runTask = taskKey[Unit]("App runner")
 
 lazy val root = (project in file("."))
   .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
+
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
   .aggregate(core, config, http, flink, dsl, itValid)
   .dependsOn(core, config, http, flink, dsl, itValid)
 
-lazy val core = project
-  .in(file("core"))
+lazy val core = project.in(file("core"))
   .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
@@ -149,8 +156,7 @@ lazy val core = project
       ++ Library.jol.map(_ % "test") ++ Library.arrowDeps ++ Library.parquetDeps
   )
 
-lazy val config = project
-  .in(file("config"))
+lazy val config = project.in(file("config"))
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
@@ -159,16 +165,14 @@ lazy val config = project
   )
   .dependsOn(core)
 
-lazy val flink = project
-  .in(file("flink"))
+lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson
   )
   .dependsOn(core, config, dsl)
 
-lazy val http = project
-  .in(file("http"))
+lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
@@ -176,33 +180,31 @@ lazy val http = project
   )
   .dependsOn(core, config, flink, dsl)
 
-lazy val dsl = project
-  .in(file("dsl"))
+lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
   .settings(
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
-    libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.parboiled
-  )
-  .dependsOn(core)
+    libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
+  ).dependsOn(core)
 
-lazy val itValid = project
-  .in(file("integration/correctness"))
+lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(core, flink, http, config)
 
-lazy val itPerf = project
-  .in(file("integration/performance"))
+lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
   )
   .dependsOn(itValid)
 
+
 /*** Other settings ***/
-// Exclude sources
+
+// Exclude sources 
 //excludeFilter in unmanagedResources := {
 //  val public = ((resourceDirectory in Compile).value / "com" / "example" / "export" / "dev").getCanonicalPath
 //  new SimpleFileFilter(_.getCanonicalPath startsWith public)
@@ -210,10 +212,12 @@ lazy val itPerf = project
 //(unmanagedResourceDirectories in Compile) := (unmanagedResourceDirectories in Compile).value.filter(_.getName.startsWith("dev"))
 unmanagedResourceDirectories in Compile -= (resourceDirectory in Compile).value / "com/example/export/dev"
 
+
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 //addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+
 
 // Git-specific settings
 import sbtrelease.Version.Bump
@@ -226,15 +230,16 @@ val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 def nextVersion(v: String): String = Bump.Next.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
 
 git.gitTagToVersionNumber := {
-  case VersionRegex(v, "")                        => Some(v)
-  case VersionRegex(v, "SNAPSHOT")                => Some(s"${nextVersion(v)}-SNAPSHOT")
+  case VersionRegex(v, "") => Some(v)
+  case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
   case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-$s")
-  case VersionRegex(v, s)                         => Some(s"$v-$s")
-  case _                                          => None
+  case VersionRegex(v, s) => Some(s"$v-$s")
+  case _ => None
 }
 
 // Release specific settings
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations.{setReleaseVersion => _, _}
+
 
 lazy val setReleaseVersion: ReleaseStep = Utils.setVersion(_._1)
 lazy val commitChangelogs: ReleaseStep = Utils.commitChangelogs
@@ -243,14 +248,14 @@ releaseVersionFile := file("./VERSION")
 releaseUseGlobalVersion := false
 
 releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies, // prevents the release if any dependencies are SNAPSHOT
-  inquireVersions, // ask the user for version tag to be released
-  runClean, // performs cleaning task
-  setReleaseVersion, // sets the version and transfers notes to CHANGELOG
-  commitReleaseVersion, // performs the initial git checks
-  commitChangelogs, // commits the changes in CHANGELOG files
-  tagRelease, // tags the prepared release
-  pushChanges // pushes into upstream, also checks that an upstream branch is properly configured
+  checkSnapshotDependencies,              // prevents the release if any dependencies are SNAPSHOT
+  inquireVersions,                        // ask the user for version tag to be released
+  runClean,                               // performs cleaning task
+  setReleaseVersion,                      // sets the version and transfers notes to CHANGELOG
+  commitReleaseVersion,                   // performs the initial git checks
+  commitChangelogs,                       // commits the changes in CHANGELOG files
+  tagRelease,                             // tags the prepared release
+  pushChanges                             // pushes into upstream, also checks that an upstream branch is properly configured
 )
 
 ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))

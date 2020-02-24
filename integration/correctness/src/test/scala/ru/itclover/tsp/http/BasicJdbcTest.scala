@@ -84,29 +84,24 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files
-      .readResource("/sql/test-db-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(container.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
 
-    Files
-      .readResource("/sql/wide/source-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/source-schema.sql")
+         .mkString.split(";")
+         .foreach(container.executeUpdate)
 
-    Files
-      .readResource("/sql/wide/source-inserts.sql")
-      .mkString
-      .split(";")
-      .foreach(container.executeUpdate)
+    Files.readResource("/sql/wide/source-inserts.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
 
-    Files
-      .readResource("/sql/sink-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(container.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

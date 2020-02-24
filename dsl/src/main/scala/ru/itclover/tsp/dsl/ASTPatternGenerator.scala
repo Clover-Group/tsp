@@ -6,14 +6,7 @@ import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{WaitPattern, TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.{
-  decodeToAny,
-  decodeToBoolean,
-  decodeToDouble,
-  decodeToInt,
-  decodeToLong,
-  decodeToString
-}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
@@ -48,17 +41,10 @@ class ASTPatternGenerator[Event, EKey, EItem]()(
 
   }
 
-  def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = generatePatternMatch(ast)
+  def generatePattern(ast:AST): Pattern[Event, AnyState[Any], Any] = generatePatternMatch(ast)
 
   def generatePatternMatch(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-    import ru.itclover.tsp.core.io.AnyDecodersInstances.{
-      decodeToAny,
-      decodeToBoolean,
-      decodeToDouble,
-      decodeToInt,
-      decodeToLong,
-      decodeToString
-    }
+    import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -98,23 +84,20 @@ class ASTPatternGenerator[Event, EKey, EItem]()(
           case 2 =>
             log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
-            val fun: PFunction = registry
-              .findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType))
-              .map(_._1)
+            val fun: PFunction = registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
               .getOrElse(
                 sys.error(
                   s"Function ${fc.functionName} with argument types " +
-                  s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
                 )
-              )
-              ._1
+              )._1
             CouplePattern(p1, p2)(
               { (x, y) =>
                 (x, y) match {
                   case (Succ(rx), Succ(ry)) =>
-                    fun(
-                      Seq(rx, ry) // <--- TSP-182 fails here
-                    )
+                      fun(
+                        Seq(rx, ry) // <--- TSP-182 fails here
+                      )
 
                   case _ => Result.fail
                 }

@@ -1,3 +1,4 @@
+
 package ru.itclover.tsp.dsl
 
 import org.scalactic.{Equality, TolerantNumerics}

@@ -141,6 +141,7 @@ trait JobsRoutes extends RoutesProtocols {
     } ~
     path("streamJob" / "from-redis" / "to-redis"./) {
       entity(as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]) { request =>
+
         import request._
         val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 

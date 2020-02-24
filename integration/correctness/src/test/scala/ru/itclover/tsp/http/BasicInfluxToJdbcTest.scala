@@ -107,29 +107,25 @@ class BasicInfluxToJdbcTest
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files
-      .readResource("/sql/test-db-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(jdbcContainer.executeUpdate)
 
-    Files
-      .readResource("/sql/infl-test-db-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeQuery)
+    Files.readResource("/sql/infl-test-db-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(influxContainer.executeQuery)
 
-    Files
-      .readResource("/sql/wide/infl-source-inserts.influx")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeUpdate)
+    Files.readResource("/sql/wide/infl-source-inserts.influx")
+         .mkString
+         .split(";")
+         .foreach(influxContainer.executeUpdate)
 
-    Files
-      .readResource("/sql/sink-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(jdbcContainer.executeUpdate)
+    Files.readResource("/sql/sink-schema.sql")
+         .mkString
+         .split(";")
+         .foreach(jdbcContainer.executeUpdate)
   }
 
   override def afterAll(): Unit = {
@@ -149,14 +145,14 @@ class BasicInfluxToJdbcTest
       checkByQuery(
         List(List(2.0)),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'"
+          "visitParamExtractString(context, 'mechanism_id') = '65001'"
       )
 
       checkByQuery(
         List(),
         "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
         "visitParamExtractString(context, 'mechanism_id') = '65001' " +
-        "and visitParamExtractFloat(context, 'speed') = 20.0"
+          "and visitParamExtractFloat(context, 'speed') = 20.0"
       )
 
     }
@@ -183,7 +179,7 @@ class BasicInfluxToJdbcTest
     }
   }
 
-  /*
+  /* 
   // TODO: Fix json format for arbitrary
   "Data filling" should "work for wide sparse table" in {
 
