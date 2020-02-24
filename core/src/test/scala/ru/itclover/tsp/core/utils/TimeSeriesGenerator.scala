@@ -24,7 +24,7 @@ trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
 
   def run(seconds: Int): Seq[T] = (1 to seconds).map(_.seconds).map(this)
 
-  override def isDefinedAt(x: Duration): Boolean = x >= 0.seconds && x <= howLong
+  override def isDefinedAt(x: Duration): Boolean = x > 0.seconds && x <= howLong
 
   def howLong: Duration
 }
@@ -78,7 +78,7 @@ case class Constant[T](v: T) extends TimeSeriesGenerator[T] {
   */
 case class Change(from: Double, to: Double, howLong: Duration) extends TimeSeriesGenerator[Double] {
 
-  override def apply(v1: Duration): Double = (to - from) / (howLong.toMillis) * v1.toMillis
+  override def apply(v1: Duration): Double = (to - from) / howLong.toMillis * v1.toMillis
 }
 
 /**
@@ -95,7 +95,7 @@ case class AndThen[A](first: TimeSeriesGenerator[A], next: TimeSeriesGenerator[A
     if (first.isDefinedAt(v1)) {
       first(v1)
     } else {
-      (next(v1))
+      next(v1 - first.howLong)
     }
   }
 }
