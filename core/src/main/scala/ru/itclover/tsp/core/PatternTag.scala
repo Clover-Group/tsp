@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 
 import ru.itclover.tsp.core.aggregators._
 
-sealed trait PatternTag
+sealed trait PatternTag extends Serializable
 
 sealed trait WithoutInnerPatternTag extends PatternTag
 case object ExtractingTag extends WithoutInnerPatternTag
