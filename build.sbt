@@ -30,6 +30,7 @@ lazy val commonSettings = Seq(
       "-Yrangepos"
     ),
   // don't release subprojects
+  javaOptions in test += "-Djdk.attach.allowAttachSelf",
   githubRelease := null,
   skip in publish := true,
   maxErrors := 5
