@@ -57,7 +57,7 @@ object KafkaService {
 }
 
 /**
-* Deserialization for JSON format
+  * Deserialization for JSON format
   * @param fieldsIdxMap mapping of types from string and scala type
   */
 class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDeserializationSchema[Row] {
@@ -70,13 +70,12 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
 }
 
 /**
-* Deserialization for Apache Arrow format
+  * Deserialization for Apache Arrow format
   */
 class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
     new ArrowSerialization().deserialize(record.value(), null)
-
 
   override def isEndOfStream(nextElement: Row): Boolean = false
 
@@ -84,13 +83,12 @@ class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 }
 
 /**
-* Deserialization for Apache Parquet format
+  * Deserialization for Apache Parquet format
   */
 class ParquetRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
     new ParquetSerialization().deserialize(record.value(), null)
-
 
   override def isEndOfStream(nextElement: Row): Boolean = false
 

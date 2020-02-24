@@ -25,7 +25,8 @@ object InfluxDBService {
   def fetchFieldsTypesInfo(query: String, conf: InfluxConf): Try[Seq[(Symbol, Class[_])]] = for {
     db     <- connectDb(conf)
     series <- fetchFirstSeries(db, query, conf.dbName)
-    seriesForTypes <- (if (conf.checkTypes) fetchFirstNotNullValueSeries(db, query, conf.dbName) else fetchFirstSeries(db, query, conf.dbName))
+    seriesForTypes <- (if (conf.checkTypes) fetchFirstNotNullValueSeries(db, query, conf.dbName)
+                       else fetchFirstSeries(db, query, conf.dbName))
     values <- seriesForTypes.getValues.asScala.headOption.toTry(whenNone = emptyValuesException(query))
     tags = if (series.getTags != null) series.getTags.asScala.toSeq.sortBy(_._1) else Seq.empty
   } yield {

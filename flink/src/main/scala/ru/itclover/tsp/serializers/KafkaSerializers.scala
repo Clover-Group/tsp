@@ -7,15 +7,15 @@ import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization, 
 
 object KafkaSerializers {
 
-  class JSONSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]{
+  class JSONSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
     override def serialize(element: Row): Array[Byte] = new JSONSerialization().serialize(element, rowSchema)
   }
 
-  class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]{
+  class ArrowSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
     override def serialize(element: Row): Array[Byte] = new ArrowSerialization().serialize(element, rowSchema)
   }
 
-  class ParquetSerializer(rowSchema: RowSchema) extends SerializationSchema[Row]{
+  class ParquetSerializer(rowSchema: RowSchema) extends SerializationSchema[Row] {
     override def serialize(element: Row): Array[Byte] = new ParquetSerialization().serialize(element, rowSchema)
   }
 

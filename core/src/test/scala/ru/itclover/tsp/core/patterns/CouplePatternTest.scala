@@ -14,7 +14,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import scala.concurrent.duration._
 
-
 class CouplePatternTest extends WordSpec with Matchers {
 
   val p: Patterns[EInt] = Patterns[EInt]

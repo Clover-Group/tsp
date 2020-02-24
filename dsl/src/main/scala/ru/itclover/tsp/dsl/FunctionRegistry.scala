@@ -31,45 +31,52 @@ case class FunctionRegistry(
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
 
   def findBestFunctionMatch(name: Symbol, types: Seq[ASTType]): Option[((PFunction, ASTType), Long)] =
-    functions.filterKeys {
-      case (n, t) => n == name && t.length == types.length
-    }.toList.map {
-      case x@((_, t), _) => (x, t.zip(types).map { case (to, from) => FunctionRegistry.castability(from, to) }.sum)
-    }.sortBy(-_._2).find(_._2 > 0).map { case ((_, f), c) => (f, c) }
+    functions
+      .filterKeys {
+        case (n, t) => n == name && t.length == types.length
+      }
+      .toList
+      .map {
+        case x @ ((_, t), _) => (x, t.zip(types).map { case (to, from) => FunctionRegistry.castability(from, to) }.sum)
+      }
+      .sortBy(-_._2)
+      .find(_._2 > 0)
+      .map { case ((_, f), c) => (f, c) }
 }
 
 object FunctionRegistry {
+
   /**
-  * How good types can be cast.
+    * How good types can be cast.
     * @param from Source type
     * @param to Destination type
     * @return Measure of castability (1 = worst possible, 9 = best possible, 10 = same types)
     */
   def castability(from: ASTType, to: ASTType): Long = (from, to) match {
-    case (x, y) if x == y => 10 // Same types
-    case (NullASTType, _) => 9  // Null can be cast to any type (with highest priority)
-    case (IntASTType, DoubleASTType) => 9 // Int can be safely cast to double
-    case (IntASTType, LongASTType) => 9 // Int can be safely cast to Long
-    case (BooleanASTType, IntASTType) => 9 // Boolean can be safely cast to Int
-    case (BooleanASTType, LongASTType) => 9 // Boolean can be safely cast to Long
+    case (x, y) if x == y                => 10 // Same types
+    case (NullASTType, _)                => 9 // Null can be cast to any type (with highest priority)
+    case (IntASTType, DoubleASTType)     => 9 // Int can be safely cast to double
+    case (IntASTType, LongASTType)       => 9 // Int can be safely cast to Long
+    case (BooleanASTType, IntASTType)    => 9 // Boolean can be safely cast to Int
+    case (BooleanASTType, LongASTType)   => 9 // Boolean can be safely cast to Long
     case (BooleanASTType, DoubleASTType) => 8 // Boolean can be safely cast to Double, but integral type is preferred
-    case (DoubleASTType, LongASTType) => 4 // Possible precision loss (but Long is preferred anyway)
-    case (DoubleASTType, IntASTType) => 3 // Possible precision loss
-    case (IntASTType, BooleanASTType) => 7 // Integral types can be cast to Boolean (zero/nonzero), but with caution
-    case (LongASTType, BooleanASTType) => 7 // Integral types can be cast to Boolean (zero/nonzero), but with caution
+    case (DoubleASTType, LongASTType)    => 4 // Possible precision loss (but Long is preferred anyway)
+    case (DoubleASTType, IntASTType)     => 3 // Possible precision loss
+    case (IntASTType, BooleanASTType)    => 7 // Integral types can be cast to Boolean (zero/nonzero), but with caution
+    case (LongASTType, BooleanASTType)   => 7 // Integral types can be cast to Boolean (zero/nonzero), but with caution
     case (DoubleASTType, BooleanASTType) => 2 // Use very cautiously (value even very close to zero is still TRUE)
-    case (_, StringASTType) => 1  // Any type can be cast to string, but with lowest priority
-    case _ => Int.MinValue  // no casting otherwise (not Long.MinValue since we use addition)
+    case (_, StringASTType)              => 1 // Any type can be cast to string, but with lowest priority
+    case _                               => Int.MinValue // no casting otherwise (not Long.MinValue since we use addition)
   }
 }
 
-object DefaultFunctions extends LazyLogging{
+object DefaultFunctions extends LazyLogging {
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
       case value: Result[_]                                          => value.asInstanceOf[Result[T]]
       case value: T                                                  => Result.succ(value)
-      case null => logger.warn(s"Null value arrived with type $ct"); Result.fail //fromNull[T]
+      case null                                                      => logger.warn(s"Null value arrived with type $ct"); Result.fail //fromNull[T]
       case value if ct.runtimeClass.isAssignableFrom(value.getClass) => Result.succ(value.asInstanceOf[T])
       case v: Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
         Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
@@ -85,7 +92,8 @@ object DefaultFunctions extends LazyLogging{
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       case v: java.lang.Integer if (ct.runtimeClass eq classOf[Long]) || (ct.runtimeClass eq classOf[java.lang.Long]) =>
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Long
-      case v: java.lang.Integer if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
+      case v: java.lang.Integer
+          if (ct.runtimeClass eq classOf[Double]) || (ct.runtimeClass eq classOf[java.lang.Double]) =>
         Result.succ(v.toDouble.asInstanceOf[T]) // we know that T == Double
       case _ if ct.runtimeClass.isAssignableFrom(classOf[String]) =>
         Result.succ(x.toString.asInstanceOf[T]) // we know that T is assignable from String
@@ -98,7 +106,7 @@ object DefaultFunctions extends LazyLogging{
   private def fromNull[T](implicit ct: ClassTag[T]): Result[T] = ct.runtimeClass match {
     case x if (x eq classOf[Double]) || (x eq classOf[java.lang.Double]) => Result.succ(Double.NaN.asInstanceOf[T])
     case x if (x eq classOf[String]) || (x eq classOf[java.lang.String]) => Result.succ("".asInstanceOf[T])
-    case _ => Result.fail
+    case _                                                               => Result.fail
   }
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
@@ -280,16 +288,16 @@ object DefaultFunctions extends LazyLogging{
           sym match {
 
             case 'and => Result.succ(l.and(x0, x1))
-            case 'or => Result.succ(l.or(x0, x1))
+            case 'or  => Result.succ(l.or(x0, x1))
             case 'xor => Result.succ(l.xor(x0, x1))
-            case 'eq => Result.succ(l.eq(x0, x1))
+            case 'eq  => Result.succ(l.eq(x0, x1))
             case 'neq => Result.succ(l.neq(x0, x1))
-            case _ => Result.fail
+            case _    => Result.fail
           }
         case (Succ(x0), Fail) =>
           sym match {
             case 'not => Result.succ(l.not(x0))
-            case _ => Result.fail
+            case _    => Result.fail
           }
         case _ => Result.fail
       }
