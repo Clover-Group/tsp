@@ -170,11 +170,69 @@ class AndThenPatternTest extends FlatSpec with Matchers {
       yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
 
     val out = run(pattern, events)
-    println(out)
     out.size shouldBe 3
-    out(0) shouldBe IdxValue(0, 14, Fail)
+    out(0) shouldBe IdxValue(0, 19, Fail)
     out(1) shouldBe IdxValue(20, 21, Succ((20, 21)))
     out(2) shouldBe IdxValue(22, 99, Fail)
+  }
+
+  it should "work correctly with TimerPattern - 4 repeated pattern" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.row > 0)), 10.seconds, 1000L)
+    val second = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row <- Constant(0)
+                         .timed(5.seconds)
+                         .after(Constant(1).timed(17.seconds).after(Constant(0).timed(5.seconds)).repeat(100));
+                       col <- Constant(1).timed(100.seconds).after(Constant(0)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val out = run(pattern, events)
+    out.size shouldBe 8
+    out(0) shouldBe IdxValue(0, 24, Fail)
+    out(1) shouldBe IdxValue(25, 31, Succ((25, 31)))
+    out(2) shouldBe IdxValue(32, 46, Fail)
+    out(3) shouldBe IdxValue(47, 53, Succ((47, 53)))
+    out(4) shouldBe IdxValue(54, 68, Fail)
+    out(5) shouldBe IdxValue(69, 75, Succ((69, 75)))
+    out(6) shouldBe IdxValue(76, 90, Fail)
+    out(7) shouldBe IdxValue(91, 97, Succ((91, 97)))
+  }
+
+  it should "work correctly with TimerPattern - 6 repeated pattern" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.row > 0)), 10.seconds, 1000L)
+    val second = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(1).timed(100.seconds).after(Constant(0));
+                       col <- Constant(0)
+                         .timed(5.seconds)
+                         .after(Constant(1).timed(17.seconds).after(Constant(0).timed(5.seconds)).repeat(100)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
+    val out = run(pattern, events)
+    out.size shouldBe 9
+    out(0) shouldBe IdxValue(0, 19, Fail)
+    out(1) shouldBe IdxValue(20, 21, Succ((20, 21)))
+    out(2) shouldBe IdxValue(22, 36, Fail)
+    out(3) shouldBe IdxValue(37, 43, Succ((37, 43)))
+    out(4) shouldBe IdxValue(44, 58, Fail)
+    out(5) shouldBe IdxValue(59, 65, Succ((59, 65)))
+    out(6) shouldBe IdxValue(66, 80, Fail)
+    out(7) shouldBe IdxValue(81, 87, Succ((81, 87)))
+    out(8) shouldBe IdxValue(88, 92, Fail)
+
   }
 
 }

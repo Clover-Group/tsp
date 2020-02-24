@@ -64,6 +64,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
     import cats.instances.option._
     import Ordered._
 
+    // This function cleans up timeMap unwinding all elements for idx < Math.min(idx1, idx2)
     // dropWhile very expensive as it copies whole TreeMap every time.
     def cleanTimeMap(timeMap: TimeMap, idx1: Idx, idx2: Idx): TimeMap =
       timeMap.rangeImpl(Some(Math.min(idx1 - 1, idx2 - 1)), None)
@@ -95,7 +96,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
             inner(
               first.behead(),
               second.rewindTo(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)),
-              total.enqueue(IdxValue(start1, end1, Fail)),
+              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), Fail)),
               cleanTimeMap(timeMap, start1, start2)
             )
           } else if (value2.isFail) {
