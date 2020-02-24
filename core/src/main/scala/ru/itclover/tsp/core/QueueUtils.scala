@@ -55,7 +55,7 @@ object QueueUtils {
 
     if (timeMap.isEmpty) None
     else if (timeMap.last._2 < time) None
-    else if (timeMap.head._2 > time) Some(timeMap.head._1)
+    else if (timeMap.head._2 >= time) Some(timeMap.head._1)
     else {
       val iterator = timeMap.iterator.dropWhile({ case (i, t) => t < time })
       if (iterator.hasNext) Some(iterator.next()._1) else None
