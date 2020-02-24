@@ -16,8 +16,12 @@ import scala.reflect.ClassTag
 //  def testFieldsIdxMap(anyStr: String) = 0
 //}
 
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGapMs: Long, fieldsTags: Map[Symbol, ClassTag[_]])
-    extends Parser {
+class ASTBuilder(
+  val input: ParserInput,
+  toleranceFraction: Double,
+  eventsMaxGapMs: Long,
+  fieldsTags: Map[Symbol, ClassTag[_]]
+) extends Parser {
 
   // TODO: Move to params
   @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
@@ -360,7 +364,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGap
   def waitRule: Rule1[AST] = rule {
     (
       ignoreCase("wait") ~ ws ~ "(" ~ ws ~ time ~ ws ~ "," ~ ws ~ trileanExpr ~ ws ~ ")" ~ ws ~> (
-        (w: Window, e: AST) => Wait(e, w)
+        (
+          w: Window,
+          e: AST
+        ) => Wait(e, w)
       )
     )
   }

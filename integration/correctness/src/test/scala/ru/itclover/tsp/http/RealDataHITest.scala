@@ -22,7 +22,12 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
 import scala.util.Success
 
-class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+class RealDataHITest
+    extends FlatSpec
+    with SqlMatchers
+    with ScalatestRouteTest
+    with HttpService
+    with ForAllTestContainer {
 
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
@@ -86,25 +91,30 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/wide/bigdata-schema.sql")
-         .mkString.split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/wide/bigdata-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    val csvData = Files.readResource("/sql/wide/source_bigdata.csv")
-                       .drop(1)
-                       .mkString("\n")
+    val csvData = Files
+      .readResource("/sql/wide/source_bigdata.csv")
+      .drop(1)
+      .mkString("\n")
 
     container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${csvData}")
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

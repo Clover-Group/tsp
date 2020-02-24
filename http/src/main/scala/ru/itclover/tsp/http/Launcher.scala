@@ -96,7 +96,7 @@ object Launcher extends App with HttpService {
   }
 
   streamEnvironment.setParallelism(1)
-  streamEnvironment.setMaxParallelism(1)//(configs.getInt("flink.max-parallelism"))
+  streamEnvironment.setMaxParallelism(1) //(configs.getInt("flink.max-parallelism"))
 
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
@@ -130,7 +130,7 @@ object Launcher extends App with HttpService {
   }
 
   /**
-  * Method for flink environment configuration
+    * Method for flink environment configuration
     * @param env flink execution environment
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {

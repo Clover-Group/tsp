@@ -12,9 +12,9 @@ import scala.collection.mutable
 import scala.util.Random
 
 /**
-* Sserialization for Apache Parquet format
+  * Sserialization for Apache Parquet format
   */
-class ParquetSerialization extends Serialization[Array[Byte], Row]{
+class ParquetSerialization extends Serialization[Array[Byte], Row] {
 
   override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
 

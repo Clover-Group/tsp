@@ -26,10 +26,10 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
 
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
-  override implicit val streamEnvironment: StreamExecutionEnvironment =
+  implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
 
-  override implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
+  implicit override val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   override val blockingExecutorContext: ExecutionContextExecutor = ExecutionContext.fromExecutor(
     new ThreadPoolExecutor(
@@ -58,16 +58,17 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     datetimeField = 'dt,
     partitionFields = Seq('stock_num),
     fieldsTypes = Map(
-      "dt" -> "float64",
-      "stock_num" -> "string",
-      "test_int" -> "int8",
+      "dt"          -> "float64",
+      "stock_num"   -> "string",
+      "test_int"    -> "int8",
       "test_string" -> "string"
     ),
     key = "test_key",
     serializer = "json"
   )
 
-  val sinkSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val sinkSchema =
+    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
 
   val outputConf = RedisOutputConf(
     url = redisURL,
@@ -77,8 +78,8 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   )
 
   val (timeRangeSec, assertions) = (1 to 80) -> Seq(
-    RawPattern("6", "test_int > 20")
-  )
+      RawPattern("6", "test_int > 20")
+    )
 
   override def afterStart(): Unit = {
     super.afterStart()
@@ -88,9 +89,9 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
     val client = redisInfo._1
 
     val testData = Map[String, Any](
-      "dt" -> 1500000000.0,
-      "stock_num" -> "0017",
-      "test_int" -> 87,
+      "dt"          -> 1500000000.0,
+      "stock_num"   -> "0017",
+      "test_int"    -> 87,
       "test_string" -> "test"
     )
 
@@ -110,7 +111,7 @@ class RedisTest extends FlatSpec with ScalatestRouteTest with HttpService with F
   "Redis test assertions" should "work for redis source" in {
 
     Post("/streamJob/from-redis/to-redis/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
-      route ~> check {
+    route ~> check {
       status shouldBe StatusCodes.OK
     }
 

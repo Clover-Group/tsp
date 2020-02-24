@@ -140,7 +140,6 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
               // todo nobody uses the output of AndThen pattern. Let's drop it later.
               val newResult = IdxValue(start, end, Succ((start, end)))
               inner(
-
                 //todo should it be changed to QueueUtils.find(timeMap, end - offset).getOrElse(timeMap.head._1)) ???
                 first.rewindTo(end + 1),
                 second.rewindTo(end + 1),

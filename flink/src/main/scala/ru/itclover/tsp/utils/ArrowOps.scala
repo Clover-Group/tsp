@@ -4,8 +4,26 @@ import java.io.{ByteArrayInputStream, File, FileInputStream, FileOutputStream}
 
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.dictionary.DictionaryProvider
-import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter, ArrowReader, ArrowStreamReader, SeekableReadChannel}
-import org.apache.arrow.vector.{BaseValueVector, BigIntVector, BitVector, FieldVector, Float4Vector, Float8Vector, IntVector, SmallIntVector, VarCharVector, VectorDefinitionSetter, VectorSchemaRoot}
+import org.apache.arrow.vector.ipc.{
+  ArrowFileReader,
+  ArrowFileWriter,
+  ArrowReader,
+  ArrowStreamReader,
+  SeekableReadChannel
+}
+import org.apache.arrow.vector.{
+  BaseValueVector,
+  BigIntVector,
+  BitVector,
+  FieldVector,
+  Float4Vector,
+  Float8Vector,
+  IntVector,
+  SmallIntVector,
+  VarCharVector,
+  VectorDefinitionSetter,
+  VectorSchemaRoot
+}
 import org.apache.arrow.vector.types.Types
 import org.apache.arrow.vector.types.pojo.Schema
 import org.apache.arrow.vector.util.Text
@@ -72,7 +90,7 @@ object ArrowOps {
   }
 
   /**
-  * Method for retrieving schema and reader from bytes
+    * Method for retrieving schema and reader from bytes
     * @param input bytes with input data
     * @param allocatorValue value for root allocator
     * @return tuple with schema and reader
@@ -204,14 +222,13 @@ object ArrowOps {
               tempVector.setSafe(counter, value)
 
             case "java.lang.String" =>
-
               val tempVector = vector.asInstanceOf[VarCharVector]
               tempVector.setSafe(
                 counter,
                 new Text(data.asInstanceOf[String])
               )
 
-            case "float"  =>
+            case "float" =>
               val tempVector = vector.asInstanceOf[Float4Vector]
               tempVector.setSafe(counter, data.asInstanceOf[Float])
 
@@ -219,16 +236,16 @@ object ArrowOps {
               val tempVector = vector.asInstanceOf[Float8Vector]
               tempVector.setSafe(counter, data.asInstanceOf[Double])
 
-            case "long"   =>
+            case "long" =>
               val tempVector = vector.asInstanceOf[BigIntVector]
               tempVector.setSafe(counter, data.asInstanceOf[Long])
 
-            case "short"  => {
+            case "short" => {
               val tempVector = vector.asInstanceOf[SmallIntVector]
               tempVector.setSafe(counter, data.asInstanceOf[Short])
             }
 
-            case _        => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
+            case _ => throw new IllegalArgumentException(s"No mapper for type ${valueInfo.getName}")
           }
 
           counter += 1
