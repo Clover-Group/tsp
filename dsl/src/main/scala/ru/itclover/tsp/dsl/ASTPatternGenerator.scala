@@ -18,7 +18,7 @@ class ASTPatternGenerator[Event, EKey, EItem]()(
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   @transient fieldToEKey: Symbol => EKey
-) {
+) extends Serializable {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event] {}
