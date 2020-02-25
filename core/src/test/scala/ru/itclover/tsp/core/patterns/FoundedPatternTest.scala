@@ -27,8 +27,8 @@ class FoundedPatternTest extends WordSpec with Matchers {
         patternId = "1",
         maxWindowMs = 1000,
         segment = firstTestSegment,
-        forwardedFields = Seq(("test1", 1), ("test2", 2)),
-        patternPayload = Seq(("test3", 3), ("test4", 4))
+        forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 
       val secondIncident = Incident(
@@ -36,8 +36,8 @@ class FoundedPatternTest extends WordSpec with Matchers {
         patternId = "2",
         maxWindowMs = 4000,
         segment = secondTestSegment,
-        forwardedFields = Seq(("test1", 1), ("test2", 2)),
-        patternPayload = Seq(("test3", 3), ("test4", 4))
+        forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 
       val expectedIncident = Incident(
@@ -48,8 +48,8 @@ class FoundedPatternTest extends WordSpec with Matchers {
           from = Time(1000),
           to = Time(4000)
         ),
-        forwardedFields = Seq(("test1", 1), ("test2", 2)),
-        patternPayload = Seq(("test3", 3), ("test4", 4))
+        forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 
       val actualIncident = IncidentInstances.semigroup.combine(firstIncident, secondIncident)

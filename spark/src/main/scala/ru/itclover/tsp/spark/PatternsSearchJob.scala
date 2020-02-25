@@ -6,7 +6,8 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrameWriter, Dataset, Row, SQLContext, SaveMode, SparkSession}
+import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
+import org.apache.spark.sql.{Column, DataFrameWriter, Dataset, Encoder, Encoders, Row, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.Milliseconds
@@ -23,11 +24,13 @@ import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 // import ru.itclover.tsp.spark.utils.EncoderInstances._
-import org.apache.spark.mllib.rdd.RDDFunctions._
+import org.apache.spark.sql.expressions.{Window => SparkWindow}
+import org.apache.spark.sql.functions.{lag, col}
 
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.TypeTag
 
-case class PatternsSearchJob[In: ClassTag, InKey, InItem](
+case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
                                                                   source: StreamSource[In, InKey, InItem],
                                                                   fields: Set[InKey],
                                                                   decoders: BasicDecoders[InItem]
@@ -54,8 +57,8 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val useWindowing = true // !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
-      val mapped = incidents.map(resultMapper)
-      (patterns,  saveStream(rddToDataset(mapped, outputConf.rowSchema), outputConf))
+      val mapped = incidents.map(resultMapper)(RowEncoder(rowSchemaToSchema(outputConf.rowSchema)).asInstanceOf[Encoder[OutE]])
+      (patterns,  saveStream(mapped, outputConf))
     }
   }
 
@@ -63,7 +66,7 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
                                   richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
                                   forwardedFields: Seq[(Symbol, InKey)],
                                   useWindowing: Boolean
-                                ): RDD[Incident] = {
+                                ): Dataset[Incident] = {
     import source.timeExtractor
     val stream = source.createStream
     val singleIncidents = incidentsFromPatterns(
@@ -76,13 +79,18 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
   }
 
   def incidentsFromPatterns[T](
-                                stream: RDD[In],
+                                stream: Dataset[In],
                                 patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
                                 forwardedFields: Seq[(Symbol, InKey)],
                                 useWindowing: Boolean
-                              ): RDD[Incident] = {
+                              ): Dataset[Incident] = {
 
     import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
+    val s = source.spark
+    import s.implicits._
+
+    implicit val encIn: Encoder[In] = source.eventEncoder
+    implicit val encList: Encoder[List[In]] = Encoders.kryo[List[In]](classOf[List[In]])
 
     log.debug("incidentsFromPatterns started")
 
@@ -107,23 +115,19 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
           source.conf.eventsMaxGapMs
         )
     }
-    val keyedRDD = stream
-      .keyBy(source.transformedPartitioner)
+    val keyedDataset = stream
+      //.repartition(source.transformedPartitioner.map(new Column(_)):_*)
       //.partitionBy()
-    val windowed: RDD[Iterable[In]] =
+    val windowed: Dataset[List[In]] =
       if (useWindowing) {
         val chunkSize = 100000
-        keyedRDD
-          .map { case (k, x) => ((k, (idxExtractor(x) / chunkSize)), x)}
-          .groupByKey()
-          .map(_._2)
-          //.window(Milliseconds(source.conf.chunkSizeMs.getOrElse(900000)))
+        keyedDataset.map { List(_) }
       } else {
-        keyedRDD.map{ case (_, x) => List(x) }
+        keyedDataset.map{ List(_) }
       }
     val processed = windowed
       .flatMap[Incident](
-        (x: Iterable[In]) => ProcessorCombinator(mappers, timeExtractor).process(x)
+        (x: List[In]) => ProcessorCombinator(mappers, timeExtractor).process(x)
       )
       //.setMaxParallelism(source.conf.maxPartitionsParallelism)
 
@@ -131,22 +135,25 @@ case class PatternsSearchJob[In: ClassTag, InKey, InItem](
     processed
   }
 
-  // TODO: Remove that stub
-  def applyTransformation(stream: RDD[In])(implicit spark: SparkSession): RDD[In] = source.conf.dataTransformation match {
-    case Some(_) =>
-      import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
-      val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
-      stream
-        .union(spark.sparkContext.parallelize(List(source.eventCreator.create(Seq.empty))))
-        .coalesce(1)
-        .flatMap(acc.process)
-    case None => stream
+  def applyTransformation(stream: Dataset[In])(implicit spark: SparkSession): Dataset[In] = {
+    implicit val encIn: Encoder[In] = source.eventEncoder
+    source.conf.dataTransformation match {
+      case Some(_) => stream
+//        import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
+//        val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
+//          fields)
+//        stream
+//          .union(spark.createDataset(List(source.eventCreator.create(Seq.empty))))
+//          .coalesce(1)
+//          .flatMap(acc.process)
+      case None => stream
+    }
   }
 
-//  def applyTransformation(stream: RDD[In]): RDD[In] = source.conf.dataTransformation match {
+//  def applyTransformation(stream: Dataset[In]): Dataset[In] = source.conf.dataTransformation match {
 //    case Some(_) =>
 //      import source.{extractor, timeExtractor}
-//      RDD
+//      Dataset
 //        .keyBy(source.partitioner)
 //        .process(
 //          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
@@ -211,7 +218,8 @@ object PatternsSearchJob {
     res
   }
 
-  def reduceIncidents(inc: RDD[Incident])(implicit spark: SparkSession): RDD[Incident] = {
+  def reduceIncidents(inc: Dataset[Incident])(implicit spark: SparkSession): Dataset[Incident] = {
+    import spark.implicits._
     log.debug("reduceIncidents started")
 
     // WARNING: Non-parallelizable, TODO: better solution
@@ -224,18 +232,20 @@ object PatternsSearchJob {
     }
 
     // Repeat the starting entry
-    val newIncidents = spark.sparkContext.parallelize(List(incidents.first)).union(incidents)
+    val newIncidents = spark.createDataset(List(incidents.first)).union(incidents)
+    val win = SparkWindow.partitionBy("context").orderBy("segment.from")
 
     val res = newIncidents
-        .sliding(2)
-        .map(data => {
-          if (data(1).segment.from.toMillis - data(0).segment.to.toMillis > data(1).maxWindowMs) {
-            seriesCount += 1
-          }
-          (seriesCount, data(1))
-        })
-        .reduceByKey { _ |+| _ }
-        .map(_._2)
+//        .map {
+//          value =>
+//            val prev = lag("segment.to.toMillis", 1).over(win)
+//            if (value.segment.from.toMillis - prev > value.maxWindowMs) {
+//            seriesCount += 1
+//          }
+//            (seriesCount, value)
+//        }
+//        .reduceByKey { _ |+| _ }
+//        .map(_._2)
       //.assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
       //.keyBy(_.id)
 //      .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
@@ -269,7 +279,8 @@ object PatternsSearchJob {
             .option("dbtable", jdbcConf.tableName)
             .option("user", jdbcConf.userName.getOrElse(""))
             .option("password", jdbcConf.password.getOrElse(""))
-            .mode(SaveMode.Append)
+            //.start()
+            //.mode(SaveMode.Append)
         log.debug("saveStream finished")
         res
     }

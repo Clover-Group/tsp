@@ -191,7 +191,7 @@ lazy val dsl = project.in(file("dsl"))
 lazy val spark = project.in(file("spark"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.sparkDeps
+    libraryDependencies ++= Library.sparkDeps ++ Library.logging
   )
   .dependsOn(core, config, dsl)
 

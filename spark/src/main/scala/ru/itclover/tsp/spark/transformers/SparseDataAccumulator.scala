@@ -57,7 +57,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   def process(item: InEvent): Seq[OutEvent] = {
     item match {
-      case RowWithIdx(idx, row) if row.length == 0 => return if (lastEvent != null) Seq(lastEvent) else Seq.empty
+      case (idx: Idx, row: Row) if row.length == 0 => return if (lastEvent != null) Seq(lastEvent) else Seq.empty
       case _ => // nothing, continue execution
     }
     val time = extractTime(item)

@@ -4,7 +4,7 @@ import cats.syntax.either._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Dataset, Row, SparkSession, functions}
+import org.apache.spark.sql.{Dataset, Encoder, Encoders, Row, SparkSession, functions}
 import org.apache.spark.sql.streaming.Trigger
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
@@ -13,6 +13,7 @@ import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
 import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
 
+import scala.reflect.ClassTag
 import scala.util.Try
 //import ru.itclover.tsp.spark.utils.EncoderInstances._
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
@@ -20,7 +21,7 @@ import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtracto
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def spark: SparkSession
 
-  def createStream: RDD[Event]
+  def createStream: Dataset[Event]
 
   def conf: InputConf[Event, EKey, EItem]
 
@@ -32,9 +33,13 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def transformedFieldsIdxMap: Map[Symbol, Int]
 
-  def partitioner: Event => String
+  def partitioner: Seq[String]
 
-  def transformedPartitioner: Event => String
+  def transformedPartitioner: Seq[String]
+
+  def eventSchema: StructType
+
+  def eventEncoder: Encoder[Event]
 
   implicit def timeExtractor: TimeExtractor[Event]
 
@@ -106,7 +111,27 @@ case class JdbcSource(
     .config("spark.io.compression.codec", "snappy")
     .getOrCreate()
 
-  override def createStream: RDD[RowWithIdx] = {
+  override val eventSchema = StructType(
+    fieldsClasses.map {
+      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
+        case _: Class[Byte]    => ByteType
+        case _: Class[Short]   => ShortType
+        case _: Class[Int]     => IntegerType
+        case _: Class[Long]    => LongType
+        case _: Class[Float]   => FloatType
+        case _: Class[Double]  => DoubleType
+        case _: Class[Boolean] => BooleanType
+        case _: Class[String]  => StringType
+        case _                 => ObjectType(classOf[Any])
+      })
+    }.toSeq
+  )
+
+  val rowEncoder = RowEncoder(eventSchema)
+  override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder)
+
+  override def createStream: Dataset[RowWithIdx] = {
+    import spark.implicits._
     spark.read
       .format("jdbc")
       .option("url", conf.jdbcUrl)
@@ -114,9 +139,9 @@ case class JdbcSource(
       .option("user", conf.userName.getOrElse(""))
       .option("password", conf.password.getOrElse(""))
       .load()
-      .rdd
-      .zipWithIndex()
-      .map{ case (x, i) => RowWithIdx(i + 1, x) }
+      //.rdd
+      //.zipWithIndex()
+      .map{ RowWithIdx(0, _) }(eventEncoder)
   }
 
   override def fieldToEKey: Symbol => Symbol = identity
@@ -137,14 +162,12 @@ case class JdbcSource(
       fieldsIdxMap
   }
 
-  override def partitioner: RowWithIdx => String = {
-    val serializablePI = partitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  override def partitioner: Seq[String] = {
+    conf.partitionFields.filter(fieldsIdxMap.contains).map(_.name)
   }
 
-  override def transformedPartitioner: RowWithIdx => String = {
-    val serializablePI = transformedPartitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+  override def transformedPartitioner: Seq[String] = {
+    conf.partitionFields.filter(transformedFieldsIdxMap.contains).map(_.name)
   }
 
   val timeIndex = fieldsIdxMap(conf.datetimeField)
@@ -157,17 +180,17 @@ case class JdbcSource(
 
   override implicit def timeExtractor: TimeExtractor[RowWithIdx] = {
     val rowExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
-    TimeExtractor.of((r: RowWithIdx) => rowExtractor(r.row))
+    TimeExtractor.of((r: RowWithIdx) => rowExtractor(r._2))
   }
 
   override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
-    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_._2)
 
-  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
+  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_._1)
 
-  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_._2)
 
-  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
+  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap).comap(_._2)
 
   override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
@@ -212,11 +235,15 @@ case class KafkaSource(
                         nullFieldId: Symbol,
                         patternFields: Set[Symbol]
                       ) extends StreamSource[RowWithIdx, Symbol, Any] {
-  override def spark: SparkSession = SparkSession.builder()
+  override val spark: SparkSession = SparkSession.builder()
     .master("local")
     .appName("Kafka SparkSession")
     .config("spark.io.compression.codec", "snappy")
     .getOrCreate()
+
+  val rowEncoder = RowEncoder(eventSchema)
+  override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder).asInstanceOf[Encoder[RowWithIdx]]
+
 
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
@@ -233,13 +260,13 @@ case class KafkaSource(
   }
 
   implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, Symbol, Any] =
-    RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+    RowSymbolExtractor(fieldsIdxMap).comap(_._2)
   implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[RowWithIdx] =
-    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
+    RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_._2)
 
   val stageName = "Kafka input processing stage"
 
-  val schema: StructType = StructType(
+  override val eventSchema: StructType = StructType(
     conf.fieldsTypes.map {
       case (fieldName, typeName) => StructField(fieldName.name, typeName match {
         case "int8"    => ByteType
@@ -255,30 +282,25 @@ case class KafkaSource(
     }.toSeq
   )
 
-  override def createStream: RDD[RowWithIdx] = spark.readStream
+  override def createStream: Dataset[RowWithIdx] = {
+    import spark.implicits._
+    spark.readStream
     .format("kafka")
     .option("kafka.bootstrap.servers", conf.brokers)
     .option("subscribe", conf.topic)
     .load()
     .selectExpr("CAST(value AS STRING) as message")
-    .select(functions.from_json(functions.col("message"), schema).as("json"))
+    .select(functions.from_json(functions.col("message"), eventSchema).as("json"))
     .select("json.*")
-    .rdd
-    .zipWithIndex()
-    .map{ case (x, i) => RowWithIdx(i + 1, x) }
-
-  def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
-  def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)
-
-  def partitioner = {
-    val serializablePI = partitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.get).mkString
+    .map { RowWithIdx(0, _) }
   }
 
-  def transformedPartitioner = {
-    val serializablePI = transformedPartitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.get).mkString
-  }
+  def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
+  def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
+
+  def partitioner: Seq[String] = conf.partitionFields.map(_.name)
+
+  def transformedPartitioner: Seq[String] = conf.partitionFields.map(_.name)
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
@@ -297,10 +319,10 @@ case class KafkaSource(
   val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
   implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
-    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
+    RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_._2)
 
   implicit override def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] =
-    RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
+    RowSymbolExtractor(transformedFieldsIdxMap).comap(_._2)
 
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
@@ -309,5 +331,5 @@ case class KafkaSource(
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
   //todo refactor everything related to idxExtractor
-  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_._1)
 }

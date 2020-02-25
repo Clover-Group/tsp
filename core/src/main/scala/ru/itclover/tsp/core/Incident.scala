@@ -15,8 +15,8 @@ case class Incident(
   patternId: String,
   maxWindowMs: Long,
   segment: Segment,
-  forwardedFields: Seq[(String, Any)],
-  patternPayload: Seq[(String, Any)]
+  forwardedFields: Seq[(String, String)],
+  patternPayload: Seq[(String, String)]
 ) extends Product
     with Serializable
 

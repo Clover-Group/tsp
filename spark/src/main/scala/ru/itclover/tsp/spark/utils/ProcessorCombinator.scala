@@ -6,8 +6,6 @@ import org.apache.spark.sql.Row
 import ru.itclover.tsp.core.Pattern.Idx
 import ru.itclover.tsp.core.io.TimeExtractor
 
-case class RowWithIdx(idx: Idx, row: Row)
-
 
 case class ProcessorCombinator[In, S, Inner, Out](
   mappers: Seq[PatternProcessor[In, S, Out]],
@@ -22,7 +20,7 @@ case class ProcessorCombinator[In, S, Inner, Out](
     val sorted = elements.toBuffer.sortBy(timeExtractor.apply)
     if (sorted.head.isInstanceOf[RowWithIdx]) {
       val indexed =
-        sorted.map(x => x.asInstanceOf[RowWithIdx].copy(idx = counter.incrementAndGet())).asInstanceOf[Iterable[In]]
+        sorted.map(x => (counter.incrementAndGet(), x.asInstanceOf[RowWithIdx]._2)).asInstanceOf[Iterable[In]]
       mappers.flatMap(_.process( /*key,*/ indexed))
     } else {
       mappers.flatMap(_.process( /*key,*/ sorted))

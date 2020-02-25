@@ -32,7 +32,7 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, Re
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.spark
-import org.apache.spark.sql.{DataFrameWriter, SparkSession, Row => SparkRow}
+import org.apache.spark.sql.{DataFrameWriter, SaveMode, SparkSession, Row => SparkRow}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
@@ -41,6 +41,7 @@ import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, Runti
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, Err => SparkErr, GenericRuntimeErr => SparkGenRTErr, RuntimeErr => SparkRTErr}
 
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.TypeTag
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -53,6 +54,7 @@ trait JobsRoutes extends RoutesProtocols {
   val monitoringUri: Uri
   lazy val monitoring = MonitoringService(monitoringUri)
 
+  @transient
   private val log = Logger[JobsRoutes]
 
   val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
@@ -155,7 +157,7 @@ trait JobsRoutes extends RoutesProtocols {
     }
   }
 
-  def createSparkStream[E: ClassTag, EItem](
+  def createSparkStream[E: ClassTag: TypeTag, EItem](
                                                patterns: Seq[RawPattern],
                                                fields: Set[EKey],
                                                inputConf: spark.io.InputConf[E, EKey, EItem],
@@ -206,7 +208,7 @@ trait JobsRoutes extends RoutesProtocols {
     val res = if (isAsync) { // Just detach job thread in case of async run
       Future {
         val start = System.nanoTime
-        stream.save()
+        stream.mode(SaveMode.Append).save()
         val end = System.nanoTime
         end - start
       }(blockingExecutionContext)
@@ -214,7 +216,7 @@ trait JobsRoutes extends RoutesProtocols {
     } else { // Wait for the execution finish
       Either.catchNonFatal{
         val start = System.nanoTime
-        stream.save()
+        stream.mode(SaveMode.Append).save()
         val end = System.nanoTime
         Some(end - start)
       }.leftMap(SparkGenRTErr(_))

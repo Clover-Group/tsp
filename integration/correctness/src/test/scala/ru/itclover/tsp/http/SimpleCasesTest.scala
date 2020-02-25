@@ -599,7 +599,7 @@ class SimpleCasesTest
 ////  }
 
   "Cases 1-17, 43-50" should "work in wide table with Spark" in {
-    casesPatterns.keys.foreach { id =>
+    casesPatterns.keys.toList.sorted.foreach { id =>
       Post(
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
@@ -623,32 +623,32 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
   }
 
-  "Cases 1-17, 43-50" should "work in narrow table with Spark" in {
-    casesPatterns.keys.foreach { id =>
-      Post(
-        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowSparkInputConf, narrowSparkOutputConf, List(casesPatterns(id)))
-      ) ~>
-        route ~> check {
-        withClue(s"Pattern ID: $id") {
-          status shouldEqual StatusCodes.OK
-        }
-      }
-    }
-    checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
-      firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-    )
-    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
-  }
+//  "Cases 1-17, 43-50" should "work in narrow table with Spark" in {
+//    casesPatterns.keys.toList.sorted.foreach { id =>
+//      Post(
+//        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+//        FindPatternsRequest(s"17narrow_$id", narrowSparkInputConf, narrowSparkOutputConf, List(casesPatterns(id)))
+//      ) ~>
+//        route ~> check {
+//        withClue(s"Pattern ID: $id") {
+//          status shouldEqual StatusCodes.OK
+//        }
+//      }
+//    }
+//    checkByQuery(
+//      incidentsCount
+//        .map {
+//          case (k, v) => List(k.toDouble, v.toDouble)
+//        }
+//        .toList
+//        .sortBy(_.head),
+//      firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+//    )
+//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
+//  }
 
   "Cases 18-42" should "work in ivolga wide table with Spark" in {
-    casesPatternsIvolga.keys.foreach { id =>
+    casesPatternsIvolga.keys.toList.sorted.foreach { id =>
       Post(
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideSparkInputIvolgaConf, wideSparkOutputIvolgaConf, List(casesPatternsIvolga(id)))
