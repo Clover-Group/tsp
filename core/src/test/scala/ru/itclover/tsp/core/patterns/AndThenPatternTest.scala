@@ -232,7 +232,34 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     out(6) shouldBe IdxValue(66, 80, Fail)
     out(7) shouldBe IdxValue(81, 87, Succ((81, 87)))
     out(8) shouldBe IdxValue(88, 92, Fail)
+  }
 
+  it should "work with real-world examples" in {
+    val events = Seq(
+      Event[Double](1552860727, 1, 9.53, 51),
+      Event[Double](1552860728, 2, 9.53, 51),
+      Event[Double](1552860729, 3, 9.53, 51),
+      Event[Double](1552860730, 4, 9.53, 51),
+      Event[Double](1552860731, 5, 9.53, 51),
+      Event[Double](1552860732, 6, 9.48, 51),
+      Event[Double](1552860733, 7, 9.48, 51),
+      Event[Double](1552860734, 8, 9.49, 51),
+      Event[Double](1552860735, 9, 9.49, 52),
+      Event[Double](1552860736, 10, 9.49, 52),
+      Event[Double](1552860737, 11, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52),
+      Event[Double](1552176055, 13, -0.12, 0),
+      Event[Double](1552176056, 14, -0.12, 0),
+      Event[Double](1552176057, 15, -0.13, 0)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p.assert(p.field(_.row <= 9.53).and(p.field(_.col == 51))).andThen(p.assert(p.field(_.col == 52)))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 34
   }
 
 }

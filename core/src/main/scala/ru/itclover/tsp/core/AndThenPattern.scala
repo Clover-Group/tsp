@@ -84,13 +84,11 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
         case (_, None) => default
         case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
           val firstStart = timeMap(start1) + offset
-          val firstEnd = timeMap(end1) + offset
-//          println(s"First: ($start1 - $end1) ($firstStart - $firstEnd)")
+          val firstEnd = timeMap(end1) + offset + Window(1)
 
           // actually the second result starts after some offset.
           val secondStart = timeMap(start2)
           val secondEnd = timeMap(end2)
-//          println(s"Second: ($start2 - $end2) ($secondStart - $secondEnd)")
 
           if (value1.isFail) {
             inner(
@@ -140,7 +138,6 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
               // todo nobody uses the output of AndThen pattern. Let's drop it later.
               val newResult = IdxValue(start, end, Succ((start, end)))
               inner(
-
                 //todo should it be changed to QueueUtils.find(timeMap, end - offset).getOrElse(timeMap.head._1)) ???
                 first.rewindTo(end + 1),
                 second.rewindTo(end + 1),
@@ -158,7 +155,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
     toReturn.copy(_4 = toReturn._4.clone())
   }
 
-  private val offset: Window = AndThenPattern.computeOffset(second)
+  private val offset: Window = PatternTag.computeOffset(second)
 
   override val patternTag: PatternTag = AndThenPatternTag
 }
@@ -172,26 +169,5 @@ case class AndThenPState[T1, T2, State1, State2](
 )
 
 object AndThenPattern {
-
   type TimeMap = m.TreeMap[Idx, Time]
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  def computeOffset(pattern: Pattern[_, _, _]): Window = {
-    pattern.patternTag match {
-      // handle special cases
-      case AndThenPatternTag =>
-        val (first, second) = AndThenPatternTag.getTwoInnerPatterns(pattern)
-        Window(computeOffset(first).toMillis + computeOffset(second).toMillis)
-      case TimerPatternTag => pattern.asInstanceOf[TimerPattern[_, _, _]].window
-      case WaitPatternTag  => pattern.asInstanceOf[WaitPattern[_, _, _]].window
-
-      // rest patterns are below
-      case _: WithoutInnerPatternTag  => Window(0L)
-      case tag: WithInnersPatternsTag =>
-        //take the biggest offset for patterns with process patterns
-        Window(tag.getInnerPatterns(pattern).map((computeOffset _).andThen(_.toMillis)).fold(0L)(Math.max))
-    }
-
-  }
-
 }

@@ -74,3 +74,26 @@ sealed trait WithTwoInnersPatternTag extends WithInnersPatternsTag {
 
 case object AndThenPatternTag extends WithTwoInnersPatternTag
 case object CouplePatternTag extends WithTwoInnersPatternTag
+
+
+object PatternTag {
+
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  def computeOffset(pattern: Pattern[_, _, _]): Window = {
+    pattern.patternTag match {
+      // handle special cases
+      case AndThenPatternTag =>
+        val (first, second) = AndThenPatternTag.getTwoInnerPatterns(pattern)
+        Window(computeOffset(first).toMillis + computeOffset(second).toMillis)
+      case TimerPatternTag => pattern.asInstanceOf[TimerPattern[_, _, _]].window
+      case WaitPatternTag  => pattern.asInstanceOf[WaitPattern[_, _, _]].window
+
+      // rest patterns are below
+      case _: WithoutInnerPatternTag  => Window(0L)
+      case tag: WithInnersPatternsTag =>
+        //take the biggest offset for patterns with process patterns
+        Window(tag.getInnerPatterns(pattern).map((computeOffset _).andThen(_.toMillis)).fold(0L)(Math.max))
+    }
+
+  }
+}

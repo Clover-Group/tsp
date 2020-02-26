@@ -60,7 +60,7 @@ object Pattern {
 
   type QI[T] = PQueue[T]
 
-  trait IdxExtractor[Event] extends Serializable with Order[Idx] {
+  trait IdxExtractor[-Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
 
     def comap[A](f: A => Event): IdxExtractor[A] = IdxExtractor.of(f.andThen(apply))
