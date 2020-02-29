@@ -97,7 +97,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
             inner(
               first.behead(),
               second.rewindTo(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)),
-              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1) - 1, Fail)),
+              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), Fail)),
               cleanTimeMap(timeMap, start1, start2)
             )
           } else if (value2.isFail) {
@@ -137,7 +137,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
             // result       |--| (take intersection)
             else {
               val start = Math.max(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.head._1), start2)
-              val end = Math.min(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1) + 1, end2)
+              val end = Math.min(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), end2)
               // todo nobody uses the output of AndThen pattern. Let's drop it later.
               val newResult = IdxValue(start, end, Succ((start, end)))
               inner(

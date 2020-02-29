@@ -110,9 +110,9 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
   }
 
-  def run[A, S, T](pattern: Pattern[A, S, T], events: Seq[A], groupSize: Long = 1000): ArrayBuffer[IdxValue[T]] = {
+  def run[A, S, T](pattern: Pattern[A, S, T], events: Seq[A], groupSize: Int = 1000): ArrayBuffer[IdxValue[T]] = {
     val out = new ArrayBuffer[IdxValue[T]]()
-    StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[T]) => out += x, 1000)
+    StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[T]) => out += x, groupSize)
     out
   }
 
@@ -128,6 +128,10 @@ class AndThenPatternTest extends FlatSpec with Matchers {
                        row  <- Constant(0).timed(5.seconds).after(Constant(1).timed(7.seconds)).after(Constant(0));
                        col  <- Constant(0).timed(6.seconds).after(Constant(1).timed(15.seconds)).after(Constant(0)))
       yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
 
     val out = run(pattern, events)
     out.size shouldBe 3
@@ -149,10 +153,13 @@ class AndThenPatternTest extends FlatSpec with Matchers {
                        col  <- Constant(1).timed(15.seconds).after(Constant(0)))
       yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
 
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
     val out = run(pattern, events)
     out.size shouldBe 3
-    out(0) shouldBe IdxValue(0, 9, Fail)
-    out(1) shouldBe IdxValue(10, 11, Succ((10, 11)))
+    out(0) shouldBe IdxValue(0, 10, Fail)
+    out(1) shouldBe IdxValue(11, 11, Succ((11, 11)))
     out(2) shouldBe IdxValue(12, 99, Fail)
   }
 
@@ -248,9 +255,6 @@ class AndThenPatternTest extends FlatSpec with Matchers {
       Event[Double](1552860736, 10, 9.49, 52),
       Event[Double](1552860737, 11, 9.52, 52),
       Event[Double](1552860738, 12, 9.52, 52),
-      Event[Double](1552176055, 13, -0.12, 0),
-      Event[Double](1552176056, 14, -0.12, 0),
-      Event[Double](1552176057, 15, -0.13, 0)
     )
     val p: Patterns[Event[Double]] = Patterns[Event[Double]]
     import p._
@@ -259,7 +263,38 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     val out = run(pattern, events)
 
-    out.size shouldBe 34
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(1,8, Fail)
+    out(1) shouldBe IdxValue(9,9, Succ((9,9)))
+    out(2) shouldBe IdxValue(10,12, Fail)
+  }
+
+
+  it should "work with real-world examples - 2 (smaller group size)" in {
+    val events = Seq(
+      Event[Double](1552860727, 1, 9.53, 51),
+      Event[Double](1552860728, 2, 9.53, 51),
+      Event[Double](1552860729, 3, 9.53, 51),
+      Event[Double](1552860730, 4, 9.53, 51),
+      Event[Double](1552860731, 5, 9.53, 51),
+      Event[Double](1552860732, 6, 9.48, 51),
+      Event[Double](1552860733, 7, 9.48, 51),
+      Event[Double](1552860734, 8, 9.49, 51),
+      Event[Double](1552860735, 9, 9.49, 52),
+      Event[Double](1552860736, 10, 9.49, 52),
+      Event[Double](1552860737, 11, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52),
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p.assert(p.field(_.row <= 9.53).and(p.field(_.col == 51))).andThen(p.assert(p.field(_.col == 52)))
+
+    val out = run(pattern, events, 1)
+
+    out.size shouldBe 12
+    out(0) shouldBe IdxValue(1,1, Fail)
+    out(9) shouldBe IdxValue(9,9, Succ((9,9)))
   }
 
 }
