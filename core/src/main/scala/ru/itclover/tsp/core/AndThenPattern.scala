@@ -80,13 +80,16 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
       def default: (QI[T1], QI[T2], QI[(Idx, Idx)], TimeMap) = (first, second, total, timeMap)
 
       (first.headOption, second.headOption) match {
-        case (None, _) => default
-        case (_, None) => default
+        case (None, _)                                                                    => default
+        case (_, None)                                                                    => default
         case (Some(IdxValue(start1, end1, value1)), Some(IdxValue(start2, end2, value2))) =>
-          val firstStart = timeMap(start1) + offset
-          val firstEnd = timeMap(end1) + offset + Window(1)
-
           // actually the second result starts after some offset.
+          val firstStart = timeMap(start1) + offset
+          // we add +1 to the end of the first result to handle queries like 'a = 0 andThen a = 1',
+          // there actually intervals of 1st and 2nd successful parts don't intersect, but conceptually this query
+          // should return true on margins, where 'a' changes from 0 to 1.
+          val firstEnd = if (end1 >= timeMap.last._1) timeMap.last._2 else timeMap(end1 + 1) + offset
+
           val secondStart = timeMap(start2)
           val secondEnd = timeMap(end2)
 
@@ -94,7 +97,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
             inner(
               first.behead(),
               second.rewindTo(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)),
-              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), Fail)),
+              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1) - 1, Fail)),
               cleanTimeMap(timeMap, start1, start2)
             )
           } else if (value2.isFail) {
@@ -133,8 +136,8 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
             // second       |-------|
             // result       |--| (take intersection)
             else {
-              val start = Math.max(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1), start2)
-              val end = Math.min(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), end2)
+              val start = Math.max(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.head._1), start2)
+              val end = Math.min(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1) + 1, end2)
               // todo nobody uses the output of AndThen pattern. Let's drop it later.
               val newResult = IdxValue(start, end, Succ((start, end)))
               inner(
@@ -150,7 +153,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
     }
 
     // We use TreeMap.rangeImpl everywhere inside @inner function, which creates new view of the same RB-tree.
-    // To avoid memomy leaks we need to clone all remaining elements from timeMap to the new one calling .clone method.
+    // To avoid memory leaks we need to clone all remaining elements from timeMap to the new one calling .clone method.
     val toReturn = inner(firstQ, secondQ, totalQ, timeMapQ)
     toReturn.copy(_4 = toReturn._4.clone())
   }
