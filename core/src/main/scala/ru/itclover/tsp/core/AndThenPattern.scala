@@ -94,10 +94,12 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
           val secondEnd = timeMap(end2)
 
           if (value1.isFail) {
+            val rewindSecondTo = QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)
+            val endOfResult = Math.max(QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1) - 1, start1)
             inner(
               first.behead(),
-              second.rewindTo(QueueUtils.find(timeMap, firstStart).getOrElse(timeMap.last._1)),
-              total.enqueue(IdxValue(start1, QueueUtils.find(timeMap, firstEnd).getOrElse(timeMap.last._1), Fail)),
+              second.rewindTo(rewindSecondTo),
+              total.enqueue(IdxValue(start1, endOfResult, Fail)),
               cleanTimeMap(timeMap, start1, start2)
             )
           } else if (value2.isFail) {

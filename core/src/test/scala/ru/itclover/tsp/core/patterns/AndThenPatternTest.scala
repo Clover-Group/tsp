@@ -137,7 +137,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     out.size shouldBe 3
     out(0) shouldBe IdxValue(0, 15, Fail)
     out(1) shouldBe IdxValue(16, 20, Succ((16, 20)))
-    out(2) shouldBe IdxValue(21, 99, Fail)
+    out(2) shouldBe IdxValue(21, 98, Fail)
   }
 
   it should "work correctly with TimerPattern - 2" in {
@@ -158,8 +158,8 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     val out = run(pattern, events)
     out.size shouldBe 3
-    out(0) shouldBe IdxValue(0, 10, Fail)
-    out(1) shouldBe IdxValue(11, 11, Succ((11, 11)))
+    out(0) shouldBe IdxValue(0, 9, Fail)
+    out(1) shouldBe IdxValue(10, 11, Succ((10, 11)))
     out(2) shouldBe IdxValue(12, 99, Fail)
   }
 
@@ -176,11 +176,14 @@ class AndThenPatternTest extends FlatSpec with Matchers {
                        col  <- Constant(1).timed(15.seconds).after(Constant(0)))
       yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
 
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
     val out = run(pattern, events)
     out.size shouldBe 3
     out(0) shouldBe IdxValue(0, 19, Fail)
     out(1) shouldBe IdxValue(20, 21, Succ((20, 21)))
-    out(2) shouldBe IdxValue(22, 99, Fail)
+    out(2) shouldBe IdxValue(22, 98, Fail)
   }
 
   it should "work correctly with TimerPattern - 4 repeated pattern" in {
@@ -201,13 +204,13 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     val out = run(pattern, events)
     out.size shouldBe 8
     out(0) shouldBe IdxValue(0, 24, Fail)
-    out(1) shouldBe IdxValue(25, 31, Succ((25, 31)))
-    out(2) shouldBe IdxValue(32, 46, Fail)
-    out(3) shouldBe IdxValue(47, 53, Succ((47, 53)))
-    out(4) shouldBe IdxValue(54, 68, Fail)
-    out(5) shouldBe IdxValue(69, 75, Succ((69, 75)))
-    out(6) shouldBe IdxValue(76, 90, Fail)
-    out(7) shouldBe IdxValue(91, 97, Succ((91, 97)))
+    out(1) shouldBe IdxValue(25, 32, Succ((25, 32)))
+    out(2) shouldBe IdxValue(33, 46, Fail)
+    out(3) shouldBe IdxValue(47, 54, Succ((47, 54)))
+    out(4) shouldBe IdxValue(55, 68, Fail)
+    out(5) shouldBe IdxValue(69, 76, Succ((69, 76)))
+    out(6) shouldBe IdxValue(77, 90, Fail)
+    out(7) shouldBe IdxValue(91, 98, Succ((91, 98)))
   }
 
   it should "work correctly with TimerPattern - 6 repeated pattern" in {
@@ -266,7 +269,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     out.size shouldBe 3
     out(0) shouldBe IdxValue(1,8, Fail)
     out(1) shouldBe IdxValue(9,9, Succ((9,9)))
-    out(2) shouldBe IdxValue(10,12, Fail)
+    out(2) shouldBe IdxValue(10,11, Fail)
   }
 
 
@@ -294,7 +297,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     out.size shouldBe 12
     out(0) shouldBe IdxValue(1,1, Fail)
-    out(9) shouldBe IdxValue(9,9, Succ((9,9)))
+    out(8) shouldBe IdxValue(9,9, Succ((9,9)))
   }
 
 }
