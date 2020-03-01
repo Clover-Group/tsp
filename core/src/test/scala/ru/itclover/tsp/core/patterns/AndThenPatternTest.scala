@@ -129,7 +129,6 @@ class AndThenPatternTest extends FlatSpec with Matchers {
                        col  <- Constant(0).timed(6.seconds).after(Constant(1).timed(15.seconds)).after(Constant(0)))
       yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
 
-
     val firstOut = run(first, events)
     val secondOut = run(second, events)
 
@@ -257,7 +256,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
       Event[Double](1552860735, 9, 9.49, 52),
       Event[Double](1552860736, 10, 9.49, 52),
       Event[Double](1552860737, 11, 9.52, 52),
-      Event[Double](1552860738, 12, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52)
     )
     val p: Patterns[Event[Double]] = Patterns[Event[Double]]
     import p._
@@ -267,11 +266,10 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     val out = run(pattern, events)
 
     out.size shouldBe 3
-    out(0) shouldBe IdxValue(1,8, Fail)
-    out(1) shouldBe IdxValue(9,9, Succ((9,9)))
-    out(2) shouldBe IdxValue(10,11, Fail)
+    out(0) shouldBe IdxValue(1, 8, Fail)
+    out(1) shouldBe IdxValue(9, 9, Succ((9, 9)))
+    out(2) shouldBe IdxValue(10, 11, Fail)
   }
-
 
   it should "work with real-world examples - 2 (smaller group size)" in {
     val events = Seq(
@@ -286,7 +284,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
       Event[Double](1552860735, 9, 9.49, 52),
       Event[Double](1552860736, 10, 9.49, 52),
       Event[Double](1552860737, 11, 9.52, 52),
-      Event[Double](1552860738, 12, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52)
     )
     val p: Patterns[Event[Double]] = Patterns[Event[Double]]
     import p._
@@ -296,8 +294,29 @@ class AndThenPatternTest extends FlatSpec with Matchers {
     val out = run(pattern, events, 1)
 
     out.size shouldBe 12
-    out(0) shouldBe IdxValue(1,1, Fail)
-    out(8) shouldBe IdxValue(9,9, Succ((9,9)))
+    out(0) shouldBe IdxValue(1, 1, Fail)
+    out(8) shouldBe IdxValue(9, 9, Succ((9, 9)))
   }
 
+  it should "work with two andThen patterns" in {
+    val events = Seq(
+      Event[Double](1552860734, 1, 9.49, 51),
+      Event[Double](1552860735, 2, 9.49, 52),
+      Event[Double](1552860736, 3, 9.49, 53),
+      Event[Double](1552860737, 4, 9.52, 52),
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p
+      .assert(p.field(_.row <= 9.53).and(p.field(_.col == 51)))
+      .andThen(p.assert(p.field(_.col == 52)))
+      .andThen(p.assert(p.field(_.col == 53)))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 2
+    out(0) shouldBe IdxValue(1, 2, Fail)
+    out(8) shouldBe IdxValue(3, 3, Succ((3, 3)))
+  }
 }
