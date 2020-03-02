@@ -36,7 +36,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
       resultRow.setField(newRowSchema.beginInd, incident.segment.from.toMillis / 1000.0)
       resultRow.setField(newRowSchema.endInd, incident.segment.to.toMillis / 1000.0)
-      resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload))
+      resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload).toString)
 
       resultRow
   }
