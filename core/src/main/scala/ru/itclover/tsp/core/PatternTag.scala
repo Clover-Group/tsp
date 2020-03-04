@@ -86,7 +86,7 @@ object PatternTag {
         val (first, second) = AndThenPatternTag.getTwoInnerPatterns(pattern)
         Window(computeOffset(first).toMillis + computeOffset(second).toMillis)
       case TimerPatternTag => pattern.asInstanceOf[TimerPattern[_, _, _]].window
-      case WaitPatternTag  => pattern.asInstanceOf[WaitPattern[_, _, _]].window
+      case WaitPatternTag  => Window(0) // pattern.asInstanceOf[WaitPattern[_, _, _]].window
 
       // rest patterns are below
       case _: WithoutInnerPatternTag  => Window(0L)

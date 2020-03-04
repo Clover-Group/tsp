@@ -303,7 +303,7 @@ class AndThenPatternTest extends FlatSpec with Matchers {
       Event[Double](1552860734, 1, 9.49, 51),
       Event[Double](1552860735, 2, 9.49, 52),
       Event[Double](1552860736, 3, 9.49, 53),
-      Event[Double](1552860737, 4, 9.52, 52),
+      Event[Double](1552860737, 4, 9.52, 52)
     )
     val p: Patterns[Event[Double]] = Patterns[Event[Double]]
     import p._
@@ -317,6 +317,40 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
     out.size shouldBe 2
     out(0) shouldBe IdxValue(1, 2, Fail)
-    out(8) shouldBe IdxValue(3, 3, Succ((3, 3)))
+    out(1) shouldBe IdxValue(3, 3, Succ((3, 3)))
+  }
+
+  it should "work with real patterns - 3" in {
+    val events = Seq(
+      Event[Double](1553545413, 1, 6.42, 22),
+      Event[Double](1553545414, 2, 6.42, 23),
+      Event[Double](1553545415, 3, 6.42, 23),
+      Event[Double](1553545416, 4, 6.42, 24),
+      Event[Double](1553545417, 5, 6.0, 36),
+      Event[Double](1553545418, 6, 6.0, 36),
+      Event[Double](1553545419, 7, 6.0, 36),
+      Event[Double](1553545420, 8, 5.88, 37),
+      Event[Double](1553545421, 9, 5.88, 37),
+      Event[Double](1553545422, 10, 6.0, 37),
+      Event[Double](1553545423, 11, 4.01, 12),
+      Event[Double](1553545424, 12, 4.01, 12),
+      Event[Double](1553545425, 13, 4.01, 12),
+      Event[Double](1553545426, 14, 4.0, 12),
+      Event[Double](1553545427, 15, 4.01, 11),
+      Event[Double](1553545428, 16, 4.01, 11)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p
+      .assert((p.field(_.row).minus(const(4.00))).map(Math.abs) < const(0.00001))
+      .andThen(p.assert(p.field(_.col).===(const(12))))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(1, 13, Fail)
+    out(1) shouldBe IdxValue(14, 14, Succ((14, 14)))
+    out(2) shouldBe IdxValue(15, 15, Fail)
   }
 }

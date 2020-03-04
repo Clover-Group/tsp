@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 
 sealed trait Result[+A] {
   private def get: A = this match {
-    case Fail    => throw new RuntimeException("Illegal get on Fail")
+    case Fail    => sys.error("Illegal get on Fail")
     case Succ(t) => t
   }
 
