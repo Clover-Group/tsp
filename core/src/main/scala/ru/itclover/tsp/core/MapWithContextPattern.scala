@@ -1,11 +1,10 @@
-package ru.itclover.tsp.mappers
+package ru.itclover.tsp.core
 
 import cats.syntax.foldable._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
 import ru.itclover.tsp.core.Result._
-import ru.itclover.tsp.core.{PQueue, Pattern, Result}
 
 import scala.language.higherKinds
 
@@ -39,4 +38,6 @@ case class MapWithContextPattern[Event, InnerState, T1, T2](inner: Pattern[Event
   }
 
   override def initialState(): InnerState = inner.initialState()
+
+  override val patternTag: PatternTag = MapWithContextPatternTag
 }

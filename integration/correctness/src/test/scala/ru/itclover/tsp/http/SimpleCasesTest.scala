@@ -73,94 +73,74 @@ class SimpleCasesTest
 
   override val container = MultipleContainers(LazyContainer(clickhouseContainer), LazyContainer(influxContainer))
 
-  var fileSourceString = ""
   val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
   val patternsPath = s"${filesPath}/core/patterns.json"
 
-  val patternsString: Try[String] = Files.readFile(patternsPath)
+  val patternsString: String = Files.readFile(patternsPath).getOrElse(sys.error(s"Cannot read $patternsPath"))
 
-  patternsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
+  val casesPatterns: Map[String, RawPattern] =
+    patternsString.parseJson.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
-  var jsonObject = fileSourceString.parseJson
-  val casesPatterns = jsonObject.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
-
-  var fileSourceStringIvolga = ""
   val patternsPathIvolga = s"${filesPath}/ivolga/patterns.json"
 
-  val patternsStringIvolga: Try[String] = Files.readFile(patternsPathIvolga)
+  val patternsStringIvolga: String =
+    Files.readFile(patternsPathIvolga).getOrElse(sys.error(s"Cannot read $patternsPathIvolga"))
 
-  patternsStringIvolga match {
-    case Success(some) => {
-      fileSourceStringIvolga = some
-    }
-  }
-
-  var jsonObjectIvolga = fileSourceStringIvolga.parseJson
-  val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
+  val casesPatternsIvolga: Map[String, RawPattern] =
+    patternsStringIvolga.parseJson.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
   val coreIncidentsPath = s"${filesPath}/core/incidents.json"
-  val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
+  val incidentsString: String = Files.readFile(coreIncidentsPath).getOrElse(sys.error(s"Cannot read $coreIncidentsPath"))
 
-  incidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
+  val coreRawIncidents: Map[String, String] = incidentsString.parseJson.convertTo[Map[String, String]]
 
-  jsonObject = fileSourceString.parseJson
-  val coreRawIncidents = jsonObject.convertTo[Map[String, String]]
+  val incidentsCount: Map[Int, Int] = coreRawIncidents.map { case (k, v) => (k.toInt, v.toInt) }
 
-  val incidentsCount = coreRawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+  val incidentsCountList: List[List[Double]] =
+    incidentsCount.map { case (k, v) => List(k.toDouble, v.toDouble) }.toList.sortBy(_.head)
 
   val ivolgaIncidentsPath = s"${filesPath}/ivolga/incidents.json"
-  val ivolgaIncidentsString: Try[String] = Files.readFile(ivolgaIncidentsPath)
 
-  ivolgaIncidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
-  }
+  val ivolgaIncidentsString: String =
+    Files.readFile(ivolgaIncidentsPath).getOrElse(sys.error(s"Cannot read $ivolgaIncidentsPath"))
 
-  jsonObject = fileSourceString.parseJson
-  val ivolgaIncidents = jsonObject.convertTo[Map[String, String]]
+  val ivolgaIncidents: Map[String, String] = ivolgaIncidentsString.parseJson.convertTo[Map[String, String]]
 
-  val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+  val incidentsIvolgaCount: Map[Int, Int] = ivolgaIncidents.map { case (k, v) => (k.toInt, v.toInt) }
 
   val rawIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
 
-  Files.readResource("/simple_cases/core/timestamps.csv")
-       .foreach(elem => {
+  Files
+    .readResource("/simple_cases/core/timestamps.csv")
+    .foreach(elem => {
 
-          val elements = elem.split(",")
-          rawIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )   
+      val elements = elem.split(",")
+      rawIncidentsTimestamps += List(
+        elements(0).toDouble,
+        elements(1).toDouble,
+        elements(2).toDouble
+      )
 
-       }) 
+    })
 
   // type is explicitly specified to avoid writing pattern ID as Double
   val incidentsTimestamps: List[List[Double]] = rawIncidentsTimestamps.toList
 
   val ivolgaIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
 
-  Files.readResource("/simple_cases/ivolga/timestamps.csv")
-       .foreach(elem => {
+  Files
+    .readResource("/simple_cases/ivolga/timestamps.csv")
+    .foreach(elem => {
 
-          val elements = elem.split(",")
-          ivolgaIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )   
+      val elements = elem.split(",")
+      ivolgaIncidentsTimestamps += List(
+        elements(0).toDouble,
+        elements(1).toDouble,
+        elements(2).toDouble
+      )
 
-       }) 
+    })
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
@@ -194,26 +174,30 @@ class SimpleCasesTest
     sourceId = 200,
     query = "SELECT * FROM math_test ORDER BY dt",
     datetimeField = 'dt,
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
   val narrowInputIvolgaConf = wideInputConf.copy(
     sourceId = 400,
     query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
     datetimeField = 'dt,
-    partitionFields = Seq('stock_num,'upload_id),
+    partitionFields = Seq('stock_num, 'upload_id),
     dataTransformation = Some(
-      NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map('value_str -> List('SOC_2_UKV1_UOVS))), Some(15000L))
-    ),
+      NarrowDataUnfolding(
+        'sensor_id,
+        'value_float,
+        Map.empty,
+        Some(Map('value_str -> List('SOC_2_UKV1_UOVS))),
+        Some(15000L)
+      )
+    )
   )
 
   val wideInputIvolgaConf = wideInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(WideDataFilling(
-      Map.empty, defaultTimeout = Some(15000L))
-    )
+    dataTransformation = Some(WideDataFilling(Map.empty, defaultTimeout = Some(15000L)))
   )
 
   val wideRowSchema = RowSchema(
@@ -290,10 +274,11 @@ class SimpleCasesTest
 
     chScripts.foreach(elem => {
 
-      Files.readResource(elem)
-           .mkString
-           .split(";")
-           .foreach(clickhouseContainer.executeUpdate)
+      Files
+        .readResource(elem)
+        .mkString
+        .split(";")
+        .foreach(clickhouseContainer.executeUpdate)
 
     })
 
@@ -302,13 +287,13 @@ class SimpleCasesTest
       .mkString
       .split(";")
       .foreach(influxContainer.executeQuery)
-    
+
     Files
       .readResource("/sql/test/cases-narrow-new.influx")
       .mkString
       .split(";")
       .foreach(influxContainer.executeUpdate)
-      
+
     val insertInfo = Seq(
       ("math_test", "/sql/test/cases-narrow-new.csv"),
       ("ivolga_test_narrow", "/sql/test/cases-narrow-ivolga.csv"),
@@ -318,10 +303,11 @@ class SimpleCasesTest
 
     insertInfo.foreach(elem => {
 
-      val insertData = Files.readResource(elem._2)
-                            .drop(1)
-                            .mkString("\n")
-                            
+      val insertData = Files
+        .readResource(elem._2)
+        .drop(1)
+        .mkString("\n")
+
       clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
     })
@@ -367,12 +353,7 @@ class SimpleCasesTest
       }
     }
     checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
+      incidentsCountList,
       firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
@@ -391,12 +372,7 @@ class SimpleCasesTest
       }
     }
     checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
+      incidentsCountList,
       firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
@@ -415,12 +391,7 @@ class SimpleCasesTest
       }
     }
     checkByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.head),
+      incidentsCountList,
       firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
@@ -432,7 +403,7 @@ class SimpleCasesTest
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -445,7 +416,10 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+      firstValidationQuery(
+        "events_wide_ivolga_test",
+        numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted)
+      )
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
   }
@@ -454,9 +428,14 @@ class SimpleCasesTest
     casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
+        FindPatternsRequest(
+          s"17narrow_$id",
+          narrowInputIvolgaConf,
+          narrowOutputIvolgaConf,
+          List(casesPatternsIvolga(id))
+        )
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -469,7 +448,10 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.head),
-      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+      firstValidationQuery(
+        "events_narrow_ivolga_test",
+        numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted)
+      )
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
   }
@@ -477,9 +459,9 @@ class SimpleCasesTest
   def numbersToRanges(numbers: List[Int]): List[Range] = {
     @tailrec
     def inner(in: List[Int], acc: List[Range]): List[Range] = (in, acc) match {
-      case (Nil, a) => a.reverse
+      case (Nil, a)                               => a.reverse
       case (n :: tail, r :: tt) if n == r.end + 1 => inner(tail, (r.start to n) :: tt)
-      case (n :: tail, a) => inner(tail, (n to n) :: a)
+      case (n :: tail, a)                         => inner(tail, (n to n) :: a)
     }
 
     inner(numbers, Nil)

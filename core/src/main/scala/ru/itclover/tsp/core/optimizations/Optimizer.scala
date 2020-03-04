@@ -8,9 +8,10 @@ import ru.itclover.tsp.core.optimizations.Optimizer.S
 
 import scala.language.{existentials, higherKinds}
 
+@SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf","org.wartremover.warts.Any","org.wartremover.warts.TraversableOps"))
 class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
 
-  def optimizations[T] =
+  def optimizations[T]: Seq[OptimizeRule[T]] =
     Seq(coupleOfTwoConst[T], optimizeInners[T], coupleOfTwoSimple[T], mapOfConst[T], mapOfSimple[T], mapOfMap[T])
 
   def optimizable[T](pat: Pat[E, T]): Boolean =

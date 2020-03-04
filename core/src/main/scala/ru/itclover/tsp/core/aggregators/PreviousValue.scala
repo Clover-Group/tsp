@@ -21,6 +21,8 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State, Out](
       PreviousValueAccumState(PQueue.empty),
       m.Queue.empty
     )
+
+  override val patternTag: PatternTag = PreviousValueTag
 }
 
 // todo simplify

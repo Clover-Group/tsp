@@ -6,6 +6,7 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core._
 
 import scala.collection.{mutable => m}
+import scala.concurrent.duration.Duration
 
 class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T]
@@ -13,14 +14,17 @@ class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override def initialState(): AggregatorPState[S, T, TimestampAdderAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
-    astate = TimestampAdderAccumState[T](),
+    astate = TimestampAdderAccumState[T](PatternTag.computeOffset(inner)),
     indexTimeMap = m.Queue.empty
   )
 
+
+
   override val window: Window = MaxWindow
+  override val patternTag: PatternTag = TimestampAdderPatternTag
 }
 
-protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment, TimestampAdderAccumState[T]] {
+protected case class TimestampAdderAccumState[T](innerOffset: Window) extends AccumState[T, Segment, TimestampAdderAccumState[T]] {
 
   @inline
   override def updated(
@@ -29,7 +33,7 @@ protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment
     idxValue: IdxValue[T]
   ): (TimestampAdderAccumState[T], QI[Segment]) = {
 
-    val result = idxValue.map(_ => Succ(Segment(times.head._2, times.last._2)))
-    (TimestampAdderAccumState(), PQueue.apply(result))
+    val result = idxValue.map(_ => Succ(Segment(times.head._2 - innerOffset, times.last._2)))
+    (TimestampAdderAccumState(innerOffset), PQueue.apply(result))
   }
 }

@@ -44,6 +44,8 @@ case class SegmentizerPattern[Event, T, InnerState](inner: Pattern[Event, InnerS
     }
 
   override def initialState(): SegmentizerPState[InnerState, T] = SegmentizerPState(inner.initialState(), PQueue.empty)
+
+  override val patternTag: PatternTag = SegmentizerPatternTag
 }
 
 case class SegmentizerPState[InnerState, T](innerState: InnerState, innerQueue: QI[T])

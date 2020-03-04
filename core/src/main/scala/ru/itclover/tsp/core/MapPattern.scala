@@ -31,4 +31,6 @@ case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerStat
   }
 
   override def initialState(): InnerState = inner.initialState()
+
+  override val patternTag: PatternTag = MapPatternTag
 }

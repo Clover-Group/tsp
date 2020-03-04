@@ -21,6 +21,8 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
       astate = WindowStatisticAccumState(None, m.Queue.empty),
       indexTimeMap = m.Queue.empty
     )
+
+  override val patternTag: PatternTag = WindowStatisticPatternTag
 }
 
 case class WindowStatisticAccumState[T](

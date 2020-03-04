@@ -48,7 +48,7 @@ object Version {
 
   val twitterUtil = "6.43.0"
 
-  val jolVersion = "0.9"
+  val jolVersion = "0.10"
 
   val strawmanVersion = "0.9.0"
 

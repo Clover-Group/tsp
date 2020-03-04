@@ -13,8 +13,8 @@ object Pat {
 
   def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
-    case _                   =>
-      throw new Exception(s"$arg is not a patterne")
+    case _ =>
+      throw new Exception(s"$arg is not a pattern")
   }
 }
 
@@ -42,6 +42,9 @@ trait Pattern[Event, S, T] extends Pat[Event, T] with Serializable {
     queue: PQueue[T],
     events: Cont[Event]
   ): F[(S, PQueue[T])]
+
+  /** Assigned tag. Can be used to semi-compile-time validation pattern matching fullness */
+  val patternTag: PatternTag
 }
 
 case class IdxValue[+T](start: Idx, end: Idx, value: Result[T]) {
@@ -57,7 +60,7 @@ object Pattern {
 
   type QI[T] = PQueue[T]
 
-  trait IdxExtractor[Event] extends Serializable with Order[Idx] {
+  trait IdxExtractor[-Event] extends Serializable with Order[Idx] {
     def apply(e: Event): Idx
 
     def comap[A](f: A => Event): IdxExtractor[A] = IdxExtractor.of(f.andThen(apply))

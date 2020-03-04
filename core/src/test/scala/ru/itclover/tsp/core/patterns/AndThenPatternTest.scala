@@ -9,7 +9,7 @@ import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
 import ru.itclover.tsp.core.utils.{Change, Constant, Timer}
-import ru.itclover.tsp.core.{IdxValue, Patterns, Result, StateMachine, Window}
+import ru.itclover.tsp.core.{Fail, IdxValue, Pattern, Patterns, Result, StateMachine, Succ, Window}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
@@ -110,4 +110,247 @@ class AndThenPatternTest extends FlatSpec with Matchers {
 
   }
 
+  def run[A, S, T](pattern: Pattern[A, S, T], events: Seq[A], groupSize: Int = 1000): ArrayBuffer[IdxValue[T]] = {
+    val out = new ArrayBuffer[IdxValue[T]]()
+    StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[T]) => out += x, groupSize)
+    out
+  }
+
+  it should "work correctly with TimerPattern - 1" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.assert(p.field(_.row > 0))
+    val second = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(0).timed(5.seconds).after(Constant(1).timed(7.seconds)).after(Constant(0));
+                       col  <- Constant(0).timed(6.seconds).after(Constant(1).timed(15.seconds)).after(Constant(0)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
+    val out = run(pattern, events)
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(0, 15, Fail)
+    out(1) shouldBe IdxValue(16, 20, Succ((16, 20)))
+    out(2) shouldBe IdxValue(21, 98, Fail)
+  }
+
+  it should "work correctly with TimerPattern - 2" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val second = p.assert(p.field(_.row > 0))
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(0).timed(5.seconds).after(Constant(1).timed(7.seconds)).after(Constant(0));
+                       col  <- Constant(1).timed(15.seconds).after(Constant(0)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
+    val out = run(pattern, events)
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(0, 9, Fail)
+    out(1) shouldBe IdxValue(10, 11, Succ((10, 11)))
+    out(2) shouldBe IdxValue(12, 99, Fail)
+  }
+
+  it should "work correctly with TimerPattern - 3" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val second = p.timer(p.assert(p.field(_.row > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(0).timed(5.seconds).after(Constant(1).timed(17.seconds)).after(Constant(0));
+                       col  <- Constant(1).timed(15.seconds).after(Constant(0)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
+    val out = run(pattern, events)
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(0, 19, Fail)
+    out(1) shouldBe IdxValue(20, 21, Succ((20, 21)))
+    out(2) shouldBe IdxValue(22, 98, Fail)
+  }
+
+  it should "work correctly with TimerPattern - 4 repeated pattern" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.row > 0)), 10.seconds, 1000L)
+    val second = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row <- Constant(0)
+                         .timed(5.seconds)
+                         .after(Constant(1).timed(17.seconds).after(Constant(0).timed(5.seconds)).repeat(100));
+                       col <- Constant(1).timed(100.seconds).after(Constant(0)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val out = run(pattern, events)
+    out.size shouldBe 8
+    out(0) shouldBe IdxValue(0, 24, Fail)
+    out(1) shouldBe IdxValue(25, 32, Succ((25, 32)))
+    out(2) shouldBe IdxValue(33, 46, Fail)
+    out(3) shouldBe IdxValue(47, 54, Succ((47, 54)))
+    out(4) shouldBe IdxValue(55, 68, Fail)
+    out(5) shouldBe IdxValue(69, 76, Succ((69, 76)))
+    out(6) shouldBe IdxValue(77, 90, Fail)
+    out(7) shouldBe IdxValue(91, 98, Succ((91, 98)))
+  }
+
+  it should "work correctly with TimerPattern - 6 repeated pattern" in {
+    import ru.itclover.tsp.core.Time._
+
+    val first = p.timer(p.assert(p.field(_.row > 0)), 10.seconds, 1000L)
+    val second = p.timer(p.assert(p.field(_.col > 0)), 10.seconds, 1000L)
+    val pattern = first.andThen(second)
+
+    val events = (for (time <- Timer(from = Instant.now());
+                       idx  <- Increment;
+                       row  <- Constant(1).timed(100.seconds).after(Constant(0));
+                       col <- Constant(0)
+                         .timed(5.seconds)
+                         .after(Constant(1).timed(17.seconds).after(Constant(0).timed(5.seconds)).repeat(100)))
+      yield Event[Int](time.toEpochMilli, idx.toLong, row, col)).run(seconds = 100)
+
+    val firstOut = run(first, events)
+    val secondOut = run(second, events)
+
+    val out = run(pattern, events)
+    out.size shouldBe 9
+    out(0) shouldBe IdxValue(0, 19, Fail)
+    out(1) shouldBe IdxValue(20, 21, Succ((20, 21)))
+    out(2) shouldBe IdxValue(22, 36, Fail)
+    out(3) shouldBe IdxValue(37, 43, Succ((37, 43)))
+    out(4) shouldBe IdxValue(44, 58, Fail)
+    out(5) shouldBe IdxValue(59, 65, Succ((59, 65)))
+    out(6) shouldBe IdxValue(66, 80, Fail)
+    out(7) shouldBe IdxValue(81, 87, Succ((81, 87)))
+    out(8) shouldBe IdxValue(88, 92, Fail)
+  }
+
+  it should "work with real-world examples" in {
+    val events = Seq(
+      Event[Double](1552860727, 1, 9.53, 51),
+      Event[Double](1552860728, 2, 9.53, 51),
+      Event[Double](1552860729, 3, 9.53, 51),
+      Event[Double](1552860730, 4, 9.53, 51),
+      Event[Double](1552860731, 5, 9.53, 51),
+      Event[Double](1552860732, 6, 9.48, 51),
+      Event[Double](1552860733, 7, 9.48, 51),
+      Event[Double](1552860734, 8, 9.49, 51),
+      Event[Double](1552860735, 9, 9.49, 52),
+      Event[Double](1552860736, 10, 9.49, 52),
+      Event[Double](1552860737, 11, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p.assert(p.field(_.row <= 9.53).and(p.field(_.col == 51))).andThen(p.assert(p.field(_.col == 52)))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(1, 8, Fail)
+    out(1) shouldBe IdxValue(9, 9, Succ((9, 9)))
+    out(2) shouldBe IdxValue(10, 11, Fail)
+  }
+
+  it should "work with real-world examples - 2 (smaller group size)" in {
+    val events = Seq(
+      Event[Double](1552860727, 1, 9.53, 51),
+      Event[Double](1552860728, 2, 9.53, 51),
+      Event[Double](1552860729, 3, 9.53, 51),
+      Event[Double](1552860730, 4, 9.53, 51),
+      Event[Double](1552860731, 5, 9.53, 51),
+      Event[Double](1552860732, 6, 9.48, 51),
+      Event[Double](1552860733, 7, 9.48, 51),
+      Event[Double](1552860734, 8, 9.49, 51),
+      Event[Double](1552860735, 9, 9.49, 52),
+      Event[Double](1552860736, 10, 9.49, 52),
+      Event[Double](1552860737, 11, 9.52, 52),
+      Event[Double](1552860738, 12, 9.52, 52)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p.assert(p.field(_.row <= 9.53).and(p.field(_.col == 51))).andThen(p.assert(p.field(_.col == 52)))
+
+    val out = run(pattern, events, 1)
+
+    out.size shouldBe 12
+    out(0) shouldBe IdxValue(1, 1, Fail)
+    out(8) shouldBe IdxValue(9, 9, Succ((9, 9)))
+  }
+
+  it should "work with two andThen patterns" in {
+    val events = Seq(
+      Event[Double](1552860734, 1, 9.49, 51),
+      Event[Double](1552860735, 2, 9.49, 52),
+      Event[Double](1552860736, 3, 9.49, 53),
+      Event[Double](1552860737, 4, 9.52, 52)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p
+      .assert(p.field(_.row <= 9.53).and(p.field(_.col == 51)))
+      .andThen(p.assert(p.field(_.col == 52)))
+      .andThen(p.assert(p.field(_.col == 53)))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 2
+    out(0) shouldBe IdxValue(1, 2, Fail)
+    out(1) shouldBe IdxValue(3, 3, Succ((3, 3)))
+  }
+
+  it should "work with real patterns - 3" in {
+    val events = Seq(
+      Event[Double](1553545413, 1, 6.42, 22),
+      Event[Double](1553545414, 2, 6.42, 23),
+      Event[Double](1553545415, 3, 6.42, 23),
+      Event[Double](1553545416, 4, 6.42, 24),
+      Event[Double](1553545417, 5, 6.0, 36),
+      Event[Double](1553545418, 6, 6.0, 36),
+      Event[Double](1553545419, 7, 6.0, 36),
+      Event[Double](1553545420, 8, 5.88, 37),
+      Event[Double](1553545421, 9, 5.88, 37),
+      Event[Double](1553545422, 10, 6.0, 37),
+      Event[Double](1553545423, 11, 4.01, 12),
+      Event[Double](1553545424, 12, 4.01, 12),
+      Event[Double](1553545425, 13, 4.01, 12),
+      Event[Double](1553545426, 14, 4.0, 12),
+      Event[Double](1553545427, 15, 4.01, 11),
+      Event[Double](1553545428, 16, 4.01, 11)
+    )
+    val p: Patterns[Event[Double]] = Patterns[Event[Double]]
+    import p._
+
+    val pattern = p
+      .assert((p.field(_.row).minus(const(4.00))).map(Math.abs) < const(0.00001))
+      .andThen(p.assert(p.field(_.col).===(const(12))))
+
+    val out = run(pattern, events)
+
+    out.size shouldBe 3
+    out(0) shouldBe IdxValue(1, 13, Fail)
+    out(1) shouldBe IdxValue(14, 14, Succ((14, 14)))
+    out(2) shouldBe IdxValue(15, 15, Fail)
+  }
 }

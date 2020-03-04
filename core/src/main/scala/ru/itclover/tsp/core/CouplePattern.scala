@@ -66,6 +66,8 @@ case class CouplePattern[Event: IdxExtractor, State1, State2, T1, T2, T3](
 
   override def initialState(): CouplePState[State1, State2, T1, T2] =
     CouplePState(left.initialState(), PQueue.empty, right.initialState(), PQueue.empty)
+
+  override val patternTag: PatternTag = CouplePatternTag
 }
 
 case class CouplePState[State1, State2, T1, T2](

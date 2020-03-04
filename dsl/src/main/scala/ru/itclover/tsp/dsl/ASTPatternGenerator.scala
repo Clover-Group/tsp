@@ -13,12 +13,12 @@ import scala.language.implicitConversions
 import scala.reflect.ClassTag
 trait AnyState[T]
 
-case class ASTPatternGenerator[Event, EKey, EItem]()(
+class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   @transient fieldToEKey: Symbol => EKey
-) {
+) extends Serializable {
 
   val registry: FunctionRegistry = DefaultFunctionRegistry
   @transient val richPatterns = new Patterns[Event] {}
@@ -41,7 +41,9 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
 
   }
 
-  def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
+  def generatePattern(ast:AST): Pattern[Event, AnyState[Any], Any] = generatePatternMatch(ast)
+
+  def generatePatternMatch(ast: AST): Pattern[Event, AnyState[Any], Any] = {
     import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)

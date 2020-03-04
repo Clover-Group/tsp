@@ -554,3 +554,5 @@ object DefaultFunctionRegistry
         comparingFunctions[String, String],
       reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
     )
+
+object Deduplicating

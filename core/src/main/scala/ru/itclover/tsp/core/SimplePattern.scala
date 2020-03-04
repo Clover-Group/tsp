@@ -49,6 +49,8 @@ class SimplePattern[Event: IdxExtractor, T](override val f: Event => Result[T])
     with Serializable {
 
   override def idxExtractor: IdxExtractor[Event] = implicitly
+
+  override val patternTag: PatternTag = SimplePatternTag
 }
 
 object SimplePattern {
@@ -62,4 +64,6 @@ case object SimplePState
 case class ConstPattern[Event: IdxExtractor, T](value: Result[T]) extends SimplePatternLike[Event, T] {
   override val f: Event => Result[T] = _ => value
   override def idxExtractor: IdxExtractor[Event] = implicitly
+
+  override val patternTag: PatternTag = ConstPatternTag
 }

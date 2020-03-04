@@ -74,6 +74,8 @@ class ReducePattern[Event, S, T1, T2](
   override def initialState(): ReducePState[S, T1] = ReducePState(
     patterns.map(p => p.initialState() -> PQueue.empty[T1])
   )
+
+  override val patternTag: PatternTag = ReducePatternTag
 }
 
 case class ReducePState[State, T1](stateAndQueues: Seq[(State, PQueue[T1])])

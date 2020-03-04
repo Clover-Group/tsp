@@ -31,6 +31,8 @@ case class GroupPattern[Event: IdxExtractor: TimeExtractor, S, T: Group](
       astate = GroupAccumState(None, m.Queue.empty),
       indexTimeMap = m.Queue.empty
     )
+
+  override val patternTag: PatternTag = GroupPatternTag
 }
 
 case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], windowQueue: m.Queue[GroupAccumValue[T]])

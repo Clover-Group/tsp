@@ -23,7 +23,7 @@ object PatternFieldExtractor {
       override def compare(x: Idx, y: Idx): Int = 0
     }
 
-    val gen = ASTPatternGenerator[E, EKey, EItem]()(
+    val gen = new ASTPatternGenerator[E, EKey, EItem]()(
       dummyIdxExtractor,
       dummyTimeExtractor,
       dummyExtractor,

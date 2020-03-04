@@ -7,13 +7,13 @@ import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.TimeExtractor
 
 // Dummy event
-sealed case class Event[A](ts: Long, idx: Idx, row: A, col: A)
+sealed case class Event[+A](ts: Long, idx: Idx, row: A, col: A)
 
 object Event {
   // Dummy extractor
-  implicit val extractor: IdxExtractor[Common.EInt] = IdxExtractor.of(_.idx)
+  implicit val extractor: IdxExtractor[Event[_]] = IdxExtractor.of(_.idx)
 
-  implicit val timeExtractor: TimeExtractor[Common.EInt] = TimeExtractor.of(t => Time(t.ts))
+  implicit val timeExtractor: TimeExtractor[Event[_]] = TimeExtractor.of(t => Time(t.ts))
 }
 
 object Common {

@@ -19,7 +19,7 @@ trait KVExtractor[Event, EKey, EItem] extends Serializable {
   def apply[T](e: Event, k: EKey): (EKey, EItem)
 }
 
-trait TimeExtractor[Event] extends Serializable {
+trait TimeExtractor[-Event] extends Serializable {
   def apply(e: Event): Time
 
   def comap[A](f: A => Event): TimeExtractor[A] = TimeExtractor.of(f.andThen(apply))

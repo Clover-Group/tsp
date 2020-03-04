@@ -2,7 +2,7 @@ package ru.itclover.tsp.core
 
 sealed trait Result[+A] {
   private def get: A = this match {
-    case Fail    => throw new RuntimeException("Illegal get on Fail")
+    case Fail    => sys.error("Illegal get on Fail")
     case Succ(t) => t
   }
 
@@ -44,4 +44,6 @@ object Result {
 
 case class Succ[T](t: T) extends Result[T]
 
-object Fail extends Result[Nothing]
+object Fail extends Result[Nothing]{
+  override def toString: String = "Fail"
+}

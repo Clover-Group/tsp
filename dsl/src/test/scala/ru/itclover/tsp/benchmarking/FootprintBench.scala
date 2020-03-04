@@ -54,7 +54,7 @@ class FootprintBench extends FlatSpec with Matchers {
 
 //    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
     val actualTime = repeat(5, 1000, patternString)
-    println(actualTime)
+//    println(actualTime)
 
   }
 

@@ -100,16 +100,6 @@
        ]
     },
     {
-       "id":"11",
-       "sourceCode":"POilDieselOut < 9.50 until SpeedThrustMin > 51",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
        "id":"12",
        "sourceCode":"abs(SpeedThrustMin + POilDieselOut) > 40",
        "payload":{
@@ -161,7 +151,7 @@
     },
     {
        "id":"17",
-       "sourceCode":"abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)",
+       "sourceCode":"abs(POilDieselOut - 9.53) < 0.001 andThen (POilDieselOut < 9.50 for 3 sec)",
        "payload":{
  
        },
@@ -261,7 +251,7 @@
     },
     {
       "id":"52",
-      "sourceCode":"abs(POilDieselOut - 4.00) < 0.00001 andThen wait(3 sec, SpeedThrustMin = 12 for 3 sec > 1 times)",
+      "sourceCode":"abs(POilDieselOut - 4.00) < 0.00001 andThen (SpeedThrustMin = 12 for 3 sec > 1 times)",
       "payload":{
 
       },
