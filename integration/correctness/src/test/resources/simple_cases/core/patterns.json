@@ -100,16 +100,6 @@
        ]
     },
     {
-       "id":"11",
-       "sourceCode":"POilDieselOut < 9.50 until SpeedThrustMin > 51",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
-    },
-    {
        "id":"12",
        "sourceCode":"abs(SpeedThrustMin + POilDieselOut) > 40",
        "payload":{
