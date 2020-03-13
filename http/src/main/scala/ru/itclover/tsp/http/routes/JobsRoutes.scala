@@ -32,11 +32,11 @@ import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, Re
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.spark
-import org.apache.spark.sql.{DataFrameWriter, SaveMode, SparkSession, Row => SparkRow}
+import org.apache.spark.sql.{SaveMode, SparkSession, Row => SparkRow}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
-import ru.itclover.tsp.spark.utils.ErrorsADT
+import ru.itclover.tsp.spark.utils.{DataWriterWrapper, ErrorsADT}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, Err => SparkErr, GenericRuntimeErr => SparkGenRTErr, RuntimeErr => SparkRTErr}
 
@@ -115,7 +115,7 @@ trait JobsRoutes extends RoutesProtocols {
               case "jdbc" => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
               case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
             }
-            val stream: Either[SparkErr, DataFrameWriter[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
+            val stream: Either[SparkErr, DataWriterWrapper[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
             val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
             val resultOrErr = result
 
@@ -163,7 +163,7 @@ trait JobsRoutes extends RoutesProtocols {
                                                inputConf: spark.io.InputConf[E, EKey, EItem],
                                                outConf: spark.io.OutputConf[SparkRow],
                                                source: spark.StreamSource[E, EKey, EItem]
-                                             )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.Err, DataFrameWriter[SparkRow]] = {
+                                             )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.Err, DataWriterWrapper[SparkRow]] = {
     //streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
     log.debug("createStream started")
@@ -202,13 +202,13 @@ trait JobsRoutes extends RoutesProtocols {
     res
   }
 
-  def runSparkStream(stream: DataFrameWriter[SparkRow], isAsync: Boolean): Either[SparkErr, Option[Long]] = {
+  def runSparkStream(stream: DataWriterWrapper[SparkRow], isAsync: Boolean): Either[SparkErr, Option[Long]] = {
     log.debug("runStream started")
 
     val res = if (isAsync) { // Just detach job thread in case of async run
       Future {
         val start = System.nanoTime
-        stream.mode(SaveMode.Append).save()
+        stream.write()
         val end = System.nanoTime
         end - start
       }(blockingExecutionContext)
@@ -216,7 +216,7 @@ trait JobsRoutes extends RoutesProtocols {
     } else { // Wait for the execution finish
       Either.catchNonFatal{
         val start = System.nanoTime
-        stream.mode(SaveMode.Append).save()
+        stream.write()
         val end = System.nanoTime
         Some(end - start)
       }.leftMap(SparkGenRTErr(_))

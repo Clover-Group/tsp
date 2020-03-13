@@ -88,3 +88,13 @@ CREATE TABLE IF NOT EXISTS events_wide_ivolga_spark_test
     to Float64,
     context String
 ) ENGINE = Log();
+CREATE TABLE IF NOT EXISTS events_wide_kafka_spark_test
+(
+    series_storage Int32,
+    app Int32,
+    id UInt64,
+    "timestamp" Float64,
+    from Float64,
+    to Float64,
+    context String
+) ENGINE = Log();

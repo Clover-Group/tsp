@@ -21,8 +21,7 @@ object Version {
   val scalaCheck = "1.14.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.33.0"
-  val testContainersKafka = "1.12.1"
+  val testContainers = "0.36.0"
   val postgres = "42.2.6"
 
   val avro = "1.8.2"
@@ -137,7 +136,7 @@ object Library {
 
   val testContainers: Seq[ModuleID] = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
-    "org.testcontainers" % "kafka" % Version.testContainersKafka % "test"
+    "com.dimafeng" %% "testcontainers-scala-kafka" % Version.testContainers % "test"
   )
 
   val parboiled: Seq[ModuleID] = Seq(

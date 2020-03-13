@@ -7,7 +7,8 @@ import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
-import org.apache.spark.sql.{Column, DataFrameWriter, Dataset, Encoder, Encoders, Row, SQLContext, SaveMode, SparkSession}
+import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
+import org.apache.spark.sql.{Column, Dataset, Encoder, Encoders, ForeachWriter, Row, SQLContext, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.streaming.Milliseconds
@@ -19,9 +20,10 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{JDBCOutputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, OutputConf, RowSchema}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 // import ru.itclover.tsp.spark.utils.EncoderInstances._
 import org.apache.spark.sql.expressions.{Window => SparkWindow}
@@ -45,7 +47,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
                                                               rawPatterns: Seq[RawPattern],
                                                               outputConf: OutputConf[OutE],
                                                               resultMapper: Incident => OutE,
-                                                            ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataFrameWriter[OutE])] = {
+                                                            ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataWriterWrapper[OutE])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
@@ -58,7 +60,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       val useWindowing = true // !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(resultMapper)(RowEncoder(rowSchemaToSchema(outputConf.rowSchema)).asInstanceOf[Encoder[OutE]])
-      (patterns,  saveStream(mapped, outputConf))
+      (patterns,  saveStream(mapped, source.conf, outputConf))
     }
   }
 
@@ -88,6 +90,8 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
     val s = source.spark
     import s.implicits._
+
+    s.streams.addListener(queryListener)
 
     implicit val encIn: Encoder[In] = source.eventEncoder
     implicit val encList: Encoder[List[In]] = Encoders.kryo[List[In]](classOf[List[In]])
@@ -163,6 +167,21 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 //  }
   def rddToDataset[Out](rdd: RDD[Out], rowSchema: RowSchema): Dataset[Out] = {
     source.spark.createDataFrame(rdd.asInstanceOf[RDD[Row]], rowSchemaToSchema(rowSchema)).asInstanceOf[Dataset[Out]]
+  }
+
+  def queryListener: StreamingQueryListener = new StreamingQueryListener {
+    override def onQueryStarted(event: StreamingQueryListener.QueryStartedEvent): Unit = {
+      //println(s"${event.id} started")
+    }
+
+    override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit = {
+      val rows = event.progress.sources.map(_.numInputRows).sum
+      println(s"$rows rows processed")
+    }
+
+    override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
+      //println(s"${event.id} stopped")
+    }
   }
 }
 
@@ -258,31 +277,42 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](stream: Dataset[E], outputConf: OutputConf[E]): DataFrameWriter[E] = {
+  def saveStream[InE, OutE, InKey, InItem](stream: Dataset[OutE], inputConf: InputConf[InE, InKey, InItem], outputConf: OutputConf[OutE]): DataWriterWrapper[OutE] = {
     log.debug("saveStream started")
+    inputConf match {
 
-    outputConf match {
-//      case kafkaConf: KafkaOutputConf =>
-//        // TODO: Kafka
-//        log.debug("saveStream finished")
-//        res
-//
-//      case redisConf: RedisOutputConf =>
-//        // TODO: Redis
-//        log.debug("saveStream finished")
-//        res
-
-      case jdbcConf: JDBCOutputConf =>
-        val res = stream.write
-          .format("jdbc")
-            .option("url", jdbcConf.jdbcUrl)
-            .option("dbtable", jdbcConf.tableName)
-            .option("user", jdbcConf.userName.getOrElse(""))
-            .option("password", jdbcConf.password.getOrElse(""))
+      case ic: JDBCInputConf =>
+        outputConf match {
+          case oc: JDBCOutputConf =>
+            val res = stream.write
+              .format("jdbc")
+              .option("url", oc.jdbcUrl)
+              .option("dbtable", oc.tableName)
+              .option("user", oc.userName.getOrElse(""))
+              .option("password", oc.password.getOrElse(""))
             //.start()
             //.mode(SaveMode.Append)
-        log.debug("saveStream finished")
-        res
+            log.debug("saveStream finished")
+            res
+        }
+      case ic: KafkaInputConf =>
+        outputConf match {
+          case oc: JDBCOutputConf =>
+            val sink = JDBCSink(oc.jdbcUrl, oc.tableName, oc.driverName,
+              oc.userName.getOrElse("default"), oc.password.getOrElse(""))
+            val res = stream.writeStream
+              .foreach(sink.asInstanceOf[ForeachWriter[OutE]])
+              .trigger(Trigger.ProcessingTime("10 seconds"))
+//              .format("jdbc")
+//              .option("url", oc.jdbcUrl)
+//              .option("dbtable", oc.tableName)
+//              .option("user", oc.userName.getOrElse(""))
+//              .option("password", oc.password.getOrElse(""))
+            //.start()
+            //.mode(SaveMode.Append)
+            log.debug("saveStream finished")
+            res
+        }
     }
   }
 

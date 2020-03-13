@@ -241,6 +241,22 @@ case class KafkaSource(
     .config("spark.io.compression.codec", "snappy")
     .getOrCreate()
 
+  override val eventSchema: StructType = StructType(
+    conf.fieldsTypes.map {
+      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
+        case "int8"    => ByteType
+        case "int16"   => ShortType
+        case "int32"   => IntegerType
+        case "int64"   => LongType
+        case "float32" => FloatType
+        case "float64" => DoubleType
+        case "boolean" => BooleanType
+        case "string"  => StringType
+        case _         => ObjectType(classOf[Any])
+      })
+    }.toSeq
+  )
+
   val rowEncoder = RowEncoder(eventSchema)
   override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder).asInstanceOf[Encoder[RowWithIdx]]
 
@@ -266,21 +282,22 @@ case class KafkaSource(
 
   val stageName = "Kafka input processing stage"
 
-  override val eventSchema: StructType = StructType(
-    conf.fieldsTypes.map {
-      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
-        case "int8"    => ByteType
-        case "int16"   => ShortType
-        case "int32"   => IntegerType
-        case "int64"   => LongType
-        case "float32" => FloatType
-        case "float64" => DoubleType
-        case "boolean" => BooleanType
-        case "string"  => StringType
-        case _         => ObjectType(classOf[Any])
-      })
-    }.toSeq
-  )
+
+//  override val eventSchema = StructType(
+//    fieldsClasses.map {
+//      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
+//        case _: Class[Byte]    => ByteType
+//        case _: Class[Short]   => ShortType
+//        case _: Class[Int]     => IntegerType
+//        case _: Class[Long]    => LongType
+//        case _: Class[Float]   => FloatType
+//        case _: Class[Double]  => DoubleType
+//        case _: Class[Boolean] => BooleanType
+//        case _: Class[String]  => StringType
+//        case _                 => ObjectType(classOf[Any])
+//      })
+//  }.toSeq
+//  )
 
   override def createStream: Dataset[RowWithIdx] = {
     import spark.implicits._
@@ -292,7 +309,7 @@ case class KafkaSource(
     .selectExpr("CAST(value AS STRING) as message")
     .select(functions.from_json(functions.col("message"), eventSchema).as("json"))
     .select("json.*")
-    .map { RowWithIdx(0, _) }
+    .map { RowWithIdx(0, _) }(eventEncoder)
   }
 
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
