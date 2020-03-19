@@ -11,7 +11,7 @@ import scala.collection.mutable
   * Schema for writing data to sink.
   */
 trait SinkSchema extends Serializable {
-  def rowSchema: RowSchema
+  def rowSchema: EventSchema
 }
 
 //case class KafkaSegmentsSink(schemaUri: String, brokerList: String, topicId: String, rowSchema: RowSchema) {
@@ -20,15 +20,13 @@ trait SinkSchema extends Serializable {
 //  }
 //}
 
-//trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
-//  require(fieldsCount == fieldsTypes.length)
-//
-//  def fieldsTypes: List[Class[_]]
-//
-//  val fieldsNames: List[Symbol]
-//
-//  val fieldsCount: Int = fieldsNames.length
-//}
+trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
+  def fieldsTypes: List[Int]
+
+  def fieldsNames: List[Symbol]
+
+  def fieldsCount: Int
+}
 
 /**
   * Schema, used for result row construction for sinks. Params are names of fields in sink.
@@ -46,15 +44,15 @@ case class RowSchema(
   processingTsField: Symbol,
   contextField: Symbol,
   forwardedFields: Seq[Symbol] = List.empty
-) extends Serializable {
-  val fieldsCount: Int = 7
+) extends EventSchema with Serializable {
+  override val fieldsCount: Int = 7
 
-  val fieldsNames: List[Symbol] =
+  override val fieldsNames: List[Symbol] =
     List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, processingTsField, contextField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
-  val fieldTypes: List[Int] =
+  override val fieldsTypes: List[Int] =
     List(Types.INTEGER, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR, Types.DOUBLE, Types.VARCHAR)
 
   val fieldClasses: List[Class[_]] =
@@ -77,4 +75,32 @@ case class RowSchema(
   def getTypeInfo = new RowTypeInfo(fieldClasses.map(TypeInformation.of(_)): _*)
 
   def getJdbcTypes = ??? // TODO(r): make using SinkInfo with select limit 1
+}
+
+case class NewRowSchema(
+  unitIdField: Symbol,
+  fromTsField: Symbol,
+  toTsField: Symbol,
+  appIdFieldVal: (Symbol, Int),
+  patternIdField: Symbol,
+  subunitIdField: Symbol,
+) extends EventSchema with Serializable {
+  override def fieldsTypes: List[Int] = List(Types.INTEGER, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR, Types.VARCHAR)
+
+  override def fieldsNames: List[Symbol] = List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
+
+  override def fieldsCount: Int = 6
+
+  val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
+
+  val unitIdInd = fieldsIndexesMap(unitIdField)
+  val subunitIdInd = fieldsIndexesMap(subunitIdField)
+
+  val beginInd = fieldsIndexesMap(fromTsField)
+  val endInd = fieldsIndexesMap(toTsField)
+
+  val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
+  val patternIdInd = fieldsIndexesMap(patternIdField)
+
+
 }

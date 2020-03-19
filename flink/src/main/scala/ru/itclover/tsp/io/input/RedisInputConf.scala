@@ -12,6 +12,7 @@ import ru.itclover.tsp.RowWithIdx
   * @param serializer format of data in redis
   */
 @SerialVersionUID(4815162342L)
+@deprecated("Redis support will be dropped", "0.16.0")
 case class RedisInputConf(
   url: String,
   datetimeField: Symbol,

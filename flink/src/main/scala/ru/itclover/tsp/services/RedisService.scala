@@ -10,6 +10,7 @@ import ru.itclover.tsp.io.input.RedisInputConf
 import ru.itclover.tsp.io.output.{RedisOutputConf, RowSchema}
 import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization, ParquetSerialization, Serialization}
 
+@deprecated("Redis support will be dropped", "0.16.0")
 object RedisService {
 
   /**

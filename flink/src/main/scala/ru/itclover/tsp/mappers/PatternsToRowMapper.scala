@@ -6,26 +6,39 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
+
+import scala.util.Try
 
 /**
   * Packer of found incident into [[org.apache.flink.types.Row]]
   */
-case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) extends RichMapFunction[Incident, Row] {
+case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) extends RichMapFunction[Incident, Row] {
 
-  override def map(incident: Incident) = {
-    val resultRow = new Row(schema.fieldsCount)
-    resultRow.setField(schema.sourceIdInd, sourceId)
-    resultRow.setField(schema.patternIdInd, incident.patternId)
-    resultRow.setField(schema.appIdInd, schema.appIdFieldVal._2)
-    resultRow.setField(schema.beginInd, incident.segment.from.toMillis / 1000.0)
-    resultRow.setField(schema.endInd, incident.segment.to.toMillis / 1000.0)
-    resultRow.setField(schema.processingTimeInd, nowInUtcMillis)
+  override def map(incident: Incident) = schema match {
+    case oldRowSchema: RowSchema =>
+      val resultRow = new Row(oldRowSchema.fieldsCount)
+      resultRow.setField(oldRowSchema.sourceIdInd, sourceId)
+      resultRow.setField(oldRowSchema.patternIdInd, incident.patternId)
+      resultRow.setField(oldRowSchema.appIdInd, oldRowSchema.appIdFieldVal._2)
+      resultRow.setField(oldRowSchema.beginInd, incident.segment.from.toMillis / 1000.0)
+      resultRow.setField(oldRowSchema.endInd, incident.segment.to.toMillis / 1000.0)
+      resultRow.setField(oldRowSchema.processingTimeInd, nowInUtcMillis)
 
-    val payload = incident.forwardedFields ++ incident.patternPayload
-    resultRow.setField(schema.contextInd, payloadToJson(payload))
+      val payload = incident.forwardedFields ++ incident.patternPayload
+      resultRow.setField(oldRowSchema.contextInd, payloadToJson(payload))
 
-    resultRow
+      resultRow
+    case newRowSchema: NewRowSchema =>
+      val resultRow = new Row(newRowSchema.fieldsCount)
+      resultRow.setField(newRowSchema.unitIdInd, sourceId)
+      resultRow.setField(newRowSchema.patternIdInd, incident.patternId)
+      resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
+      resultRow.setField(newRowSchema.beginInd, incident.segment.from.toMillis / 1000.0)
+      resultRow.setField(newRowSchema.endInd, incident.segment.to.toMillis / 1000.0)
+      resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload).toString)
+
+      resultRow
   }
 
   def nowInUtcMillis: Double = {
@@ -41,4 +54,10 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) ex
         case (fld, value)                               => s""""${fld}":$value"""
       }
       .mkString("{", ",", "}")
+
+  def findSubunit(payload: Seq[(String, Any)]): Int = {
+    payload.find { case (name, _) => name == "subunit" }
+      .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
+      .getOrElse(0)
+  }
 }

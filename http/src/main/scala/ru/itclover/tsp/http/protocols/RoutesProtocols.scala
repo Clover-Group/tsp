@@ -6,8 +6,10 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf, RedisOutputConf, RowSchema}
 import spray.json._
+
+import scala.util.Try
 
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
@@ -139,6 +141,28 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "contextField",
     "forwardedFields"
   )
+
+  implicit val newRowSchemaFmt = jsonFormat(
+    NewRowSchema.apply,
+    "unitIdField",
+    "fromTsField",
+    "toTsField",
+    "appIdFieldVal",
+    "patternIdField",
+    "subunitIdField"
+  )
+
+  implicit object eventSchemaFmt extends JsonFormat[EventSchema] {
+    override def read(json: JsValue): EventSchema = Try(rowSchemaFmt.read(json))
+      .getOrElse(Try(newRowSchemaFmt.read(json))
+        .getOrElse(deserializationError("Cannot serialize EventSchema")))
+
+    override def write(obj: EventSchema): JsValue = obj match {
+      case newRowSchema: NewRowSchema => newRowSchemaFmt.write(newRowSchema)
+      case rowSchema: RowSchema => rowSchemaFmt.write(rowSchema)
+    }
+  }
+
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
