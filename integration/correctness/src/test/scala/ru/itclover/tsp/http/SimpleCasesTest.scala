@@ -466,10 +466,20 @@ class SimpleCasesTest
 
       val headers = Files.readResource(elem._2).take(1).toList.head.split(",")
       val data = Files.readResource(elem._2).drop(1).map(_.split(","))
+      val numberIndices = List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
       data.foreach { row =>
+        val convertedRow: Seq[Any] = row.indices.map(idx => if (numberIndices.contains(idx)) {
+          if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
+        } else row(idx))
         val msgKey = UUID.randomUUID().toString
-        val json = headers.zip(row).toMap.toJson.toString()
+        val msgMap = headers.zip(convertedRow).toMap[String, Any]
+        val json = "{" + msgMap.map {
+          case (k, v) => v match {
+            case s: String => s""""$k": "$v""""
+            case _         => s""""$k": $v"""
+          }
+        }.mkString(", ") + "}"
         val topic = elem._1.filter(_ != '`')
         println(s"Sending to $topic $msgKey --- $json")
         producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
@@ -483,10 +493,10 @@ class SimpleCasesTest
        SELECT number, c
        FROM (
          ${numbers.map(r => s"SELECT number FROM numbers(${r.start}, ${r.size})").mkString(" UNION ALL ")}
-       )
+       ) patnum
        LEFT JOIN (
          SELECT id, COUNT(id) AS c FROM ${table} GROUP BY id
-       ) e ON number = e.id ORDER BY number
+       ) e ON patnum.number = e.id ORDER BY patnum.number
   """
 
   val secondValidationQuery = "SELECT id, from, to FROM %s ORDER BY id, from, to"

@@ -3,7 +3,7 @@ services:
   zookeeper:
     image: wurstmeister/zookeeper
     ports:
-      - "2181:2181"
+      - "32181:2181" # to avoid using system port 2181
     hostname: zookeeper
   kafka:
     image: wurstmeister/kafka

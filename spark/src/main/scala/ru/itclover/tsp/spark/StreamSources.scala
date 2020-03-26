@@ -302,14 +302,15 @@ case class KafkaSource(
   override def createStream: Dataset[RowWithIdx] = {
     import spark.implicits._
     spark.readStream
-    .format("kafka")
-    .option("kafka.bootstrap.servers", conf.brokers)
-    .option("subscribe", conf.topic)
-    .load()
-    .selectExpr("CAST(value AS STRING) as message")
-    .select(functions.from_json(functions.col("message"), eventSchema).as("json"))
-    .select("json.*")
-    .map { RowWithIdx(0, _) }(eventEncoder)
+      .format("kafka")
+      .option("kafka.bootstrap.servers", conf.brokers)
+      .option("subscribe", conf.topic)
+      .option("startingOffsets", "earliest")
+      .load()
+      .selectExpr("CAST(value AS STRING) as message")
+      .select(functions.from_json(functions.col("message"), eventSchema).as("json"))
+      .select("json.*")
+      .map { RowWithIdx(0, _) }(eventEncoder)
   }
 
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
