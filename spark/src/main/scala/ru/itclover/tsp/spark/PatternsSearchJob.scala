@@ -27,7 +27,7 @@ import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 // import ru.itclover.tsp.spark.utils.EncoderInstances._
 import org.apache.spark.sql.expressions.{Window => SparkWindow}
-import org.apache.spark.sql.functions.{lag, col}
+import org.apache.spark.sql.functions.{lag, col, sum, expr}
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
@@ -77,7 +77,11 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
+    source match {
+      case kafkaInputConf: KafkaInputConf => singleIncidents // this must be processed upon writing
+      case _ => if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
+    }
+
   }
 
   def incidentsFromPatterns[T](
@@ -252,18 +256,30 @@ object PatternsSearchJob {
 
     // Repeat the starting entry
     val newIncidents = spark.createDataset(List(incidents.first)).union(incidents)
-    val win = SparkWindow.partitionBy("context").orderBy("segment.from")
+    val win = SparkWindow.partitionBy("patternId", "forwardedFields").orderBy("segment.from")
 
-    val res = newIncidents
-//        .map {
-//          value =>
-//            val prev = lag("segment.to.toMillis", 1).over(win)
-//            if (value.segment.from.toMillis - prev > value.maxWindowMs) {
-//            seriesCount += 1
-//          }
-//            (seriesCount, value)
-//        }
-//        .reduceByKey { _ |+| _ }
+    val reducer = new IncidentAggregator
+
+    val res = newIncidents.toDF
+        .withColumn("curr", col("segment.from.toMillis"))
+        .withColumn("prev", lag("segment.to.toMillis", 1).over(win))
+        /*.map {
+          value =>
+            if (value.getAs[Long]("curr") - value.getAs[Long]("prev") > value.getAs[Long]("maxWindowMs")) {
+            seriesCount += 1
+          }
+            (seriesCount, value)
+        }*/
+        .withColumn("seriesCount", sum(expr("curr - prev > maxWindowMs").cast("int")).over(win))
+        .groupBy("seriesCount")
+        .agg(reducer($"id", $"patternId", $"maxWindowMs",
+          $"segment", $"forwardedFields", $"patternPayload")
+          .as("result"))
+        .select($"result.id".as("id"), $"result.patternId".as("patternId"),
+          $"result.maxWindowMs".as("maxWindowMs"), $"result.segment".as("segment"),
+          $"result.forwardedFields".as("forwardedFields"), $"result.patternPayload".as("patternPayload"))
+        .drop("prev", "curr", "seriesCount")
+
 //        .map(_._2)
       //.assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
       //.keyBy(_.id)
@@ -274,7 +290,7 @@ object PatternsSearchJob {
 //      .name("Uniting adjacent incidents")
 
     log.debug("reduceIncidents finished")
-    res
+    res.as[Incident]
   }
 
   def saveStream[InE, OutE, InKey, InItem](stream: Dataset[OutE], inputConf: InputConf[InE, InKey, InItem], outputConf: OutputConf[OutE]): DataWriterWrapper[OutE] = {
