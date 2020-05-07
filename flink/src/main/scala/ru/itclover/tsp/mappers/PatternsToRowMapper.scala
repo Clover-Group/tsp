@@ -1,7 +1,7 @@
 package ru.itclover.tsp.mappers
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
@@ -34,8 +34,8 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       resultRow.setField(newRowSchema.unitIdInd, sourceId)
       resultRow.setField(newRowSchema.patternIdInd, incident.patternId)
       resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
-      resultRow.setField(newRowSchema.beginInd, incident.segment.from.toMillis / 1000.0)
-      resultRow.setField(newRowSchema.endInd, incident.segment.to.toMillis / 1000.0)
+      resultRow.setField(newRowSchema.beginInd, LocalDateTime.ofInstant(Instant.ofEpochMilli(incident.segment.from.toMillis), ZoneOffset.UTC))
+      resultRow.setField(newRowSchema.endInd, LocalDateTime.ofInstant(Instant.ofEpochMilli(incident.segment.to.toMillis), ZoneOffset.UTC))
       resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload).toString)
 
       resultRow

@@ -1,6 +1,7 @@
 package ru.itclover.tsp.io.output
 
 import java.sql.Types
+import java.time.{LocalDateTime, ZonedDateTime}
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.RowTypeInfo
@@ -53,10 +54,10 @@ case class RowSchema(
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
   override val fieldsTypes: List[Int] =
-    List(Types.INTEGER, Types.DOUBLE, Types.DOUBLE, Types.INTEGER, Types.VARCHAR, Types.DOUBLE, Types.VARCHAR)
+    List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.VARCHAR, Types.DOUBLE, Types.VARCHAR)
 
   val fieldClasses: List[Class[_]] =
-    List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[String], classOf[Double], classOf[String])
+    List(classOf[Int], classOf[LocalDateTime], classOf[LocalDateTime], classOf[Int], classOf[String], classOf[Double], classOf[String])
 
   val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
