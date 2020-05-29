@@ -8,7 +8,7 @@ import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine}
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
-import ru.itclover.tsp.core.utils.{RandomInRange, TimeSeriesGenerator, Timer}
+import ru.itclover.tsp.core.utils.{RandomInRange, Timer}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
@@ -26,7 +26,7 @@ class CouplePatternTest extends WordSpec with Matchers {
 
       val pattern = p.assert(field(_.row) > const(0))
 
-      val rnd: Random = new Random()
+      // val rnd: Random = new Random()
 
       val events = (for (time <- Timer(from = Instant.now());
                          idx  <- Increment;
@@ -34,7 +34,7 @@ class CouplePatternTest extends WordSpec with Matchers {
         yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 10)
 
       val out = new ArrayBuffer[IdxValue[_]]()
-      StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => out += x, 1)
+      val _ = StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => out += x, 1)
 
       out.count(_.value.isFail) !== 0
 

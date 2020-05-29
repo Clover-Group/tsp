@@ -19,10 +19,10 @@ import ru.itclover.tsp.utils.Files
 import spray.json._
 
 import scala.annotation.tailrec
-import scala.util.{Success, Try}
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.util.{Success, Try}
 
 class SimpleCasesTest
     extends FlatSpec

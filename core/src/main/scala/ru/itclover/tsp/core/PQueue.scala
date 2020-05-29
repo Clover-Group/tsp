@@ -98,12 +98,12 @@ object PQueue {
     private def enqueueWithUniting(idxValue: IdxValue[T]): Unit = {
       queue.peekLast match {
         case null =>
-          queue.offerLast(idxValue)
+          val _ = queue.offerLast(idxValue)
         case IdxValue(start, end, value) if value == idxValue.value =>
           queue.pollLast()
-          queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
+          val _ = queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
         case _ =>
-          queue.offerLast(idxValue)
+          val _ = queue.offerLast(idxValue)
       }
     }
   }

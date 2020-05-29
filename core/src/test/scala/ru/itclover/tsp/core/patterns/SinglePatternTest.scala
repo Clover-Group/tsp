@@ -17,7 +17,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
 
     val pat = new SimplePattern[EInt, Int](_ => processEvent(event))(Event.extractor)
 
-    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+    val _ = StateMachine[Id].run(pat, Seq(event), pat.initialState())
   }
 
   it should "process ExtractingPattern correctly" in {
@@ -33,7 +33,7 @@ class SinglePatternTest extends FlatSpec with Matchers {
     //val pat = new ExtractingPattern[EInt, Symbol, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
     val pat = new ExtractingPattern('and)(Event.extractor, MyExtractor, dec)
 
-    val res = StateMachine[Id].run(pat, Seq(event), pat.initialState())
+    val _ = StateMachine[Id].run(pat, Seq(event), pat.initialState())
   }
 
 }

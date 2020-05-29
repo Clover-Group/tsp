@@ -1,17 +1,12 @@
 package ru.itclover.tsp.core.patterns
 
-import cats.Id
-import org.scalacheck.Prop
 import org.scalatest.{FlatSpec, Matchers}
-import ru.itclover.tsp.core.fixtures.Common._
-import ru.itclover.tsp.core.fixtures.Event
-import ru.itclover.tsp.core._
 
 class ATPGPropTest extends FlatSpec with Matchers {
 
   it should "auto generate all patterns" in {
 
-    def getConstPat(num: Int): ConstPattern[EInt, Int] = ConstPattern[EInt, Int](Result.succ(num))(Event.extractor)
+//    def getConstPat(num: Int): ConstPattern[EInt, Int] = ConstPattern[EInt, Int](Result.succ(num))(Event.extractor)
 //todo actualize!
 //    // Checker property
 //    def checkAll(): Prop =

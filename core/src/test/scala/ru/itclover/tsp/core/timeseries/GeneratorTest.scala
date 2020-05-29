@@ -39,7 +39,7 @@ class GeneratorTest extends WordSpec with Matchers {
           event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
-      val result = (patterns, events).zipped.map { (p, e) =>
+      val _ = (patterns, events).zipped.map { (p, e) =>
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 // todo check!
@@ -63,7 +63,7 @@ class GeneratorTest extends WordSpec with Matchers {
           event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
-      val result = (patterns, events).zipped.map { (p, e) =>
+      val _ = (patterns, events).zipped.map { (p, e) =>
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 // todo check!
@@ -87,7 +87,7 @@ class GeneratorTest extends WordSpec with Matchers {
           event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
-      val result = (patterns, events).zipped.map { (p, e) =>
+      val _ = (patterns, events).zipped.map { (p, e) =>
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 //todo check!
@@ -117,7 +117,7 @@ class GeneratorTest extends WordSpec with Matchers {
           event => patterns.append(new SimplePattern[EInt, Int](_ => Result.succ(process(event).toInt)))
         )
 
-      val result = (patterns, events).zipped.map { (p, e) =>
+      val _ = (patterns, events).zipped.map { (p, e) =>
         StateMachine[Id].run(p, Seq(e), p.initialState())
       }
 // todo check!

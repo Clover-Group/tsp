@@ -33,7 +33,7 @@ public class JDBCInputFormatProps extends RichInputFormat<Row, InputSplit> imple
 
 	private String drivername;
 	private String dbURL;
-	private Properties props = new Properties();
+	private final Properties props = new Properties();
 	private String queryTemplate;
 	private int resultSetType;
 	private int resultSetConcurrency;
