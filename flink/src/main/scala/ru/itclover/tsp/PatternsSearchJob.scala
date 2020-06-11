@@ -90,12 +90,12 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
-        val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+        val allForwardFields = forwardedFields ++ rawP.forwardedFields.getOrElse(Seq.empty).map(id => (id, source.fieldToEKey(id)))
 
         val toIncidents = ToIncidentsMapper(
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
-          rawP.payload.toSeq,
+          rawP.payload.getOrElse(Map.empty).toSeq,
           if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
           source.conf.partitionFields.map(source.fieldToEKey)
         )

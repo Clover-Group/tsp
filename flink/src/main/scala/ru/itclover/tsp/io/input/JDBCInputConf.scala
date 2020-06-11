@@ -31,11 +31,12 @@ case class JDBCInputConf(
   defaultEventsGapMs: Long,
   chunkSizeMs: Option[Long],
   partitionFields: Seq[Symbol],
+  unitIdField: Option[Symbol] = None,
   userName: Option[String] = None,
   password: Option[String] = None,
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   defaultToleranceFraction: Option[Double] = None,
-  parallelism: Option[Int] = None,
+  parallelism: Option[Int] = Some(1),
   numParallelSources: Option[Int] = Some(1),
   patternsParallelism: Option[Int] = Some(1),
   timestampMultiplier: Option[Double] = Some(1000.0)

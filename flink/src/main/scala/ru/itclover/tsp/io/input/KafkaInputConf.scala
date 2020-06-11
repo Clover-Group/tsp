@@ -11,6 +11,7 @@ case class KafkaInputConf(
   serializer: Option[String] = Some("json"),
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
+  unitIdField: Option[Symbol] = None,
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
   fieldsTypes: Map[String, String]

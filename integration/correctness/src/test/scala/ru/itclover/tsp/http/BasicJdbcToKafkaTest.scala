@@ -81,7 +81,7 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   val basicAssertions = Seq(
     RawPattern("1", "speed < 15"),
     RawPattern("2", """"speed(1)(2)" > 10"""),
-    RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
+    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
   val errors = Seq(RawPattern("20", "speed = QWE 15"), RawPattern("21", "speed64 < 15.0"))

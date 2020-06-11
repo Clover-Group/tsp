@@ -33,6 +33,7 @@ case class InfluxDBInputConf(
   chunkSizeMs: Option[Long],
   partitionFields: Seq[Symbol],
   datetimeField: Symbol = 'time,
+  unitIdField: Option[Symbol] = None,
   userName: Option[String] = None,
   password: Option[String] = None,
   timeoutSec: Option[Long] = None,

@@ -17,6 +17,7 @@ case class RedisInputConf(
   url: String,
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
+  unitIdField: Option[Symbol] = None,
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   fieldsTypes: Map[String, String],
   key: String,

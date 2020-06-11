@@ -99,7 +99,7 @@ class BasicInfluxToJdbcTest
 
   val basicAssertions = Seq(
     RawPattern("1", "speed < 15"),
-    RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
+    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
   val filling = Seq(RawPattern("20", "speed = 20 and pos = 15"))

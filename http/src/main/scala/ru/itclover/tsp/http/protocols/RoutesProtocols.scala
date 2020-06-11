@@ -91,6 +91,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "defaultEventsGapMs",
     "chunkSizeMs",
     "partitionFields",
+    "unitIdField",
     "userName",
     "password",
     "dataTransformation",
@@ -111,6 +112,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "chunkSizeMs",
     "partitionFields",
     "datetimeField",
+    "unitIdField",
     "userName",
     "password",
     "timeoutSec",
@@ -122,11 +124,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "additionalTypeChecking"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat9(
+  implicit val kafkaInpConfFmt = jsonFormat10(
     KafkaInputConf.apply
   )
 
-  implicit val redisConfInputFmt = jsonFormat7(
+  implicit val redisConfInputFmt = jsonFormat8(
     RedisInputConf.apply
   )
 
