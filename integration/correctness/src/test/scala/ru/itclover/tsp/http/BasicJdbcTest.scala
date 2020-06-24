@@ -56,8 +56,8 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
     query = """select *, speed as "speed(1)(2)" from Test.SM_basic_wide""", // speed(1)(2) fancy colnames test
     driverName = container.driverName,
     datetimeField = 'datetime,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id)
   )

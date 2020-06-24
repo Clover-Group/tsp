@@ -35,8 +35,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
     query = "select * from Test.Bigdata_HI limit 10000000",
     driverName = container.driverName,
     datetimeField = 'dt,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 10000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(10000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num)
   )

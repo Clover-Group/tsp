@@ -11,8 +11,8 @@ trait InputConf[Event, EKey, EItem] extends Serializable {
   def numParallelSources: Option[Int] // Number on parallel (separate) sources to be created
   def patternsParallelism: Option[Int] // Number of parallel branches after source step
 
-  def eventsMaxGapMs: Long
-  def defaultEventsGapMs: Long
+  def eventsMaxGapMs: Option[Long]
+  def defaultEventsGapMs: Option[Long]
   def chunkSizeMs: Option[Long] // Chunk size
 
   def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]

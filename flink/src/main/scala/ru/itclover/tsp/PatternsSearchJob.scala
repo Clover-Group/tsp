@@ -49,7 +49,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
-      source.conf.eventsMaxGapMs,
+      source.conf.eventsMaxGapMs.getOrElse(60000L),
       source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
       source.patternFields
     ).map { patterns =>
@@ -74,7 +74,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents) else singleIncidents
   }
 
   def incidentsFromPatterns[T](
@@ -96,7 +96,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
           rawP.payload.getOrElse(Map.empty).toSeq,
-          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
+          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
           source.conf.partitionFields.map(source.fieldToEKey)
         )
 
@@ -106,7 +106,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
         PatternProcessor[In, Optimizer.S[Segment], Incident](
           incidentPattern,
-          source.conf.eventsMaxGapMs
+          source.conf.eventsMaxGapMs.getOrElse(60000L)
         )
     }
     val keyedStream = stream

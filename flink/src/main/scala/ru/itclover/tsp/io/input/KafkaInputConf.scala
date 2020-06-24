@@ -18,9 +18,9 @@ case class KafkaInputConf(
 ) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
-  def defaultEventsGapMs: Long = 0L
+  def defaultEventsGapMs: Option[Long] = Some(0L)
   def defaultToleranceFraction: Option[Double] = Some(0.1)
-  def eventsMaxGapMs: Long = 1L
+  def eventsMaxGapMs: Option[Long] = Some(1L)
   def numParallelSources: Option[Int] = Some(1)
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)

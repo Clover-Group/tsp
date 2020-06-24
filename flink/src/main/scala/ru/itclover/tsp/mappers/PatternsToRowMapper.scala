@@ -56,7 +56,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       .mkString("{", ",", "}")
 
   def findSubunit(payload: Seq[(String, Any)]): Int = {
-    payload.find { case (name, _) => name == "subunit" }
+    payload.find { case (name, _) => name.toLowerCase == "subunit" }
       .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
       .getOrElse(0)
   }

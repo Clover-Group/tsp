@@ -171,8 +171,8 @@ class SimpleCasesTest
     userName = Some("default"),
     password = Some("default"),
     dbName = influxContainer.dbName,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
     additionalTypeChecking = Some(false)
@@ -184,8 +184,8 @@ class SimpleCasesTest
     query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'ts,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )

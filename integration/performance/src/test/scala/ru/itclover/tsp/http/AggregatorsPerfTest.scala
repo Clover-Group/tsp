@@ -40,8 +40,8 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
     query = realWorkloadQuery,
     driverName = container.driverName,
     datetimeField = 'ts,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 200L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(200L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('t1)
   )
