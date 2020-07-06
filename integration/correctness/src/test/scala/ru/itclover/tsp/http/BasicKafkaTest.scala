@@ -65,7 +65,8 @@ class BasicKafkaTest
     datetimeField = 'timestamp,
     partitionFields = partitionFields,
     fieldsTypes = Map("timestamp" -> "int64", "series_id" -> "string", "mechanism_id" -> "string", "speed" -> "float64"),
-    serializer = Some("json")
+    serializer = Some("json"),
+    eventsMaxGapMs = 100000L
   )
 
   private def kafkaOutputConf() = KafkaOutputConf(
@@ -90,9 +91,7 @@ class BasicKafkaTest
     RawPattern("2", """"speed" > 10"""),
     RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
   )
-  val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
-
-  val errors = Seq(RawPattern("20", "speed = QWE 15"), RawPattern("21", "speed64 < 15.0"))
+  val windowPattern = Seq(RawPattern("20", "speed < 20 for 1 sec"))
 
   lazy val producer: KafkaProducer[String, String] = {
     val props = new Properties()
@@ -167,7 +166,21 @@ class BasicKafkaTest
     }
 
     val result = readFromKafkaForDuration(10.seconds, outputTopic)
-//    result.map(_.value()).foreach(println)
     result.size shouldBe 11
   }
+
+  "Simple window pattern" should "work for wide dense table" in {
+
+    Post(
+      "/streamJob/from-kafka/to-kafka/?run_async=1",
+      FindPatternsRequest("2", kafkaInputConf(), kafkaOutputConf(), windowPattern)
+    ) ~>
+    route ~> check {
+      status shouldEqual StatusCodes.OK
+    }
+
+    val result = readFromKafkaForDuration(20.seconds, outputTopic)
+    result.size shouldBe 1
+  }
+
 }
