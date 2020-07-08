@@ -36,7 +36,7 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
     }
 
     // Split the different time sequences if they occurred in the same time window
-    val sequences = PatternProcessor.splitByCondition(elements.toList)(
+    val sequences = PatternProcessor.splitByCondition(elements.toSeq)(
       (next, prev) => timeExtractor(next).toMillis - timeExtractor(prev).toMillis > eventsMaxGapMs
     )
 
@@ -69,7 +69,7 @@ object PatternProcessor {
     * @tparam T Element type
     * @return List of chunks
     */
-  def splitByCondition[T](elements: List[T])(pred: (T, T) => Boolean): List[Seq[T]] =
+  def splitByCondition[T](elements: Seq[T])(pred: (T, T) => Boolean): List[Seq[T]] =
     if (elements.length < 2) {
       List(elements)
     } else {

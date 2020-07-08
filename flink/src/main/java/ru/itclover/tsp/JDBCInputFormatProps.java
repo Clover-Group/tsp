@@ -266,7 +266,7 @@ public class JDBCInputFormatProps extends RichInputFormat<Row, InputSplit> imple
 			this.format.resultSetType = ResultSet.TYPE_FORWARD_ONLY;
 			this.format.resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
 		}
-		
+
 		public JDBCInputFormatProps.JDBCInputFormatPropsBuilder addProperties(Properties props) {
 			Enumeration<?> names = props.propertyNames();
 			while (names.hasMoreElements()) {
