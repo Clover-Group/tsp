@@ -1,6 +1,6 @@
 package ru.itclover.tsp.serializers.core
 
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.EventSchema
 
 /**
   * Deserialization trait for Redis
@@ -10,7 +10,7 @@ import ru.itclover.tsp.io.output.RowSchema
   */
 trait Serialization[INPUT, OUTPUT] {
 
-  def serialize(output: OUTPUT, rowSchema: RowSchema): INPUT
+  def serialize(output: OUTPUT, rowSchema: EventSchema): INPUT
   def deserialize(input: INPUT, fieldsIdxMap: Map[Symbol, Int]): OUTPUT
 
 }

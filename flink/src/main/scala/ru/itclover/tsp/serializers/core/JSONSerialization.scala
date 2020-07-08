@@ -4,7 +4,7 @@ import java.nio.charset.Charset
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.{EventSchema, RowSchema}
 
 /**
   * JSON Serialization for Redis
@@ -40,7 +40,7 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
     * @param rowSchema schema from flink row
     * @return bytes array from json string
     */
-  override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
+  override def serialize(output: Row, rowSchema: EventSchema): Array[Byte] = {
 
     val mapper = new ObjectMapper()
     val root = mapper.createObjectNode()

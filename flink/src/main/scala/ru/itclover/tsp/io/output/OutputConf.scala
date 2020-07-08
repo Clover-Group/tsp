@@ -66,10 +66,13 @@ case class KafkaOutputConf(
   broker: String,
   topic: String,
   serializer: Option[String] = Some("json"),
-  rowSchema: RowSchema,
+  rowSchema: EventSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
-  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+  override def forwardedFieldsIds = rowSchema match {
+    case newRS: NewRowSchema => Seq.empty // no forwarded fields in new row schema
+    case oldRS: RowSchema => oldRS.forwardedFields
+  }
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 

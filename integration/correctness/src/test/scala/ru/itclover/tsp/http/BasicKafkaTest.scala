@@ -66,7 +66,7 @@ class BasicKafkaTest
     partitionFields = partitionFields,
     fieldsTypes = Map("timestamp" -> "int64", "series_id" -> "string", "mechanism_id" -> "string", "speed" -> "float64"),
     serializer = Some("json"),
-    eventsMaxGapMs = 100000L
+    eventsMaxGapMs = Some(100000L)
   )
 
   private def kafkaOutputConf() = KafkaOutputConf(

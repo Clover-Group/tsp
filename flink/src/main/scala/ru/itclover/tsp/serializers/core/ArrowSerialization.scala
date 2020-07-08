@@ -6,7 +6,7 @@ import java.nio.file.Files
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, Schema}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.{EventSchema, RowSchema}
 import ru.itclover.tsp.serializers.utils.SerializationUtils
 import ru.itclover.tsp.services.FileService
 import ru.itclover.tsp.utils.ArrowOps
@@ -19,7 +19,7 @@ import scala.collection.mutable
   */
 class ArrowSerialization extends Serialization[Array[Byte], Row]{
 
-  override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
+  override def serialize(output: Row, rowSchema: EventSchema): Array[Byte] = {
 
     val tempPath = FileService.createTemporaryFile()
     val tempFile = tempPath.toFile

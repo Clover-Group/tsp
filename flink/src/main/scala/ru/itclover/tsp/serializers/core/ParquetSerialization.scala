@@ -4,7 +4,7 @@ import java.nio.file.{Files, Paths}
 import java.time.LocalDateTime
 
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.{EventSchema, RowSchema}
 import ru.itclover.tsp.serializers.utils.SerializationUtils
 import ru.itclover.tsp.utils.ParquetOps
 
@@ -16,7 +16,7 @@ import scala.util.Random
   */
 class ParquetSerialization extends Serialization[Array[Byte], Row]{
 
-  override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
+  override def serialize(output: Row, rowSchema: EventSchema): Array[Byte] = {
 
     val currentTime = LocalDateTime.now().toString
     val randomInd = Random.nextInt(Integer.MAX_VALUE)
