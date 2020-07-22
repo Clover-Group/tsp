@@ -2,8 +2,10 @@ package ru.itclover.tsp.serializers.core
 
 import java.io.File
 import java.nio.file.Files
+import java.sql.Timestamp
 
 import org.apache.arrow.memory.RootAllocator
+import org.apache.arrow.vector.types.{DateUnit, TimeUnit}
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, Schema}
 import org.apache.flink.types.Row
 import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
@@ -81,13 +83,13 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
           new Field(
             newRowSchema.fromTsField.name,
             false,
-            new ArrowType.Decimal(3, 3),
+            new ArrowType.Timestamp(TimeUnit.MILLISECOND, "UTC"),
             null
           ),
           new Field(
             newRowSchema.toTsField.name,
             false,
-            new ArrowType.Decimal(3, 3),
+            new ArrowType.Timestamp(TimeUnit.MILLISECOND, "UTC"),
             null
           ),
           new Field(
@@ -131,8 +133,8 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
         mutable.ListBuffer(
           mutable.Map(
             newRowSchema.unitIdField.name -> output.getField(newRowSchema.unitIdInd).asInstanceOf[Int],
-            newRowSchema.fromTsField.name -> output.getField(newRowSchema.beginInd).asInstanceOf[Double],
-            newRowSchema.toTsField.name -> output.getField(newRowSchema.endInd).asInstanceOf[Double],
+            newRowSchema.fromTsField.name -> output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp],
+            newRowSchema.toTsField.name -> output.getField(newRowSchema.endInd).asInstanceOf[Timestamp],
             newRowSchema.appIdFieldVal._1.name -> output.getField(newRowSchema.appIdInd).asInstanceOf[Int],
             newRowSchema.patternIdField.name -> output.getField(newRowSchema.patternIdInd).asInstanceOf[String],
             newRowSchema.subunitIdField.name -> output.getField(newRowSchema.subunitIdInd).asInstanceOf[Int]
