@@ -107,7 +107,7 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
           new Field(
             newRowSchema.subunitIdField.name,
             false,
-            new ArrowType.Int(32, true),
+            new ArrowType.Utf8,
             null
           )
         )
@@ -137,7 +137,7 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
             newRowSchema.toTsField.name -> output.getField(newRowSchema.endInd).asInstanceOf[Timestamp],
             newRowSchema.appIdFieldVal._1.name -> output.getField(newRowSchema.appIdInd).asInstanceOf[Int],
             newRowSchema.patternIdField.name -> output.getField(newRowSchema.patternIdInd).asInstanceOf[String],
-            newRowSchema.subunitIdField.name -> output.getField(newRowSchema.subunitIdInd).asInstanceOf[Int]
+            newRowSchema.subunitIdField.name -> output.getField(newRowSchema.subunitIdInd).asInstanceOf[String]
           )
         )
     }
