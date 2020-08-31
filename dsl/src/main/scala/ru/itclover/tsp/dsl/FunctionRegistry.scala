@@ -8,7 +8,7 @@ import ru.itclover.tsp.core.{Fail, Result, Succ}
 import scala.reflect.ClassTag
 
 @SerialVersionUID(81001L)
-trait PFunction extends (Seq[Any] => Result[Any]) with Serializable
+trait PFunction extends (Seq[Result[Any]] => Result[Any]) with Serializable
 
 @SerialVersionUID(81002L)
 trait PReducer extends ((Result[Any], Any) => Result[Any]) with Serializable
@@ -289,6 +289,12 @@ object DefaultFunctions extends LazyLogging{
         case (Succ(x0), Fail) =>
           sym match {
             case 'not => Result.succ(l.not(x0))
+            case 'or => Result.succ(x0)
+            case _ => Result.fail
+          }
+        case (Fail, Succ(x1)) =>
+          sym match {
+            case 'or => Result.succ(x1)
             case _ => Result.fail
           }
         case _ => Result.fail

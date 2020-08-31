@@ -10,7 +10,6 @@ import org.apache.flink.streaming.api.datastream.DataStreamSink
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
-import org.apache.flink.streaming.api.windowing.triggers.{CountTrigger, Trigger}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
 import ru.itclover.tsp.core.IncidentInstances.semigroup
@@ -49,7 +48,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
-      source.conf.eventsMaxGapMs,
+      source.conf.eventsMaxGapMs.getOrElse(60000L),
       source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
       source.patternFields
     ).map { patterns =>
@@ -57,7 +56,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(resultMapper)
-      (patterns,  saveStream(mapped, outputConf))
+      (patterns, saveStream(mapped, outputConf))
     }
   }
 
@@ -74,7 +73,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents) else singleIncidents
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents) else singleIncidents
   }
 
   def incidentsFromPatterns[T](
@@ -90,13 +89,15 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
-        val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+        val allForwardFields = forwardedFields ++ rawP.forwardedFields
+            .getOrElse(Seq.empty)
+            .map(id => (id, source.fieldToEKey(id)))
 
         val toIncidents = ToIncidentsMapper(
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
-          rawP.payload.toSeq,
-          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
+          rawP.payload.getOrElse(Map.empty).toSeq,
+          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
           source.conf.partitionFields.map(source.fieldToEKey)
         )
 
@@ -106,7 +107,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
         PatternProcessor[In, Optimizer.S[Segment], Incident](
           incidentPattern,
-          source.conf.eventsMaxGapMs
+          source.conf.eventsMaxGapMs.getOrElse(60000L)
         )
     }
     val keyedStream = stream
@@ -121,12 +122,14 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
               .asInstanceOf[WindowAssigner[In, FlinkWindow]]
           )
       } else {
+        // For Kafka we generate windows by processing time (not event time) every 1 second,
+        // so we always get the results without collecting huge window.
         keyedStream
-          //.window(GlobalWindows.create().asInstanceOf[WindowAssigner[In, FlinkWindow]])
-            .window(TumblingEventTimeWindows
-              .of(WindowingTime.milliseconds(1))
-              .asInstanceOf[WindowAssigner[In, FlinkWindow]])
-          .trigger(CountTrigger.of[FlinkWindow](1).asInstanceOf[Trigger[In, FlinkWindow]])
+          .window(
+            TumblingProcessingTimeWindows
+              .of(WindowingTime.seconds(1))
+              .asInstanceOf[WindowAssigner[In, FlinkWindow]]
+          )
       }
     val processed = windowed
       .process[Incident](
@@ -144,8 +147,10 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       dataStream
         .keyBy(source.partitioner)
         .process(
-          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
-            source.patternFields)
+          SparseRowsDataAccumulator[In, InKey, InItem, In](
+            source.asInstanceOf[StreamSource[In, InKey, InItem]],
+            source.patternFields
+          )
         )
         .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
@@ -175,8 +180,8 @@ object PatternsSearchJob {
 
     log.debug("preparePatterns started")
 
-    val filteredPatterns = rawPatterns.filter(p =>
-      PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
+    val filteredPatterns = rawPatterns.filter(
+      p => PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
     )
 
     val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(

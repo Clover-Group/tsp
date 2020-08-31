@@ -90,15 +90,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                 )
               )._1
             CouplePattern(p1, p2)(
-              { (x, y) =>
-                (x, y) match {
-                  case (Succ(rx), Succ(ry)) =>
-                      fun(
-                        Seq(rx, ry) // <--- TSP-182 fails here
-                      )
-
-                  case _ => Result.fail
-                }
+              {
+                (x, y) => fun(List(x, y))
               }
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")

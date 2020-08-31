@@ -18,8 +18,8 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.Success
 
 class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
@@ -61,8 +61,8 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
     query = "select * from Test.Bigdata_HI",
     driverName = container.driverName,
     datetimeField = 'dt,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 10000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(10000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num),
     patternsParallelism = Some(1)

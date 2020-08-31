@@ -18,12 +18,12 @@ object JDBCOutput {
       .setUsername(config.userName.getOrElse(""))
       .setPassword(config.password.getOrElse(""))
       .setQuery(insertQuery)
-      .setSqlTypes(config.rowSchema.fieldTypes.toArray)
+      .setSqlTypes(config.rowSchema.fieldsTypes.toArray)
       .setBatchInterval(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))
       .finish()
   }
 
-  private def getInsertQuery(tableName: String, rowSchema: RowSchema) = {
+  private def getInsertQuery(tableName: String, rowSchema: EventSchema) = {
     val columns = rowSchema.fieldsNames.map(_.toString().tail)
     val statements = columns.map(_ => "?").mkString(", ")
     s"INSERT INTO ${tableName} (${columns.mkString(", ")}) VALUES (${statements})"

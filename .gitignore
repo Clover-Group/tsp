@@ -16,3 +16,6 @@ docs/Gemfile
 docs/Gemfile.lock
 docs/vendor
 docs/vendor/**
+
+
+null/

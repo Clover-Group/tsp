@@ -16,8 +16,8 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
@@ -56,8 +56,8 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
     query = """select *, speed as "speed(1)(2)" from Test.SM_basic_wide""", // speed(1)(2) fancy colnames test
     driverName = container.driverName,
     datetimeField = 'datetime,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id)
   )
@@ -76,7 +76,7 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   val basicAssertions = Seq(
     RawPattern("1", "speed < 15"),
     RawPattern("2", """"speed(1)(2)" > 10"""),
-    RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
+    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
   val errors = Seq(RawPattern("20", "speed = QWE 15"), RawPattern("21", "speed64 < 15.0"))

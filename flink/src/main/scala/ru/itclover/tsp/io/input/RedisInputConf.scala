@@ -12,10 +12,12 @@ import ru.itclover.tsp.RowWithIdx
   * @param serializer format of data in redis
   */
 @SerialVersionUID(4815162342L)
+@deprecated("Redis support will be dropped", "0.16.0")
 case class RedisInputConf(
   url: String,
   datetimeField: Symbol,
   partitionFields: Seq[Symbol],
+  unitIdField: Option[Symbol] = None,
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   fieldsTypes: Map[String, String],
   key: String,
@@ -23,9 +25,9 @@ case class RedisInputConf(
 ) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
-  def defaultEventsGapMs: Long = 0L
+  def defaultEventsGapMs: Option[Long] = Some(0L)
   def defaultToleranceFraction: Option[Double] = Some(0.1)
-  def eventsMaxGapMs: Long = 1L
+  def eventsMaxGapMs: Option[Long] = Some(1L)
   def numParallelSources: Option[Int] = Some(1)
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)

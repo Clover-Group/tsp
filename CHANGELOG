@@ -1,3 +1,27 @@
+## 0.15.12
+
+## 0.15.11
+
+## 0.15.10
+
+## 0.15.9
+
+## 0.15.8
+
+## 0.15.7
+
+## 0.15.6
+
+## 0.15.5
+
+## 0.15.4
+
+## 0.15.3
+
+## 0.15.2
+- updated Flink to 1.10.0
+## 0.15.1
+
 ## 0.15.0
 - added support for so-called "multinarrow" tables (with multiple columns for values)
 

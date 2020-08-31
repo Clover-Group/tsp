@@ -1,10 +1,7 @@
 package ru.itclover.tsp.http.utils
 import akka.Done
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.ContentTypes._
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.`Content-Type`
-import akka.http.scaladsl.server.{HttpApp, RejectionHandler, Route}
+import akka.http.scaladsl.server.{HttpApp, Route}
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel._
 import ru.itclover.tsp.http.services.flink.MonitoringServiceProtocols
 

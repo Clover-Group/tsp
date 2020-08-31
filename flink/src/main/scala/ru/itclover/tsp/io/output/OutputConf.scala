@@ -13,7 +13,7 @@ trait OutputConf[Event] {
 
   def parallelism: Option[Int]
 
-  def rowSchema: RowSchema
+  def rowSchema: EventSchema
 }
 
 /**
@@ -28,7 +28,7 @@ trait OutputConf[Event] {
   */
 case class JDBCOutputConf(
   tableName: String,
-  rowSchema: RowSchema,
+  rowSchema: EventSchema,
   jdbcUrl: String,
   driverName: String,
   password: Option[String] = None,
@@ -38,7 +38,10 @@ case class JDBCOutputConf(
 ) extends OutputConf[Row] {
   override def getOutputFormat = JDBCOutput.getOutputFormat(this)
 
-  override def forwardedFieldsIds = rowSchema.forwardedFields
+  override def forwardedFieldsIds = rowSchema match {
+    case newRS: NewRowSchema => Seq.empty // no forwarded fields in new row schema
+    case oldRS: RowSchema => oldRS.forwardedFields
+  }
 }
 
 ///**
@@ -63,10 +66,13 @@ case class KafkaOutputConf(
   broker: String,
   topic: String,
   serializer: Option[String] = Some("json"),
-  rowSchema: RowSchema,
+  rowSchema: EventSchema,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
-  override def forwardedFieldsIds: Seq[Symbol] = rowSchema.forwardedFields
+  override def forwardedFieldsIds = rowSchema match {
+    case newRS: NewRowSchema => Seq.empty // no forwarded fields in new row schema
+    case oldRS: RowSchema => oldRS.forwardedFields
+  }
 
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 

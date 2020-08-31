@@ -1,18 +1,15 @@
 package ru.itclover.tsp.http
 
-import java.util.zip.ZipFile
-
 import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
-import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.utils.Files
 import spray.json.JsonParser
 import spray.json.ParserInput.StringBasedParserInput
@@ -40,8 +37,8 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
     query = "",
     driverName = container.driverName,
     datetimeField = 'dt,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 10000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(10000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num)
   )

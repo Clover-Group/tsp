@@ -74,8 +74,8 @@ class BasicInfluxToJdbcTest
     url = influxContainer.url,
     query = "select * from SM_basic_wide",
     dbName = influxContainer.dbName,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('series_id, 'mechanism_id),
     userName = Some("default"),
@@ -99,7 +99,7 @@ class BasicInfluxToJdbcTest
 
   val basicAssertions = Seq(
     RawPattern("1", "speed < 15"),
-    RawPattern("3", "speed > 10.0", Map("test" -> "test"), Seq('speed))
+    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
   )
   val typesCasting = Seq(RawPattern("10", "speed = 15"), RawPattern("11", "speed64 < 15.0"))
   val filling = Seq(RawPattern("20", "speed = 20 and pos = 15"))

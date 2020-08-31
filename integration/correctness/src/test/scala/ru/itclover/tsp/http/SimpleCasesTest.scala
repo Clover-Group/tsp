@@ -43,6 +43,7 @@ class SimpleCasesTest
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setParallelism(1)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   // to run blocking tasks.
@@ -192,8 +193,8 @@ class SimpleCasesTest
     userName = Some("default"),
     password = Some("default"),
     dbName = influxContainer.dbName,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
     additionalTypeChecking = Some(false)
@@ -205,8 +206,8 @@ class SimpleCasesTest
     query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
     driverName = clickhouseContainer.driverName,
     datetimeField = 'ts,
-    eventsMaxGapMs = 60000L,
-    defaultEventsGapMs = 1000L,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
@@ -493,10 +494,10 @@ class SimpleCasesTest
        SELECT number, c
        FROM (
          ${numbers.map(r => s"SELECT number FROM numbers(${r.start}, ${r.size})").mkString(" UNION ALL ")}
-       ) patnum
+       ) num
        LEFT JOIN (
          SELECT id, COUNT(id) AS c FROM ${table} GROUP BY id
-       ) e ON patnum.number = e.id ORDER BY patnum.number
+       ) e ON num.number = e.id ORDER BY num.number
   """
 
   val secondValidationQuery = "SELECT id, from, to FROM %s ORDER BY id, from, to"
@@ -514,7 +515,7 @@ class SimpleCasesTest
     checkInfluxByQuery(List(List(53.0, 53.0, 53.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
-  "Cases 1-17, 43-50" should "work in wide table" in {
+  "Cases 1-17, 43-53" should "work in wide table" in {
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -539,7 +540,7 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
   }
 
-  "Cases 1-17, 43-50" should "work in narrow table" in {
+  "Cases 1-17, 43-53" should "work in narrow table" in {
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
@@ -563,7 +564,7 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
-  "Cases 1-17, 43-50" should "work in influx table" in {
+  "Cases 1-17, 43-53" should "work in influx table" in {
     casesPatterns.keys.foreach { id =>
       Post(
         "/streamJob/from-influxdb/to-jdbc/?run_async=0",

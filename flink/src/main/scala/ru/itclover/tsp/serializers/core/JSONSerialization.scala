@@ -1,10 +1,11 @@
 package ru.itclover.tsp.serializers.core
 
 import java.nio.charset.Charset
+import java.sql.Timestamp
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.RowSchema
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
 
 /**
   * JSON Serialization for Redis
@@ -40,18 +41,28 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
     * @param rowSchema schema from flink row
     * @return bytes array from json string
     */
-  override def serialize(output: Row, rowSchema: RowSchema): Array[Byte] = {
+  override def serialize(output: Row, eventSchema: EventSchema): Array[Byte] = {
 
     val mapper = new ObjectMapper()
     val root = mapper.createObjectNode()
 
-    root.put(rowSchema.sourceIdField.name, output.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
-    root.put(rowSchema.fromTsField.name, output.getField(rowSchema.beginInd).asInstanceOf[Double])
-    root.put(rowSchema.toTsField.name, output.getField(rowSchema.endInd).asInstanceOf[Double])
-    root.put(rowSchema.appIdFieldVal._1.name, output.getField(rowSchema.appIdInd).asInstanceOf[Int])
-    root.put(rowSchema.patternIdField.name, output.getField(rowSchema.patternIdInd).asInstanceOf[String])
-    root.put(rowSchema.processingTsField.name, output.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
-    root.put(rowSchema.contextField.name, output.getField(rowSchema.contextInd).asInstanceOf[String])
+    eventSchema match {
+      case rowSchema: RowSchema =>
+        root.put(rowSchema.sourceIdField.name, output.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
+        root.put(rowSchema.fromTsField.name, output.getField(rowSchema.beginInd).asInstanceOf[Double])
+        root.put(rowSchema.toTsField.name, output.getField(rowSchema.endInd).asInstanceOf[Double])
+        root.put(rowSchema.appIdFieldVal._1.name, output.getField(rowSchema.appIdInd).asInstanceOf[Int])
+        root.put(rowSchema.patternIdField.name, output.getField(rowSchema.patternIdInd).asInstanceOf[String])
+        root.put(rowSchema.processingTsField.name, output.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
+        root.put(rowSchema.contextField.name, output.getField(rowSchema.contextInd).asInstanceOf[String])
+      case newRowSchema: NewRowSchema =>
+        root.put(newRowSchema.unitIdField.name, output.getField(newRowSchema.unitIdInd).asInstanceOf[Int])
+        root.put(newRowSchema.fromTsField.name, output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp].toString)
+        root.put(newRowSchema.toTsField.name, output.getField(newRowSchema.endInd).asInstanceOf[Timestamp].toString)
+        root.put(newRowSchema.appIdFieldVal._1.name, output.getField(newRowSchema.appIdInd).asInstanceOf[Int])
+        root.put(newRowSchema.patternIdField.name, output.getField(newRowSchema.patternIdInd).asInstanceOf[String])
+        root.put(newRowSchema.subunitIdField.name, output.getField(newRowSchema.subunitIdInd).asInstanceOf[String])
+    }
 
     val jsonString = mapper.writeValueAsString(root)
 

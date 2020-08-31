@@ -3,7 +3,6 @@ package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
@@ -20,8 +19,8 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.Success
 
 class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
@@ -46,7 +45,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
 
   private val log = Logger("AccumsTest")
 
-  implicit def defaultTimeout(implicit system: ActorSystem): RouteTestTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout(/*implicit system: ActorSystem*/): RouteTestTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8137
   implicit override val container: JDBCContainer = new JDBCContainer(
@@ -106,8 +105,8 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
     query = realWorkloadQuery,
     driverName = container.driverName,
     datetimeField = 'ts,
-    eventsMaxGapMs = 2000L,
-    defaultEventsGapMs = 2000L,
+    eventsMaxGapMs = Some(2000L),
+    defaultEventsGapMs = Some(2000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('t1)
   )
@@ -128,12 +127,12 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
     Files.readResource("/sql/test-db-schema.sql")
          .mkString
          .split(";")
-         .map(container.executeUpdate)
+         .foreach(container.executeUpdate)
 
     Files.readResource("/sql/sink-schema.sql")
          .mkString
          .split(";")
-         .map(container.executeUpdate)
+         .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

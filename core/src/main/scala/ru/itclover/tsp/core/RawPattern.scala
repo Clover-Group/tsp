@@ -3,6 +3,6 @@ package ru.itclover.tsp.core
 case class RawPattern(
   id: String,
   sourceCode: String,
-  payload: Map[String, String] = Map.empty,
-  forwardedFields: Seq[Symbol] = Seq.empty
+  payload: Option[Map[String, String]] = None,
+  forwardedFields: Option[Seq[Symbol]] = None
 ) extends Serializable
