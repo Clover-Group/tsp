@@ -6,7 +6,7 @@ import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
 
 import scala.util.Try
 
@@ -16,19 +16,6 @@ import scala.util.Try
 case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) extends RichMapFunction[Incident, Row] {
 
   override def map(incident: Incident) = schema match {
-    case oldRowSchema: RowSchema =>
-      val resultRow = new Row(oldRowSchema.fieldsCount)
-      resultRow.setField(oldRowSchema.sourceIdInd, sourceId)
-      resultRow.setField(oldRowSchema.patternIdInd, incident.patternId)
-      resultRow.setField(oldRowSchema.appIdInd, oldRowSchema.appIdFieldVal._2)
-      resultRow.setField(oldRowSchema.beginInd, incident.segment.from.toMillis / 1000.0)
-      resultRow.setField(oldRowSchema.endInd, incident.segment.to.toMillis / 1000.0)
-      resultRow.setField(oldRowSchema.processingTimeInd, nowInUtcMillis)
-
-      val payload = incident.forwardedFields ++ incident.patternPayload
-      resultRow.setField(oldRowSchema.contextInd, payloadToJson(payload))
-
-      resultRow
     case newRowSchema: NewRowSchema =>
       val resultRow = new Row(newRowSchema.fieldsCount)
       resultRow.setField(newRowSchema.unitIdInd, sourceId)

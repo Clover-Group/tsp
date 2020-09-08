@@ -7,7 +7,7 @@ trait OutputConf[Event] {
 
   def parallelism: Option[Int]
 
-  def rowSchema: RowSchema
+  def rowSchema: NewRowSchema
 }
 
 /**
@@ -22,7 +22,7 @@ trait OutputConf[Event] {
   */
 case class JDBCOutputConf(
                            tableName: String,
-                           rowSchema: RowSchema,
+                           rowSchema: NewRowSchema,
                            jdbcUrl: String,
                            driverName: String,
                            password: Option[String] = None,
@@ -30,5 +30,5 @@ case class JDBCOutputConf(
                            userName: Option[String] = None,
                            parallelism: Option[Int] = Some(1)
                          ) extends OutputConf[Row] {
-  override def forwardedFieldsIds = rowSchema.forwardedFields
+  override def forwardedFieldsIds = Seq.empty
 }

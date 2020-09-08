@@ -5,7 +5,7 @@ import java.sql.Timestamp
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
 
 /**
   * JSON Serialization for Redis
@@ -47,14 +47,6 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
     val root = mapper.createObjectNode()
 
     eventSchema match {
-      case rowSchema: RowSchema =>
-        root.put(rowSchema.sourceIdField.name, output.getField(rowSchema.sourceIdInd).asInstanceOf[Int])
-        root.put(rowSchema.fromTsField.name, output.getField(rowSchema.beginInd).asInstanceOf[Double])
-        root.put(rowSchema.toTsField.name, output.getField(rowSchema.endInd).asInstanceOf[Double])
-        root.put(rowSchema.appIdFieldVal._1.name, output.getField(rowSchema.appIdInd).asInstanceOf[Int])
-        root.put(rowSchema.patternIdField.name, output.getField(rowSchema.patternIdInd).asInstanceOf[String])
-        root.put(rowSchema.processingTsField.name, output.getField(rowSchema.processingTimeInd).asInstanceOf[Double])
-        root.put(rowSchema.contextField.name, output.getField(rowSchema.contextInd).asInstanceOf[String])
       case newRowSchema: NewRowSchema =>
         root.put(newRowSchema.unitIdField.name, output.getField(newRowSchema.unitIdInd).asInstanceOf[Int])
         root.put(newRowSchema.fromTsField.name, output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp].toString)

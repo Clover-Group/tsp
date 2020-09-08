@@ -15,7 +15,7 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.concurrent.duration.DurationInt
@@ -68,8 +68,7 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
     patternsParallelism = Some(1)
   )
 
-  val sinkSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val sinkSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

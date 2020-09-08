@@ -6,12 +6,14 @@ import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRow
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.spark.io.RowSchema
+import ru.itclover.tsp.spark.io.NewRowSchema
+
+import scala.util.Try
 
 /**
   * Packer of found incident into [[org.apache.spark.sql.Row]]
   */
-case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) {
+case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema) {
 
   def map(incident: Incident): Row = {
     val values = new Array[Any](schema.fieldsCount)
@@ -20,10 +22,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) {
     values(schema.appIdInd) = schema.appIdFieldVal._2
     values(schema.beginInd) = incident.segment.from.toMillis / 1000.0
     values(schema.endInd) = incident.segment.to.toMillis / 1000.0
-    values(schema.processingTimeInd) = nowInUtcMillis
-
-    val payload = incident.forwardedFields ++ incident.patternPayload
-    values(schema.contextInd) = payloadToJson(payload)
+    values(schema.subunitIdInd) = findSubunit(incident.patternPayload)
 
     new GenericRow(values)
   }
@@ -41,4 +40,10 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) {
         case (fld, value)                               => s""""${fld}":$value"""
       }
       .mkString("{", ",", "}")
+
+  def findSubunit(payload: Seq[(String, Any)]): Int = {
+    payload.find { case (name, _) => name.toLowerCase == "subunit" }
+      .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
+      .getOrElse(0)
+  }
 }

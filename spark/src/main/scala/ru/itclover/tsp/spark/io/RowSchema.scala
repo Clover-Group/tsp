@@ -4,30 +4,28 @@ import org.apache.spark.sql.types.{DataType, DataTypes}
 
 import scala.collection.mutable
 
-case class RowSchema(
+case class NewRowSchema(
                       sourceIdField: Symbol,
                       fromTsField: Symbol,
                       toTsField: Symbol,
                       appIdFieldVal: (Symbol, Int),
                       patternIdField: Symbol,
-                      processingTsField: Symbol,
-                      contextField: Symbol,
-                      forwardedFields: Seq[Symbol] = List.empty
+                      subunitIdField: Symbol,
                     ) extends Serializable {
-  val fieldsCount: Int = 7
+  val fieldsCount: Int = 6
 
   val fieldsNames: List[Symbol] =
-    List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, processingTsField, contextField)
+    List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
 
   val fieldClasses: List[Class[_]] =
-    List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[String], classOf[Double], classOf[String])
+    List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[String], classOf[Int])
 
   val fieldDatatypes: List[DataType] =
     List(DataTypes.IntegerType, DataTypes.DoubleType, DataTypes.DoubleType, DataTypes.IntegerType,
-      DataTypes.StringType, DataTypes.DoubleType, DataTypes.StringType)
+      DataTypes.StringType, DataTypes.IntegerType)
 
   val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
@@ -37,9 +35,7 @@ case class RowSchema(
   val patternIdInd = fieldsIndexesMap(patternIdField)
   val patternPayloadInd = fieldsIndexesMap(patternIdField)
 
-  val processingTimeInd = fieldsIndexesMap(processingTsField)
-
   val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
 
-  val contextInd = fieldsIndexesMap(contextField)
+  val subunitIdInd = fieldsIndexesMap(subunitIdField)
 }

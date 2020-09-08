@@ -4,7 +4,7 @@ import java.nio.file.{Files, Paths}
 import java.time.LocalDateTime
 
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
 import ru.itclover.tsp.serializers.utils.SerializationUtils
 import ru.itclover.tsp.utils.ParquetOps
 
@@ -27,52 +27,6 @@ class ParquetSerialization extends Serialization[Array[Byte], Row]{
 
 
     eventSchema match {
-      case rowSchema: RowSchema =>
-
-        val stringSchema =
-          s"""message row_schema {
-             | required int32 sourceIdField;
-             | required double fromTsField;
-             | required double toTsField;
-             | required int32 ${rowSchema.appIdFieldVal._1.name};
-             | required binary patternIdField;
-             | required double processingTsField;
-             | required binary contextField;
-             |}""".stripMargin
-
-        val data = mutable.ListBuffer(
-          mutable.Map(
-            rowSchema.sourceIdField.name -> Tuple2(
-              output.getField(rowSchema.sourceIdInd).asInstanceOf[Int],
-              "int"
-            ),
-            rowSchema.fromTsField.name -> Tuple2(
-              output.getField(rowSchema.beginInd).asInstanceOf[Double],
-              "double"
-            ),
-            rowSchema.toTsField.name -> Tuple2(
-              output.getField(rowSchema.endInd).asInstanceOf[Double],
-              "double"
-            ),
-            rowSchema.appIdFieldVal._1.name -> Tuple2(
-              output.getField(rowSchema.appIdInd).asInstanceOf[Int],
-              "int"
-            ),
-            rowSchema.patternIdField.name -> Tuple2(
-              output.getField(rowSchema.patternIdInd).asInstanceOf[String],
-              "java.lang.String"
-            ),
-            rowSchema.processingTsField.name -> Tuple2(
-              output.getField(rowSchema.processingTimeInd).asInstanceOf[Double],
-              "double"
-            ),
-            rowSchema.contextField.name -> Tuple2(
-              output.getField(rowSchema.contextInd).asInstanceOf[String],
-              "java.lang.String"
-            )
-          )
-        )
-        ParquetOps.writeData((tempFile, stringSchema, data))
       case newRowSchema: NewRowSchema =>
         val stringSchema =
           s"""message row_schema {

@@ -2,7 +2,7 @@ package ru.itclover.tsp.serializers
 
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, RowSchema}
+import ru.itclover.tsp.io.output.EventSchema
 import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization, ParquetSerialization}
 
 object KafkaSerializers {

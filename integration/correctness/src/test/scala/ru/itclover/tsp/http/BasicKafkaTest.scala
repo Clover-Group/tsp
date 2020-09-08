@@ -16,7 +16,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.SqlMatchers
 import ru.itclover.tsp.io.input.KafkaInputConf
-import ru.itclover.tsp.io.output.{KafkaOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{KafkaOutputConf, NewRowSchema}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent._
@@ -57,7 +57,7 @@ class BasicKafkaTest
   private val outputTopic = "output_topic"
 
   private val partitionFields = Seq('series_id, 'mechanism_id)
-  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, partitionFields)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   private def kafkaInputConf() = KafkaInputConf(
     brokers = servers,

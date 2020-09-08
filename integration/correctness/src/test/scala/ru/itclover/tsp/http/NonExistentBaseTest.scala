@@ -10,7 +10,7 @@ import org.scalatest.FlatSpec
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.SqlMatchers
 import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
@@ -46,7 +46,7 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     partitionFields = Seq('series_id, 'mechanism_id)
   )
 
-  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

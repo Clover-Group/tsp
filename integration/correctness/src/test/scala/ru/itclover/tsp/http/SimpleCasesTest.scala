@@ -20,9 +20,9 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
-import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, KafkaInputConf => SparkKafkaInputConf, RowSchema => SparkRowSchema}
+import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, KafkaInputConf => SparkKafkaInputConf, NewRowSchema => SparkRowSchema}
 import ru.itclover.tsp.spark.io.{NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
 import spray.json._
 
@@ -238,15 +238,13 @@ class SimpleCasesTest
     )
   )
 
-  val wideRowSchema = RowSchema(
-    sourceIdField = 'series_storage,
+  val wideRowSchema = NewRowSchema(
+    unitIdField = 'series_storage,
     fromTsField = 'from,
     toTsField = 'to,
     appIdFieldVal = ('app, 1),
     patternIdField = 'id,
-    processingTsField = 'timestamp,
-    contextField = 'context,
-    forwardedFields = wideInputConf.partitionFields
+    subunitIdField = 'subunit
   )
 //  val wideKafkaInputConf = KafkaInputConf(
 //    brokers = kafkaBrokerUrl,
@@ -308,23 +306,19 @@ class SimpleCasesTest
   )
 
   val narrowRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 2),
-    forwardedFields = narrowInputConf.partitionFields
+    appIdFieldVal = ('app, 2)
   )
 
   val influxRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 3),
-    forwardedFields = influxInputConf.partitionFields
+    appIdFieldVal = ('app, 3)
   )
 
   val narrowIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 4),
-    forwardedFields = narrowInputIvolgaConf.partitionFields
+    appIdFieldVal = ('app, 4)
   )
 
   val wideIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 5),
-    forwardedFields = wideInputIvolgaConf.partitionFields
+    appIdFieldVal = ('app, 5)
   )
 
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
@@ -334,16 +328,14 @@ class SimpleCasesTest
 //    RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, wideKafkaInputConf.partitionFields)
 
   val wideSparkRowSchema =
-    SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, wideSparkInputConf.partitionFields)
+    SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val narrowSparkRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 2),
-    forwardedFields = narrowInputConf.partitionFields
   )
 
   val wideIvolgaSparkRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 5),
-    forwardedFields = wideSparkInputIvolgaConf.partitionFields
   )
 
   val wideOutputConf = JDBCOutputConf(

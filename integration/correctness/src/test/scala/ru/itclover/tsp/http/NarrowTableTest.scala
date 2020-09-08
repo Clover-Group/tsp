@@ -13,7 +13,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.{JDBCInputConf, NarrowDataUnfolding}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.concurrent.duration.DurationInt
@@ -70,7 +70,7 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
     dataTransformation = Some(transformation)
   )
 
-  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

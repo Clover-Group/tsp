@@ -13,7 +13,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, WideDataFilling}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.concurrent.duration.DurationInt
@@ -88,7 +88,7 @@ class BasicInfluxToJdbcTest
     dataTransformation = Some(WideDataFilling(Map('speed -> 2000L, 'pos -> 2000L), None))
   )
 
-  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

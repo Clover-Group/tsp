@@ -8,7 +8,7 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 resolvers in ThisBuild ++= Seq(
   "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
   Resolver.mavenLocal,
@@ -141,7 +141,7 @@ lazy val runTask = taskKey[Unit]("App runner")
 //}
 
 lazy val root = (project in file("."))
-  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin, JmhPlugin)
+  .enablePlugins(GitVersioning, JavaAppPackaging, UniversalPlugin)
 
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
@@ -149,7 +149,6 @@ lazy val root = (project in file("."))
   .dependsOn(core, config, http, flink, dsl, itValid)
 
 lazy val core = project.in(file("core"))
-  .enablePlugins(JmhPlugin)
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats

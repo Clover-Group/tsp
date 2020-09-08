@@ -8,7 +8,7 @@ import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.types.{DateUnit, TimeUnit}
 import org.apache.arrow.vector.types.pojo.{ArrowType, Field, Schema}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
 import ru.itclover.tsp.serializers.utils.SerializationUtils
 import ru.itclover.tsp.services.FileService
 import ru.itclover.tsp.utils.ArrowOps
@@ -27,51 +27,6 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
     val tempFile = tempPath.toFile
 
     val schemaFields = eventSchema match {
-      case rowSchema: RowSchema =>
-        List(
-          new Field(
-            rowSchema.sourceIdField.name,
-            false,
-            new ArrowType.Int(32, true),
-            null
-          ),
-          new Field(
-            rowSchema.fromTsField.name,
-            false,
-            new ArrowType.Decimal(3, 3),
-            null
-          ),
-          new Field(
-            rowSchema.toTsField.name,
-            false,
-            new ArrowType.Decimal(3, 3),
-            null
-          ),
-          new Field(
-            rowSchema.appIdFieldVal._1.name,
-            false,
-            new ArrowType.Int(32, true),
-            null
-          ),
-          new Field(
-            rowSchema.patternIdField.name,
-            false,
-            new ArrowType.Utf8,
-            null
-          ),
-          new Field(
-            rowSchema.processingTsField.name,
-            false,
-            new ArrowType.Decimal(3, 3),
-            null
-          ),
-          new Field(
-            rowSchema.contextField.name,
-            false,
-            new ArrowType.Utf8,
-            null
-          )
-        )
       case newRowSchema: NewRowSchema =>
         List(
           new Field(
@@ -117,18 +72,6 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
     val allocator = new RootAllocator(1000000)
 
     val data = eventSchema match {
-      case rowSchema: RowSchema =>
-        mutable.ListBuffer(
-          mutable.Map(
-            rowSchema.sourceIdField.name -> output.getField(rowSchema.sourceIdInd).asInstanceOf[Int],
-            rowSchema.fromTsField.name -> output.getField(rowSchema.beginInd).asInstanceOf[Double],
-            rowSchema.toTsField.name -> output.getField(rowSchema.endInd).asInstanceOf[Double],
-            rowSchema.appIdFieldVal._1.name -> output.getField(rowSchema.appIdInd).asInstanceOf[Int],
-            rowSchema.patternIdField.name -> output.getField(rowSchema.patternIdInd).asInstanceOf[String],
-            rowSchema.processingTsField.name -> output.getField(rowSchema.processingTimeInd).asInstanceOf[Double],
-            rowSchema.contextField.name -> output.getField(rowSchema.contextInd).asInstanceOf[String]
-          )
-        )
       case newRowSchema: NewRowSchema =>
         mutable.ListBuffer(
           mutable.Map(

@@ -20,7 +20,7 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, OutputConf, NewRowSchema}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
@@ -104,12 +104,12 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
-        val allForwardFields = forwardedFields ++ rawP.forwardedFields.map(id => (id, source.fieldToEKey(id)))
+        val allForwardFields = forwardedFields ++ rawP.forwardedFields.getOrElse(Seq()).map(id => (id, source.fieldToEKey(id)))
 
         val toIncidents = ToIncidentsMapper(
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
-          rawP.payload.toSeq,
+          rawP.payload.getOrElse(Map()).toSeq,
           if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
           source.conf.partitionFields.map(source.fieldToEKey)
         )
@@ -169,7 +169,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 //        .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
 //    case _ => stream
 //  }
-  def rddToDataset[Out](rdd: RDD[Out], rowSchema: RowSchema): Dataset[Out] = {
+  def rddToDataset[Out](rdd: RDD[Out], rowSchema: NewRowSchema): Dataset[Out] = {
     source.spark.createDataFrame(rdd.asInstanceOf[RDD[Row]], rowSchemaToSchema(rowSchema)).asInstanceOf[Dataset[Out]]
   }
 
@@ -332,7 +332,7 @@ object PatternsSearchJob {
     }
   }
 
-  def rowSchemaToSchema(rowSchema: RowSchema): StructType = StructType(
+  def rowSchemaToSchema(rowSchema: NewRowSchema): StructType = StructType(
     rowSchema.fieldDatatypes.zip(rowSchema.fieldsNames).map { case (t, n) => new StructField(n.name, t) }
   )
 }

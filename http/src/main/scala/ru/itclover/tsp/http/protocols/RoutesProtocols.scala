@@ -6,7 +6,7 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output.{EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf, RedisOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf}
 import spray.json._
 import ru.itclover.tsp.spark
 import ru.itclover.tsp.spark.io.{SourceDataTransformation => SparkSDT, NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
@@ -134,18 +134,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     RedisInputConf.apply
   )
 
-  implicit val rowSchemaFmt = jsonFormat(
-    RowSchema.apply,
-    "sourceIdField",
-    "fromTsField",
-    "toTsField",
-    "appIdFieldVal",
-    "patternIdField",
-    "processingTsField",
-    "contextField",
-    "forwardedFields"
-  )
-
   implicit val newRowSchemaFmt = jsonFormat(
     NewRowSchema.apply,
     "unitIdField",
@@ -157,13 +145,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   )
 
   implicit object eventSchemaFmt extends JsonFormat[EventSchema] {
-    override def read(json: JsValue): EventSchema = Try(rowSchemaFmt.read(json))
-      .getOrElse(Try(newRowSchemaFmt.read(json))
-        .getOrElse(deserializationError("Cannot serialize EventSchema")))
+    override def read(json: JsValue): EventSchema = Try(newRowSchemaFmt.read(json))
+        .getOrElse(deserializationError("Cannot serialize EventSchema"))
 
     override def write(obj: EventSchema): JsValue = obj match {
       case newRowSchema: NewRowSchema => newRowSchemaFmt.write(newRowSchema)
-      case rowSchema: RowSchema => rowSchemaFmt.write(rowSchema)
     }
   }
 
@@ -171,8 +157,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
 
   implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
-
-  implicit val redisConfOutputFmt = jsonFormat5(RedisOutputConf.apply)
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 
@@ -218,15 +202,13 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     }
 
   implicit val sparkRowSchemaFmt = jsonFormat(
-    spark.io.RowSchema.apply,
+    spark.io.NewRowSchema.apply,
     "sourceIdField",
     "fromTsField",
     "toTsField",
     "appIdFieldVal",
     "patternIdField",
-    "processingTsField",
-    "contextField",
-    "forwardedFields"
+    "subunitIdField",
   )
 
   implicit val sparkJdbcInpConfFmt = jsonFormat(

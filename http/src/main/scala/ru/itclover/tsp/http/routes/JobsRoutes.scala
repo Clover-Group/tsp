@@ -29,7 +29,7 @@ import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.flink.MonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.spark
 import org.apache.spark.sql.{SaveMode, SparkSession, Row => SparkRow}
@@ -63,15 +63,9 @@ trait JobsRoutes extends RoutesProtocols {
           case ("jdbc", "jdbc") => as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]
           case ("influxdb", "jdbc") => as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]
           case ("kafka", "jdbc") => as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]
-          case ("redis", "jdbc") => as[FindPatternsRequest[RedisInputConf, JDBCOutputConf]]
           case ("jdbc", "kafka") => as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]
           case ("influxdb", "kafka") => as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]
           case ("kafka", "kafka") => as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]
-          case ("redis", "kafka") => as[FindPatternsRequest[RedisInputConf, KafkaOutputConf]]
-          case ("jdbc", "redis") => as[FindPatternsRequest[JDBCInputConf, RedisOutputConf]]
-          case ("influxdb", "redis") => as[FindPatternsRequest[InfluxDBInputConf, RedisOutputConf]]
-          case ("kafka", "redis") => as[FindPatternsRequest[KafkaInputConf, RedisOutputConf]]
-          case ("redis", "redis") => as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]
           case _ => null // Not implemented, will crash with a 500
         }
         entity(um.asInstanceOf[FromRequestUnmarshaller[FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]]]]) { request: FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]] =>
@@ -82,7 +76,6 @@ trait JobsRoutes extends RoutesProtocols {
             case "jdbc" => JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
             case "influxdb" => InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
             case "kafka" => KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
-            case "redis" => RedisSource.create(inputConf.asInstanceOf[RedisInputConf], fields)
             //case _ => Left(ConfigErr)
           }
 

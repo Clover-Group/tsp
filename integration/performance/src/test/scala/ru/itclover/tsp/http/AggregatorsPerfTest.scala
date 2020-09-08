@@ -5,7 +5,7 @@ import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
 
 class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
@@ -46,8 +46,7 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
     partitionFields = Seq('t1)
   )
 
-  val sinkSchema =
-    RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, inputConf.partitionFields)
+  val sinkSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",
