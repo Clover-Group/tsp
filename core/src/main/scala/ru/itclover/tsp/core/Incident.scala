@@ -12,7 +12,7 @@ import cats.Semigroup
   */
 case class Incident(
   id: String,
-  patternId: String,
+  patternId: Int,
   maxWindowMs: Long,
   segment: Segment,
   forwardedFields: Seq[(String, String)],

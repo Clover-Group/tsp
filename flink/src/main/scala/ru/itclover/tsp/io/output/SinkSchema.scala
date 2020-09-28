@@ -39,7 +39,7 @@ case class NewRowSchema(
   patternIdField: Symbol,
   subunitIdField: Symbol,
 ) extends EventSchema with Serializable {
-  override def fieldsTypes: List[Int] = List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.VARCHAR, Types.VARCHAR)
+  override def fieldsTypes: List[Int] = List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER)
 
   override def fieldsNames: List[Symbol] = List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
 

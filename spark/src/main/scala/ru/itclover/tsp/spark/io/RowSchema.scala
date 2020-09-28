@@ -1,5 +1,6 @@
 package ru.itclover.tsp.spark.io
 
+import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
 import org.apache.spark.sql.types.{DataType, DataTypes}
 
 import scala.collection.mutable
@@ -21,11 +22,11 @@ case class NewRowSchema(
 
 
   val fieldClasses: List[Class[_]] =
-    List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[String], classOf[Int])
+    List(classOf[Int], classOf[String], classOf[String], classOf[Int], classOf[Int], classOf[Int])
 
   val fieldDatatypes: List[DataType] =
-    List(DataTypes.IntegerType, DataTypes.DoubleType, DataTypes.DoubleType, DataTypes.IntegerType,
-      DataTypes.StringType, DataTypes.IntegerType)
+    List(DataTypes.IntegerType, DataTypes.StringType, DataTypes.StringType, DataTypes.IntegerType,
+      DataTypes.IntegerType, DataTypes.IntegerType)
 
   val sourceIdInd = fieldsIndexesMap(sourceIdField)
 
@@ -33,7 +34,6 @@ case class NewRowSchema(
   val endInd = fieldsIndexesMap(toTsField)
 
   val patternIdInd = fieldsIndexesMap(patternIdField)
-  val patternPayloadInd = fieldsIndexesMap(patternIdField)
 
   val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
 

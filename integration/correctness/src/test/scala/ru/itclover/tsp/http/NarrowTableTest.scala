@@ -80,8 +80,8 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   )
 
   val basicAssertions = Seq(
-    RawPattern("1", "speed1 < 15"),
-    RawPattern("2", """"speed2" > 10""")
+    RawPattern(1, "speed1 < 15"),
+    RawPattern(2, """"speed2" > 10""")
   )
 
   override def afterStart(): Unit = {

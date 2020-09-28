@@ -158,7 +158,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
 
-  implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
+  implicit val rawPatternFmt = jsonFormat5(RawPattern.apply)
 
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")

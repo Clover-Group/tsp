@@ -87,11 +87,11 @@ class BasicKafkaTest
   )
 
   val basicAssertions = Seq(
-    RawPattern("1", "speed < 15"),
-    RawPattern("2", """"speed" > 10"""),
-    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
+    RawPattern(1, "speed < 15"),
+    RawPattern(2, """"speed" > 10"""),
+    RawPattern(3, "speed > 10.0", Some(Map("test" -> "test")), Some(540), Some(Seq('speed)))
   )
-  val windowPattern = Seq(RawPattern("20", "speed < 20 for 1 sec"))
+  val windowPattern = Seq(RawPattern(20, "speed < 20 for 1 sec"))
 
   lazy val producer: KafkaProducer[String, String] = {
     val props = new Properties()

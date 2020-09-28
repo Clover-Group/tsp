@@ -1,5 +1,7 @@
 package ru.itclover.tsp.spark.utils
 
+import java.sql.Timestamp
+
 case class JDBCSink(url: String, table: String, driver: String, user: String, pwd: String)
     extends org.apache.spark.sql.ForeachWriter[org.apache.spark.sql.Row] {
   var connection: java.sql.Connection = _
@@ -26,6 +28,7 @@ case class JDBCSink(url: String, table: String, driver: String, user: String, pw
 
   def sqlEscape(obj: Any): String = obj match {
     case s: String => s"'$s'"
+    case ts: Timestamp => s"'$ts'"
     case _         => obj.toString
   }
 }

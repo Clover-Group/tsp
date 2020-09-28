@@ -1,282 +1,226 @@
 [
-    {
-       "id":"1",
-       "sourceCode":"PowerPolling = 50",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+  {
+    "id": 1,
+    "sourceCode": "PowerPolling = 50",
+    "payload": {
     },
-    {
-       "id":"2",
-       "sourceCode":"PowerPolling > 20",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 2,
+    "sourceCode": "PowerPolling > 20",
+    "payload": {
     },
-    {
-       "id":"3",
-       "sourceCode":"PowerPolling >= 20",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 3,
+    "sourceCode": "PowerPolling >= 20",
+    "payload": {
     },
-    {
-       "id":"4",
-       "sourceCode":"PowerPolling < 20",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 4,
+    "sourceCode": "PowerPolling < 20",
+    "payload": {
     },
-    {
-       "id":"5",
-       "sourceCode":"PowerPolling <= 20",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 5,
+    "sourceCode": "PowerPolling <= 20",
+    "payload": {
     },
-    {
-       "id":"6",
-       "sourceCode":"PowerPolling <> 70",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 6,
+    "sourceCode": "PowerPolling <> 70",
+    "payload": {
     },
-    {
-       "id":"7",
-       "sourceCode":"POilDieselOut > 9.52 and SpeedThrustMin = 51",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 7,
+    "sourceCode": "POilDieselOut > 9.52 and SpeedThrustMin = 51",
+    "payload": {
     },
-    {
-       "id":"8",
-       "sourceCode":"wait(2 sec, POilDieselOut >= 9.52 for 2 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 8,
+    "sourceCode": "wait(2 sec, POilDieselOut >= 9.52 for 2 sec)",
+    "payload": {
     },
-    {
-       "id":"9",
-       "sourceCode":"POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 9,
+    "sourceCode": "POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52",
+    "payload": {
     },
-    {
-       "id":"10",
-       "sourceCode":"POilDieselOut = 9.53 or SpeedThrustMin = 51",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 10,
+    "sourceCode": "POilDieselOut = 9.53 or SpeedThrustMin = 51",
+    "payload": {
     },
-    {
-       "id":"11",
-       "sourceCode":"POilDieselOut < 9.50 until SpeedThrustMin > 51",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 11,
+    "sourceCode": "POilDieselOut < 9.50 until SpeedThrustMin > 51",
+    "payload": {
     },
-    {
-       "id":"12",
-       "sourceCode":"abs(SpeedThrustMin + POilDieselOut) > 40",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 12,
+    "sourceCode": "abs(SpeedThrustMin + POilDieselOut) > 40",
+    "payload": {
     },
-    {
-       "id":"13",
-       "sourceCode":"avg(SpeedThrustMin, 2 sec) = 22",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 13,
+    "sourceCode": "avg(SpeedThrustMin, 2 sec) = 22",
+    "payload": {
     },
-    {
-       "id":"14",
-       "sourceCode":"avgOf(POilDieselOut, SpeedThrustMin) > 0",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 14,
+    "sourceCode": "avgOf(POilDieselOut, SpeedThrustMin) > 0",
+    "payload": {
     },
-    {
-       "id":"15",
-       "sourceCode":"lag(POilDieselOut) < 0",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 15,
+    "sourceCode": "lag(POilDieselOut) < 0",
+    "payload": {
     },
-    {
-       "id":"16",
-       "sourceCode":"wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 16,
+    "sourceCode": "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)",
+    "payload": {
     },
-    {
-       "id":"17",
-       "sourceCode":"abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)",
-       "payload":{
- 
-       },
-       "forwardedFields":[
- 
-       ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 17,
+    "sourceCode": "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)",
+    "payload": {
     },
-    {
-      "id":"43",
-      "sourceCode":"wait(2 sec, abs(POilDieselOut + 0.12) < 0.00001 for 1 sec 2 to 2 times)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 43,
+    "sourceCode": "wait(2 sec, abs(POilDieselOut + 0.12) < 0.00001 for 1 sec 2 to 2 times)",
+    "payload": {
     },
-    {
-      "id":"44",
-      "sourceCode":"wait(2 sec, abs(POilDieselOut - 0.12) < 0.00001 for 2 sec > 2 times)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 44,
+    "sourceCode": "wait(2 sec, abs(POilDieselOut - 0.12) < 0.00001 for 2 sec > 2 times)",
+    "payload": {
     },
-    {
-      "id":"45",
-      "sourceCode":"wait(1 sec, abs(POilDieselOut + 0.13) < 0.00001 for 1 sec 1 to 3 times)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 45,
+    "sourceCode": "wait(1 sec, abs(POilDieselOut + 0.13) < 0.00001 for 1 sec 1 to 3 times)",
+    "payload": {
     },
-    {
-      "id":"46",
-      "sourceCode":"wait(3 sec, POilDieselOut < lag(POilDieselOut) and lag(POilDieselOut) > lag(lag(POilDieselOut)))",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 46,
+    "sourceCode": "wait(3 sec, POilDieselOut < lag(POilDieselOut) and lag(POilDieselOut) > lag(lag(POilDieselOut)))",
+    "payload": {
     },
-    {
-      "id":"47",
-      "sourceCode":"abs(POilDieselOut - 9.49) < 0.00001 and SpeedThrustMin = 53 and PowerPolling = 71 andThen wait(3 sec, abs(POilDieselOut - 9.48) < 0.00001 for 3 sec > 0 times and SpeedThrustMin = 54 for 3 sec > 0 times and PowerPolling = 70 for 3 sec > 0 times)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 47,
+    "sourceCode": "abs(POilDieselOut - 9.49) < 0.00001 and SpeedThrustMin = 53 and PowerPolling = 71 andThen wait(3 sec, abs(POilDieselOut - 9.48) < 0.00001 for 3 sec > 0 times and SpeedThrustMin = 54 for 3 sec > 0 times and PowerPolling = 70 for 3 sec > 0 times)",
+    "payload": {
     },
-    {
-      "id":"48",
-      "sourceCode":"PowerPolling > 0 and abs(lag(POilDieselOut) - 6.41) < 0.00001 and abs(POilDieselOut - 6.42) < 0.00001 and SpeedThrustMin = 22 andThen wait(1 sec, SpeedThrustMin = 22 for 1 sec andThen wait(1 sec, SpeedThrustMin = 23 for 1 sec > 0 times))",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 48,
+    "sourceCode": "PowerPolling > 0 and abs(lag(POilDieselOut) - 6.41) < 0.00001 and abs(POilDieselOut - 6.42) < 0.00001 and SpeedThrustMin = 22 andThen wait(1 sec, SpeedThrustMin = 22 for 1 sec andThen wait(1 sec, SpeedThrustMin = 23 for 1 sec > 0 times))",
+    "payload": {
     },
-    {
-      "id":"49",
-      "sourceCode":"wait(3 sec,  abs(POilDieselOut - 6.00) < 0.00001  or SpeedThrustMin = 37 for 3 sec)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 49,
+    "sourceCode": "wait(3 sec,  abs(POilDieselOut - 6.00) < 0.00001  or SpeedThrustMin = 37 for 3 sec)",
+    "payload": {
     },
-    {
-      "id":"50",
-      "sourceCode":"abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 12",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 50,
+    "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 12",
+    "payload": {
     },
-    {
-      "id":"51",
-      "sourceCode":"abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 11",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 51,
+    "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 11",
+    "payload": {
     },
-    {
-      "id":"52",
-      "sourceCode":"abs(POilDieselOut - 4.00) < 0.00001 andThen wait(3 sec, SpeedThrustMin = 12 for 3 sec > 1 times)",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 52,
+    "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen wait(3 sec, SpeedThrustMin = 12 for 3 sec > 1 times)",
+    "payload": {
     },
-    {
-      "id":"53",
-      "sourceCode":"POilDieselOut >= 9.52 for 2 sec or POilDieselOut < 8.00",
-      "payload":{
-
-      },
-      "forwardedFields":[
-
-      ]
-    }
+    "forwardedFields": [
+    ]
+  },
+  {
+    "id": 53,
+    "sourceCode": "POilDieselOut >= 9.52 for 2 sec or POilDieselOut < 8.00",
+    "payload": {
+    },
+    "forwardedFields": [
+    ]
+  }
 ]

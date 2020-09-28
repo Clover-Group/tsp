@@ -24,7 +24,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val firstIncident = Incident(
         id = "first",
-        patternId = "1",
+        patternId = 1,
         maxWindowMs = 1000,
         segment = firstTestSegment,
         forwardedFields = Seq(("test1", "1"), ("test2", "2")),
@@ -33,7 +33,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val secondIncident = Incident(
         id = "second",
-        patternId = "2",
+        patternId = 2,
         maxWindowMs = 4000,
         segment = secondTestSegment,
         forwardedFields = Seq(("test1", "1"), ("test2", "2")),
@@ -42,7 +42,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val expectedIncident = Incident(
         id = "second",
-        patternId = "2",
+        patternId = 2,
         maxWindowMs = 4000,
         segment = Segment(
           from = Time(1000),

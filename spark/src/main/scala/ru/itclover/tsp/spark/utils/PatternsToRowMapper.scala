@@ -1,7 +1,7 @@
 package ru.itclover.tsp.spark.utils
 
 import java.sql.Timestamp
-import java.time.{LocalDateTime, ZoneId, ZonedDateTime}
+import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRow
@@ -20,8 +20,8 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema)
     values(schema.sourceIdInd) = sourceId
     values(schema.patternIdInd) = incident.patternId
     values(schema.appIdInd) = schema.appIdFieldVal._2
-    values(schema.beginInd) = incident.segment.from.toMillis / 1000.0
-    values(schema.endInd) = incident.segment.to.toMillis / 1000.0
+    values(schema.beginInd) = new Timestamp(incident.segment.from.toMillis).toString
+    values(schema.endInd) = new Timestamp(incident.segment.to.toMillis).toString
     values(schema.subunitIdInd) = findSubunit(incident.patternPayload)
 
     new GenericRow(values)

@@ -51,8 +51,8 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestC
   )
 
   val (realDataMaxTimeSec, realDataPatterns) = 30.0 -> Seq(
-    RawPattern("6", "HI__wagon_id__6 < 0.5"),
-    RawPattern("4", "HI__wagon_id__4 < 0.5")
+    RawPattern(6, "HI__wagon_id__6 < 0.5"),
+    RawPattern(4, "HI__wagon_id__4 < 0.5")
   )
 
   override def afterStart(): Unit = {

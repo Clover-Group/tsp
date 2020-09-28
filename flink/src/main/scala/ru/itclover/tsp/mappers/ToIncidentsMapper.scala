@@ -4,7 +4,7 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor}
 import ru.itclover.tsp.core.{Incident, Segment}
 
 final case class ToIncidentsMapper[E, EKey, EItem](
-  patternId: String,
+  patternId: Int,
   forwardedFields: Seq[(String, EKey)],
   payload: Seq[(String, String)],
   sessionWindowMs: Long,

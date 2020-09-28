@@ -4,6 +4,6 @@ CREATE TABLE IF NOT EXISTS Test.SM_basic_patterns
     app Int32,
     id Int32,
     subunit Int32,
-    from Float64,
-    to Float64
+    from Datetime64,
+    to Datetime64
 ) ENGINE = Log();

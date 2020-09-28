@@ -56,7 +56,7 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTe
   )
 
   val (sumAvgMaxTimeSec, sumAvgPattern) = 50L -> Seq(
-    RawPattern("599", "sum(avg(gt1000Sens, 60 sec), 60 sec) > 0")
+    RawPattern(599, "sum(avg(gt1000Sens, 60 sec), 60 sec) > 0")
   )
 
   override def afterStart(): Unit = {

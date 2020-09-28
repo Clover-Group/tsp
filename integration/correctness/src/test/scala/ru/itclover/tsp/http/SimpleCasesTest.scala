@@ -492,7 +492,8 @@ class SimpleCasesTest
        ) e ON num.number = e.id ORDER BY num.number
   """
 
-  val secondValidationQuery = "SELECT id, from, to FROM %s ORDER BY id, from, to"
+  val secondValidationQuery = "SELECT id, toUnixTimestamp(from) AS from_ts, " +
+    "toUnixTimestamp(to) AS to_ts FROM %s ORDER BY id, from_ts, to_ts"
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -690,29 +691,29 @@ class SimpleCasesTest
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
   }
 
-//  "Cases 1-17, 43-50" should "work in narrow table with Spark" in {
-//    casesPatterns.keys.toList.sorted.foreach { id =>
-//      Post(
-//        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-//        FindPatternsRequest(s"17narrow_$id", narrowSparkInputConf, narrowSparkOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//      }
-//    }
-//    checkByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
-//  }
+  "Cases 1-17, 43-50" should "work in narrow table with Spark" in {
+    casesPatterns.keys.toList.sorted.foreach { id =>
+      Post(
+        "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
+        FindPatternsRequest(s"17narrow_$id", narrowSparkInputConf, narrowSparkOutputConf, List(casesPatterns(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+      }
+    }
+    checkByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.head),
+      firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
+  }
 
   "Cases 18-42" should "work in ivolga wide table with Spark" in {
     casesPatternsIvolga.keys.toList.sorted.foreach { id =>
@@ -737,30 +738,30 @@ class SimpleCasesTest
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_spark_test"))
   }
-    "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
-      casesPatterns.keys.foreach { id =>
-        Post(
-          "/sparkJob/from-kafka/to-jdbc/?run_async=0",
-          FindPatternsRequest(s"17kafkawide_$id", wideSparkKafkaInputConf, wideSparkKafkaOutputConf, List(casesPatterns(id)))
-        ) ~>
-          route ~> check {
-          withClue(s"Pattern ID: $id") {
-            status shouldEqual StatusCodes.OK
-          }
-          //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-        }
-      }
-      checkByQuery(
-        incidentsCount
-          .map {
-            case (k, v) => List(k.toDouble, v.toDouble)
-          }
-          .toList
-          .sortBy(_.head),
-        firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-      )
-      checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
-    }
+//    "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
+//      casesPatterns.keys.foreach { id =>
+//        Post(
+//          "/sparkJob/from-kafka/to-jdbc/?run_async=0",
+//          FindPatternsRequest(s"17kafkawide_$id", wideSparkKafkaInputConf, wideSparkKafkaOutputConf, List(casesPatterns(id)))
+//        ) ~>
+//          route ~> check {
+//          withClue(s"Pattern ID: $id") {
+//            status shouldEqual StatusCodes.OK
+//          }
+//          //checkByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+//        }
+//      }
+//      checkByQuery(
+//        incidentsCount
+//          .map {
+//            case (k, v) => List(k.toDouble, v.toDouble)
+//          }
+//          .toList
+//          .sortBy(_.head),
+//        firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+//      )
+//      checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
+//    }
 }
 
 

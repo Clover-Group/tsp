@@ -78,8 +78,8 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
   )
 
   val (timeRangeSec, assertions) = (1 to 80) -> Seq(
-      RawPattern("6", "HI__wagon_id__6 < 0.5"),
-      RawPattern("4", "HI__wagon_id__4 < 0.5")
+      RawPattern(6, "HI__wagon_id__6 < 0.5"),
+      RawPattern(4, "HI__wagon_id__4 < 0.5")
     )
 
   override def afterStart(): Unit = {

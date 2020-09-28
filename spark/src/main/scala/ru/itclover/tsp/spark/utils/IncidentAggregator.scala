@@ -61,7 +61,7 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
 
   override def evaluate(buffer: Row): Any = Incident(
     buffer.getString(0),
-    buffer.getString(1),
+    buffer.getInt(1),
     buffer.getLong(2),
     Segment(Time(buffer.getAs[Row](3).getAs[Row](0).getLong(0)), Time(buffer.getAs[Row](3).getAs[Row](1).getLong(0))),
     buffer.getAs[Seq[(String, String)]](4),
