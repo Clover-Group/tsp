@@ -6,17 +6,17 @@ import org.apache.spark.sql.types.{DataType, DataTypes}
 import scala.collection.mutable
 
 case class NewRowSchema(
-                      sourceIdField: Symbol,
-                      fromTsField: Symbol,
-                      toTsField: Symbol,
-                      appIdFieldVal: (Symbol, Int),
-                      patternIdField: Symbol,
-                      subunitIdField: Symbol,
+                         unitIdField: Symbol,
+                         fromTsField: Symbol,
+                         toTsField: Symbol,
+                         appIdFieldVal: (Symbol, Int),
+                         patternIdField: Symbol,
+                         subunitIdField: Symbol,
                     ) extends Serializable {
   val fieldsCount: Int = 6
 
   val fieldsNames: List[Symbol] =
-    List(sourceIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
+    List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
@@ -28,7 +28,7 @@ case class NewRowSchema(
     List(DataTypes.IntegerType, DataTypes.StringType, DataTypes.StringType, DataTypes.IntegerType,
       DataTypes.IntegerType, DataTypes.IntegerType)
 
-  val sourceIdInd = fieldsIndexesMap(sourceIdField)
+  val sourceIdInd = fieldsIndexesMap(unitIdField)
 
   val beginInd = fieldsIndexesMap(fromTsField)
   val endInd = fieldsIndexesMap(toTsField)

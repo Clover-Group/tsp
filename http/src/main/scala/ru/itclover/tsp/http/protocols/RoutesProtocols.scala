@@ -203,7 +203,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val sparkRowSchemaFmt = jsonFormat(
     spark.io.NewRowSchema.apply,
-    "sourceIdField",
+    "unitIdField",
     "fromTsField",
     "toTsField",
     "appIdFieldVal",
