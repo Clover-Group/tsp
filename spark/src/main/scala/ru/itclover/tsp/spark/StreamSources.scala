@@ -77,6 +77,9 @@ object StreamSource {
     allFields.find { field =>
       !excludedFields.contains(field)
     }
+
+  // todo: no vars
+  var sparkMaster: String = "local"
 }
 
 object JdbcSource {
@@ -106,8 +109,8 @@ case class JdbcSource(
 
   // TODO: Better place for Spark session
   override val spark: SparkSession = SparkSession.builder()
-    .master("local")
-    .appName("JDBC SparkSession")
+    .master(StreamSource.sparkMaster)
+    .appName("TSP Spark")
     .config("spark.io.compression.codec", "snappy")
     .getOrCreate()
 
@@ -236,8 +239,8 @@ case class KafkaSource(
                         patternFields: Set[Symbol]
                       ) extends StreamSource[RowWithIdx, Symbol, Any] {
   override val spark: SparkSession = SparkSession.builder()
-    .master("local")
-    .appName("Kafka SparkSession")
+    .master(StreamSource.sparkMaster)
+    .appName("TSP Spark")
     .config("spark.io.compression.codec", "snappy")
     .getOrCreate()
 

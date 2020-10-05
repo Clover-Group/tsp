@@ -17,6 +17,8 @@ import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
 import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
+import org.apache.spark.sql.SparkSession
+import ru.itclover.tsp.spark.StreamSource
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -34,6 +36,9 @@ object Launcher extends App with HttpService {
 
   // TSP-214 Fix
   val req_timeout = 120 // in mins
+
+  // todo: no vars
+  var useLocalSpark = true
 
   implicit val system: ActorSystem = ActorSystem(
     "TSP-system",
@@ -85,6 +90,7 @@ object Launcher extends App with HttpService {
   } else if (args(0) == "flink-local") {
     createLocalEnv
   } else if (args(0) == "flink-cluster") {
+    useLocalSpark = false
     createClusterEnv
   } else {
     Left(s"Unknown argument: `${args(0)}`.")
@@ -97,6 +103,8 @@ object Launcher extends App with HttpService {
 
   streamEnvironment.setParallelism(1)
   streamEnvironment.setMaxParallelism(1)//(configs.getInt("flink.max-parallelism"))
+
+  val spark = sparkSession
 
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
@@ -127,6 +135,32 @@ object Launcher extends App with HttpService {
       s"Cannot parse FLINK_JOBMGR_PORT ($portStr): ${ex.getMessage}"
     }
     port.map(p => (host, p))
+  }
+
+  def getSparkHostPort: Either[String, (String, Int)] = {
+    val host = getEnvVarOrConfig("SPARK_HOST", "spark.host")
+    val portStr = getEnvVarOrConfig("SPARK_PORT", "spark.port")
+    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
+      s"Cannot parse SPARK_PORT ($portStr): ${ex.getMessage}"
+    }
+    port.map(p => (host, p))
+  }
+
+  def getSparkAddress: Either[String, String] = if (useLocalSpark) {
+     Right("local")
+  } else {
+    getSparkHostPort.map{case (host, port) => s"spark://$host:$port"}
+  }
+
+  def sparkSession = getSparkAddress match {
+    case Left(error) => throw new RuntimeException(error)
+    case Right(address) =>
+      StreamSource.sparkMaster = address
+      SparkSession.builder()
+      .master(address)
+      .appName("TSP Spark")
+      .config("spark.io.compression.codec", "snappy")
+      .getOrCreate()
   }
 
   /**

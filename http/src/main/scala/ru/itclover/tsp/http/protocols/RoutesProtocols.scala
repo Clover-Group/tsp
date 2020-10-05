@@ -222,6 +222,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "defaultEventsGapMs",
     "chunkSizeMs",
     "partitionFields",
+    "unitIdField",
     "userName",
     "password",
     "dataTransformation",
@@ -232,7 +233,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timestampMultiplier"
   )
 
-  implicit val sparkKafkaInpConfFmt = jsonFormat10(
+  implicit val sparkKafkaInpConfFmt = jsonFormat11(
     spark.io.KafkaInputConf.apply
   )
 

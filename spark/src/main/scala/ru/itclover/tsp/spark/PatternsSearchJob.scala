@@ -53,7 +53,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
       source.conf.defaultToleranceFraction.getOrElse(0),
-      source.conf.eventsMaxGapMs,
+      source.conf.eventsMaxGapMs.getOrElse(6000L),
       source.fieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap
     ).map { patterns =>
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
@@ -79,7 +79,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     )
     source match {
       case kafkaInputConf: KafkaInputConf => singleIncidents // this must be processed upon writing
-      case _ => if (source.conf.defaultEventsGapMs > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
+      case _ => if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
     }
 
   }
@@ -110,7 +110,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
           rawP.payload.getOrElse(Map()).toSeq,
-          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs,
+          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
           source.conf.partitionFields.map(source.fieldToEKey)
         )
 
@@ -120,7 +120,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 
         PatternProcessor[In, Optimizer.S[Segment], Incident](
           incidentPattern,
-          source.conf.eventsMaxGapMs
+          source.conf.eventsMaxGapMs.getOrElse(60000L)
         )
     }
     val keyedDataset = stream

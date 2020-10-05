@@ -9,13 +9,14 @@ trait InputConf[Event, EKey, EItem] extends Serializable {
 
   def datetimeField: Symbol
   def partitionFields: Seq[Symbol]
+  def unitIdField: Option[Symbol] // Only for new sink, will be ignored for old
 
   def parallelism: Option[Int] // Parallelism per each source
   def numParallelSources: Option[Int] // Number on parallel (separate) sources to be created
   def patternsParallelism: Option[Int] // Number of parallel branches after source step
 
-  def eventsMaxGapMs: Long
-  def defaultEventsGapMs: Long
+  def eventsMaxGapMs: Option[Long]
+  def defaultEventsGapMs: Option[Long]
   def chunkSizeMs: Option[Long] // Chunk size
 
   def dataTransformation: Option[SourceDataTransformation[Event, EKey, EItem]]
@@ -32,10 +33,11 @@ case class JDBCInputConf(
   query: String,
   driverName: String,
   datetimeField: Symbol,
-  eventsMaxGapMs: Long,
-  defaultEventsGapMs: Long,
+  eventsMaxGapMs: Option[Long],
+  defaultEventsGapMs: Option[Long],
   chunkSizeMs: Option[Long],
   partitionFields: Seq[Symbol],
+  unitIdField: Option[Symbol] = None,
   userName: Option[String] = None,
   password: Option[String] = None,
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
@@ -53,6 +55,7 @@ case class KafkaInputConf(
                            group: String = UUID.randomUUID().toString,
                            serializer: Option[String] = Some("json"),
                            datetimeField: Symbol,
+                           unitIdField: Option[Symbol] = None,
                            partitionFields: Seq[Symbol],
                            dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
                            timestampMultiplier: Option[Double] = Some(1000.0),
@@ -60,9 +63,9 @@ case class KafkaInputConf(
                          ) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
-  def defaultEventsGapMs: Long = 0L
+  def defaultEventsGapMs: Option[Long] = Some(0L)
   def defaultToleranceFraction: Option[Double] = Some(0.1)
-  def eventsMaxGapMs: Long = 1L
+  def eventsMaxGapMs: Option[Long] = Some(1L)
   def numParallelSources: Option[Int] = Some(1)
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)
