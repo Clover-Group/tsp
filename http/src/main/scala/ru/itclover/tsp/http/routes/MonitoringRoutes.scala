@@ -117,7 +117,12 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
     }
   } ~
   path("metainfo" / "getVersion") {
-    complete(SuccessfulResponse(BuildInfo.version))
+    complete(SuccessfulResponse(Map(
+      "tsp" -> BuildInfo.version,
+      "scala" -> BuildInfo.scalaVersion,
+      "spark" -> BuildInfo.sparkVersion,
+      "flink" -> BuildInfo.flinkVersion
+    )))
   } ~
   (get & path("metrics-akka"))(metrics(akkaPrometheusRegistry))
 }

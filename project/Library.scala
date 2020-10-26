@@ -3,7 +3,6 @@ import sbt._
 object Version {
   val logback = "1.2.3"
   val scalaLogging = "3.9.2"
-  val logbackContrib = "0.1.5"
 
   val config = "1.3.4"
 
@@ -30,7 +29,7 @@ object Version {
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.6.7.1"
+  val jackson = "2.10.0"
   val jaxb = "2.3.0"
   val activation = "1.2.0"
 
@@ -53,7 +52,7 @@ object Version {
 
   val redissonVersion = "3.11.6"
 
-  val spark = "2.4.4"
+  val spark = "3.0.1"
 
   val akkaHttpMetrics = "0.6.0"
 
@@ -61,20 +60,9 @@ object Version {
 
 object Library {
 
-  val jackson: Seq[ModuleID] = Seq(
-    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
-    "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
-    "javax.xml.bind" % "jaxb-api" % Version.jaxb,
-    "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
-    "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
-    "com.sun.activation" % "javax.activation" % Version.activation
-  )
-
   val logging: Seq[ModuleID] = Seq(
     "ch.qos.logback" % "logback-classic" % Version.logback,
-    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
-    "ch.qos.logback.contrib" % "logback-jackson" % Version.logbackContrib,
-    "ch.qos.logback.contrib" % "logback-json-classic" % Version.logbackContrib
+    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
   )
 
   val config: Seq[ModuleID] = Seq(

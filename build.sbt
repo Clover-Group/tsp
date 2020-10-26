@@ -35,7 +35,7 @@ lazy val commonSettings = Seq(
   githubRelease := null,
   skip in publish := true,
   maxErrors := 5,
-  dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7",
+  dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0",
 )
 
 
@@ -159,7 +159,8 @@ lazy val config = project.in(file("config"))
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion,
+      "flinkVersion" -> Version.flink, "sparkVersion" -> Version.spark),
     buildInfoPackage := "ru.itclover.tsp"
   )
   .dependsOn(core)
@@ -168,7 +169,7 @@ lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.6.7"
+    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
 
@@ -190,7 +191,8 @@ lazy val dsl = project.in(file("dsl"))
 lazy val spark = project.in(file("spark"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.sparkDeps ++ Library.logging
+    libraryDependencies ++= Library.sparkDeps ++ Library.logging,
+    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
 
@@ -198,7 +200,7 @@ lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.6.7"
+    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
   )
   .dependsOn(core, flink, http, config)
 
