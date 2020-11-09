@@ -3,7 +3,7 @@ package ru.itclover.tsp.http.services.flink
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import ru.itclover.tsp.mappers.PatternProcessor
-import spray.json.DefaultJsonProtocol
+import spray.json._
 
 
 object MonitoringServiceModel {
@@ -17,8 +17,12 @@ object MonitoringServiceModel {
     state: String,
     startTsMs: Long,
     durationMs: Long,
-    vertices: Vector[Vertex]
-  )
+    vertices: Vector[Vertex],
+  ) {
+    // note vice-versa
+    def readRecords = vertices.head.metrics.writeRecords
+    def writeRecords: Long = vertices.last.metrics.readRecords
+  }
 
   case class Metric(id: String, value: String)
 
@@ -66,7 +70,26 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   )
 
   implicit val vertexFormat = jsonFormat3(Vertex.apply)
-  implicit val jobFormat = jsonFormat(JobDetails.apply, "jid", "name", "state", "start-time", "duration", "vertices")
+  implicit object jobFormat extends RootJsonFormat[JobDetails] {
+    override def write(obj: JobDetails): JsValue = JsObject(
+      ("jid", JsString(obj.jid)), ("name", JsString(obj.name)), ("state", JsString(obj.state)),
+      ("start-time", JsNumber(obj.startTsMs)), ("duration", JsNumber(obj.durationMs)),
+      ("vertices", JsArray(obj.vertices.map(vertexFormat.write))),
+      ("read-records", JsNumber(obj.readRecords)), ("write-records", JsNumber(obj.writeRecords))
+    )
+
+    override def read(json: JsValue): JobDetails = json match {
+      case JsObject(fields) => JobDetails(
+        fields("jid").convertTo[String],
+        fields("name").convertTo[String],
+        fields("state").convertTo[String],
+        fields("start-time").convertTo[Long],
+        fields("duration").convertTo[Long],
+        fields("vertices").convertTo[Vector[Vertex]]
+      )
+      case _ => throw new DeserializationException(s"Cannot deserialize $json as JobDetails")
+    }
+  }
   implicit val jobBriefFormat = jsonFormat2(JobBrief.apply)
   implicit val jobInfoFormat = jsonFormat3(MetricInfo.apply)
   implicit val jobOverviewFormat = jsonFormat1(JobsOverview.apply)
