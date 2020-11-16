@@ -1,7 +1,7 @@
 import sbt._
 
 object Version {
-  val logback = "1.2.3"
+  val log4j = "2.13.3"
   val scalaLogging = "3.9.2"
 
   val config = "1.3.4"
@@ -61,7 +61,8 @@ object Version {
 object Library {
 
   val logging: Seq[ModuleID] = Seq(
-    "ch.qos.logback" % "logback-classic" % Version.logback,
+    "org.apache.logging.log4j" % "log4j-api" % Version.log4j,
+    "org.apache.logging.log4j" % "log4j-core" % Version.log4j,
     "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
   )
 
@@ -132,7 +133,7 @@ object Library {
   )
 
   val sentrylog: Seq[ModuleID] = Seq(
-    "io.sentry" %% "sentry-logback" % Version.sentry
+    "io.sentry" %% "sentry-log4j2" % Version.sentry
   )
 
   val strawman: Seq[ModuleID] = Seq(
