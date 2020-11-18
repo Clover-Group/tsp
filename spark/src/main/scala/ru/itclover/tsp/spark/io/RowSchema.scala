@@ -22,10 +22,10 @@ case class NewRowSchema(
 
 
   val fieldClasses: List[Class[_]] =
-    List(classOf[Int], classOf[Double], classOf[Double], classOf[Int], classOf[Int], classOf[Int])
+    List(classOf[Int], classOf[Timestamp], classOf[Timestamp], classOf[Int], classOf[Int], classOf[Int])
 
   val fieldDatatypes: List[DataType] =
-    List(DataTypes.IntegerType, DataTypes.DoubleType, DataTypes.DoubleType, DataTypes.IntegerType,
+    List(DataTypes.IntegerType, DataTypes.TimestampType, DataTypes.TimestampType, DataTypes.IntegerType,
       DataTypes.IntegerType, DataTypes.IntegerType)
 
   val sourceIdInd = fieldsIndexesMap(unitIdField)

@@ -4,10 +4,8 @@ CREATE TABLE IF NOT EXISTS events_wide_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_narrow_test
 (
@@ -15,10 +13,8 @@ CREATE TABLE IF NOT EXISTS events_narrow_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_influx_test
 (
@@ -26,10 +22,8 @@ CREATE TABLE IF NOT EXISTS events_influx_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_narrow_ivolga_test
 (
@@ -37,10 +31,8 @@ CREATE TABLE IF NOT EXISTS events_narrow_ivolga_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_wide_ivolga_test
 (
@@ -48,10 +40,8 @@ CREATE TABLE IF NOT EXISTS events_wide_ivolga_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_wide_kafka_test
 (
@@ -59,10 +49,8 @@ CREATE TABLE IF NOT EXISTS events_wide_kafka_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_wide_spark_test
 (
@@ -70,10 +58,8 @@ CREATE TABLE IF NOT EXISTS events_wide_spark_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_narrow_spark_test
 (
@@ -81,10 +67,8 @@ CREATE TABLE IF NOT EXISTS events_narrow_spark_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_wide_ivolga_spark_test
 (
@@ -92,10 +76,8 @@ CREATE TABLE IF NOT EXISTS events_wide_ivolga_spark_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
 CREATE TABLE IF NOT EXISTS events_wide_kafka_spark_test
 (
@@ -103,8 +85,6 @@ CREATE TABLE IF NOT EXISTS events_wide_kafka_spark_test
     app Int32,
     id UInt64,
     subunit Int32,
-    from Float64,
-    to Float64,
-    from_date DateTime64 MATERIALIZED from * 1000,
-    to_date DateTime64 MATERIALIZED to * 1000
+    from DateTime64,
+    to DateTime64
 ) ENGINE = Log();
