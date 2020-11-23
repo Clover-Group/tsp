@@ -86,10 +86,16 @@ object Launcher extends App with HttpService {
     log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
     Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
   } else if (args.length != 1) {
-    Left("You need to provide one arg: `flink-local` or `flink-cluster` to specify Flink execution mode.")
-  } else if (args(0) == "flink-local") {
+    Left("You need to provide one arg: `flink-xxx spark-xxx` where `xxx` can be `local` or `cluster` " +
+      "to specify Flink and Spark execution mode.") // TODO: More beautiful parsing
+  } else if (args(0) == "flink-local spark-local") {
     createLocalEnv
-  } else if (args(0) == "flink-cluster") {
+  } else if (args(0) == "flink-cluster spark-local") {
+    createClusterEnv
+  } else if (args(0) == "flink-local spark-cluster") {
+    useLocalSpark = false
+    createLocalEnv
+  } else if (args(0) == "flink-cluster spark-cluster") {
     useLocalSpark = false
     createClusterEnv
   } else {

@@ -7,8 +7,8 @@ class LauncherTest extends FlatSpec with Matchers {
     a[RuntimeException] should be thrownBy Launcher.main(Array())
     a[RuntimeException] should be thrownBy Launcher.main(Array("flink", "local"))
     a[RuntimeException] should be thrownBy Launcher.main(Array("flink local"))
-    a[RuntimeException] should be thrownBy Launcher.main(Array("flink-cluster")) // Cannot be run from here
-    noException should be thrownBy Launcher.main(Array("flink-local"))
+    a[RuntimeException] should be thrownBy Launcher.main(Array("flink-cluster spark-cluster")) // Cannot be run from here
+    noException should be thrownBy Launcher.main(Array("flink-local spark-local"))
   }
 
 //  "Launcher" should "launch in cluster mode" in {
