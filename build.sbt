@@ -88,7 +88,7 @@ dockerCommands := Seq(
   Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
-  ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar $EXECUTION_TYPE")
+  ExecCmd("CMD", "sh", "-c", "java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar \\\"$EXECUTION_TYPE\\\"")
 )
 
 
