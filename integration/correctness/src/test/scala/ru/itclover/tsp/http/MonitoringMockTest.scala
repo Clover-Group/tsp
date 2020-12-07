@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, Matchers}
 import ru.itclover.tsp.http.routes.MonitoringRoutes
-import ru.itclover.tsp.http.services.flink.MonitoringService
+import ru.itclover.tsp.http.services.flink.FlinkMonitoringService
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.http.utils.MockServer
 
@@ -35,7 +35,7 @@ class MonitoringMockTest
   }
 
   "Monitoring service" should "work with mocked Flink service" in {
-    val monitoringService = MonitoringService(s"http://127.0.0.1:$port")
+    val monitoringService = FlinkMonitoringService(s"http://127.0.0.1:$port")
     monitoringService.queryJobsOverview.map { res =>
       assert(res.jobs.length == 2)
     }

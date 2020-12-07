@@ -12,7 +12,7 @@ import ru.itclover.tsp.http.services.flink.MonitoringServiceModel._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-case class MonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMaterializer, ec: ExecutionContext)
+case class FlinkMonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorMaterializer, ec: ExecutionContext)
     extends MonitoringServiceProtocols {
 
   import ru.itclover.tsp.http.services.AkkaHttpUtils._

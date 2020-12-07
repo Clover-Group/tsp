@@ -21,7 +21,7 @@ import scala.concurrent.ExecutionContextExecutor
 // import ru.itclover.tsp.BuildInfo
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
-import ru.itclover.tsp.http.services.flink.{MonitoringService, MonitoringServiceProtocols}
+import ru.itclover.tsp.http.services.flink.{FlinkMonitoringService, MonitoringServiceProtocols}
 import spray.json.PrettyPrinter
 
 import scala.util.{Failure, Success}
@@ -55,7 +55,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
   implicit val materializer: ActorMaterializer
 
   val uri: Uri
-  lazy val monitoring = MonitoringService(uri)
+  lazy val monitoring = FlinkMonitoringService(uri)
   implicit val printer = PrettyPrinter
 
   private val configs = ConfigFactory.load()

@@ -27,7 +27,7 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.services.flink.MonitoringService
+import ru.itclover.tsp.http.services.flink.FlinkMonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
@@ -52,7 +52,7 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val decoders = AnyDecodersInstances
 
   val monitoringUri: Uri
-  lazy val monitoring = MonitoringService(monitoringUri)
+  lazy val monitoring = FlinkMonitoringService(monitoringUri)
 
   @transient
   private val log = Logger[JobsRoutes]

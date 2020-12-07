@@ -166,6 +166,7 @@ object Launcher extends App with HttpService {
       .master(address)
       .appName("TSP Spark")
       .config("spark.io.compression.codec", "snappy")
+      .config("spark.driver.port", 2020)
       .getOrCreate()
   }
 
