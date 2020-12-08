@@ -162,10 +162,12 @@ object Launcher extends App with HttpService {
     case Left(error) => throw new RuntimeException(error)
     case Right(address) =>
       StreamSource.sparkMaster = address
+      val host = getEnvVarOrConfig("SPARK_DRIVER", "spark.driver")
       SparkSession.builder()
       .master(address)
       .appName("TSP Spark")
       .config("spark.io.compression.codec", "snappy")
+      .config("spark.driver.host", host)
       .config("spark.driver.port", 2020)
       .getOrCreate()
   }
