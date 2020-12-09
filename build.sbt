@@ -9,7 +9,7 @@ dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
 // Flink currently does not work with Scala 2.12.8+
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.10"
 resolvers in ThisBuild ++= Seq(
   "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
   Resolver.mavenLocal,
