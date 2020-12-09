@@ -108,7 +108,7 @@ trait JobsRoutes extends RoutesProtocols {
               case "jdbc" => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
               case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
             }
-            val stream: Either[SparkErr, DataWriterWrapper[SparkRow]] = source.flatMap(createSparkStream(patterns, fields, inputConf, outConf, _))
+            val stream: Either[SparkErr, DataWriterWrapper[SparkRow]] = source.flatMap(createSparkStream(uuid, patterns, fields, inputConf, outConf, _))
             val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
             val resultOrErr = result
 
@@ -151,6 +151,7 @@ trait JobsRoutes extends RoutesProtocols {
   }
 
   def createSparkStream[E: ClassTag: TypeTag, EItem](
+                                               uuid: String,
                                                patterns: Seq[RawPattern],
                                                fields: Set[EKey],
                                                inputConf: spark.io.InputConf[E, EKey, EItem],
@@ -162,7 +163,7 @@ trait JobsRoutes extends RoutesProtocols {
     log.debug("createStream started")
 
 
-    val searcher = spark.PatternsSearchJob(source, fields, decoders)
+    val searcher = spark.PatternsSearchJob(uuid, source, fields, decoders)
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,

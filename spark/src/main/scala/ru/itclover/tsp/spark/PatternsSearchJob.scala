@@ -33,6 +33,7 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
+                                                                  uuid: String,
                                                                   source: StreamSource[In, InKey, InItem],
                                                                   fields: Set[InKey],
                                                                   decoders: BasicDecoders[InItem]
@@ -49,6 +50,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
                                                               resultMapper: Incident => OutE,
                                                             ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataWriterWrapper[OutE])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
+    source.spark.sparkContext.setJobGroup(uuid, s"TSP Job $uuid")
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
       source.fieldToEKey,
