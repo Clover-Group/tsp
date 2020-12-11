@@ -16,6 +16,7 @@ case class Incident(
   maxWindowMs: Long,
   segment: Segment,
   forwardedFields: Seq[(String, String)],
+  patternSubunit: Int,
   patternPayload: Seq[(String, String)]
 ) extends Product
     with Serializable
@@ -36,6 +37,7 @@ object IncidentInstances {
         b.maxWindowMs,
         Segment(from, to),
         b.forwardedFields,
+        b.patternSubunit,
         b.patternPayload
       )
     }

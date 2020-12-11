@@ -28,6 +28,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
         maxWindowMs = 1000,
         segment = firstTestSegment,
         forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternSubunit = 42,
         patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 
@@ -37,6 +38,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
         maxWindowMs = 4000,
         segment = secondTestSegment,
         forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternSubunit = 42,
         patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 
@@ -49,6 +51,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
           to = Time(4000)
         ),
         forwardedFields = Seq(("test1", "1"), ("test2", "2")),
+        patternSubunit = 42,
         patternPayload = Seq(("test3", "3"), ("test4", "4"))
       )
 

@@ -10,6 +10,7 @@ object Version {
 
   // expected version number, until https://github.com/ClickHouse/clickhouse-jdbc/pull/520 gets merged
   val clickhouse = "0.2.5"
+  val chNative = "2.4.2"
   val flink = "1.10.0"
 
   val akka = "2.5.25"
@@ -74,7 +75,10 @@ object Library {
   val influx: Seq[ModuleID] = Seq(
     "org.influxdb" % "influxdb-java" % Version.influx
   )
-  val clickhouse: Seq[ModuleID] = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
+  val clickhouse: Seq[ModuleID] = Seq(
+    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse,
+    "com.github.housepower" % "clickhouse-native-jdbc-shaded" % Version.chNative
+  )
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
 

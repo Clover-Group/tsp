@@ -56,7 +56,8 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer1.update(2, res.maxWindowMs)
     buffer1.update(3, res.segment)
     buffer1.update(4, res.forwardedFields)
-    buffer1.update(5, res.patternPayload)
+    buffer1.update(5, res.patternSubunit)
+    buffer1.update(6, res.patternPayload)
   }
 
   override def evaluate(buffer: Row): Any = Incident(
@@ -65,6 +66,7 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer.getLong(2),
     Segment(Time(buffer.getAs[Row](3).getAs[Row](0).getLong(0)), Time(buffer.getAs[Row](3).getAs[Row](1).getLong(0))),
     buffer.getAs[Seq[(String, String)]](4),
-    buffer.getAs[Seq[(String, String)]](5)
+    buffer.getInt(5),
+    buffer.getAs[Seq[(String, String)]](6)
   )
 }
