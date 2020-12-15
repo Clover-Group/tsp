@@ -85,8 +85,8 @@ dockerCommands := Seq()
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
   //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
-  //Cmd("FROM", "openjdk:11-jre-slim"),
-  Cmd("FROM", "openjdk:8-jre-slim"),
+  Cmd("FROM", "openjdk:11-jre-slim"),
+  //Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
   ExecCmd("CMD", "sh", "-c", "export SPARK_DRIVER=$(hostname -i); java ${TSP_JAVA_OPTS:--Xms1G -Xmx6G} -jar /opt/tsp.jar \\\"$EXECUTION_TYPE\\\"")
@@ -153,7 +153,7 @@ lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
-      ++ Library.jol.map(_ % "test") ++ Library.arrowDeps ++ Library.parquetDeps
+      ++ Library.jol.map(_ % "test") ++ Library.arrowDeps
   )
 
 lazy val config = project.in(file("config"))
