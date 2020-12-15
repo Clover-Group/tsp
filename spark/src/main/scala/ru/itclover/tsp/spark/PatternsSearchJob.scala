@@ -276,11 +276,12 @@ object PatternsSearchJob {
         .withColumn("seriesCount", sum(expr("curr - prev > maxWindowMs").cast("int")).over(win))
         .groupBy("seriesCount")
         .agg(reducer($"id", $"patternId", $"maxWindowMs",
-          $"segment", $"forwardedFields", $"patternPayload")
+          $"segment", $"forwardedFields", $"patternSubunit", $"patternPayload")
           .as("result"))
         .select($"result.id".as("id"), $"result.patternId".as("patternId"),
           $"result.maxWindowMs".as("maxWindowMs"), $"result.segment".as("segment"),
-          $"result.forwardedFields".as("forwardedFields"), $"result.patternPayload".as("patternPayload"))
+          $"result.forwardedFields".as("forwardedFields"), $"result.patternSubunit".as("patternSubunit"),
+          $"result.patternPayload".as("patternPayload"))
         .drop("prev", "curr", "seriesCount")
 
 //        .map(_._2)

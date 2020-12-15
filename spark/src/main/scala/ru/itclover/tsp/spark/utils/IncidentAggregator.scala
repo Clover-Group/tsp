@@ -39,7 +39,8 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer.update(2, res.maxWindowMs)
     buffer.update(3, res.segment)
     buffer.update(4, res.forwardedFields)
-    buffer.update(5, res.patternPayload)
+    buffer.update(5, res.patternSubunit)
+    buffer.update(6, res.patternPayload)
   }
 
   override def merge(buffer1: MutableAggregationBuffer, buffer2: Row): Unit = {
