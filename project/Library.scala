@@ -76,8 +76,8 @@ object Library {
     "org.influxdb" % "influxdb-java" % Version.influx
   )
   val clickhouse: Seq[ModuleID] = Seq(
-    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse,
-    "com.github.housepower" % "clickhouse-native-jdbc-shaded" % Version.chNative
+    "ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse //,
+    // "com.github.housepower" % "clickhouse-native-jdbc-shaded" % Version.chNative
   )
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
