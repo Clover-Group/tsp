@@ -1,6 +1,5 @@
 package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
@@ -10,6 +9,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.api.common.JobID
 import org.apache.flink.runtime.client.JobExecutionException
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.spark.sql.SparkSession
 import org.scalatest.Inspectors._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.output.FailureResponse
@@ -29,6 +29,12 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
     implicit override val streamEnvironment: StreamExecutionEnvironment =
       StreamExecutionEnvironment.createLocalEnvironment()
+
+    val spark = SparkSession.builder()
+      .master("local")
+      .appName("TSP Spark test")
+      .config("spark.io.compression.codec", "snappy")
+      .getOrCreate()
 
     // to run blocking tasks.
     val blockingExecutorContext: ExecutionContextExecutor =

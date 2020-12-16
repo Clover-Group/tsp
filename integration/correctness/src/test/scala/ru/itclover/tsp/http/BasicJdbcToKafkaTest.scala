@@ -1,11 +1,11 @@
 package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
@@ -24,6 +24,12 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+
+  val spark = SparkSession.builder()
+    .master("local")
+    .appName("TSP Spark test")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

@@ -1,11 +1,11 @@
 package ru.itclover.tsp.http
 
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.SqlMatchers
@@ -18,6 +18,12 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
+
+  val spark = SparkSession.builder()
+    .master("local")
+    .appName("TSP Spark test")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

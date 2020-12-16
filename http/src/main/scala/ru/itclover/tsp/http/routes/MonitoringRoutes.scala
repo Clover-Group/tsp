@@ -20,9 +20,10 @@ import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.met
 import scala.concurrent.ExecutionContextExecutor
 // import ru.itclover.tsp.BuildInfo
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
-import ru.itclover.tsp.http.services.flink.{FlinkMonitoringService, MonitoringServiceProtocols}
+import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.MetricInfo
+import ru.itclover.tsp.http.services.streaming.{FlinkMonitoringService, SparkMonitoringService, MonitoringServiceProtocols}
 import spray.json.PrettyPrinter
+import org.apache.spark.sql.SparkSession
 
 import scala.util.{Failure, Success}
 
@@ -31,7 +32,8 @@ object MonitoringRoutes {
   private val log = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
-    monitoringUri: Uri
+    monitoringUri: Uri,
+    sparkSession: SparkSession
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
 
     log.debug("fromExecutionContext started")
@@ -42,6 +44,7 @@ object MonitoringRoutes {
         implicit override val actors = as
         implicit override val materializer = am
         override val uri = monitoringUri
+        override val spark = sparkSession
       }.route
     }
 
@@ -49,22 +52,19 @@ object MonitoringRoutes {
   log.debug("fromExecutionContext finished")
 }
 
-trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
+trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols  {
   implicit val executionContext: ExecutionContextExecutor
   implicit val actors: ActorSystem
   implicit val materializer: ActorMaterializer
 
   val uri: Uri
+  val spark: SparkSession
   lazy val monitoring = FlinkMonitoringService(uri)
+  // hardcoded to localhost
+  lazy val sparkMonitoring = SparkMonitoringService(spark)
   implicit val printer = PrettyPrinter
 
   private val configs = ConfigFactory.load()
-
-  val metricsInfo = List(
-    MetricInfo(0, configs.getString("flink.metrics.source"), "numRecordsRead"),
-    // MetricInfo(1, configs.getString("flink.metrics.search"), PatternMapper.currentEventTsMetric), // todo
-    MetricInfo.onLastVertex(configs.getString("flink.metrics.sink"), "numRecordsProcessed")
-  )
 
   val noSuchJobWarn = "No such job or no connection to the FlinkMonitoring"
 
@@ -82,14 +82,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
     new CollectorRegistry()
   )
 
-  val route: Route = path("job" / Segment / "statusAndMetrics") { uuid =>
-    onComplete(monitoring.queryJobDetailsWithMetrics(uuid, metricsInfo)) {
-      case Success(Some(detailsAndMetrics)) => complete((SuccessfulResponse(detailsAndMetrics)))
-      case Success(None)                    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-      case Failure(err)                     => complete((InternalServerError, FailureResponse(5005, err)))
-    }
-  } ~
-  path("job" / Segment / "status") { uuid =>
+  val route: Route = path("job" / Segment / "status") { uuid =>
     onComplete(monitoring.queryJobInfo(uuid)) {
       case Success(Some(details)) => complete((details))
       case Success(None)          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
@@ -112,6 +105,33 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols{
   } ~
   path("jobs" / "overview") {
     onComplete(monitoring.queryJobsOverview) {
+      case Success(resp) => complete((resp))
+      case Failure(err)  => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("spark-job" / Segment / "status") { uuid =>
+    onComplete(sparkMonitoring.queryJobInfo(uuid)) {
+      case Success(Some(details)) => complete((details))
+      case Success(None)          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("spark-job" / Segment / "exceptions") { uuid =>
+    onComplete(sparkMonitoring.queryJobExceptions(uuid)) {
+      case Success(Some(exceptions)) => complete((exceptions))
+      case Success(None)             => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)              => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("spark-job" / Segment / "stop") { uuid =>
+    onComplete(sparkMonitoring.sendStopQuery(uuid)) {
+      case Success(Some(_)) => complete((SuccessfulResponse(1)))
+      case Success(None)    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      case Failure(err)     => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~
+  path("spark-jobs" / "overview") {
+    onComplete(sparkMonitoring.queryJobsOverview) {
       case Success(resp) => complete((resp))
       case Failure(err)  => complete((InternalServerError, FailureResponse(5005, err)))
     }

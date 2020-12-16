@@ -2,15 +2,15 @@ package ru.itclover.tsp.http
 
 import java.io.File
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import java.util.{Properties, UUID}
 
+import java.util.{Properties, UUID}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, _}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import org.scalatest.concurrent.Waiters._
 import org.testcontainers.containers.Network
@@ -45,6 +45,12 @@ class SimpleCasesTest
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setParallelism(1)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+
+  val spark = SparkSession.builder()
+    .master("local")
+    .appName("TSP Spark test")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

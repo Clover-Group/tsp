@@ -2,8 +2,8 @@ package ru.itclover.tsp.http.utils
 import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.{HttpApp, Route}
-import ru.itclover.tsp.http.services.flink.MonitoringServiceModel._
-import ru.itclover.tsp.http.services.flink.MonitoringServiceProtocols
+import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel._
+import ru.itclover.tsp.http.services.streaming.MonitoringServiceProtocols
 
 import scala.concurrent.{ExecutionContext, Future, Promise, blocking}
 

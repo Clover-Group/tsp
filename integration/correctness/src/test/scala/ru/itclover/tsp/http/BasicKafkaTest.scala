@@ -2,7 +2,6 @@ package ru.itclover.tsp.http
 
 import java.util.Properties
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
@@ -11,6 +10,7 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer._
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
@@ -34,6 +34,12 @@ class BasicKafkaTest
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
+
+  val spark = SparkSession.builder()
+    .master("local")
+    .appName("TSP Spark test")
+    .config("spark.io.compression.codec", "snappy")
+    .getOrCreate()
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

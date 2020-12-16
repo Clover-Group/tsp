@@ -4,11 +4,12 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.stream.ActorMaterializer
+import org.apache.spark.sql.SparkSession
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, Matchers}
 import ru.itclover.tsp.http.routes.MonitoringRoutes
-import ru.itclover.tsp.http.services.flink.FlinkMonitoringService
-import ru.itclover.tsp.http.services.flink.MonitoringServiceModel.MetricInfo
+import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
+import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.http.utils.MockServer
 
 import scala.concurrent._
@@ -56,15 +57,6 @@ class MonitoringMockTest
     monitoringService.queryJobInfo("job1").map { res =>
       assert(res.map(x => x.jid).getOrElse("error") == "1")
     }
-    monitoringService.queryJobAllMetrics("job1").map { res =>
-      assert(res.map(_ == Map.empty).getOrElse(false))
-    }
-    monitoringService.queryJobAllMetrics("job3").map { res =>
-      assert(res.isLeft)
-    }
-    monitoringService.queryJobDetailsWithMetrics("job1", List(MetricInfo(0, "metric1.1", "metric1.1"))).map { res =>
-      assert(res.isDefined)
-    }
 
     monitoringService.sendStopQuery("job1").map { res =>
       assert(res.isDefined)
@@ -83,6 +75,11 @@ class MonitoringMockTest
       implicit override val materializer: ActorMaterializer = ActorMaterializer()(actors)
       implicit override val executionContext: ExecutionContextExecutor = system.dispatcher
       override val uri: Uri = s"http://127.0.0.1:$port"
+      override val spark = SparkSession.builder()
+        .master("local")
+        .appName("TSP Spark test")
+        .config("spark.io.compression.codec", "snappy")
+        .getOrCreate()
     }
     Get("/metainfo/getVersion") ~> monitoringRoutes.route ~> check {
       response.status shouldBe StatusCodes.OK

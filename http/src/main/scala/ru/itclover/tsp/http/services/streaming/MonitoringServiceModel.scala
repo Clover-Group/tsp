@@ -1,8 +1,7 @@
-package ru.itclover.tsp.http.services.flink
+package ru.itclover.tsp.http.services.streaming
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import ru.itclover.tsp.mappers.PatternProcessor
 import spray.json._
 
 
@@ -66,7 +65,7 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
     VertexMetrics.apply,
     "read-records",
     "write-records",
-    PatternProcessor.currentEventTsMetric
+    "currentEventTs"
   )
 
   implicit val vertexFormat = jsonFormat3(Vertex.apply)

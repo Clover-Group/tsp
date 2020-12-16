@@ -11,6 +11,7 @@ import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.runtime.client.JobExecutionException
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.spark.sql.SparkSession
 import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
@@ -30,6 +31,8 @@ trait HttpService extends RoutesProtocols {
 
   val blockingExecutorContext: ExecutionContextExecutor
 
+  val spark: SparkSession
+
   private val configs = ConfigFactory.load()
   val isDebug = true
   val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
@@ -44,7 +47,7 @@ trait HttpService extends RoutesProtocols {
 
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, blockingExecutorContext)
-      monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
+      monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri, spark)
       validation <- ValidationRoutes.fromExecutionContext()
     } yield jobs ~ monitoring ~ validation
 
