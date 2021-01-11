@@ -243,7 +243,7 @@ def nextVersion(v: String): String = Bump.Minor.bump(ReleaseVersion(v).getOrElse
 git.gitTagToVersionNumber := {
   case VersionRegex(v, "") => Some(v)
   case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
-  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-preview${s.replaceFirst("-", "_")}")
+  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-preview$s")
   case VersionRegex(v, s) => Some(s"$v-$s")
   case _ => None
 }
