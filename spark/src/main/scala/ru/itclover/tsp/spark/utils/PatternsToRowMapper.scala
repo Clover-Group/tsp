@@ -22,7 +22,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema)
     values(schema.appIdInd) = schema.appIdFieldVal._2
     values(schema.beginInd) = new Timestamp(incident.segment.from.toMillis)
     values(schema.endInd) = new Timestamp(incident.segment.to.toMillis)
-    values(schema.subunitIdInd) = findSubunit(incident.patternPayload)
+    values(schema.subunitIdInd) = incident.patternSubunit
 
     new GenericRow(values)
   }
@@ -41,9 +41,9 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema)
       }
       .mkString("{", ",", "}")
 
-  def findSubunit(payload: Seq[(String, Any)]): Int = {
-    payload.find { case (name, _) => name.toLowerCase == "subunit" }
-      .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
-      .getOrElse(0)
-  }
+//  def findSubunit(payload: Seq[(String, Any)]): Int = {
+//    payload.find { case (name, _) => name.toLowerCase == "subunit" }
+//      .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
+//      .getOrElse(0)
+//  }
 }
