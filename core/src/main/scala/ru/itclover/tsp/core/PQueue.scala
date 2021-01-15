@@ -57,11 +57,12 @@ object PQueue {
       } else None
     }
     override def behead(): MutablePQueue[T] = {
-      queue.remove()
+      val _ = queue.remove()
       this
     }
     override def beheadOption(): Option[PQueue[T]] = if (!queue.isEmpty) {
-      queue.remove(); Some(this)
+      val _ = queue.remove()
+      Some(this)
     } else None
     override def clean(): PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = {
@@ -72,7 +73,6 @@ object PQueue {
       val buffer = scala.collection.mutable.ArrayBuffer.empty[IdxValue[T]]
       import scala.collection.convert.ImplicitConversionsToScala._
       buffer ++= queue.iterator()
-      buffer
     }
     override def size: Int = queue.size
 
@@ -86,7 +86,7 @@ object PQueue {
           case Some(IdxValue(_, end, _)) if end < newStart     => inner(q.behead())
           case Some(_) => {
             val first = queue.remove()
-            queue.offerFirst(first.copy(start = newStart))
+            val _ = queue.offerFirst(first.copy(start = newStart))
             this
           }
         }
@@ -95,12 +95,14 @@ object PQueue {
       inner(this)
     }
 
+    // We are using Java queues, and peekLast() may return null.
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
     private def enqueueWithUniting(idxValue: IdxValue[T]): Unit = {
       queue.peekLast match {
         case null =>
           val _ = queue.offerLast(idxValue)
         case IdxValue(start, end, value) if value == idxValue.value =>
-          queue.pollLast()
+          { val _ = queue.pollLast() }
           val _ = queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
         case _ =>
           val _ = queue.offerLast(idxValue)
@@ -114,7 +116,7 @@ object PQueue {
 
     def apply[T](idxValue: IdxValue[T]): MutablePQueue[T] = new MutablePQueue({
       val queue: util.ArrayDeque[IdxValue[T]] = new java.util.ArrayDeque();
-      queue.offer(idxValue)
+      val _ = queue.offer(idxValue)
       queue
     })
   }
@@ -131,6 +133,9 @@ object PQueue {
       queue.dequeueOption().map { case (idx, pqueue) => (idx.map(_ => func(idx)), MapPQueue(pqueue, func)) }
     override def behead(): PQueue[T] = this.copy(queue = queue.behead())
     override def beheadOption(): Option[PQueue[T]] = queue.beheadOption().map(q => MapPQueue(q, func))
+
+    // We need to throw an exception in this (very unusual) case
+    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = throw new UnsupportedOperationException(
       "Cannot enqueue to IdxMapPQueue! Bad logic"
     )

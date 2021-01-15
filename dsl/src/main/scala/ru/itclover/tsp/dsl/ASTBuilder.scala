@@ -8,14 +8,13 @@ import UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 
-// TODO@trolley813: Adapt to the new `v2` single-state patterns
-//object ASTBuilder {
-//  // Used for testing purposes
-//  def testFieldsSymbolMap(anySymbol: Symbol) = anySymbol
-//  def testFieldsIdxMap(anySymbol: Symbol) = 0
-//  def testFieldsIdxMap(anyStr: String) = 0
-//}
 
+// This uses specific parboiled DSL. SO, many warts may appear in the generated code
+// (there were 78 of them as of 2021-01-15).
+// Since we do not have control over it, we disable the wartremover plugin entirely for this class.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.All"
+))
 class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGapMs: Long, fieldsTags: Map[Symbol, ClassTag[_]])
     extends Parser {
 

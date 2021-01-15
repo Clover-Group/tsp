@@ -19,6 +19,11 @@ import scala.collection.mutable
 /**
   * Serialization for Apache Arrow format
   */
+// Arrow serialization heavily deals with Any's and null's. Hence, no option other than suppress these warts here.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Null",
+  "org.wartremover.warts.Any"
+))
 class ArrowSerialization extends Serialization[Array[Byte], Row] {
 
   override def serialize(output: Row, eventSchema: EventSchema): Array[Byte] = {

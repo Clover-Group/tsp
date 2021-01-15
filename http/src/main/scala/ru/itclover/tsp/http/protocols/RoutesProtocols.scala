@@ -13,6 +13,8 @@ import ru.itclover.tsp.spark.io.{SourceDataTransformation => SparkSDT, NarrowDat
 
 import scala.util.Try
 
+// JsonFormats contain Any fields
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
     override def write(obj: AnyRef): JsValue = obj match {

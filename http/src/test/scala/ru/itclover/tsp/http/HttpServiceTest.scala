@@ -21,6 +21,8 @@ import ru.yandex.clickhouse.except.ClickHouseException
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest with RoutesProtocols {
 
   case class TestHttpService(override val isHideExceptions: Boolean) extends HttpService {

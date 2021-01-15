@@ -8,6 +8,8 @@ import UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class ASTTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
   implicit val funReg: DefaultFunctionRegistry.type = DefaultFunctionRegistry
 

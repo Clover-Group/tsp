@@ -7,6 +7,9 @@ trait BasicDecoders[From] {
   implicit def decodeToAny: Decoder[From, Any]
 }
 
+// Here we deal with data coming from non-Scala (probably Javaesque) sources,
+// so we deliberately use Any and null there
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.Null"))
 object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
   import Decoder._
 
@@ -34,9 +37,9 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
         try {
           Helper.strToInt(s)
         } catch {
-          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
+          case e: Exception => sys.error(s"Cannot parse String ($s) to Int, exception: ${e.toString}")
         }
-      case null => throw new RuntimeException(s"Cannot parse null to Int")
+      case null => sys.error(s"Cannot parse null to Int")
     }
   }
 
@@ -49,9 +52,9 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
         try {
           Helper.strToLong(s)
         } catch {
-          case e: Exception => throw new RuntimeException(s"Cannot parse String ($s) to Long, exception: ${e.toString}")
+          case e: Exception => sys.error(s"Cannot parse String ($s) to Long, exception: ${e.toString}")
         }
-      case null => throw new RuntimeException(s"Cannot parse null to Long")
+      case null => sys.error(s"Cannot parse null to Long")
     }
   }
 
@@ -60,8 +63,8 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
       case 0 | 0L | 0.0 | "0" | "false" | "off" | "no" => false
       case 1 | 1L | 1.0 | "1" | "true" | "on" | "yes"  => true
       case b: Boolean                                  => b
-      case null                                        => throw new RuntimeException(s"Cannot parse null to Boolean")
-      case _                                           => throw new RuntimeException(s"Cannot parse '$x' to Boolean")
+      case null                                        => sys.error(s"Cannot parse null to Boolean")
+      case _                                           => sys.error(s"Cannot parse '$x' to Boolean")
     }
   }
 

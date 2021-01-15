@@ -14,7 +14,7 @@ object Pat {
   def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
     case _                   =>
-      throw new Exception(s"$arg is not a patterne")
+      sys.error(s"$arg is not a pattern")
   }
 }
 

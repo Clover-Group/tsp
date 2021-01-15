@@ -14,6 +14,8 @@ import ru.itclover.tsp.core._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class TimerPatternTest extends WordSpec with Matchers {
 
   val pat = Patterns[EInt]

@@ -9,6 +9,8 @@ import ru.itclover.tsp.core.fixtures.Event
 
 import scala.concurrent.duration._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class CheckMemoryLeaks extends FlatSpec with Matchers {
 
   val p = Patterns[EInt]

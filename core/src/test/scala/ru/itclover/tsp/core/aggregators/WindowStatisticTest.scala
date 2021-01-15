@@ -14,6 +14,8 @@ import ru.itclover.tsp.core.{IdxValue, Patterns, StateMachine, Succ, Time, Windo
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class WindowStatisticTest extends WordSpec with Matchers {
 
   //todo tests for WindowStatistic

@@ -12,8 +12,8 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, _}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
-import org.scalatest.concurrent.Waiters._
-import org.testcontainers.containers.Network
+// import org.scalatest.concurrent.Waiters._
+// import org.testcontainers.containers.Network
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
@@ -28,11 +28,17 @@ import spray.json._
 
 import scala.annotation.tailrec
 import scala.util.{Success, Try}
-import scala.collection.JavaConverters._
+// import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+// Also, this test seems to be heavily relying on Any. But still TODO: Investigate
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
 class SimpleCasesTest
     extends FlatSpec
     with SqlMatchers
@@ -101,61 +107,55 @@ class SimpleCasesTest
 
   val kafkaBrokerUrl = "localhost:9092"
 
-  var fileSourceString = ""
   val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
   val patternsPath = s"${filesPath}/core/patterns.json"
 
   val patternsString: Try[String] = Files.readFile(patternsPath)
 
-  patternsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
+  val fileSourceString = patternsString match {
+    case Success(some) => some
+    case _             => ""
   }
 
-  var jsonObject = fileSourceString.parseJson
+  val jsonObject = fileSourceString.parseJson
   val casesPatterns = jsonObject.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
-  var fileSourceStringIvolga = ""
   val patternsPathIvolga = s"${filesPath}/ivolga/patterns.json"
 
   val patternsStringIvolga: Try[String] = Files.readFile(patternsPathIvolga)
 
-  patternsStringIvolga match {
-    case Success(some) => {
-      fileSourceStringIvolga = some
-    }
+  val fileSourceStringIvolga = patternsStringIvolga match {
+    case Success(some) => some
+    case _ => ""
   }
 
-  var jsonObjectIvolga = fileSourceStringIvolga.parseJson
+  val jsonObjectIvolga = fileSourceStringIvolga.parseJson
   val casesPatternsIvolga = jsonObjectIvolga.convertTo[Seq[RawPattern]].map(p => (p.id -> p)).toMap
 
   val coreIncidentsPath = s"${filesPath}/core/incidents.json"
   val incidentsString: Try[String] = Files.readFile(coreIncidentsPath)
 
-  incidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
+  val fileSourceStringInc = incidentsString match {
+    case Success(some) => some
+    case _             => ""
   }
 
-  jsonObject = fileSourceString.parseJson
-  val coreRawIncidents = jsonObject.convertTo[Map[String, String]]
+  val jsonObjectInc = fileSourceStringInc.parseJson
+  val coreRawIncidents = jsonObjectInc.convertTo[Map[String, String]]
 
   val incidentsCount = coreRawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
 
   val ivolgaIncidentsPath = s"${filesPath}/ivolga/incidents.json"
   val ivolgaIncidentsString: Try[String] = Files.readFile(ivolgaIncidentsPath)
 
-  ivolgaIncidentsString match {
-    case Success(some) => {
-      fileSourceString = some
-    }
+  val fileSourceStringIvolgaInc = ivolgaIncidentsString match {
+    case Success(some) => some
+    case _             => ""
   }
 
-  jsonObject = fileSourceString.parseJson
-  val ivolgaIncidents = jsonObject.convertTo[Map[String, String]]
+  val jsonObjectIvolgaInc = fileSourceString.parseJson
+  val ivolgaIncidents = jsonObjectIvolgaInc.convertTo[Map[String, String]]
 
   val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
 
@@ -463,7 +463,7 @@ class SimpleCasesTest
 
       clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
-      val headers = Files.readResource(elem._2).take(1).toList.head.split(",")
+      val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
       val data = Files.readResource(elem._2).drop(1).map(_.split(","))
       val numberIndices = List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
@@ -475,7 +475,7 @@ class SimpleCasesTest
         val msgMap = headers.zip(convertedRow).toMap[String, Any]
         val json = "{" + msgMap.map {
           case (k, v) => v match {
-            case s: String => s""""$k": "$v""""
+            case _: String => s""""$k": "$v""""
             case _         => s""""$k": $v"""
           }
         }.mkString(", ") + "}"
@@ -533,7 +533,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_wide_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_test"))
@@ -557,7 +557,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_narrow_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
@@ -581,7 +581,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
@@ -605,7 +605,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
@@ -629,7 +629,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
@@ -691,7 +691,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_wide_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_spark_test"))
@@ -715,7 +715,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_narrow_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_spark_test"))
@@ -739,7 +739,7 @@ class SimpleCasesTest
           case (k, v) => List(k.toDouble, v.toDouble)
         }
         .toList
-        .sortBy(_.head),
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
       firstValidationQuery("events_wide_ivolga_spark_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
     )
     checkByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_spark_test"))
@@ -763,7 +763,7 @@ class SimpleCasesTest
             case (k, v) => List(k.toDouble, v.toDouble)
           }
           .toList
-          .sortBy(_.head),
+          .sortBy(_.headOption.getOrElse(Double.NaN)),
         firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
       )
       checkByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))

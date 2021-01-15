@@ -6,13 +6,14 @@ import ru.itclover.tsp.core.Intervals.{NumericInterval, TimeInterval}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{WaitPattern, TimerPattern, WindowStatistic, WindowStatisticResult}
-import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 trait AnyState[T]
 
+// We heavily deal with Any values here. But still TODO: investigate
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],

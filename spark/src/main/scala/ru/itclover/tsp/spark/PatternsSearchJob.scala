@@ -6,13 +6,11 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
+import org.apache.spark.sql.catalyst.encoders.{RowEncoder}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
-import org.apache.spark.sql.{Column, Dataset, Encoder, Encoders, ForeachWriter, Row, SQLContext, SaveMode, SparkSession}
+import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.storage.StorageLevel
-import org.apache.spark.streaming.Milliseconds
-import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
@@ -21,7 +19,6 @@ import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, OutputConf, NewRowSchema}
-import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -71,7 +68,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
                                   forwardedFields: Seq[(Symbol, InKey)],
                                   useWindowing: Boolean
                                 ): Dataset[Incident] = {
-    import source.timeExtractor
+    // import source.timeExtractor
     val stream = source.createStream
     val singleIncidents = incidentsFromPatterns(
       applyTransformation(stream/*.assignAscendingTimestamps(timeExtractor(_).toMillis)*/)(source.spark),
@@ -80,7 +77,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       useWindowing
     )
     source match {
-      case kafkaInputConf: KafkaInputConf => singleIncidents // this must be processed upon writing
+      case _: KafkaInputConf => singleIncidents // this must be processed upon writing
       case _ => if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
     }
 
@@ -131,7 +128,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       //.partitionBy()
     val windowed: Dataset[List[In]] =
       if (useWindowing) {
-        val chunkSize = 100000
+        // val chunkSize = 100000
         keyedDataset.map { List(_) }
       } else {
         keyedDataset.map{ List(_) }
@@ -248,9 +245,6 @@ object PatternsSearchJob {
     import spark.implicits._
     log.debug("reduceIncidents started")
 
-    // WARNING: Non-parallelizable, TODO: better solution
-    var seriesCount = 1
-
     val incidents = inc.persist(StorageLevel.MEMORY_AND_DISK)
 
     if (incidents.isEmpty) {
@@ -301,7 +295,7 @@ object PatternsSearchJob {
     log.debug("saveStream started")
     inputConf match {
 
-      case ic: JDBCInputConf =>
+      case _: JDBCInputConf =>
         outputConf match {
           case oc: JDBCOutputConf =>
             val res = stream.write
@@ -315,7 +309,7 @@ object PatternsSearchJob {
             log.debug("saveStream finished")
             res
         }
-      case ic: KafkaInputConf =>
+      case _: KafkaInputConf =>
         outputConf match {
           case oc: JDBCOutputConf =>
             val sink = JDBCSink(oc.jdbcUrl, oc.tableName, oc.driverName,

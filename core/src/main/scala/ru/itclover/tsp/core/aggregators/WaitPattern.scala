@@ -4,7 +4,7 @@ import cats.instances.option._
 import cats.Apply
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.core.{Fail, IdxValue, PQueue, Pattern, Result, Succ, Time, Window}
+import ru.itclover.tsp.core.{IdxValue, PQueue, Pattern, Result, Time, Window}
 import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.Ordering.Implicits._
@@ -18,12 +18,14 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override def initialState(): AggregatorPState[S, T, WaitAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
-    astate = WaitAccumState(m.Queue.empty),
+    astate = WaitAccumState(m.Queue.empty, lastFail = false),
     indexTimeMap = m.Queue.empty
   )
 }
 
-case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean = false)
+// Here, head and last are guaranteed to work, so suppress warnings for them
+@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean)
     extends AccumState[T, T, WaitAccumState[T]] {
 
   /** This method is called for each IdxValue produced by inner patterns.
@@ -42,25 +44,27 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
   ): (WaitAccumState[T], QI[T]) = {
 
     // TODO: Temp, preventing failures if wrong idxValue arrived (investigate this better, why it happens)
-    if (idxValue.end < idxValue.start) return (this, PQueue.empty)
-    val start = if (lastFail) times.head._2.minus(window) else times.head._2
-    val end = if (idxValue.value.isFail) times.last._2.minus(window) else times.last._2
+    if (idxValue.end >= idxValue.start) {
+      val start = if (lastFail) times.head._2.minus(window) else times.head._2
+      val end = if (idxValue.value.isFail) times.last._2.minus(window) else times.last._2
 
-    // don't use ++ here, slow!
-    val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
+      // don't use ++ here, slow!
+      val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
 
-    val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
-      case (_, t) => t < start
+      val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
+        case (_, t) => t < start
+      }
+
+      val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
+        case (_, t) => t <= end
+      }
+
+      val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, idxValue.value)
+
+      (WaitAccumState(updatedWindowQueue, idxValue.value.isFail), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
+    } else {
+      (this, PQueue.empty)
     }
-
-    val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
-      case (_, t) => t <= end
-    }
-
-    val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, idxValue.value)
-
-    (WaitAccumState(updatedWindowQueue, idxValue.value.isFail), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
-
   }
 
   private def createIdxValue(

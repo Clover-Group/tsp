@@ -9,6 +9,8 @@ import scala.collection.mutable
 /**
   * Test class for mutable pattern queue
   */
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class MutablePQueueTest extends WordSpec with Matchers {
 
   "mutable pattern queue" should {

@@ -63,6 +63,10 @@ object FunctionRegistry {
   }
 }
 
+// Function registry uses Any
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any"
+))
 object DefaultFunctions extends LazyLogging{
 
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =

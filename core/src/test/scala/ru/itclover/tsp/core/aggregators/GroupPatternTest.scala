@@ -15,6 +15,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 import scala.util.Random
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class GroupPatternTest extends WordSpec with Matchers {
 
   "GroupPatternTest" should {

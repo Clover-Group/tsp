@@ -1,11 +1,9 @@
 package ru.itclover.tsp.spark
 
 import cats.syntax.either._
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Dataset, Encoder, Encoders, Row, SparkSession, functions}
-import org.apache.spark.sql.streaming.Trigger
+import org.apache.spark.sql.{Dataset, Encoder, SparkSession, functions}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
@@ -13,9 +11,7 @@ import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
 import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
 
-import scala.reflect.ClassTag
 import scala.util.Try
-//import ru.itclover.tsp.spark.utils.EncoderInstances._
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -134,7 +130,6 @@ case class JdbcSource(
   override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder)
 
   override def createStream: Dataset[RowWithIdx] = {
-    import spark.implicits._
     spark.read
       .format("jdbc")
       .option("url", conf.jdbcUrl)
@@ -303,7 +298,6 @@ case class KafkaSource(
 //  )
 
   override def createStream: Dataset[RowWithIdx] = {
-    import spark.implicits._
     spark.readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", conf.brokers)
