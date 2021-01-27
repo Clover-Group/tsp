@@ -75,9 +75,10 @@ class SimpleCasesTest
 
   val port = 8161
   val influxPort = 8144
+  val chNativePort = 9098
   implicit val clickhouseContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
-    port -> 8123 :: 9098 -> 9000 :: Nil,
+    port -> 8123 :: chNativePort -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
     waitStrategy = Some(Wait.forHttp("/"))
