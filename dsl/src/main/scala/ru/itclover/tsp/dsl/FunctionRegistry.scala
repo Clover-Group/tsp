@@ -69,6 +69,8 @@ object FunctionRegistry {
 ))
 object DefaultFunctions extends LazyLogging{
 
+  // Here, asInstanceOf is used in a safe way.
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
       case value: Result[_]                                          => value.asInstanceOf[Result[T]]

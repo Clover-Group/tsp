@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive1, Route}
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.unmarshalling.FromRequestUnmarshaller
 import akka.stream.ActorMaterializer
 import cats.data.Reader
@@ -28,11 +28,11 @@ import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
+import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 import ru.itclover.tsp.spark
-import org.apache.spark.sql.{SaveMode, SparkSession, Row => SparkRow}
+import org.apache.spark.sql.{Row => SparkRow}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
@@ -235,7 +235,7 @@ trait JobsRoutes extends RoutesProtocols {
       case Right(Some(execResult)) => {
         // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
         val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
-        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
+        complete(SuccessfulResponse(ExecInfo(execTime.toDouble, Map.empty)))
       }
     }
     log.debug("matchResultToResponse finished")

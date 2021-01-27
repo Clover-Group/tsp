@@ -32,9 +32,11 @@ object ArrowOps {
 
   /**
     * Method for retrieving typed value from vector
+    * Uses asInstanceOf for converting, so disabling the wart warning
     * @param valueVector vector with raw value
     * @return typed value
     */
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def retrieveFieldValue(valueVector: FieldVector): BaseValueVector with FieldVector with VectorDefinitionSetter = {
 
     val valueInfo = typesMap(valueVector.getMinorType)
