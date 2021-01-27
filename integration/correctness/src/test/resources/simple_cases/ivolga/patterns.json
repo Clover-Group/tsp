@@ -4,6 +4,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog = 585",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -12,6 +13,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog != 511",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -20,6 +22,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog < 700",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -28,6 +31,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog > 690",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -36,6 +40,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog < 600 for 2 sec",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -44,6 +49,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog > 600 for 2 sec andThen car_2_TCU_out_E_Bog < 600",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -52,6 +58,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog = 530 and lag(car_2_TCU_out_E_Bog) = 700",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -60,6 +67,7 @@
     "sourceCode": "car_2_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_2_BCU_out_Indirect_Brake_Active = 0",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -68,6 +76,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_2_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -76,6 +85,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog = 585",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -84,6 +94,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog != 511",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -92,6 +103,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog < 700",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -100,6 +112,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog > 690",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -108,6 +121,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog < 600 for 2 sec",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -116,6 +130,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog > 600 for 2 sec andThen car_4_TCU_out_E_Bog < 600",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -124,6 +139,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog = 530 and lag(car_4_TCU_out_E_Bog) = 700",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -132,6 +148,7 @@
     "sourceCode": "car_4_BCU_out_Indirect_Brake_Active = 1 for 9 sec andThen car_4_BCU_out_Indirect_Brake_Active = 0",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -140,6 +157,7 @@
     "sourceCode": "car_4_TCU_out_E_Bog = 700 and car_2_BCU_out_Indirect_Brake_Active = 1 andThen Wait(3 sec, car_4_BCU_out_Indirect_Brake_Active = 1 for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -148,6 +166,7 @@
     "sourceCode": "ABKM_Brake_Pos > 1",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -156,6 +175,7 @@
     "sourceCode": "ABKM_Brake_Fail = 0",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -164,6 +184,7 @@
     "sourceCode": "PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE > 450 andThen wait(5 sec, PSN_1_is_working != 0 and PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_HV_OUTPUT_VOLTAGE < 450 for 5 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -172,6 +193,7 @@
     "sourceCode": "wait(3 sec, PSN_1_HV_INPUT_VOLTAGE > 2000 and PSN_1_is_working  > 0 and PSN_1_CHARGER_CHARGER_CURRENT < 0.5 for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -180,6 +202,7 @@
     "sourceCode": "SOC_2_UKV1_UOVS = 'OFF' and lag(SOC_2_UKV1_UOVS) = 'FAILURE'",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -188,6 +211,7 @@
     "sourceCode": "car_2_TCU_out_E_Bog = 700 and (SOC_2_UKV1_UOVS = 'OFF')",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -196,6 +220,7 @@
     "sourceCode": "Wait(3 sec, SOC_2_UKV1_UOVS = 'FAILURE' for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   }

@@ -4,6 +4,7 @@
     "sourceCode": "PowerPolling = 50",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -12,6 +13,7 @@
     "sourceCode": "PowerPolling > 20",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -20,6 +22,7 @@
     "sourceCode": "PowerPolling >= 20",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -28,6 +31,7 @@
     "sourceCode": "PowerPolling < 20",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -36,6 +40,7 @@
     "sourceCode": "PowerPolling <= 20",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -44,6 +49,7 @@
     "sourceCode": "PowerPolling <> 70",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -52,6 +58,7 @@
     "sourceCode": "POilDieselOut > 9.52 and SpeedThrustMin = 51",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -60,6 +67,7 @@
     "sourceCode": "wait(2 sec, POilDieselOut >= 9.52 for 2 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -68,6 +76,7 @@
     "sourceCode": "POilDieselOut <= 9.53 and SpeedThrustMin =51 andThen SpeedThrustMin = 52",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -76,6 +85,7 @@
     "sourceCode": "POilDieselOut = 9.53 or SpeedThrustMin = 51",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -84,6 +94,7 @@
     "sourceCode": "POilDieselOut < 9.50 until SpeedThrustMin > 51",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -92,6 +103,7 @@
     "sourceCode": "abs(SpeedThrustMin + POilDieselOut) > 40",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -100,6 +112,7 @@
     "sourceCode": "avg(SpeedThrustMin, 2 sec) = 22",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -108,6 +121,7 @@
     "sourceCode": "avgOf(POilDieselOut, SpeedThrustMin) > 0",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -116,6 +130,7 @@
     "sourceCode": "lag(POilDieselOut) < 0",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -124,6 +139,7 @@
     "sourceCode": "wait(1 sec, SpeedThrustMin = 0 for 1 sec andThen SpeedThrustMin > 40)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -132,6 +148,7 @@
     "sourceCode": "abs(POilDieselOut - 9.53) < 0.001 andThen Wait(3 sec, POilDieselOut < 9.50 for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -140,6 +157,7 @@
     "sourceCode": "wait(2 sec, abs(POilDieselOut + 0.12) < 0.00001 for 1 sec 2 to 2 times)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -148,6 +166,7 @@
     "sourceCode": "wait(2 sec, abs(POilDieselOut - 0.12) < 0.00001 for 2 sec > 2 times)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -156,6 +175,7 @@
     "sourceCode": "wait(1 sec, abs(POilDieselOut + 0.13) < 0.00001 for 1 sec 1 to 3 times)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -164,6 +184,7 @@
     "sourceCode": "wait(3 sec, POilDieselOut < lag(POilDieselOut) and lag(POilDieselOut) > lag(lag(POilDieselOut)))",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -172,6 +193,7 @@
     "sourceCode": "abs(POilDieselOut - 9.49) < 0.00001 and SpeedThrustMin = 53 and PowerPolling = 71 andThen wait(3 sec, abs(POilDieselOut - 9.48) < 0.00001 for 3 sec > 0 times and SpeedThrustMin = 54 for 3 sec > 0 times and PowerPolling = 70 for 3 sec > 0 times)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -180,6 +202,7 @@
     "sourceCode": "PowerPolling > 0 and abs(lag(POilDieselOut) - 6.41) < 0.00001 and abs(POilDieselOut - 6.42) < 0.00001 and SpeedThrustMin = 22 andThen wait(1 sec, SpeedThrustMin = 22 for 1 sec andThen wait(1 sec, SpeedThrustMin = 23 for 1 sec > 0 times))",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -188,6 +211,7 @@
     "sourceCode": "wait(3 sec,  abs(POilDieselOut - 6.00) < 0.00001  or SpeedThrustMin = 37 for 3 sec)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -196,6 +220,7 @@
     "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 12",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -204,6 +229,7 @@
     "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen SpeedThrustMin = 11",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -212,6 +238,7 @@
     "sourceCode": "abs(POilDieselOut - 4.00) < 0.00001 andThen wait(3 sec, SpeedThrustMin = 12 for 3 sec > 1 times)",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   },
@@ -220,6 +247,7 @@
     "sourceCode": "POilDieselOut >= 9.52 for 2 sec or POilDieselOut < 8.00",
     "payload": {
     },
+    "subunit": 1,
     "forwardedFields": [
     ]
   }

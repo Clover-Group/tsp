@@ -32,6 +32,8 @@ trait Logical[T] {
   def not(a: T): Boolean
 }
 
+// Here, we convert any incoming value to Boolean
+@SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
 object Logical {
 
   implicit val AnyLogical: Logical[Any] = new Logical[Any] {
