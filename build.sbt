@@ -146,8 +146,8 @@ lazy val root = (project in file("."))
 
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, dsl, itValid)
-  .dependsOn(core, config, http, flink, dsl, itValid)
+  .aggregate(core, config, http, flink, spark, dsl, itValid)
+  .dependsOn(core, config, http, flink, spark, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -192,7 +192,7 @@ lazy val dsl = project.in(file("dsl"))
 lazy val spark = project.in(file("spark"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.sparkDeps ++ Library.logging,
+    libraryDependencies ++= Library.scalaTest ++ Library.sparkDeps ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
