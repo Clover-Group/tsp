@@ -116,7 +116,7 @@ case class Timed[T](inner: TimeSeriesGenerator[T], dur: Duration) extends TimeSe
 
 case class Repeated[T](inner: TimeSeriesGenerator[T], times: Int) extends TimeSeriesGenerator[T] {
   assert(inner.howLong != Duration.Inf)
-  override def howLong: Duration = inner.howLong * times
+  override def howLong: Duration = inner.howLong * times.toDouble
 
   override def apply(v1: Duration): T = inner.apply(Duration.fromNanos(v1.toNanos % inner.howLong.toNanos))
 }

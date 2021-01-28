@@ -2,6 +2,8 @@ package ru.itclover.tsp.http
 
 import org.scalatest.{FlatSpec, Matchers}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class LauncherTest extends FlatSpec with Matchers {
   "Launcher" should "launch" in {
     a[RuntimeException] should be thrownBy Launcher.main(Array())

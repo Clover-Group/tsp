@@ -6,6 +6,8 @@ import ru.itclover.tsp.core.Intervals.{Inside, NumericInterval}
 /**
   * Test class for numeric interval
   */
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class NumericIntervalTest extends WordSpec with Matchers {
 
   "numeric interval" should {

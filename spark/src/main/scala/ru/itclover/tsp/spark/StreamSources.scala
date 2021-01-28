@@ -78,6 +78,10 @@ object StreamSource {
   var sparkMaster: String = "local"
 }
 
+// Stream sources deal heavily with Any values, so we must use it
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any"
+))
 object JdbcSource {
 
   def create(conf: JDBCInputConf, fields: Set[Symbol]): Either[ConfigErr, JdbcSource] =
@@ -94,6 +98,10 @@ object JdbcSource {
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
+// Stream sources deal heavily with Any values, so we must use it
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any"
+))
 case class JdbcSource(
                        conf: JDBCInputConf,
                        fieldsClasses: Seq[(Symbol, Class[_])],
@@ -198,6 +206,10 @@ case class JdbcSource(
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }
 
+// Stream sources deal heavily with Any values, so we must use it
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any"
+))
 object KafkaSource {
   def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(Symbol, Class[_])]] = Try(conf.fieldsTypes.map {
     case (fieldName, fieldType) =>
@@ -227,6 +239,10 @@ object KafkaSource {
     } yield source
 }
 
+// Stream sources deal heavily with Any values, so we must use it
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any"
+))
 case class KafkaSource(
                         conf: KafkaInputConf,
                         fieldsClasses: Seq[(Symbol, Class[_])],

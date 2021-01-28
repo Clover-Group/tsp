@@ -13,6 +13,8 @@ import ru.itclover.tsp.core.{IdxValue, Patterns, Result, StateMachine}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class SimplePatternTest extends FlatSpec with Matchers {
 
   val p = Patterns[EInt]

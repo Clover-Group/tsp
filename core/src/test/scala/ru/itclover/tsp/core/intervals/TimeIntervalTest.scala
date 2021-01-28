@@ -6,6 +6,8 @@ import ru.itclover.tsp.core.Intervals.{Inside, TimeInterval}
 /**
   * Test class for time interval
   */
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class TimeIntervalTest extends WordSpec with Matchers {
 
   "time interval" should {

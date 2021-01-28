@@ -19,6 +19,8 @@ import ru.itclover.tsp.utils.Files
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class BasicInfluxToJdbcTest
     extends FlatSpec
     with SqlMatchers

@@ -69,8 +69,8 @@ object FunctionRegistry {
 ))
 object DefaultFunctions extends LazyLogging{
 
-  // Here, asInstanceOf is used in a safe way.
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  // Here, asInstanceOf is used in a safe way (and conversion from null).
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
       case value: Result[_]                                          => value.asInstanceOf[Result[T]]
@@ -101,11 +101,11 @@ object DefaultFunctions extends LazyLogging{
         Result.fail
     }
 
-  private def fromNull[T](implicit ct: ClassTag[T]): Result[T] = ct.runtimeClass match {
-    case x if (x eq classOf[Double]) || (x eq classOf[java.lang.Double]) => Result.succ(Double.NaN.asInstanceOf[T])
-    case x if (x eq classOf[String]) || (x eq classOf[java.lang.String]) => Result.succ("".asInstanceOf[T])
-    case _ => Result.fail
-  }
+//  private def fromNull[T](implicit ct: ClassTag[T]): Result[T] = ct.runtimeClass match {
+//    case x if (x eq classOf[Double]) || (x eq classOf[java.lang.Double]) => Result.succ(Double.NaN.asInstanceOf[T])
+//    case x if (x eq classOf[String]) || (x eq classOf[java.lang.String]) => Result.succ("".asInstanceOf[T])
+//    case _ => Result.fail
+//  }
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
     implicit f: Fractional[T1],
@@ -115,7 +115,7 @@ object DefaultFunctions extends LazyLogging{
     val astType2: ASTType = ASTType.of[T2]
     def func(f: (T1, T2) => T1): (PFunction, ASTType) = (
       (xs: Seq[Any]) =>
-        (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+        (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
           case (Succ(t0), Succ(t1)) => Result.succ(f(t0, t1))
           case _                    => Result.fail
         },
@@ -127,7 +127,7 @@ object DefaultFunctions extends LazyLogging{
       ('mul, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
             },
@@ -137,7 +137,7 @@ object DefaultFunctions extends LazyLogging{
       ('div, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
             },
@@ -147,7 +147,7 @@ object DefaultFunctions extends LazyLogging{
       ('add, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.plus(t0, t1))
               case _                    => Result.fail
             },
@@ -157,7 +157,7 @@ object DefaultFunctions extends LazyLogging{
       ('sub, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.minus(t0, t1))
               case _                    => Result.fail
             },
@@ -167,7 +167,7 @@ object DefaultFunctions extends LazyLogging{
       ('mul, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.times(t0, t1))
               case _                    => Result.fail
             },
@@ -177,7 +177,7 @@ object DefaultFunctions extends LazyLogging{
       ('div, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(f.div(t0, t1))
               case _                    => Result.fail
             },
@@ -192,79 +192,79 @@ object DefaultFunctions extends LazyLogging{
     Map(
       ('abs, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.abs(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.abs(_)),
           astType
         )
       ),
       ('sin, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.sin(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.sin(_)),
           astType
         )
       ),
       ('cos, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.cos(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.cos(_)),
           astType
         )
       ),
       ('tan, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
           astType
         )
       ),
       ('tg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
           astType
         )
       ),
       ('cot, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(1.0 / Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
           astType
         )
       ),
       ('ctg, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(1.0 / Math.tan(_)),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
           astType
         )
       ),
       ('sind, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.sin(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.sin(Math.toRadians(x))),
           astType
         )
       ),
       ('cosd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.cos(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.cos(Math.toRadians(x))),
           astType
         )
       ),
       ('tand, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('tgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('cotd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => 1.0 / Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       ),
       ('ctgd, Seq(astType)) -> (
         (
-          (xs: Seq[Any]) => toResult[T](xs.head).map(x => 1.0 / Math.tan(Math.toRadians(x))),
+          (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       )
@@ -281,7 +281,7 @@ object DefaultFunctions extends LazyLogging{
       //log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
       //log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
       //log.info(s"Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
-      (toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit))) match {
+      (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(Unit))) match {
         case (Succ(x0), Succ(x1)) =>
           sym match {
 
@@ -329,7 +329,7 @@ object DefaultFunctions extends LazyLogging{
       ('lt, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
             },
@@ -339,7 +339,7 @@ object DefaultFunctions extends LazyLogging{
       ('le, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
             },
@@ -349,7 +349,7 @@ object DefaultFunctions extends LazyLogging{
       ('gt, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
             },
@@ -359,7 +359,7 @@ object DefaultFunctions extends LazyLogging{
       ('ge, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
             },
@@ -369,7 +369,7 @@ object DefaultFunctions extends LazyLogging{
       ('eq, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -379,7 +379,7 @@ object DefaultFunctions extends LazyLogging{
       ('ne, Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T1](xs.head), toResult[T2](xs(1))) match {
+            (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -389,7 +389,7 @@ object DefaultFunctions extends LazyLogging{
       ('lt, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
               case _                    => Result.fail
             },
@@ -399,7 +399,7 @@ object DefaultFunctions extends LazyLogging{
       ('le, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
               case _                    => Result.fail
             },
@@ -409,7 +409,7 @@ object DefaultFunctions extends LazyLogging{
       ('gt, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
               case _                    => Result.fail
             },
@@ -419,7 +419,7 @@ object DefaultFunctions extends LazyLogging{
       ('ge, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
               case _                    => Result.fail
             },
@@ -429,7 +429,7 @@ object DefaultFunctions extends LazyLogging{
       ('eq, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
               case _                    => Result.fail
             },
@@ -439,7 +439,7 @@ object DefaultFunctions extends LazyLogging{
       ('ne, Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
-            (toResult[T2](xs.head), toResult[T1](xs(1))) match {
+            (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
               case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
               case _                    => Result.fail
             },
