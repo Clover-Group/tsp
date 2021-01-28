@@ -89,10 +89,6 @@ class MonitoringMockTest
       response.status shouldBe StatusCodes.OK
     }
 
-    Get("/job/3/statusAndMetrics") ~> monitoringRoutes.route ~> check {
-      response.status shouldBe StatusCodes.BadRequest
-    }
-
     Get("/job/3/status") ~> monitoringRoutes.route ~> check {
       response.status shouldBe StatusCodes.BadRequest
     }

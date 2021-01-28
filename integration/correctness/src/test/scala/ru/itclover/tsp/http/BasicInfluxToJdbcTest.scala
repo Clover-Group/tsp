@@ -31,6 +31,7 @@ class BasicInfluxToJdbcTest
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   val spark = SparkSession.builder()
@@ -150,17 +151,15 @@ class BasicInfluxToJdbcTest
     route ~> check {
       status shouldEqual StatusCodes.OK
 
+      // for 65001
       checkByQuery(
         List(List(2.0)),
-        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 1 and " +
-          "visitParamExtractString(context, 'mechanism_id') = '65001'"
+        "SELECT toUnixTimestamp(to) - toUnixTimestamp(from) FROM Test.SM_basic_patterns WHERE id = 1 "
       )
 
       checkByQuery(
-        List(),
-        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 3 and " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001' " +
-          "and visitParamExtractFloat(context, 'speed') = 20.0"
+        List(List(1.0), List(1.0)),
+        "SELECT toUnixTimestamp(to) - toUnixTimestamp(from) FROM Test.SM_basic_patterns WHERE id = 3 "
       )
 
     }
@@ -174,15 +173,16 @@ class BasicInfluxToJdbcTest
     route ~> check {
       status shouldEqual StatusCodes.OK
 
+      // for 65001
       checkByQuery(
         List(List(0.0)),
-        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 10 AND " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'"
+        "SELECT toUnixTimestamp(to) - toUnixTimestamp(from) FROM Test.SM_basic_patterns WHERE id = 10 "
       )
+
+      // for 65001 and 65002
       checkByQuery(
-        List(List(2.0)),
-        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 11 AND " +
-        "visitParamExtractString(context, 'mechanism_id') = '65001'"
+        List(List(2.0), List(0.0)),
+        "SELECT toUnixTimestamp(to) - toUnixTimestamp(from) FROM Test.SM_basic_patterns WHERE id = 11 "
       )
     }
   }
@@ -200,8 +200,7 @@ class BasicInfluxToJdbcTest
 
       checkByQuery(
         List(List(0.0)),
-        "SELECT to - from FROM Test.SM_basic_patterns WHERE id = 20 AND " +
-          "visitParamExtractString(context, 'mechanism_id') = '65001'"
+        "SELECT toUnixTimestamp(to) - toUnixTimestamp(from) FROM Test.SM_basic_patterns WHERE id = 20 "
       )
     }
   }

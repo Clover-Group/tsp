@@ -30,6 +30,7 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   val spark = SparkSession.builder()

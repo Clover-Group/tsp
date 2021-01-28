@@ -30,6 +30,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
+  streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   val spark = SparkSession.builder()
@@ -163,7 +164,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       // Correctness
       checkByQuery(
         List(List(0.0)),
-        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4990 AND to - from > 900"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4990 AND toUnixTimestamp(to) - toUnixTimestamp(from) > 900"
       )
       // Performance
       execTimeS should be <= countWindowMaxTimeSec
@@ -182,7 +183,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       // Correctness
       checkByQuery(
         List(List(0.0)),
-        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND to - from > 990"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 499 AND toUnixTimestamp(to) - toUnixTimestamp(from) > 990"
       )
       // Performance
       execTimeS should be <= timeWindowMaxTimeSec
@@ -204,7 +205,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       // Correctness
       checkByQuery(
         List(List(0.0)),
-        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND to - from > 990"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4991 AND toUnixTimestamp(to) - toUnixTimestamp(from) > 990"
       )
       // Performance
       execTimeS should be <= nestedTimeWindowMaxTimeSec
@@ -226,7 +227,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       // Correctness
       checkByQuery(
         List(List(0.0)),
-        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND to - from > 990"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 988 AND toUnixTimestamp(to) - toUnixTimestamp(from) > 990"
       )
       // Performance
       execTimeS should be <= timeWindowCountMaxTimeSec
@@ -245,7 +246,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       // Correctness
       checkByQuery(
         List(List(0.0)),
-        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND to - from > 990"
+        "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 466 AND toUnixTimestamp(to) - toUnixTimestamp(from) > 990"
       )
       // Performance
       execTimeS should be <= timedMaxTimeSec
