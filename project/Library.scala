@@ -65,7 +65,10 @@ object Library {
   val logging: Seq[ModuleID] = Seq(
     "org.apache.logging.log4j" % "log4j-api" % Version.log4j,
     "org.apache.logging.log4j" % "log4j-core" % Version.log4j,
-    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging
+    "org.apache.logging.log4j" % "log4j-slf4j-impl" % Version.log4j,
+    "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
+    "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % Version.jackson,
+    "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson
   )
 
   val config: Seq[ModuleID] = Seq(
