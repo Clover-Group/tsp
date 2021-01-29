@@ -96,19 +96,17 @@ class SimpleCasesTest
       waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
     )
 
-  /*val kafkaContainer = DockerComposeContainer(
-    new File("integration/correctness/src/test/resources/kafka-docker-compose.yml"),
-    exposedServices = Seq(ExposedService("kafka_1", 9092))
-  )*/
+  val kafkaContainer = KafkaContainer()
 
 
   override val container = MultipleContainers(
     clickhouseContainer,
     influxContainer,
-    //kafkaContainer
+    kafkaContainer
   )
 
-  val kafkaBrokerUrl = "localhost:9092"
+  val kafkaBrokerHost = "127.0.0.1"
+  lazy val kafkaBrokerUrl = s"$kafkaBrokerHost:${kafkaContainer.mappedPort(9092)}"
 
   val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
@@ -282,7 +280,7 @@ class SimpleCasesTest
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
 
-  val wideSparkKafkaInputConf = SparkKafkaInputConf(
+  lazy val wideSparkKafkaInputConf = SparkKafkaInputConf(
     sourceId = 500,
     brokers = kafkaBrokerUrl,
     topic = "2te116u_tmy_test_simple_rules",
@@ -445,18 +443,18 @@ class SimpleCasesTest
     )
 
     // Kafka producer
-//    val props = new Properties()
-//    props.put("bootstrap.servers", kafkaBrokerUrl)
-//    props.put("acks", "all")
-//    props.put("retries", "2")
-//    props.put("auto.commit.interval.ms", "1000")
-//    props.put("linger.ms", "1")
-//    props.put("block.on.buffer.full", "true")
-//    props.put("auto.create.topics.enable", "true")
-//    props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-//    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+    val props = new Properties()
+    props.put("bootstrap.servers", kafkaBrokerUrl)
+    props.put("acks", "all")
+    props.put("retries", "2")
+    props.put("auto.commit.interval.ms", "1000")
+    props.put("linger.ms", "1")
+    props.put("block.on.buffer.full", "true")
+    props.put("auto.create.topics.enable", "true")
+    props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-//    val producer = new KafkaProducer[String, String](props)
+    val producer = new KafkaProducer[String, String](props)
 
     insertInfo.foreach(elem => {
 
@@ -466,29 +464,29 @@ class SimpleCasesTest
 
       clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
-//      val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
-//      val data = Files.readResource(elem._2).drop(1).map(_.split(","))
-//      val numberIndices = List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
-//
-//      data.foreach { row =>
-//        val convertedRow: Seq[Any] = row.indices.map(idx => if (numberIndices.contains(idx)) {
-//          if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
-//        } else row(idx))
-//        val msgKey = UUID.randomUUID().toString
-//        val msgMap = headers.zip(convertedRow).toMap[String, Any]
-//        val json = "{" + msgMap.map {
-//          case (k, v) => v match {
-//            case _: String => s""""$k": "$v""""
-//            case _         => s""""$k": $v"""
-//          }
-//        }.mkString(", ") + "}"
-//        val topic = elem._1.filter(_ != '`')
-//        println(s"Sending to $topic $msgKey --- $json")
-//        producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
-//      }
+      val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
+      val data = Files.readResource(elem._2).drop(1).map(_.split(","))
+      val numberIndices = List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
+
+      data.foreach { row =>
+        val convertedRow: Seq[Any] = row.indices.map(idx => if (numberIndices.contains(idx)) {
+          if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
+        } else row(idx))
+        val msgKey = UUID.randomUUID().toString
+        val msgMap = headers.zip(convertedRow).toMap[String, Any]
+        val json = "{" + msgMap.map {
+          case (k, v) => v match {
+            case _: String => s""""$k": "$v""""
+            case _         => s""""$k": $v"""
+          }
+        }.mkString(", ") + "}"
+        val topic = elem._1.filter(_ != '`')
+        println(s"Sending to $topic $msgKey --- $json")
+        producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
+      }
     })
 
-    //producer.close()
+    producer.close()
   }
 
   def firstValidationQuery(table: String, numbers: Seq[Range]) = s"""
@@ -756,30 +754,30 @@ class SimpleCasesTest
     )
     alertByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_spark_test"))
   }
-//    "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
-//      casesPatterns.keys.foreach { id =>
-//        Post(
-//          "/sparkJob/from-kafka/to-jdbc/?run_async=0",
-//          FindPatternsRequest(s"17kafkawide_$id", wideSparkKafkaInputConf, wideSparkKafkaOutputConf, List(casesPatterns(id)))
-//        ) ~>
-//          route ~> check {
-//          withClue(s"Pattern ID: $id") {
-//            status shouldEqual StatusCodes.OK
-//          }
-//          //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//        }
-//      }
-//      alertByQuery(
-//        incidentsCount
-//          .map {
-//            case (k, v) => List(k.toDouble, v.toDouble)
-//          }
-//          .toList
-//          .sortBy(_.headOption.getOrElse(Double.NaN)),
-//        firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//      )
-//      alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
-//    }
+    "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
+      casesPatterns.keys.foreach { id =>
+        Post(
+          "/sparkJob/from-kafka/to-jdbc/?run_async=0",
+          FindPatternsRequest(s"17kafkawide_$id", wideSparkKafkaInputConf, wideSparkKafkaOutputConf, List(casesPatterns(id)))
+        ) ~>
+          route ~> check {
+          withClue(s"Pattern ID: $id") {
+            status shouldEqual StatusCodes.OK
+          }
+          //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+        }
+      }
+      alertByQuery(
+        incidentsCount
+          .map {
+            case (k, v) => List(k.toDouble, v.toDouble)
+          }
+          .toList
+          .sortBy(_.headOption.getOrElse(Double.NaN)),
+        firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+      )
+      alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
+    }
 }
 
 
