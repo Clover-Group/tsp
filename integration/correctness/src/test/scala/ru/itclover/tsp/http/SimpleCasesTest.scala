@@ -1,6 +1,5 @@
 package ru.itclover.tsp.http
 
-import java.io.File
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
@@ -8,7 +7,7 @@ import com.dimafeng.testcontainers._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.{Properties, UUID}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, _}
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{Assertion, FlatSpec}
@@ -253,20 +252,20 @@ class SimpleCasesTest
     patternIdField = 'id,
     subunitIdField = 'subunit
   )
-//  val wideKafkaInputConf = KafkaInputConf(
-//    brokers = kafkaBrokerUrl,
-//    topic = "2te116u_tmy_test_simple_rules",
-//    datetimeField = 'dt,
-//    partitionFields = Seq('loco_num, 'section, 'upload_id),
-//    fieldsTypes = Map("dt" -> "float64",
-//      "upload_id" -> "string",
-//      "loco_num" -> "string",
-//      "section" -> "string",
-//      "POilDieselOut" -> "float64",
-//      "SpeedThrustMin" -> "float64",
-//      "PowerPolling" -> "float64"
-//    )
-//  )
+  lazy val wideKafkaInputConf = KafkaInputConf(
+    brokers = kafkaBrokerUrl,
+    topic = "2te116u_tmy_test_simple_rules",
+    datetimeField = 'dt,
+    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    fieldsTypes = Map("dt" -> "float64",
+      "upload_id" -> "string",
+      "loco_num" -> "string",
+      "section" -> "string",
+      "POilDieselOut" -> "float64",
+      "SpeedThrustMin" -> "float64",
+      "PowerPolling" -> "float64"
+    )
+  )
 
   val wideSparkInputConf = SparkJDBCInputConf(
     sourceId = 100,
@@ -331,8 +330,8 @@ class SimpleCasesTest
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
   val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
 
-//  val wideKafkaRowSchema =
-//    RowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'timestamp, 'context, wideKafkaInputConf.partitionFields)
+  val wideKafkaRowSchema =
+    NewRowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'subunit)
 
   val wideSparkRowSchema =
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
@@ -372,12 +371,12 @@ class SimpleCasesTest
     rowSchema = wideIvolgaRowSchema
   )
 
-//  val wideKafkaOutputConf = JDBCOutputConf(
-//    "events_wide_kafka_test",
-//    wideKafkaRowSchema,
-//    s"jdbc:clickhouse://localhost:$port/default",
-//    "ru.yandex.clickhouse.ClickHouseDriver"
-//  )
+  val wideKafkaOutputConf = JDBCOutputConf(
+    "events_wide_kafka_test",
+    wideKafkaRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
 
   val wideSparkOutputConf = SparkJDBCOutputConf(
     "events_wide_spark_test",
@@ -509,6 +508,8 @@ class SimpleCasesTest
     container.stop()
   }
 
+  // Here, default argument for `epsilon` is useful.
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def alertByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001): Assertion = {
     Try(checkByQuery(expectedValues, query, epsilon)) match {
       case Failure(exception) =>
@@ -656,31 +657,31 @@ class SimpleCasesTest
     inner(numbers, Nil)
   }
 
-//  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-kafka/to-jdbc/?run_async=1",
-//        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    Thread.sleep(50000)
-//    alertByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.head),
-//      s"SELECT id, COUNT(*) FROM events_wide_kafka_test GROUP BY id ORDER BY id"
-//    )
-//    alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
-//  }
+  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/streamJob/from-kafka/to-jdbc/?run_async=1",
+        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    Thread.sleep(50000)
+    alertByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
+      s"SELECT id, COUNT(*) FROM events_wide_kafka_test GROUP BY id ORDER BY id"
+    )
+    alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
+  }
 
   "Cases 1-17, 43-50" should "work in wide table with Spark" in {
     casesPatterns.keys.toList.sorted.foreach { id =>

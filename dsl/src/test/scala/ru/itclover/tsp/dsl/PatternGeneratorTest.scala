@@ -6,6 +6,8 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.reflect.ClassTag
 
+// This test explicitly uses Any values.
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 class PatternGeneratorTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
   import TestEvents._
 

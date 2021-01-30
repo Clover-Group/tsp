@@ -5,6 +5,7 @@ import org.scalatest.{Matchers, WordSpec}
 /**
   * Test class for decoders
   */
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 class DecodersTest extends WordSpec with Matchers {
 
   "any decoders" should {

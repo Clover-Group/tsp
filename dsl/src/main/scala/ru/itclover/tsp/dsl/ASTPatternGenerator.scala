@@ -13,7 +13,12 @@ import scala.reflect.ClassTag
 trait AnyState[T]
 
 // We heavily deal with Any values here. But still TODO: investigate
-@SuppressWarnings(Array("org.wartremover.warts.Any"))
+// Also type-casting via asInstanceOf/isInstanceOf.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any",
+  "org.wartremover.warts.AsInstanceOf",
+  "org.wartremover.warts.IsInstanceOf"
+))
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],

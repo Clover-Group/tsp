@@ -5,6 +5,8 @@ import ru.itclover.tsp.core.{RawPattern, Time}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 
 // Helper method to extract only the used fields (identifiers) from the list of patterns
+// Can use Any values.
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object PatternFieldExtractor {
 
   def extract[E, EKey, EItem](patterns: Seq[RawPattern])(
@@ -13,6 +15,11 @@ object PatternFieldExtractor {
     val dummyTimeExtractor = new TimeExtractor[E] {
       override def apply(e: E): Time = Time(0)
     }
+    // Extracting nulls and converting to T.
+    @SuppressWarnings(Array(
+      "org.wartremover.warts.Null",
+      "org.wartremover.warts.AsInstanceOf"
+    ))
     val dummyExtractor = new Extractor[E, EKey, EItem] {
       override def apply[T](e: E, k: EKey)(implicit d: Decoder[EItem, T]): T = null.asInstanceOf[T]
     }

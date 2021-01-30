@@ -19,6 +19,8 @@ object PatternsValidator {
       p => (p, new ASTBuilder(p.sourceCode, 0.0, 1000L, toClassTags(fieldsTypes)).start.run().toEither)
     )
 
+  // This method may use Any values.
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def toClassTags(fields: Map[String, String]): Map[Symbol, ClassTag[_]] = fields.map {
     case (name, dataType) =>
       Symbol(name) -> (dataType match {

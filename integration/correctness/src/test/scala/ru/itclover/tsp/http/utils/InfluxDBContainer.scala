@@ -11,6 +11,8 @@ import scala.collection.JavaConverters._
 import scala.language.existentials
 import scala.util.{Failure, Success}
 
+// Default arguments for constructing a container are useful
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 class InfluxDBContainer(
   imageName: String,
   val portsBindings: List[(Int, Int)] = List.empty,
@@ -33,13 +35,17 @@ class InfluxDBContainer(
   }
   env.foreach(Function.tupled(container.withEnv))
   if (command.nonEmpty) {
-    container.withCommand(command: _*)
+    val _ = container.withCommand(command: _*)
   }
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
 
+  // We cannot initialise `db` here yet
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
   var db: InfluxDB = _
 
+  // This must throw an exception upon error
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   override def start(): Unit = {
     super.start()
     val conf = InfluxDBService.InfluxConf(url, dbName, Some(userName), Some(password), 30L, false)

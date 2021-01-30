@@ -88,14 +88,30 @@ object Library {
   val flinkCore: Seq[ModuleID] = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
 
   val flink: Seq[ModuleID] = flinkCore ++ Seq(
-    "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
-    "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-    "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
-    "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
-    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
-    "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
-    "org.apache.flink" % "flink-avro" % Version.flink,
-    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
+    "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" %% "flink-streaming-scala" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" % "flink-jdbc_2.12" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" % "flink-avro" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink exclude(
+      "org.slf4j", "slf4j-log4j12"
+    )
   )
 
   val akka: Seq[ModuleID] = Seq(
@@ -162,9 +178,17 @@ object Library {
   )
 
   val sparkDeps: Seq[ModuleID] = Seq(
-    "org.apache.spark" %% "spark-sql" % Version.spark,
-    "org.apache.spark" %% "spark-streaming" % Version.spark,
-    "org.apache.spark" %% "spark-mllib" % Version.spark,
-    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark
+    "org.apache.spark" %% "spark-sql" % Version.spark exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.spark" %% "spark-streaming" % Version.spark exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.spark" %% "spark-mllib" % Version.spark exclude(
+      "org.slf4j", "slf4j-log4j12"
+    ),
+    "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark exclude(
+      "org.slf4j", "slf4j-log4j12"
+    )
   )
 }

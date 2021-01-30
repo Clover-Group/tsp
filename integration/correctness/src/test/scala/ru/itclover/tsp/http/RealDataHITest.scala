@@ -23,7 +23,11 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.Success
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
-@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+// Also, some test cases indirectly use Any type.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
 class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
@@ -127,7 +131,7 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness TODO: check the actual values
@@ -135,8 +139,8 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
       checkByQuery(List(List(1078.0)), "SELECT count(*) FROM Test.SM_basic_patterns WHERE id = 4") // was 1832
 
       // Performance
-      val fromT = timeRangeSec.head.toDouble
-      val toT = timeRangeSec.last.toDouble
+      val fromT = timeRangeSec.headOption.map(_.toDouble).getOrElse(Double.NaN)
+      val toT = timeRangeSec.lastOption.map(_.toDouble).getOrElse(Double.NaN)
       execTimeS should ((be >= fromT).and(be <= toT))
     }
   }

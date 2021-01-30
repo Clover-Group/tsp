@@ -9,6 +9,8 @@ import UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 
+// Can throw ParseException upon validation. Maybe should return Either instead.
+@SuppressWarnings(Array("org.wartremover.warts.Throw"))
 sealed trait AST extends Product with Serializable {
   val valueType: ASTType
 
@@ -38,9 +40,10 @@ case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
   override val valueType: ASTType = ASTType.of[T]
 }
 
-// TODO@trolley Rm with Function1, Function2, Function3 - boilerplate is better than mutable maps and extra complexity
+// Can throw ParseException upon validation. Maybe should return Either instead.
+@SuppressWarnings(Array("org.wartremover.warts.Throw"))
 case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: FunctionRegistry) extends AST {
-  override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
+  override def metadata = arguments.map(_.metadata).reduceOption(_ |+| _).getOrElse(PatternMetadata(Set.empty, 0L))
   override val valueType: ASTType = fr.functions.get((functionName, arguments.map(_.valueType))) match {
     case Some((_, t)) => t
     case None =>
@@ -58,7 +61,12 @@ case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: 
   }
 }
 
-case class ReducerFunctionCall(functionName: Symbol, @transient cond: Result[Any] => Boolean, arguments: Seq[AST])(
+// Can throw ParseException upon validation. Maybe should return Either instead.
+// Result in cond may be Any.
+@SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.Any"))
+case class ReducerFunctionCall(functionName: Symbol,
+                               @transient cond: Result[Any] => Boolean,
+                               arguments: Seq[AST])(
   implicit fr: FunctionRegistry
 ) extends AST {
   // require the same type for all arguments
@@ -71,7 +79,7 @@ case class ReducerFunctionCall(functionName: Symbol, @transient cond: Result[Any
       )
   }
 
-  override def metadata = arguments.map(_.metadata).reduce(_ |+| _)
+  override def metadata = arguments.map(_.metadata).reduceOption(_ |+| _).getOrElse(PatternMetadata(Set.empty, 0L))
   override val valueType: ASTType = fr.reducers.get((functionName, arguments(0).valueType)) match {
     case Some((_, t, _, _)) => t
     case None =>
@@ -90,6 +98,8 @@ case class AndThen(first: AST, second: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
+// Default gap is useful.
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 case class Timer(cond: AST, interval: TimeInterval, maxGapMs: Long, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
   override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(interval.max))
@@ -97,6 +107,8 @@ case class Timer(cond: AST, interval: TimeInterval, maxGapMs: Long, gap: Option[
   override val valueType: ASTType = BooleanASTType
 }
 
+// Default gap is useful.
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 case class Wait(cond: AST, window: Window, gap: Option[Window] = None) extends AST {
   // Careful! Could be wrong, depending on the PatternMetadata.sumWindowsMs use-cases
   override def metadata = cond.metadata |+| PatternMetadata(Set.empty, gap.map(_.toMillis).getOrElse(window.toMillis))
@@ -123,6 +135,8 @@ case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window,
   override val valueType = BooleanASTType
 }
 
+// Default gap is useful.
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 case class AggregateCall(function: AggregateFn, value: AST, window: Window, gap: Option[Window] = None) extends AST {
   override def metadata = value.metadata |+| PatternMetadata(Set.empty, gap.getOrElse(window).toMillis)
 
@@ -135,6 +149,8 @@ case object Count extends AggregateFn
 case object Avg extends AggregateFn
 case object Lag extends AggregateFn
 
+// Can throw ParseException upon validation. Maybe should return Either instead.
+@SuppressWarnings(Array("org.wartremover.warts.Throw"))
 object AggregateFn {
 
   def fromSymbol(name: Symbol): AggregateFn = name match {

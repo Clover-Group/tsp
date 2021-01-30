@@ -4,12 +4,12 @@ import com.dimafeng.testcontainers._
 import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
+import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
 
-class AggregatorsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
+class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
 
   val port = 8136
   implicit override val container = new JDBCContainer(

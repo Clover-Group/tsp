@@ -19,6 +19,12 @@ import ru.itclover.tsp.utils.Files
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+// Also, some test cases indirectly use Any type.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
 class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global

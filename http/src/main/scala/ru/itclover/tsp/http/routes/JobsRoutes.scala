@@ -43,6 +43,11 @@ import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, Err => 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
+// We use here Any and asInstanceOf. Probably cannot be done in other ways
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Any",
+  "org.wartremover.warts.AsInstanceOf"
+))
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
   val blockingExecutionContext: ExecutionContextExecutor
@@ -72,7 +77,7 @@ trait JobsRoutes extends RoutesProtocols {
           import request._
           val fields = PatternFieldExtractor.extract(patterns)
 
-          val srcOrError = from match {
+          val srcOrError: Either[Err, StreamSource[RowWithIdx, Symbol, Any]] = from match {
             case "jdbc" => JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
             case "influxdb" => InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
             case "kafka" => KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)

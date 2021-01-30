@@ -24,7 +24,11 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.Success
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
-@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
+// Also, some test cases indirectly use Any type.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
 class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
@@ -158,7 +162,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
@@ -177,7 +181,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
@@ -199,7 +203,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
@@ -221,7 +225,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness
@@ -240,7 +244,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness

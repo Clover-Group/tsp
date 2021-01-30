@@ -8,7 +8,7 @@ import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
-import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
+import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.JDBCOutputConf
 import ru.itclover.tsp.utils.Files
@@ -17,7 +17,13 @@ import spray.json.ParserInput.StringBasedParserInput
 
 import scala.util.Success
 
-class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+// Also, some test cases indirectly use Any type.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
+class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
 
   val spark = SparkSession.builder()
     .master("local")
@@ -64,7 +70,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
     val insertString = (Iterator("INSERT INTO ep2k_tmy_20190708_wide_rep FORMAT CSV") ++ inputCSV).mkString("\n")
     container.executeUpdate(insertString)
 
-    Files.readResource("/debug/sink-schema.sql").mkString.split(";").map(container.executeUpdate)
+    Files.readResource("/debug/sink-schema.sql").mkString.split(";").foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {
@@ -96,7 +102,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMathers with ForAllTest
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
       resp shouldBe a[Success[_]]
-      val execTimeS = resp.get.response.execTimeSec
+      val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.MaxValue)
       log.info(s"Test job completed for $execTimeS sec.")
 
       // Correctness

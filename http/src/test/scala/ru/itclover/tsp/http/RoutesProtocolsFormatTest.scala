@@ -5,10 +5,11 @@ import ru.itclover.tsp.io.input.{NarrowDataUnfolding, WideDataFilling}
 import spray.json.{JsBoolean, JsNumber, JsString, JsValue}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
-// Also, this test uses Any values as test cases.
+// Also, this test uses Any values as test cases and asInstanseOf methods for type conversion.
 @SuppressWarnings(Array(
   "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
+  "org.wartremover.warts.Any",
+  "org.wartremover.warts.AsInstanceOf"
 ))
 class RoutesProtocolsFormatTest extends FlatSpec with Matchers with RoutesProtocols {
 

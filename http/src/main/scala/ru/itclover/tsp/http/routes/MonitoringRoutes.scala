@@ -18,9 +18,7 @@ import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers._
 import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.metrics
 
 import scala.concurrent.ExecutionContextExecutor
-// import ru.itclover.tsp.BuildInfo
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.http.services.streaming.{FlinkMonitoringService, SparkMonitoringService, MonitoringServiceProtocols}
 import spray.json.PrettyPrinter
 import org.apache.spark.sql.SparkSession

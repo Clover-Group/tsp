@@ -9,6 +9,8 @@ import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericCo
 import scala.collection.JavaConverters._
 import scala.language.existentials
 
+// Default arguments for constructing a container are useful
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 class JDBCContainer(
   imageName: String,
   val portsBindings: List[(Int, Int)] = List.empty,
@@ -29,18 +31,20 @@ class JDBCContainer(
   }
   env.foreach(Function.tupled(container.withEnv))
   if (command.nonEmpty) {
-    container.withCommand(command: _*)
+    val _ = container.withCommand(command: _*)
   }
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
 
+  // We cannot initialise `connection` here yet
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
   var connection: Connection = _
 
   override def start(): Unit = {
     super.start()
     Thread.sleep(8000)
     connection = {
-      Class.forName(driverName)
+      val _ = Class.forName(driverName)
       DriverManager.getConnection(jdbcUrl)
     }
   }

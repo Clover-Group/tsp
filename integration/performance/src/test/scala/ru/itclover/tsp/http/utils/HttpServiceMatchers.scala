@@ -15,7 +15,13 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 import scala.util.Success
 
-trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpService { self: Suite =>
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+// We suppress Any for `shouldBe empty` statements.
+@SuppressWarnings(Array(
+  "org.wartremover.warts.NonUnitStatements",
+  "org.wartremover.warts.Any"
+))
+trait HttpServiceMatchers extends ScalatestRouteTest with Matchers with HttpService { self: Suite =>
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
@@ -39,6 +45,8 @@ trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpServi
   val log = Logger("HttpServiceMathers")
 
   /** Util for checking segments count and size in seconds */
+  // Here, default argument for `epsilon` is useful.
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def checkByQuery(expectedValues: Seq[Double], query: String, epsilon: Double = 0.0001)
                   (implicit container: JDBCContainer): Unit = {
     val resultSet = container.executeQuery(query)
@@ -53,8 +61,11 @@ trait HttpServiceMathers extends ScalatestRouteTest with Matchers with HttpServi
     status shouldEqual StatusCodes.OK
     val resp = unmarshal[FinishedJobResponse](responseEntity)
     resp shouldBe a[Success[_]]
-    val execTimeS = resp.get.response.execTimeSec
-    log.info(s"Test job completed for $execTimeS sec.")
+    val execTimeS = resp.map(_.response.execTimeSec).getOrElse(Double.NaN)
+    if (execTimeS.isNaN)
+      log.warn(s"Test job probably failed.")
+    else
+      log.info(s"Test job completed for $execTimeS sec.")
     execTimeS
   }
 }

@@ -8,6 +8,8 @@ import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
+// This test uses Any values.
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 class FootprintBench extends FlatSpec with Matchers {
 
   import TestEvents._
@@ -25,7 +27,7 @@ class FootprintBench extends FlatSpec with Matchers {
     val sm = StateMachine[Id]
     val initialState = pattern.initialState()
     val collect = new ArrayBuffer[(Long, Long)](events.size)
-    sm.run(pattern, events, initialState, (x: IdxValue[T]) => collect += (x.start -> x.end), 1000)
+    val _ = sm.run(pattern, events, initialState, (x: IdxValue[T]) => {val _ = collect += (x.start -> x.end)}, 1000)
     val time = (System.nanoTime() - start) / 1000000
     println(time)
     time
@@ -49,8 +51,8 @@ class FootprintBench extends FlatSpec with Matchers {
         fieldsClasses
       )
       .right
-      .get
-      ._1
+      .map(_._1)
+      .getOrElse(???)
 
 //    val optimizedPattern = new Optimizer[TestEvent].optimize(patternString)
     val actualTime = repeat(5, 1000, patternString)

@@ -7,6 +7,8 @@ import ru.itclover.tsp.http.services.streaming.MonitoringServiceProtocols
 
 import scala.concurrent.{ExecutionContext, Future, Promise, blocking}
 
+// Storing state in vars (but maybe better solution available)
+@SuppressWarnings(Array("org.wartremover.warts.Var"))
 object MockServer extends HttpApp with MonitoringServiceProtocols {
   private var shouldStop = false
   private var runs = false
@@ -81,13 +83,15 @@ object MockServer extends HttpApp with MonitoringServiceProtocols {
 //    }
 //    .result()
 
+  // for Future object
+  @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
   override def waitForShutdownSignal(
     actorSystem: ActorSystem
   )(implicit executionContext: ExecutionContext): Future[Done] = {
     val promise = Promise[Done]()
-    sys.addShutdownHook {
+    val _ = sys.addShutdownHook {
       runs = false
-      promise.trySuccess(Done)
+      val _ = promise.trySuccess(Done)
     }
     Future {
       blocking {

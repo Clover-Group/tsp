@@ -19,6 +19,9 @@ object TestEvents {
     override def apply(e: TestEvent): Idx = e.time
     override def compare(x: Idx, y: Idx): Int = x.compare(y)
   }
+
+  // Can extract null.
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit val extractor: Extractor[TestEvent, Symbol, Any] = new Extractor[TestEvent, Symbol, Any] {
     override def apply[T](e: TestEvent, k: Symbol)(
       implicit d: Decoder[Any, T]

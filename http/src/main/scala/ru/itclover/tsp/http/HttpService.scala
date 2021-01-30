@@ -38,7 +38,7 @@ trait HttpService extends RoutesProtocols {
   val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
   val flinkMonitoringHost: String = getEnvVarOrConfig("FLINK_MONITORING_HOST", "flink.monitoring.host")
   val flinkMonitoringPort: Int = getEnvVarOrConfig("FLINK_MONITORING_PORT", "flink.monitoring.port").toInt
-  val monitoringUri: Uri = "http://" + flinkMonitoringHost + ":" + flinkMonitoringPort
+  val monitoringUri: Uri = s"http://$flinkMonitoringHost:$flinkMonitoringPort"
 
   private val log = Logger[HttpService]
 

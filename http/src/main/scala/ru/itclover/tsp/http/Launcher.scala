@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http
 
 import java.net.URLDecoder
-import java.nio.file.{Files, Paths}
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.actor.ActorSystem
@@ -11,21 +10,21 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.common.restartstrategy.RestartStrategies
-import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
-import org.apache.flink.streaming.api.CheckpointingMode
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
-import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 import org.apache.spark.sql.SparkSession
 import ru.itclover.tsp.spark.StreamSource
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
-import scala.util.Try
 
+// We throw exceptions in the launcher.
+// Also, some statements are non-Unit but we cannot use multiple `val _` in the same scope
+@SuppressWarnings(Array(
+  "org.wartremover.warts.Throw",
+  "org.wartremover.warts.NonUnitStatements"
+))
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
   override val isDebug: Boolean = configs.getBoolean("general.is-debug")

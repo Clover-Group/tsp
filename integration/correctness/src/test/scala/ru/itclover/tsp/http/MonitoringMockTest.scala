@@ -9,11 +9,12 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfter, Matchers}
 import ru.itclover.tsp.http.routes.MonitoringRoutes
 import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
-import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.MetricInfo
 import ru.itclover.tsp.http.utils.MockServer
 
 import scala.concurrent._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class MonitoringMockTest
     extends AsyncFlatSpec
     with ScalatestRouteTest
@@ -23,6 +24,9 @@ class MonitoringMockTest
     with ScalaFutures {
 
   val port = 9034
+
+  // We cannot initialise `t` here yet
+  @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
   private var t: Thread = _
 
   before {
