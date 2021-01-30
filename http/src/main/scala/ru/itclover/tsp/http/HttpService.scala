@@ -56,7 +56,7 @@ trait HttpService extends RoutesProtocols {
   }
 
   def route: Route = {
-    log.debug ("route started")
+    log.debug("route started")
     val res = (logRequestAndResponse & handleErrors) {
       ignoreTrailingSlash {
         composeRoutes.run(executionContext).andThen { futureRoute =>

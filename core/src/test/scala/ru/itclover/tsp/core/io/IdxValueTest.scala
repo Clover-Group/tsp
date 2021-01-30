@@ -3,6 +3,7 @@ package ru.itclover.tsp.core.io
 import cats.instances.long._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.{IdxValue, Result}
+
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class IdxValueTest extends FlatSpec with Matchers {

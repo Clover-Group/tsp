@@ -34,9 +34,7 @@ abstract class AbstractContextBuilder[Type, State] {
   * @tparam Type type parameter for events value and state type
   * @tparam State type parameter for state value in patterns. Must be one type for event and pattern!
   */
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Var"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Var"))
 class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, State]) extends TestContext {
 
   var patterns: Seq[Pattern[Event[Type], State, Type]] = builder.patterns
@@ -64,9 +62,7 @@ class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, Stat
   * @tparam Type type parameter for events value and state type
   * @tparam State type parameter for state value in patterns. Must be one type for event and pattern!
   */
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Null", "org.wartremover.warts.Var"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
 class ResultContextBuilder[Type, State] extends AbstractContextBuilder[Type, State] {
   override var patterns: Seq[Pattern[Event[Type], State, Type]] = _
   override var events: Seq[Event[Type]] = _

@@ -19,7 +19,8 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")

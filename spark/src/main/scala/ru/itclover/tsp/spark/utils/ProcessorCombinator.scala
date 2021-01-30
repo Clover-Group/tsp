@@ -6,7 +6,6 @@ import org.apache.spark.sql.Row
 import ru.itclover.tsp.core.Pattern.Idx
 import ru.itclover.tsp.core.io.TimeExtractor
 
-
 case class ProcessorCombinator[In, S, Inner, Out](
   mappers: Seq[PatternProcessor[In, S, Out]],
   timeExtractor: TimeExtractor[In]
@@ -15,7 +14,7 @@ case class ProcessorCombinator[In, S, Inner, Out](
   private val counter = new AtomicLong(0)
 
   def process(
-    elements: Iterable[In],
+    elements: Iterable[In]
   ): Iterable[Out] = {
     val sorted = elements.toBuffer.sortBy(timeExtractor.apply)
     if (sorted.head.isInstanceOf[RowWithIdx]) {

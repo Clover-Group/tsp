@@ -7,7 +7,6 @@ sealed trait DataWriterWrapper[Event] {
   def write(): Unit
 }
 
-
 case class DataFrameWriterWrapper[Event](writer: DataFrameWriter[Event]) extends DataWriterWrapper[Event] {
   override def write(): Unit = writer.mode(SaveMode.Append).save()
 }

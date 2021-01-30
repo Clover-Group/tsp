@@ -49,18 +49,18 @@ case class JDBCInputConf(
 ) extends InputConf[RowWithIdx, Symbol, Any]
 
 case class KafkaInputConf(
-                           sourceId: Int,
-                           brokers: String,
-                           topic: String,
-                           group: String = UUID.randomUUID().toString,
-                           serializer: Option[String] = Some("json"),
-                           datetimeField: Symbol,
-                           unitIdField: Option[Symbol] = None,
-                           partitionFields: Seq[Symbol],
-                           dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
-                           timestampMultiplier: Option[Double] = Some(1000.0),
-                           fieldsTypes: Map[String, String]
-                         ) extends InputConf[RowWithIdx, Symbol, Any] {
+  sourceId: Int,
+  brokers: String,
+  topic: String,
+  group: String = UUID.randomUUID().toString,
+  serializer: Option[String] = Some("json"),
+  datetimeField: Symbol,
+  unitIdField: Option[Symbol] = None,
+  partitionFields: Seq[Symbol],
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
+  timestampMultiplier: Option[Double] = Some(1000.0),
+  fieldsTypes: Map[String, String]
+) extends InputConf[RowWithIdx, Symbol, Any] {
 
   def chunkSizeMs: Option[Long] = Some(10L)
   def defaultEventsGapMs: Option[Long] = Some(0L)

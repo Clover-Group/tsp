@@ -21,18 +21,21 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, some test cases indirectly use Any type.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
-class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
+class NarrowTableTest
+    extends FlatSpec
+    with SqlMatchers
+    with ScalatestRouteTest
+    with HttpService
+    with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -99,25 +102,29 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/narrow/source-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/narrow/source-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/narrow/source-inserts.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/narrow/source-inserts.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {
@@ -127,7 +134,7 @@ class NarrowTableTest extends FlatSpec with SqlMatchers with ScalatestRouteTest 
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
     Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
-      route ~> check {
+    route ~> check {
       //status shouldEqual StatusCodes.OK
     }
   }

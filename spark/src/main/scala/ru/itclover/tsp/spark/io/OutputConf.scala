@@ -21,14 +21,14 @@ trait OutputConf[Event] {
   * @param parallelism num of parallel task to write data
   */
 case class JDBCOutputConf(
-                           tableName: String,
-                           rowSchema: NewRowSchema,
-                           jdbcUrl: String,
-                           driverName: String,
-                           password: Option[String] = None,
-                           batchInterval: Option[Int] = None,
-                           userName: Option[String] = None,
-                           parallelism: Option[Int] = Some(1)
-                         ) extends OutputConf[Row] {
+  tableName: String,
+  rowSchema: NewRowSchema,
+  jdbcUrl: String,
+  driverName: String,
+  password: Option[String] = None,
+  batchInterval: Option[Int] = None,
+  userName: Option[String] = None,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
   override def forwardedFieldsIds = Seq.empty
 }

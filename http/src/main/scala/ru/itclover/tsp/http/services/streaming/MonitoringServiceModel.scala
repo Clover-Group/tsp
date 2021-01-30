@@ -4,7 +4,6 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json._
 
-
 object MonitoringServiceModel {
 
   /** @param metrics - set of metrics names and values */
@@ -16,7 +15,7 @@ object MonitoringServiceModel {
     state: String,
     startTsMs: Long,
     durationMs: Long,
-    vertices: Vector[Vertex],
+    vertices: Vector[Vertex]
   ) {
     // note vice-versa
     def readRecords = vertices.head.metrics.writeRecords
@@ -71,21 +70,26 @@ trait MonitoringServiceProtocols extends SprayJsonSupport with DefaultJsonProtoc
   implicit val vertexFormat = jsonFormat3(Vertex.apply)
   implicit object jobFormat extends RootJsonFormat[JobDetails] {
     override def write(obj: JobDetails): JsValue = JsObject(
-      ("jid", JsString(obj.jid)), ("name", JsString(obj.name)), ("state", JsString(obj.state)),
-      ("start-time", JsNumber(obj.startTsMs)), ("duration", JsNumber(obj.durationMs)),
+      ("jid", JsString(obj.jid)),
+      ("name", JsString(obj.name)),
+      ("state", JsString(obj.state)),
+      ("start-time", JsNumber(obj.startTsMs)),
+      ("duration", JsNumber(obj.durationMs)),
       ("vertices", JsArray(obj.vertices.map(vertexFormat.write))),
-      ("read-records", JsNumber(obj.readRecords)), ("write-records", JsNumber(obj.writeRecords))
+      ("read-records", JsNumber(obj.readRecords)),
+      ("write-records", JsNumber(obj.writeRecords))
     )
 
     override def read(json: JsValue): JobDetails = json match {
-      case JsObject(fields) => JobDetails(
-        fields("jid").convertTo[String],
-        fields("name").convertTo[String],
-        fields("state").convertTo[String],
-        fields("start-time").convertTo[Long],
-        fields("duration").convertTo[Long],
-        fields("vertices").convertTo[Vector[Vertex]]
-      )
+      case JsObject(fields) =>
+        JobDetails(
+          fields("jid").convertTo[String],
+          fields("name").convertTo[String],
+          fields("state").convertTo[String],
+          fields("start-time").convertTo[Long],
+          fields("duration").convertTo[Long],
+          fields("vertices").convertTo[Vector[Vertex]]
+        )
       case _ => throw new DeserializationException(s"Cannot deserialize $json as JobDetails")
     }
   }

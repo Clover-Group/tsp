@@ -9,9 +9,9 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 case class PatternProcessor[E: TimeExtractor, State, Out](
-                                                           pattern: Pattern[E, State, Out],
-                                                           eventsMaxGapMs: Long
-                                                         ) {
+  pattern: Pattern[E, State, Out],
+  eventsMaxGapMs: Long
+) {
 
   private val log = Logger("PatternLogger")
   private var lastState: State = _
@@ -20,8 +20,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
   log.debug(s"pattern: $pattern")
 
   def process(
-               elements: Iterable[E]
-             ): Iterable[Out] = {
+    elements: Iterable[E]
+  ): Iterable[Out] = {
     if (elements.isEmpty) {
       log.info("No elements to proccess")
       return List.empty[Out]
@@ -41,7 +41,6 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
     )
 
     val machine = StateMachine[Id]
-
 
     val list: mutable.ListBuffer[Out] = ListBuffer.empty
     val consume: IdxValue[Out] => Unit = x => x.value.foreach(list.+=)

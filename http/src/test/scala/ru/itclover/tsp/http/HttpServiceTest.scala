@@ -32,7 +32,8 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     implicit override val streamEnvironment: StreamExecutionEnvironment =
       StreamExecutionEnvironment.createLocalEnvironment()
 
-    val spark = SparkSession.builder()
+    val spark = SparkSession
+      .builder()
       .master("local")
       .appName("TSP Spark test")
       .config("spark.io.compression.codec", "snappy")

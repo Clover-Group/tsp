@@ -1,6 +1,5 @@
 package ru.itclover.tsp.spark
 
-
 import cats.Traverse
 import cats.data.Validated
 import cats.implicits._
@@ -30,11 +29,11 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
-                                                                  uuid: String,
-                                                                  source: StreamSource[In, InKey, InItem],
-                                                                  fields: Set[InKey],
-                                                                  decoders: BasicDecoders[InItem]
-                                                                ) {
+  uuid: String,
+  source: StreamSource[In, InKey, InItem],
+  fields: Set[InKey],
+  decoders: BasicDecoders[InItem]
+) {
   // TODO: Restore InKey as a type parameter
 
   import PatternsSearchJob._
@@ -42,10 +41,10 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
   // import source.{eventCreator, keyCreator, kvExtractor}
 
   def patternsSearchStream[OutE: ClassTag, OutKey, S](
-                                                              rawPatterns: Seq[RawPattern],
-                                                              outputConf: OutputConf[OutE],
-                                                              resultMapper: Incident => OutE,
-                                                            ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataWriterWrapper[OutE])] = {
+    rawPatterns: Seq[RawPattern],
+    outputConf: OutputConf[OutE],
+    resultMapper: Incident => OutE
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataWriterWrapper[OutE])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     source.spark.sparkContext.setJobGroup(uuid, s"TSP Job $uuid")
     preparePatterns[In, S, InKey, InItem](
@@ -58,37 +57,40 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
       val useWindowing = true // !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
-      val mapped = incidents.map(resultMapper)(RowEncoder(rowSchemaToSchema(outputConf.rowSchema)).asInstanceOf[Encoder[OutE]])
-      (patterns,  saveStream(mapped, source.conf, outputConf))
+      val mapped =
+        incidents.map(resultMapper)(RowEncoder(rowSchemaToSchema(outputConf.rowSchema)).asInstanceOf[Encoder[OutE]])
+      (patterns, saveStream(mapped, source.conf, outputConf))
     }
   }
 
   def cleanIncidentsFromPatterns(
-                                  richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-                                  forwardedFields: Seq[(Symbol, InKey)],
-                                  useWindowing: Boolean
-                                ): Dataset[Incident] = {
+    richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
+  ): Dataset[Incident] = {
     // import source.timeExtractor
     val stream = source.createStream
     val singleIncidents = incidentsFromPatterns(
-      applyTransformation(stream/*.assignAscendingTimestamps(timeExtractor(_).toMillis)*/)(source.spark),
+      applyTransformation(stream /*.assignAscendingTimestamps(timeExtractor(_).toMillis)*/ )(source.spark),
       richPatterns,
       forwardedFields,
       useWindowing
     )
     source match {
       case _: KafkaInputConf => singleIncidents // this must be processed upon writing
-      case _ => if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)(source.spark) else singleIncidents
+      case _ =>
+        if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)(source.spark)
+        else singleIncidents
     }
 
   }
 
   def incidentsFromPatterns[T](
-                                stream: Dataset[In],
-                                patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-                                forwardedFields: Seq[(Symbol, InKey)],
-                                useWindowing: Boolean
-                              ): Dataset[Incident] = {
+    stream: Dataset[In],
+    patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
+    forwardedFields: Seq[(Symbol, InKey)],
+    useWindowing: Boolean
+  ): Dataset[Incident] = {
 
     import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
     val s = source.spark
@@ -103,7 +105,9 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
-        val allForwardFields = forwardedFields ++ rawP.forwardedFields.getOrElse(Seq()).map(id => (id, source.fieldToEKey(id)))
+        val allForwardFields = forwardedFields ++ rawP.forwardedFields
+            .getOrElse(Seq())
+            .map(id => (id, source.fieldToEKey(id)))
 
         val toIncidents = ToIncidentsMapper(
           rawP.id,
@@ -124,20 +128,20 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
         )
     }
     val keyedDataset = stream
-      //.repartition(source.transformedPartitioner.map(new Column(_)):_*)
-      //.partitionBy()
+    //.repartition(source.transformedPartitioner.map(new Column(_)):_*)
+    //.partitionBy()
     val windowed: Dataset[List[In]] =
       if (useWindowing) {
         // val chunkSize = 100000
         keyedDataset.map { List(_) }
       } else {
-        keyedDataset.map{ List(_) }
+        keyedDataset.map { List(_) }
       }
     val processed = windowed
       .flatMap[Incident](
         (x: List[In]) => ProcessorCombinator(mappers, timeExtractor).process(x)
       )
-      //.setMaxParallelism(source.conf.maxPartitionsParallelism)
+    //.setMaxParallelism(source.conf.maxPartitionsParallelism)
 
     log.debug("incidentsFromPatterns finished")
     processed
@@ -197,17 +201,17 @@ object PatternsSearchJob {
   def maxPartitionsParallelism = 8192
 
   def preparePatterns[E, S, EKey, EItem](
-                                          rawPatterns: Seq[RawPattern],
-                                          fieldsIdxMap: Symbol => EKey,
-                                          toleranceFraction: Double,
-                                          eventsMaxGapMs: Long,
-                                          fieldsTags: Map[Symbol, ClassTag[_]]
-                                        )(
-                                          implicit extractor: Extractor[E, EKey, EItem],
-                                          getTime: TimeExtractor[E],
-                                          idxExtractor: IdxExtractor[E] /*,
+    rawPatterns: Seq[RawPattern],
+    fieldsIdxMap: Symbol => EKey,
+    toleranceFraction: Double,
+    eventsMaxGapMs: Long,
+    fieldsTags: Map[Symbol, ClassTag[_]]
+  )(
+    implicit extractor: Extractor[E, EKey, EItem],
+    getTime: TimeExtractor[E],
+    idxExtractor: IdxExtractor[E] /*,
     dDecoder: Decoder[EItem, Double]*/
-                                        ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
+  ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
 
     log.debug("preparePatterns started")
 
@@ -258,29 +262,42 @@ object PatternsSearchJob {
     val reducer = new IncidentAggregator
 
     val res = newIncidents.toDF
-        .withColumn("curr", col("segment.from.toMillis"))
-        .withColumn("prev", lag("segment.to.toMillis", 1).over(win))
-        /*.map {
+      .withColumn("curr", col("segment.from.toMillis"))
+      .withColumn("prev", lag("segment.to.toMillis", 1).over(win))
+      /*.map {
           value =>
             if (value.getAs[Long]("curr") - value.getAs[Long]("prev") > value.getAs[Long]("maxWindowMs")) {
             seriesCount += 1
           }
             (seriesCount, value)
         }*/
-        .withColumn("seriesCount", sum(expr("curr - prev > maxWindowMs").cast("int")).over(win))
-        .groupBy("seriesCount")
-        .agg(reducer($"id", $"patternId", $"maxWindowMs",
-          $"segment", $"forwardedFields", $"patternSubunit", $"patternPayload")
-          .as("result"))
-        .select($"result.id".as("id"), $"result.patternId".as("patternId"),
-          $"result.maxWindowMs".as("maxWindowMs"), $"result.segment".as("segment"),
-          $"result.forwardedFields".as("forwardedFields"), $"result.patternSubunit".as("patternSubunit"),
-          $"result.patternPayload".as("patternPayload"))
-        .drop("prev", "curr", "seriesCount")
+      .withColumn("seriesCount", sum(expr("curr - prev > maxWindowMs").cast("int")).over(win))
+      .groupBy("seriesCount")
+      .agg(
+        reducer(
+          $"id",
+          $"patternId",
+          $"maxWindowMs",
+          $"segment",
+          $"forwardedFields",
+          $"patternSubunit",
+          $"patternPayload"
+        ).as("result")
+      )
+      .select(
+        $"result.id".as("id"),
+        $"result.patternId".as("patternId"),
+        $"result.maxWindowMs".as("maxWindowMs"),
+        $"result.segment".as("segment"),
+        $"result.forwardedFields".as("forwardedFields"),
+        $"result.patternSubunit".as("patternSubunit"),
+        $"result.patternPayload".as("patternPayload")
+      )
+      .drop("prev", "curr", "seriesCount")
 
 //        .map(_._2)
-      //.assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
-      //.keyBy(_.id)
+    //.assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
+    //.keyBy(_.id)
 //      .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
 //        override def extract(element: Incident): Long = element.maxWindowMs
 //      }))
@@ -291,7 +308,11 @@ object PatternsSearchJob {
     res.as[Incident]
   }
 
-  def saveStream[InE, OutE, InKey, InItem](stream: Dataset[OutE], inputConf: InputConf[InE, InKey, InItem], outputConf: OutputConf[OutE]): DataWriterWrapper[OutE] = {
+  def saveStream[InE, OutE, InKey, InItem](
+    stream: Dataset[OutE],
+    inputConf: InputConf[InE, InKey, InItem],
+    outputConf: OutputConf[OutE]
+  ): DataWriterWrapper[OutE] = {
     log.debug("saveStream started")
     inputConf match {
 
@@ -312,8 +333,13 @@ object PatternsSearchJob {
       case _: KafkaInputConf =>
         outputConf match {
           case oc: JDBCOutputConf =>
-            val sink = JDBCSink(oc.jdbcUrl, oc.tableName, oc.driverName,
-              oc.userName.getOrElse("default"), oc.password.getOrElse(""))
+            val sink = JDBCSink(
+              oc.jdbcUrl,
+              oc.tableName,
+              oc.driverName,
+              oc.userName.getOrElse("default"),
+              oc.password.getOrElse("")
+            )
             val res = stream.writeStream
               .foreach(sink.asInstanceOf[ForeachWriter[OutE]])
               .trigger(Trigger.ProcessingTime("10 seconds"))
@@ -334,4 +360,3 @@ object PatternsSearchJob {
     rowSchema.fieldDatatypes.zip(rowSchema.fieldsNames).map { case (t, n) => new StructField(n.name, t) }
   )
 }
-

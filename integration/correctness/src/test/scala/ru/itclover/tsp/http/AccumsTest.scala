@@ -25,10 +25,7 @@ import scala.util.Success
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, some test cases indirectly use Any type.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
 class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
@@ -37,7 +34,8 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -58,7 +56,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
 
   private val log = Logger("AccumsTest")
 
-  implicit def defaultTimeout(/*implicit system: ActorSystem*/): RouteTestTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout( /*implicit system: ActorSystem*/ ): RouteTestTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8137
   implicit override val container: JDBCContainer = new JDBCContainer(
@@ -89,28 +87,28 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   // format: on
 
   val (countWindowMaxTimeSec, countWindowPattern) = 150.0 -> List(
-    RawPattern(4990, s"lt10Sens >= 8 for $windowMin min >= ${windowMin * 60 - 30} times")
-  )
+      RawPattern(4990, s"lt10Sens >= 8 for $windowMin min >= ${windowMin * 60 - 30} times")
+    )
 
   val (timeWindowMaxTimeSec, timeWindowPattern) = 250.0 -> List(
-    RawPattern(499, s"lt10Sens >= 8 for $windowMin min > ${windowMin - 1} min")
-  )
+      RawPattern(499, s"lt10Sens >= 8 for $windowMin min > ${windowMin - 1} min")
+    )
 
   val (nestedTimeWindowMaxTimeSec, nestedTimeWindowPattern) = 175.0 -> List(
-    RawPattern(4991, s"(avg(lt10Sens as float64, 30 sec) >= 8.0) for $windowMin min > ${windowMin - 1} min")
-  )
+      RawPattern(4991, s"(avg(lt10Sens as float64, 30 sec) >= 8.0) for $windowMin min > ${windowMin - 1} min")
+    )
 
   val (timeWindowCountMaxTimeSec, timeWindowCountPattern) = 60.0 -> List(
-    RawPattern(988, s"lt10Sens = 1 for $windowMin min > ${windowMin * 60 - 1} times")
-  )
+      RawPattern(988, s"lt10Sens = 1 for $windowMin min > ${windowMin * 60 - 1} times")
+    )
 
   val (timedMaxTimeSec, timedPattern) = 75.0 -> List(
-    RawPattern(466, s"gt1000Sens >= 5990 for $windowMin min")
-  )
+      RawPattern(466, s"gt1000Sens >= 5990 for $windowMin min")
+    )
 
   val (reducerMaxTimeSec, reducerPattern) = 100.0 -> List(
-    RawPattern(467, "avgOf(1.0, 0.0) < 200")
-  )
+      RawPattern(467, "avgOf(1.0, 0.0) < 200")
+    )
 
   val inputConf = JDBCInputConf(
     sourceId = 123,
@@ -137,15 +135,17 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

@@ -3,7 +3,7 @@ import ru.itclover.tsp.core.RawPattern
 
 trait Request
 
-final case class FindPatternsRequest[IN/* <: InputConf[_, _, _]*/, OUT /*<: OutputConf[_]*/](
+final case class FindPatternsRequest[IN /* <: InputConf[_, _, _]*/, OUT /*<: OutputConf[_]*/ ](
   uuid: String,
   inputConf: IN,
   outConf: OUT,

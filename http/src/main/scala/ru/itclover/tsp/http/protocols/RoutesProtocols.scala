@@ -9,15 +9,16 @@ import ru.itclover.tsp.io.input._
 import ru.itclover.tsp.io.output.{EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf}
 import spray.json._
 import ru.itclover.tsp.spark
-import ru.itclover.tsp.spark.io.{SourceDataTransformation => SparkSDT, NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
+import ru.itclover.tsp.spark.io.{
+  SourceDataTransformation => SparkSDT,
+  NarrowDataUnfolding => SparkNDU,
+  WideDataFilling => SparkWDF
+}
 
 import scala.util.Try
 
 // JsonFormats contain Any fields and converted via asInstanceOf(). Here, it's safe
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any",
-  "org.wartremover.warts.AsInstanceOf"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf"))
 trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit object propertyFormat extends JsonFormat[AnyRef] {
     override def write(obj: AnyRef): JsValue = obj match {
@@ -56,7 +57,14 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
   implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
-    jsonFormat(NarrowDataUnfolding[Event, EKey, EValue], "keyColumn", "defaultValueColumn", "fieldsTimeoutsMs", "valueColumnMapping","defaultTimeout")
+    jsonFormat(
+      NarrowDataUnfolding[Event, EKey, EValue],
+      "keyColumn",
+      "defaultValueColumn",
+      "fieldsTimeoutsMs",
+      "valueColumnMapping",
+      "defaultTimeout"
+    )
   implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
     jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
 
@@ -151,7 +159,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit object eventSchemaFmt extends JsonFormat[EventSchema] {
     override def read(json: JsValue): EventSchema = Try(newRowSchemaFmt.read(json))
-        .getOrElse(deserializationError("Cannot serialize EventSchema"))
+      .getOrElse(deserializationError("Cannot serialize EventSchema"))
 
     override def write(obj: EventSchema): JsValue = obj match {
       case newRowSchema: NewRowSchema => newRowSchemaFmt.write(newRowSchema)
@@ -175,7 +183,14 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 
   implicit def sparkNduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
-    jsonFormat(SparkNDU[Event, EKey, EValue], "keyColumn", "defaultValueColumn", "fieldsTimeoutsMs", "valueColumnMapping","defaultTimeout")
+    jsonFormat(
+      SparkNDU[Event, EKey, EValue],
+      "keyColumn",
+      "defaultValueColumn",
+      "fieldsTimeoutsMs",
+      "valueColumnMapping",
+      "defaultTimeout"
+    )
   implicit def sparkWdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
     jsonFormat(SparkWDF[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
 
@@ -213,7 +228,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "toTsField",
     "appIdFieldVal",
     "patternIdField",
-    "subunitIdField",
+    "subunitIdField"
   )
 
   implicit val sparkJdbcInpConfFmt = jsonFormat(

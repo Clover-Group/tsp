@@ -79,7 +79,8 @@ class MonitoringMockTest
       implicit override val materializer: ActorMaterializer = ActorMaterializer()(actors)
       implicit override val executionContext: ExecutionContextExecutor = system.dispatcher
       override val uri: Uri = s"http://127.0.0.1:$port"
-      override val spark = SparkSession.builder()
+      override val spark = SparkSession
+        .builder()
         .master("local")
         .appName("TSP Spark test")
         .config("spark.io.compression.codec", "snappy")

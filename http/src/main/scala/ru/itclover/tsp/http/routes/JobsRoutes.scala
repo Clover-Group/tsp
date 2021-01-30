@@ -38,16 +38,18 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.spark.utils.{DataWriterWrapper, ErrorsADT}
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, Err => SparkErr, GenericRuntimeErr => SparkGenRTErr, RuntimeErr => SparkRTErr}
+import ru.itclover.tsp.spark.utils.ErrorsADT.{
+  ConfigErr => SparkConfErr,
+  Err => SparkErr,
+  GenericRuntimeErr => SparkGenRTErr,
+  RuntimeErr => SparkRTErr
+}
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
 
 // We use here Any and asInstanceOf. Probably cannot be done in other ways
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any",
-  "org.wartremover.warts.AsInstanceOf"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf"))
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
   val blockingExecutionContext: ExecutionContextExecutor
@@ -63,24 +65,29 @@ trait JobsRoutes extends RoutesProtocols {
   private val log = Logger[JobsRoutes]
 
   val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
-      path ("streamJob" / """from-(\w+)""".r / """to-(\w+)""".r./) { case (from, to) =>
+    path("streamJob" / """from-(\w+)""".r / """to-(\w+)""".r./) {
+      case (from, to) =>
         val um = (from, to) match {
-          case ("jdbc", "jdbc") => as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]
-          case ("influxdb", "jdbc") => as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]
-          case ("kafka", "jdbc") => as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]
-          case ("jdbc", "kafka") => as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]
+          case ("jdbc", "jdbc")      => as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]
+          case ("influxdb", "jdbc")  => as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]
+          case ("kafka", "jdbc")     => as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]
+          case ("jdbc", "kafka")     => as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]
           case ("influxdb", "kafka") => as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]
-          case ("kafka", "kafka") => as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]
-          case _ => null // Not implemented, will crash with a 500
+          case ("kafka", "kafka")    => as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]
+          case _                     => null // Not implemented, will crash with a 500
         }
-        entity(um.asInstanceOf[FromRequestUnmarshaller[FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]]]]) { request: FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]] =>
+        entity(
+          um.asInstanceOf[FromRequestUnmarshaller[
+            FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]]
+          ]]
+        ) { request: FindPatternsRequest[InputConf[RowWithIdx, Symbol, Any], OutputConf[Row]] =>
           import request._
           val fields = PatternFieldExtractor.extract(patterns)
 
           val srcOrError: Either[Err, StreamSource[RowWithIdx, Symbol, Any]] = from match {
-            case "jdbc" => JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
+            case "jdbc"     => JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
             case "influxdb" => InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
-            case "kafka" => KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
+            case "kafka"    => KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
             //case _ => Left(ConfigErr)
           }
 
@@ -92,35 +99,40 @@ trait JobsRoutes extends RoutesProtocols {
 
           matchResultToResponse(resultOrErr, uuid)
         }
-      } ~
-        path("sparkJob" / """from-(\w+)""".r / """to-(\w+)""".r./) { case (from, to) =>
-          val um = (from, to) match {
-            case ("jdbc", "jdbc") => as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]
-            case ("kafka", "jdbc") => as[FindPatternsRequest[spark.io.KafkaInputConf, spark.io.JDBCOutputConf]]
-            case _ => null // Not implemented, will crash with a 500
-          }
-          entity(um.asInstanceOf[FromRequestUnmarshaller[FindPatternsRequest[spark.io.InputConf[spark.utils.RowWithIdx, Symbol, Any], spark.io.OutputConf[SparkRow]]]]) { request =>
-            import request._
-            val fields = PatternFieldExtractor.extract(patterns)
-
-  //          val resultOrErr: Either[Err, Option[Unit]] = for {
-  //            source <- spark.JdbcSource.create(inputConf, fields)
-  //            stream <- createSparkStream(patterns, fields, inputConf, outConf, source)
-  //            result <- runSparkStream(stream, isAsync)
-  //          } yield result
-
-            val source: Either[SparkConfErr, spark.StreamSource[spark.utils.RowWithIdx, Symbol, Any]] = from match {
-              case "jdbc" => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
-              case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
-            }
-            val stream: Either[SparkErr, DataWriterWrapper[SparkRow]] = source.flatMap(createSparkStream(uuid, patterns, fields, inputConf, outConf, _))
-            val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
-            val resultOrErr = result
-
-
-            matchSparkResultToResponse(resultOrErr, uuid)
-          }
+    } ~
+    path("sparkJob" / """from-(\w+)""".r / """to-(\w+)""".r./) {
+      case (from, to) =>
+        val um = (from, to) match {
+          case ("jdbc", "jdbc")  => as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]
+          case ("kafka", "jdbc") => as[FindPatternsRequest[spark.io.KafkaInputConf, spark.io.JDBCOutputConf]]
+          case _                 => null // Not implemented, will crash with a 500
         }
+        entity(
+          um.asInstanceOf[FromRequestUnmarshaller[
+            FindPatternsRequest[spark.io.InputConf[spark.utils.RowWithIdx, Symbol, Any], spark.io.OutputConf[SparkRow]]
+          ]]
+        ) { request =>
+          import request._
+          val fields = PatternFieldExtractor.extract(patterns)
+
+          //          val resultOrErr: Either[Err, Option[Unit]] = for {
+          //            source <- spark.JdbcSource.create(inputConf, fields)
+          //            stream <- createSparkStream(patterns, fields, inputConf, outConf, source)
+          //            result <- runSparkStream(stream, isAsync)
+          //          } yield result
+
+          val source: Either[SparkConfErr, spark.StreamSource[spark.utils.RowWithIdx, Symbol, Any]] = from match {
+            case "jdbc"  => spark.JdbcSource.create(inputConf.asInstanceOf[spark.io.JDBCInputConf], fields)
+            case "kafka" => spark.KafkaSource.create(inputConf.asInstanceOf[spark.io.KafkaInputConf], fields)
+          }
+          val stream: Either[SparkErr, DataWriterWrapper[SparkRow]] =
+            source.flatMap(createSparkStream(uuid, patterns, fields, inputConf, outConf, _))
+          val result: Either[SparkErr, Option[Long]] = stream.flatMap(runSparkStream(_, isAsync))
+          val resultOrErr = result
+
+          matchSparkResultToResponse(resultOrErr, uuid)
+        }
+    }
   }
 
   // TODO: Restore EKey type parameter
@@ -156,17 +168,16 @@ trait JobsRoutes extends RoutesProtocols {
   }
 
   def createSparkStream[E: ClassTag: TypeTag, EItem](
-                                               uuid: String,
-                                               patterns: Seq[RawPattern],
-                                               fields: Set[EKey],
-                                               inputConf: spark.io.InputConf[E, EKey, EItem],
-                                               outConf: spark.io.OutputConf[SparkRow],
-                                               source: spark.StreamSource[E, EKey, EItem]
-                                             )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.Err, DataWriterWrapper[SparkRow]] = {
+    uuid: String,
+    patterns: Seq[RawPattern],
+    fields: Set[EKey],
+    inputConf: spark.io.InputConf[E, EKey, EItem],
+    outConf: spark.io.OutputConf[SparkRow],
+    source: spark.StreamSource[E, EKey, EItem]
+  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.Err, DataWriterWrapper[SparkRow]] = {
     //streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
 
     log.debug("createStream started")
-
 
     val searcher = spark.PatternsSearchJob(uuid, source, fields, decoders)
     val strOrErr = searcher.patternsSearchStream(
@@ -213,12 +224,14 @@ trait JobsRoutes extends RoutesProtocols {
       }(blockingExecutionContext)
       Right(None)
     } else { // Wait for the execution finish
-      Either.catchNonFatal{
-        val start = System.nanoTime
-        stream.write()
-        val end = System.nanoTime
-        Some(end - start)
-      }.leftMap(SparkGenRTErr(_))
+      Either
+        .catchNonFatal {
+          val start = System.nanoTime
+          stream.write()
+          val end = System.nanoTime
+          Some(end - start)
+        }
+        .leftMap(SparkGenRTErr(_))
     }
 
     log.debug("runStream finished")

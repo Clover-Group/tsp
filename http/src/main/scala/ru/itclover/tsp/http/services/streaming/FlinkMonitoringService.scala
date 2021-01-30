@@ -42,7 +42,9 @@ case class FlinkMonitoringService(uri: Uri)(implicit as: ActorSystem, am: ActorM
   def sendStopQuery(jobName: String): Future[Option[Unit]] = queryJobByName(jobName).flatMap {
     case Some(job) =>
       val resp = for {
-        response     <- Http().singleRequest(HttpRequest(uri = uri.toString + s"/jobs/${job.jid}", method = HttpMethods.PATCH))
+        response <- Http().singleRequest(
+          HttpRequest(uri = uri.toString + s"/jobs/${job.jid}", method = HttpMethods.PATCH)
+        )
         successOrErr <- Unmarshal(response.entity).to[Either[MonitoringError, EmptyResponse]]
       } yield successOrErr
       resp.flatMap {

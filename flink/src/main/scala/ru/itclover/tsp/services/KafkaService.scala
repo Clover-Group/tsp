@@ -46,9 +46,9 @@ object KafkaService {
     props.setProperty("auto.commit.interval.ms", "1000") // Enable auto committing when checkpointing is disabled
 
     val deserializer = conf.serializer.getOrElse("json") match {
-      case "json"    => new RowDeserializationSchema(fieldsIdxMap)
-      case "arrow"   => new ArrowRowDeserializationSchema()
-      case _         => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
+      case "json"  => new RowDeserializationSchema(fieldsIdxMap)
+      case "arrow" => new ArrowRowDeserializationSchema()
+      case _       => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
     }
 
     new FlinkKafkaConsumer(conf.topic, deserializer, props)
@@ -56,7 +56,7 @@ object KafkaService {
 }
 
 /**
-* Deserialization for JSON format
+  * Deserialization for JSON format
   * @param fieldsIdxMap mapping of types from string and scala type
   */
 class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDeserializationSchema[Row] {
@@ -69,13 +69,12 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
 }
 
 /**
-* Deserialization for Apache Arrow format
+  * Deserialization for Apache Arrow format
   */
 class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
     new ArrowSerialization().deserialize(record.value(), null)
-
 
   override def isEndOfStream(nextElement: Row): Boolean = false
 

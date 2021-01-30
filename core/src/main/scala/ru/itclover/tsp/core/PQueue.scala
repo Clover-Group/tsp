@@ -101,10 +101,9 @@ object PQueue {
       queue.peekLast match {
         case null =>
           val _ = queue.offerLast(idxValue)
-        case IdxValue(start, end, value) if value == idxValue.value =>
-          { val _ = queue.pollLast() }
-          val _ = queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
-        case _ =>
+        case IdxValue(start, end, value) if value == idxValue.value => { val _ = queue.pollLast() }
+        val _ = queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
+      case _ =>
           val _ = queue.offerLast(idxValue)
       }
     }

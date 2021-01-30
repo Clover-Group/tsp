@@ -6,13 +6,13 @@ import org.apache.spark.sql.types.{DataType, DataTypes}
 import scala.collection.mutable
 
 case class NewRowSchema(
-                         unitIdField: Symbol,
-                         fromTsField: Symbol,
-                         toTsField: Symbol,
-                         appIdFieldVal: (Symbol, Int),
-                         patternIdField: Symbol,
-                         subunitIdField: Symbol,
-                    ) extends Serializable {
+  unitIdField: Symbol,
+  fromTsField: Symbol,
+  toTsField: Symbol,
+  appIdFieldVal: (Symbol, Int),
+  patternIdField: Symbol,
+  subunitIdField: Symbol
+) extends Serializable {
   val fieldsCount: Int = 6
 
   val fieldsNames: List[Symbol] =
@@ -20,13 +20,18 @@ case class NewRowSchema(
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
-
   val fieldClasses: List[Class[_]] =
     List(classOf[Int], classOf[Timestamp], classOf[Timestamp], classOf[Int], classOf[Int], classOf[Int])
 
   val fieldDatatypes: List[DataType] =
-    List(DataTypes.IntegerType, DataTypes.TimestampType, DataTypes.TimestampType, DataTypes.IntegerType,
-      DataTypes.IntegerType, DataTypes.IntegerType)
+    List(
+      DataTypes.IntegerType,
+      DataTypes.TimestampType,
+      DataTypes.TimestampType,
+      DataTypes.IntegerType,
+      DataTypes.IntegerType,
+      DataTypes.IntegerType
+    )
 
   val sourceIdInd = fieldsIndexesMap(unitIdField)
 

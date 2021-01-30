@@ -24,11 +24,13 @@ import scala.util.Success
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, some test cases indirectly use Any type.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
-class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
+class RealDataHITest
+    extends FlatSpec
+    with SqlMatchers
+    with ScalatestRouteTest
+    with HttpService
+    with ForAllTestContainer {
 
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
@@ -37,7 +39,8 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -98,25 +101,30 @@ class RealDataHITest extends FlatSpec with SqlMatchers with ScalatestRouteTest w
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/wide/bigdata-schema.sql")
-         .mkString.split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/wide/bigdata-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    val csvData = Files.readResource("/sql/wide/source_bigdata.csv")
-                       .drop(1)
-                       .mkString("\n")
+    val csvData = Files
+      .readResource("/sql/wide/source_bigdata.csv")
+      .drop(1)
+      .mkString("\n")
 
     container.executeUpdate(s"INSERT INTO Test.Bigdata_HI FORMAT CSV\n${csvData}")
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {

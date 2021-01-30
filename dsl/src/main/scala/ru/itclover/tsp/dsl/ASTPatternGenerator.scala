@@ -14,11 +14,9 @@ trait AnyState[T]
 
 // We heavily deal with Any values here. But still TODO: investigate
 // Also type-casting via asInstanceOf/isInstanceOf.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any",
-  "org.wartremover.warts.AsInstanceOf",
-  "org.wartremover.warts.IsInstanceOf"
-))
+@SuppressWarnings(
+  Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.IsInstanceOf")
+)
 case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
@@ -48,7 +46,14 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
-    import ru.itclover.tsp.core.io.AnyDecodersInstances.{decodeToAny, decodeToBoolean, decodeToDouble, decodeToInt, decodeToLong, decodeToString}
+    import ru.itclover.tsp.core.io.AnyDecodersInstances.{
+      decodeToAny,
+      decodeToBoolean,
+      decodeToDouble,
+      decodeToInt,
+      decodeToLong,
+      decodeToString
+    }
     ast match {
       case c: Constant[_] => ConstPattern[Event, Any](c.value)
       case id: Identifier =>
@@ -88,16 +93,19 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
           case 2 =>
             log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
-            val fun: PFunction = registry.findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType)).map(_._1)
+            val fun: PFunction = registry
+              .findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType))
+              .map(_._1)
               .getOrElse(
                 sys.error(
                   s"Function ${fc.functionName} with argument types " +
-                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                  s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
                 )
-              )._1
+              )
+              ._1
             CouplePattern(p1, p2)(
-              {
-                (x, y) => fun(List(x, y))
+              { (x, y) =>
+                fun(List(x, y))
               }
             )
           case _ => sys.error("Functions with 3 or more arguments not yet supported")

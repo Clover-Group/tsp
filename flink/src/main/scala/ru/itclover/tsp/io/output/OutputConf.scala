@@ -53,7 +53,7 @@ case class JDBCOutputConf(
 //}
 
 /**
-* Sink for kafka connection
+  * Sink for kafka connection
   * @param broker host and port for kafka broker
   * @param topic where is data located
   * @param serializer format of data in kafka
@@ -75,9 +75,9 @@ case class KafkaOutputConf(
   override def getOutputFormat: OutputFormat[Row] = new AvroOutputFormat(classOf[Row]) // actually not needed
 
   def dataSerializer: SerializationSchema[Row] = serializer.getOrElse("json") match {
-    case "json"    => new JSONSerializer(rowSchema)
-    case "arrow"   => new ArrowSerializer(rowSchema)
-    case _         => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
+    case "json"  => new JSONSerializer(rowSchema)
+    case "arrow" => new ArrowSerializer(rowSchema)
+    case _       => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 
 }

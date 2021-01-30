@@ -15,10 +15,10 @@ case class MapWithContextPattern[Event, InnerState, T1, T2](inner: Pattern[Event
   val func: Event => T1 => T2
 ) extends Pattern[Event, InnerState, T2] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
-                                                               oldState: InnerState,
-                                                               oldQueue: PQueue[T2],
-                                                               event: Cont[Event]
-                                                             ): F[(InnerState, PQueue[T2])] = {
+    oldState: InnerState,
+    oldQueue: PQueue[T2],
+    event: Cont[Event]
+  ): F[(InnerState, PQueue[T2])] = {
 
     // we need to trim inner queue here to avoid memory leaks
     val innerQueue = getInnerQueue(oldQueue)

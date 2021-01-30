@@ -29,19 +29,20 @@ trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
   def fieldsCount: Int
 }
 
-
-
 case class NewRowSchema(
   unitIdField: Symbol,
   fromTsField: Symbol,
   toTsField: Symbol,
   appIdFieldVal: (Symbol, Int),
   patternIdField: Symbol,
-  subunitIdField: Symbol,
-) extends EventSchema with Serializable {
-  override def fieldsTypes: List[Int] = List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER)
+  subunitIdField: Symbol
+) extends EventSchema
+    with Serializable {
+  override def fieldsTypes: List[Int] =
+    List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER)
 
-  override def fieldsNames: List[Symbol] = List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
+  override def fieldsNames: List[Symbol] =
+    List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
 
   override def fieldsCount: Int = 6
 
@@ -55,6 +56,5 @@ case class NewRowSchema(
 
   val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
   val patternIdInd = fieldsIndexesMap(patternIdField)
-
 
 }

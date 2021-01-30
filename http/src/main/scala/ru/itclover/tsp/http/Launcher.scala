@@ -21,10 +21,7 @@ import scala.io.StdIn
 
 // We throw exceptions in the launcher.
 // Also, some statements are non-Unit but we cannot use multiple `val _` in the same scope
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Throw",
-  "org.wartremover.warts.NonUnitStatements"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.NonUnitStatements"))
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
   override val isDebug: Boolean = configs.getBoolean("general.is-debug")
@@ -85,8 +82,10 @@ object Launcher extends App with HttpService {
     log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
     Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
   } else if (args.length != 1) {
-    Left("You need to provide one arg: `flink-xxx spark-xxx` where `xxx` can be `local` or `cluster` " +
-      "to specify Flink and Spark execution mode.") // TODO: More beautiful parsing
+    Left(
+      "You need to provide one arg: `flink-xxx spark-xxx` where `xxx` can be `local` or `cluster` " +
+      "to specify Flink and Spark execution mode."
+    ) // TODO: More beautiful parsing
   } else if (args(0) == "flink-local spark-local") {
     createLocalEnv
   } else if (args(0) == "flink-cluster spark-local") {
@@ -107,7 +106,7 @@ object Launcher extends App with HttpService {
   }
 
   streamEnvironment.setParallelism(1)
-  streamEnvironment.setMaxParallelism(1)//(configs.getInt("flink.max-parallelism"))
+  streamEnvironment.setMaxParallelism(1) //(configs.getInt("flink.max-parallelism"))
 
   val spark = sparkSession
 
@@ -152,9 +151,9 @@ object Launcher extends App with HttpService {
   }
 
   def getSparkAddress: Either[String, String] = if (useLocalSpark) {
-     Right("local")
+    Right("local")
   } else {
-    getSparkHostPort.map{case (host, port) => s"spark://$host:$port"}
+    getSparkHostPort.map { case (host, port) => s"spark://$host:$port" }
   }
 
   def sparkSession = getSparkAddress match {
@@ -162,18 +161,19 @@ object Launcher extends App with HttpService {
     case Right(address) =>
       StreamSource.sparkMaster = address
       val host = getEnvVarOrConfig("SPARK_DRIVER", "spark.driver")
-      SparkSession.builder()
-      .master(address)
-      .appName("TSP Spark")
-      .config("spark.io.compression.codec", "snappy")
-      .config("spark.driver.host", host)
-      .config("spark.driver.port", 2020)
-      .config("spark.jars", "/opt/tsp.jar")
-      .getOrCreate()
+      SparkSession
+        .builder()
+        .master(address)
+        .appName("TSP Spark")
+        .config("spark.io.compression.codec", "snappy")
+        .config("spark.driver.host", host)
+        .config("spark.driver.port", 2020)
+        .config("spark.jars", "/opt/tsp.jar")
+        .getOrCreate()
   }
 
   /**
-  * Method for flink environment configuration
+    * Method for flink environment configuration
     * @param env flink execution environment
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {

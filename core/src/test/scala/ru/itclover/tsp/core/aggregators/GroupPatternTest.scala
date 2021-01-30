@@ -64,8 +64,8 @@ class GroupPatternTest extends WordSpec with Matchers {
 
       var counter = 0
 
-      collect.foreach(item =>{
-        if(item.value.isFail){
+      collect.foreach(item => {
+        if (item.value.isFail) {
           counter += 1
         }
       })
@@ -89,7 +89,7 @@ class GroupPatternTest extends WordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[_]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => collect += x)
 
-      collect.foreach(item =>{
+      collect.foreach(item => {
         item.value.isFail shouldBe true
       })
 

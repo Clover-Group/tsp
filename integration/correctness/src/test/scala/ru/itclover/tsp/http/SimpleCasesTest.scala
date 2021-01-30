@@ -23,7 +23,12 @@ import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.utils.Files
-import ru.itclover.tsp.spark.io.{JDBCInputConf => SparkJDBCInputConf, JDBCOutputConf => SparkJDBCOutputConf, KafkaInputConf => SparkKafkaInputConf, NewRowSchema => SparkRowSchema}
+import ru.itclover.tsp.spark.io.{
+  JDBCInputConf => SparkJDBCInputConf,
+  JDBCOutputConf => SparkJDBCOutputConf,
+  KafkaInputConf => SparkKafkaInputConf,
+  NewRowSchema => SparkRowSchema
+}
 import ru.itclover.tsp.spark.io.{NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
 import spray.json._
 
@@ -36,10 +41,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, this test seems to be heavily relying on Any. But still TODO: Investigate
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
 class SimpleCasesTest
     extends FlatSpec
     with SqlMatchers
@@ -53,7 +55,8 @@ class SimpleCasesTest
   streamEnvironment.setParallelism(1)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -97,7 +100,6 @@ class SimpleCasesTest
 
   val kafkaContainer = KafkaContainer()
 
-
   override val container = MultipleContainers(
     clickhouseContainer,
     influxContainer,
@@ -127,7 +129,7 @@ class SimpleCasesTest
 
   val fileSourceStringIvolga = patternsStringIvolga match {
     case Success(some) => some
-    case _ => ""
+    case _             => ""
   }
 
   val jsonObjectIvolga = fileSourceStringIvolga.parseJson
@@ -144,7 +146,7 @@ class SimpleCasesTest
   val jsonObjectInc = fileSourceStringInc.parseJson
   val coreRawIncidents = jsonObjectInc.convertTo[Map[String, String]]
 
-  val incidentsCount = coreRawIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+  val incidentsCount = coreRawIncidents.map { case (k, v) => (k.toInt, v.toInt) }
 
   val ivolgaIncidentsPath = s"${filesPath}/ivolga/incidents.json"
   val ivolgaIncidentsString: Try[String] = Files.readFile(ivolgaIncidentsPath)
@@ -157,38 +159,40 @@ class SimpleCasesTest
   val jsonObjectIvolgaInc = fileSourceStringIvolgaInc.parseJson
   val ivolgaIncidents = jsonObjectIvolgaInc.convertTo[Map[String, String]]
 
-  val incidentsIvolgaCount = ivolgaIncidents.map{ case (k ,v) => (k.toInt, v.toInt)}
+  val incidentsIvolgaCount = ivolgaIncidents.map { case (k, v) => (k.toInt, v.toInt) }
 
   val rawIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
 
-  Files.readResource("/simple_cases/core/timestamps.csv")
-       .foreach(elem => {
+  Files
+    .readResource("/simple_cases/core/timestamps.csv")
+    .foreach(elem => {
 
-          val elements = elem.split(",")
-          rawIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )
+      val elements = elem.split(",")
+      rawIncidentsTimestamps += List(
+        elements(0).toDouble,
+        elements(1).toDouble,
+        elements(2).toDouble
+      )
 
-       })
+    })
 
   // type is explicitly specified to avoid writing pattern ID as Double
   val incidentsTimestamps: List[List[Double]] = rawIncidentsTimestamps.toList
 
   val ivolgaIncidentsTimestamps: ListBuffer[List[Double]] = ListBuffer.empty
 
-  Files.readResource("/simple_cases/ivolga/timestamps.csv")
-       .foreach(elem => {
+  Files
+    .readResource("/simple_cases/ivolga/timestamps.csv")
+    .foreach(elem => {
 
-          val elements = elem.split(",")
-          ivolgaIncidentsTimestamps += List(
-            elements(0).toDouble,
-            elements(1).toDouble,
-            elements(2).toDouble
-          )
+      val elements = elem.split(",")
+      ivolgaIncidentsTimestamps += List(
+        elements(0).toDouble,
+        elements(1).toDouble,
+        elements(2).toDouble
+      )
 
-       })
+    })
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
@@ -222,26 +226,30 @@ class SimpleCasesTest
     sourceId = 200,
     query = "SELECT * FROM math_test ORDER BY dt",
     datetimeField = 'dt,
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
   val narrowInputIvolgaConf = wideInputConf.copy(
     sourceId = 400,
     query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
     datetimeField = 'dt,
-    partitionFields = Seq('stock_num,'upload_id),
+    partitionFields = Seq('stock_num, 'upload_id),
     dataTransformation = Some(
-      NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map('value_str -> List('SOC_2_UKV1_UOVS))), Some(15000L))
-    ),
+      NarrowDataUnfolding(
+        'sensor_id,
+        'value_float,
+        Map.empty,
+        Some(Map('value_str -> List('SOC_2_UKV1_UOVS))),
+        Some(15000L)
+      )
+    )
   )
 
   val wideInputIvolgaConf = wideInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(WideDataFilling(
-      Map.empty, defaultTimeout = Some(15000L))
-    )
+    dataTransformation = Some(WideDataFilling(Map.empty, defaultTimeout = Some(15000L)))
   )
 
   val wideRowSchema = NewRowSchema(
@@ -257,13 +265,14 @@ class SimpleCasesTest
     topic = "2te116u_tmy_test_simple_rules",
     datetimeField = 'dt,
     partitionFields = Seq('loco_num, 'section, 'upload_id),
-    fieldsTypes = Map("dt" -> "float64",
-      "upload_id" -> "string",
-      "loco_num" -> "string",
-      "section" -> "string",
-      "POilDieselOut" -> "float64",
+    fieldsTypes = Map(
+      "dt"             -> "float64",
+      "upload_id"      -> "string",
+      "loco_num"       -> "string",
+      "section"        -> "string",
+      "POilDieselOut"  -> "float64",
       "SpeedThrustMin" -> "float64",
-      "PowerPolling" -> "float64"
+      "PowerPolling"   -> "float64"
     )
   )
 
@@ -285,13 +294,14 @@ class SimpleCasesTest
     topic = "2te116u_tmy_test_simple_rules",
     datetimeField = 'dt,
     partitionFields = Seq('loco_num, 'section, 'upload_id),
-    fieldsTypes = Map("dt" -> "float64",
-      "upload_id" -> "string",
-      "loco_num" -> "string",
-      "section" -> "string",
-      "POilDieselOut" -> "float64",
+    fieldsTypes = Map(
+      "dt"             -> "float64",
+      "upload_id"      -> "string",
+      "loco_num"       -> "string",
+      "section"        -> "string",
+      "POilDieselOut"  -> "float64",
       "SpeedThrustMin" -> "float64",
-      "PowerPolling" -> "float64"
+      "PowerPolling"   -> "float64"
     )
   )
 
@@ -299,16 +309,14 @@ class SimpleCasesTest
     sourceId = 200,
     query = "SELECT * FROM math_test ORDER BY dt",
     datetimeField = 'dt,
-    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000))),
+    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
   val wideSparkInputIvolgaConf = wideSparkInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(SparkWDF(
-      Map.empty, defaultTimeout = Some(15000L))
-    )
+    dataTransformation = Some(SparkWDF(Map.empty, defaultTimeout = Some(15000L)))
   )
 
   val narrowRowSchema = wideRowSchema.copy(
@@ -337,11 +345,11 @@ class SimpleCasesTest
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val narrowSparkRowSchema = wideSparkRowSchema.copy(
-    appIdFieldVal = ('app, 2),
+    appIdFieldVal = ('app, 2)
   )
 
   val wideIvolgaSparkRowSchema = wideSparkRowSchema.copy(
-    appIdFieldVal = ('app, 5),
+    appIdFieldVal = ('app, 5)
   )
 
   val wideOutputConf = JDBCOutputConf(
@@ -415,10 +423,11 @@ class SimpleCasesTest
 
     chScripts.foreach(elem => {
 
-      Files.readResource(elem)
-           .mkString
-           .split(";")
-           .foreach(clickhouseContainer.executeUpdate)
+      Files
+        .readResource(elem)
+        .mkString
+        .split(";")
+        .foreach(clickhouseContainer.executeUpdate)
 
     })
 
@@ -457,31 +466,40 @@ class SimpleCasesTest
 
     insertInfo.foreach(elem => {
 
-      val insertData = Files.readResource(elem._2)
-                            .drop(1)
-                            .mkString("\n")
+      val insertData = Files
+        .readResource(elem._2)
+        .drop(1)
+        .mkString("\n")
 
       clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
       val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
       val data = Files.readResource(elem._2).drop(1).map(_.split(","))
-      val numberIndices = List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
+      val numberIndices =
+        List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
-      data.foreach { row =>
-        val convertedRow: Seq[Any] = row.indices.map(idx => if (numberIndices.contains(idx)) {
-          if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
-        } else row(idx))
-        val msgKey = UUID.randomUUID().toString
-        val msgMap = headers.zip(convertedRow).toMap[String, Any]
-        val json = "{" + msgMap.map {
-          case (k, v) => v match {
-            case _: String => s""""$k": "$v""""
-            case _         => s""""$k": $v"""
-          }
-        }.mkString(", ") + "}"
-        val topic = elem._1.filter(_ != '`')
-        println(s"Sending to $topic $msgKey --- $json")
-        producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
+      data.foreach {
+        row =>
+          val convertedRow: Seq[Any] = row.indices.map(
+            idx =>
+              if (numberIndices.contains(idx)) {
+                if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
+              } else row(idx)
+          )
+          val msgKey = UUID.randomUUID().toString
+          val msgMap = headers.zip(convertedRow).toMap[String, Any]
+          val json = "{" + msgMap
+              .map {
+                case (k, v) =>
+                  v match {
+                    case _: String => s""""$k": "$v""""
+                    case _         => s""""$k": $v"""
+                  }
+              }
+              .mkString(", ") + "}"
+          val topic = elem._1.filter(_ != '`')
+          println(s"Sending to $topic $msgKey --- $json")
+          producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
       }
     })
 
@@ -604,7 +622,7 @@ class SimpleCasesTest
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -617,7 +635,10 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
-      firstValidationQuery("events_wide_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+      firstValidationQuery(
+        "events_wide_ivolga_test",
+        numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted)
+      )
     )
     alertByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_test"))
   }
@@ -626,9 +647,14 @@ class SimpleCasesTest
     casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputIvolgaConf, narrowOutputIvolgaConf, List(casesPatternsIvolga(id)))
+        FindPatternsRequest(
+          s"17narrow_$id",
+          narrowInputIvolgaConf,
+          narrowOutputIvolgaConf,
+          List(casesPatternsIvolga(id))
+        )
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -641,7 +667,10 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
-      firstValidationQuery("events_narrow_ivolga_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+      firstValidationQuery(
+        "events_narrow_ivolga_test",
+        numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted)
+      )
     )
     alertByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_narrow_ivolga_test"))
   }
@@ -649,9 +678,9 @@ class SimpleCasesTest
   def numbersToRanges(numbers: List[Int]): List[Range] = {
     @tailrec
     def inner(in: List[Int], acc: List[Range]): List[Range] = (in, acc) match {
-      case (Nil, a) => a.reverse
+      case (Nil, a)                               => a.reverse
       case (n :: tail, r :: tt) if n == r.end + 1 => inner(tail, (r.start to n) :: tt)
-      case (n :: tail, a) => inner(tail, (n to n) :: a)
+      case (n :: tail, a)                         => inner(tail, (n to n) :: a)
     }
 
     inner(numbers, Nil)
@@ -663,7 +692,7 @@ class SimpleCasesTest
         "/streamJob/from-kafka/to-jdbc/?run_async=1",
         FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -689,7 +718,7 @@ class SimpleCasesTest
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
         FindPatternsRequest(s"17wide_$id", wideSparkInputConf, wideSparkOutputConf, List(casesPatterns(id)))
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -736,9 +765,14 @@ class SimpleCasesTest
     casesPatternsIvolga.keys.toList.sorted.foreach { id =>
       Post(
         "/sparkJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideSparkInputIvolgaConf, wideSparkOutputIvolgaConf, List(casesPatternsIvolga(id)))
+        FindPatternsRequest(
+          s"17wide_$id",
+          wideSparkInputIvolgaConf,
+          wideSparkOutputIvolgaConf,
+          List(casesPatternsIvolga(id))
+        )
       ) ~>
-        route ~> check {
+      route ~> check {
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
@@ -751,34 +785,43 @@ class SimpleCasesTest
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
-      firstValidationQuery("events_wide_ivolga_spark_test", numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted))
+      firstValidationQuery(
+        "events_wide_ivolga_spark_test",
+        numbersToRanges(casesPatternsIvolga.keys.map(_.toInt).toList.sorted)
+      )
     )
     alertByQuery(incidentsIvolgaTimestamps, secondValidationQuery.format("events_wide_ivolga_spark_test"))
   }
-    "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
-      casesPatterns.keys.foreach { id =>
-        Post(
-          "/sparkJob/from-kafka/to-jdbc/?run_async=0",
-          FindPatternsRequest(s"17kafkawide_$id", wideSparkKafkaInputConf, wideSparkKafkaOutputConf, List(casesPatterns(id)))
-        ) ~>
-          route ~> check {
-          withClue(s"Pattern ID: $id") {
-            status shouldEqual StatusCodes.OK
-          }
-          //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+  "Cases 1-17, 43-50" should "work in wide Kafka table with Spark" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-kafka/to-jdbc/?run_async=0",
+        FindPatternsRequest(
+          s"17kafkawide_$id",
+          wideSparkKafkaInputConf,
+          wideSparkKafkaOutputConf,
+          List(casesPatterns(id))
+        )
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
         }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
-      alertByQuery(
-        incidentsCount
-          .map {
-            case (k, v) => List(k.toDouble, v.toDouble)
-          }
-          .toList
-          .sortBy(_.headOption.getOrElse(Double.NaN)),
-        firstValidationQuery("events_wide_kafka_spark_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-      )
-      alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
     }
+    alertByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
+      firstValidationQuery(
+        "events_wide_kafka_spark_test",
+        numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted)
+      )
+    )
+    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
+  }
 }
-
-

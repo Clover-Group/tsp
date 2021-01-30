@@ -3,7 +3,6 @@ package ru.itclover.tsp.spark.utils
 import org.apache.spark.sql.Row
 import ru.itclover.tsp.core.Pattern.Idx
 
-
 trait EventCreator[Event, Key] extends Serializable {
   def create(kv: Seq[(Key, AnyRef)]): Event
 }

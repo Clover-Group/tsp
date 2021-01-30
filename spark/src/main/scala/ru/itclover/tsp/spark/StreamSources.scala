@@ -9,7 +9,14 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
-import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
+import ru.itclover.tsp.spark.utils.{
+  EventCreator,
+  EventCreatorInstances,
+  JdbcService,
+  KeyCreator,
+  KeyCreatorInstances,
+  RowWithIdx
+}
 
 import scala.util.Try
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
@@ -79,9 +86,7 @@ object StreamSource {
 }
 
 // Stream sources deal heavily with Any values, so we must use it
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object JdbcSource {
 
   def create(conf: JDBCInputConf, fields: Set[Symbol]): Either[ConfigErr, JdbcSource] =
@@ -99,20 +104,19 @@ object JdbcSource {
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
 // Stream sources deal heavily with Any values, so we must use it
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class JdbcSource(
-                       conf: JDBCInputConf,
-                       fieldsClasses: Seq[(Symbol, Class[_])],
-                       nullFieldId: Symbol,
-                       patternFields: Set[Symbol]
-                     ) extends StreamSource[RowWithIdx, Symbol, Any] {
+  conf: JDBCInputConf,
+  fieldsClasses: Seq[(Symbol, Class[_])],
+  nullFieldId: Symbol,
+  patternFields: Set[Symbol]
+) extends StreamSource[RowWithIdx, Symbol, Any] {
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
 
   // TODO: Better place for Spark session
-  override val spark: SparkSession = SparkSession.builder()
+  override val spark: SparkSession = SparkSession
+    .builder()
     .master(StreamSource.sparkMaster)
     .appName("TSP Spark")
     .config("spark.io.compression.codec", "snappy")
@@ -120,17 +124,21 @@ case class JdbcSource(
 
   override val eventSchema = StructType(
     fieldsClasses.map {
-      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
-        case _: Class[Byte]    => ByteType
-        case _: Class[Short]   => ShortType
-        case _: Class[Int]     => IntegerType
-        case _: Class[Long]    => LongType
-        case _: Class[Float]   => FloatType
-        case _: Class[Double]  => DoubleType
-        case _: Class[Boolean] => BooleanType
-        case _: Class[String]  => StringType
-        case _                 => ObjectType(classOf[Any])
-      })
+      case (fieldName, typeName) =>
+        StructField(
+          fieldName.name,
+          typeName match {
+            case _: Class[Byte]    => ByteType
+            case _: Class[Short]   => ShortType
+            case _: Class[Int]     => IntegerType
+            case _: Class[Long]    => LongType
+            case _: Class[Float]   => FloatType
+            case _: Class[Double]  => DoubleType
+            case _: Class[Boolean] => BooleanType
+            case _: Class[String]  => StringType
+            case _                 => ObjectType(classOf[Any])
+          }
+        )
     }.toSeq
   )
 
@@ -147,7 +155,7 @@ case class JdbcSource(
       .load()
       //.rdd
       //.zipWithIndex()
-      .map{ RowWithIdx(0, _) }(eventEncoder)
+      .map { RowWithIdx(0, _) }(eventEncoder)
   }
 
   override def fieldToEKey: Symbol => Symbol = identity
@@ -184,21 +192,22 @@ case class JdbcSource(
     1000.0
   }
 
-  override implicit def timeExtractor: TimeExtractor[RowWithIdx] = {
+  implicit override def timeExtractor: TimeExtractor[RowWithIdx] = {
     val rowExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField)
     TimeExtractor.of((r: RowWithIdx) => rowExtractor(r._2))
   }
 
-  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
+  implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
     RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_._2)
 
-  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_._1)
+  implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_._1)
 
-  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_._2)
+  implicit override def extractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(fieldsIdxMap).comap(_._2)
 
-  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = RowSymbolExtractor(transformedFieldsIdxMap).comap(_._2)
+  implicit override def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] =
+    RowSymbolExtractor(transformedFieldsIdxMap).comap(_._2)
 
-  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+  implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
   implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
@@ -207,10 +216,9 @@ case class JdbcSource(
 }
 
 // Stream sources deal heavily with Any values, so we must use it
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object KafkaSource {
+
   def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(Symbol, Class[_])]] = Try(conf.fieldsTypes.map {
     case (fieldName, fieldType) =>
       val fieldClass = fieldType match {
@@ -229,8 +237,7 @@ object KafkaSource {
 
   def create(conf: KafkaInputConf, fields: Set[Symbol]): Either[ConfigErr, KafkaSource] =
     for {
-      types <- fetchFieldsTypesInfo(conf)
-        .toEither
+      types <- fetchFieldsTypesInfo(conf).toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
@@ -240,16 +247,15 @@ object KafkaSource {
 }
 
 // Stream sources deal heavily with Any values, so we must use it
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class KafkaSource(
-                        conf: KafkaInputConf,
-                        fieldsClasses: Seq[(Symbol, Class[_])],
-                        nullFieldId: Symbol,
-                        patternFields: Set[Symbol]
-                      ) extends StreamSource[RowWithIdx, Symbol, Any] {
-  override val spark: SparkSession = SparkSession.builder()
+  conf: KafkaInputConf,
+  fieldsClasses: Seq[(Symbol, Class[_])],
+  nullFieldId: Symbol,
+  patternFields: Set[Symbol]
+) extends StreamSource[RowWithIdx, Symbol, Any] {
+  override val spark: SparkSession = SparkSession
+    .builder()
     .master(StreamSource.sparkMaster)
     .appName("TSP Spark")
     .config("spark.io.compression.codec", "snappy")
@@ -257,30 +263,32 @@ case class KafkaSource(
 
   override val eventSchema: StructType = StructType(
     conf.fieldsTypes.map {
-      case (fieldName, typeName) => StructField(fieldName.name, typeName match {
-        case "int8"    => ByteType
-        case "int16"   => ShortType
-        case "int32"   => IntegerType
-        case "int64"   => LongType
-        case "float32" => FloatType
-        case "float64" => DoubleType
-        case "boolean" => BooleanType
-        case "string"  => StringType
-        case _         => ObjectType(classOf[Any])
-      })
+      case (fieldName, typeName) =>
+        StructField(
+          fieldName.name,
+          typeName match {
+            case "int8"    => ByteType
+            case "int16"   => ShortType
+            case "int32"   => IntegerType
+            case "int64"   => LongType
+            case "float32" => FloatType
+            case "float64" => DoubleType
+            case "boolean" => BooleanType
+            case "string"  => StringType
+            case _         => ObjectType(classOf[Any])
+          }
+        )
     }.toSeq
   )
 
   val rowEncoder = RowEncoder(eventSchema)
-  override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder).asInstanceOf[Encoder[RowWithIdx]]
-
-
+  override val eventEncoder: Encoder[RowWithIdx] =
+    ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder).asInstanceOf[Encoder[RowWithIdx]]
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   def fieldsIdxMap = fieldsIdx.toMap
 
   override def fieldToEKey: Symbol => Symbol = identity
-
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
@@ -295,7 +303,6 @@ case class KafkaSource(
     RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_._2)
 
   val stageName = "Kafka input processing stage"
-
 
 //  override val eventSchema = StructType(
 //    fieldsClasses.map {

@@ -21,11 +21,7 @@ import scala.collection.mutable
   */
 // Arrow serialization heavily deals with Any's and null's (and also asInstanceOf).
 // Hence, no option other than suppress these warts here.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.Null",
-  "org.wartremover.warts.Any",
-  "org.wartremover.warts.AsInstanceOf"
-))
+@SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf"))
 class ArrowSerialization extends Serialization[Array[Byte], Row] {
 
   override def serialize(output: Row, eventSchema: EventSchema): Array[Byte] = {
@@ -82,12 +78,12 @@ class ArrowSerialization extends Serialization[Array[Byte], Row] {
       case newRowSchema: NewRowSchema =>
         mutable.ListBuffer(
           mutable.Map(
-            newRowSchema.unitIdField.name -> output.getField(newRowSchema.unitIdInd).asInstanceOf[Int],
-            newRowSchema.fromTsField.name -> output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp],
-            newRowSchema.toTsField.name -> output.getField(newRowSchema.endInd).asInstanceOf[Timestamp],
+            newRowSchema.unitIdField.name      -> output.getField(newRowSchema.unitIdInd).asInstanceOf[Int],
+            newRowSchema.fromTsField.name      -> output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp],
+            newRowSchema.toTsField.name        -> output.getField(newRowSchema.endInd).asInstanceOf[Timestamp],
             newRowSchema.appIdFieldVal._1.name -> output.getField(newRowSchema.appIdInd).asInstanceOf[Int],
-            newRowSchema.patternIdField.name -> output.getField(newRowSchema.patternIdInd).asInstanceOf[String],
-            newRowSchema.subunitIdField.name -> output.getField(newRowSchema.subunitIdInd).asInstanceOf[String]
+            newRowSchema.patternIdField.name   -> output.getField(newRowSchema.patternIdInd).asInstanceOf[String],
+            newRowSchema.subunitIdField.name   -> output.getField(newRowSchema.subunitIdInd).asInstanceOf[String]
           )
         )
     }

@@ -7,11 +7,11 @@ import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization}
 
 object KafkaSerializers {
 
-  class JSONSerializer(rowSchema: EventSchema) extends SerializationSchema[Row]{
+  class JSONSerializer(rowSchema: EventSchema) extends SerializationSchema[Row] {
     override def serialize(element: Row): Array[Byte] = new JSONSerialization().serialize(element, rowSchema)
   }
 
-  class ArrowSerializer(rowSchema: EventSchema) extends SerializationSchema[Row]{
+  class ArrowSerializer(rowSchema: EventSchema) extends SerializationSchema[Row] {
     override def serialize(element: Row): Array[Byte] = new ArrowSerialization().serialize(element, rowSchema)
   }
 

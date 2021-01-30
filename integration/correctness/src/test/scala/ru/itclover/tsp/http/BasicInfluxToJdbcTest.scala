@@ -21,10 +21,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, IO configurations use Any.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
 class BasicInfluxToJdbcTest
     extends FlatSpec
     with SqlMatchers
@@ -38,7 +35,8 @@ class BasicInfluxToJdbcTest
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -120,25 +118,29 @@ class BasicInfluxToJdbcTest
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(jdbcContainer.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(jdbcContainer.executeUpdate)
 
-    Files.readResource("/sql/infl-test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(influxContainer.executeQuery)
+    Files
+      .readResource("/sql/infl-test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(influxContainer.executeQuery)
 
-    Files.readResource("/sql/wide/infl-source-inserts.influx")
-         .mkString
-         .split(";")
-         .foreach(influxContainer.executeUpdate)
+    Files
+      .readResource("/sql/wide/infl-source-inserts.influx")
+      .mkString
+      .split(";")
+      .foreach(influxContainer.executeUpdate)
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(jdbcContainer.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(jdbcContainer.executeUpdate)
   }
 
   override def afterAll(): Unit = {
@@ -191,7 +193,7 @@ class BasicInfluxToJdbcTest
     }
   }
 
-  /* 
+  /*
   // TODO: Fix json format for arbitrary
   "Data filling" should "work for wide sparse table" in {
 

@@ -19,7 +19,12 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
+class BasicJdbcToKafkaTest
+    extends FlatSpec
+    with SqlMatchers
+    with ScalatestRouteTest
+    with HttpService
+    with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
   implicit override val streamEnvironment: StreamExecutionEnvironment =
@@ -27,7 +32,8 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -49,6 +55,7 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   implicit def defaultTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8170
+
   val clickhouseContainer = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9080 -> 9000 :: Nil,
@@ -69,11 +76,11 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
     partitionFields = Seq('series_id, 'mechanism_id)
   )
 
-    val kafkaPort = 8092
+  val kafkaPort = 8092
 
-    val kafkaContainer = KafkaContainer()
+  val kafkaContainer = KafkaContainer()
 
-    implicit override val container = MultipleContainers(clickhouseContainer, kafkaContainer)
+  implicit override val container = MultipleContainers(clickhouseContainer, kafkaContainer)
 
   val typeCastingInputConf = inputConf.copy(query = "select * from Test.SM_typeCasting_wide limit 1000")
 
@@ -97,25 +104,29 @@ class BasicJdbcToKafkaTest extends FlatSpec with SqlMatchers with ScalatestRoute
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
-    Files.readResource("/sql/wide/source-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/wide/source-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
-    Files.readResource("/sql/wide/source-inserts.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/wide/source-inserts.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(clickhouseContainer.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(clickhouseContainer.executeUpdate)
   }
 
   override def afterAll(): Unit = {

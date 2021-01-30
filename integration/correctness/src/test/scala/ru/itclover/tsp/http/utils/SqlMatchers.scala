@@ -10,11 +10,9 @@ import scala.util.Try
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Here we also use `asInstanceOf` methods for type conversion.
 // We suppress Any for `shouldBe empty` statements.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.AsInstanceOf",
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(
+  Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Any")
+)
 trait SqlMatchers extends Matchers {
 
   val logger = Logger("SqlMatchers")
@@ -44,7 +42,9 @@ trait SqlMatchers extends Matchers {
 
     val unfound = expectedValues.filter(x => !results.exists(y => customEqualityList.areEqual(x.toList, y)))
     val unexpected = results.filter(x => !expectedValues.exists(y => customEqualityList.areEqual(x.toList, y)))
-    withClue(s"Expected but not found: [${toStringRepresentation(unfound)}]; found [${toStringRepresentation(unexpected)}] instead") {
+    withClue(
+      s"Expected but not found: [${toStringRepresentation(unfound)}]; found [${toStringRepresentation(unexpected)}] instead"
+    ) {
       // results should ===(expectedValues)
       unfound shouldBe empty
       unexpected shouldBe empty
@@ -57,12 +57,17 @@ trait SqlMatchers extends Matchers {
     implicit container: InfluxDBContainer
   ): Assertion = {
     val resultSet = container.executeQuery(query)
-    val results: List[Seq[Double]] = resultSet.getResults.get(0).getSeries.asScala
-      .map(_.getValues.asScala.map(_.asScala.drop(1).map(x=>Try(x.toString.toDouble).getOrElse(Double.NaN)).toList).toList)
+    val results: List[Seq[Double]] = resultSet.getResults
+      .get(0)
+      .getSeries
+      .asScala
+      .map(
+        _.getValues.asScala.map(_.asScala.drop(1).map(x => Try(x.toString.toDouble).getOrElse(Double.NaN)).toList).toList
+      )
       .foldLeft(List.empty[Seq[Double]])(_ ++ _)
     logger.info(
       s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
-        s"actual values: [${toStringRepresentation(results)}]"
+      s"actual values: [${toStringRepresentation(results)}]"
     )
     implicit val customEqualityList: Equality[List[Double]] = (a: scala.List[Double], b: Any) => {
       a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall {
@@ -71,7 +76,9 @@ trait SqlMatchers extends Matchers {
     }
     val unfound = expectedValues.filter(x => !results.exists(y => customEqualityList.areEqual(x.toList, y)))
     val unexpected = results.filter(x => !expectedValues.exists(y => customEqualityList.areEqual(x.toList, y)))
-    withClue(s"Expected but not found:\n [${toStringRepresentation(unfound)}]\n; found\n [${toStringRepresentation(unexpected)}]\n instead") {
+    withClue(
+      s"Expected but not found:\n [${toStringRepresentation(unfound)}]\n; found\n [${toStringRepresentation(unexpected)}]\n instead"
+    ) {
       // results should ===(expectedValues)
       unfound shouldBe empty
       unexpected shouldBe empty

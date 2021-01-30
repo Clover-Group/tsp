@@ -16,10 +16,7 @@ object PatternFieldExtractor {
       override def apply(e: E): Time = Time(0)
     }
     // Extracting nulls and converting to T.
-    @SuppressWarnings(Array(
-      "org.wartremover.warts.Null",
-      "org.wartremover.warts.AsInstanceOf"
-    ))
+    @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.AsInstanceOf"))
     val dummyExtractor = new Extractor[E, EKey, EItem] {
       override def apply[T](e: E, k: EKey)(implicit d: Decoder[EItem, T]): T = null.asInstanceOf[T]
     }

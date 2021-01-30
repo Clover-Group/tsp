@@ -8,15 +8,16 @@ import UtilityTypes.ParseException
 
 import scala.reflect.ClassTag
 
-
 // This uses specific parboiled DSL. SO, many warts may appear in the generated code
 // (there were 78 of them as of 2021-01-15).
 // Since we do not have control over it, we disable the wartremover plugin entirely for this class.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.All"
-))
-class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGapMs: Long, fieldsTags: Map[Symbol, ClassTag[_]])
-    extends Parser {
+@SuppressWarnings(Array("org.wartremover.warts.All"))
+class ASTBuilder(
+  val input: ParserInput,
+  toleranceFraction: Double,
+  eventsMaxGapMs: Long,
+  fieldsTags: Map[Symbol, ClassTag[_]]
+) extends Parser {
 
   // TODO: Move to params
   @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
@@ -359,7 +360,10 @@ class ASTBuilder(val input: ParserInput, toleranceFraction: Double, eventsMaxGap
   def waitRule: Rule1[AST] = rule {
     (
       ignoreCase("wait") ~ ws ~ "(" ~ ws ~ time ~ ws ~ "," ~ ws ~ trileanExpr ~ ws ~ ")" ~ ws ~> (
-        (w: Window, e: AST) => Wait(e, w)
+        (
+          w: Window,
+          e: AST
+        ) => Wait(e, w)
       )
     )
   }

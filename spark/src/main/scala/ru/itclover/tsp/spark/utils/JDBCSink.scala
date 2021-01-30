@@ -27,8 +27,8 @@ case class JDBCSink(url: String, table: String, driver: String, user: String, pw
   }
 
   def sqlEscape(obj: Any): String = obj match {
-    case s: String => s"'$s'"
+    case s: String     => s"'$s'"
     case ts: Timestamp => s"'$ts'"
-    case _         => obj.toString
+    case _             => obj.toString
   }
 }

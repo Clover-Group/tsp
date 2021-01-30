@@ -21,10 +21,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Also, IO configurations use Any.
-@SuppressWarnings(Array(
-  "org.wartremover.warts.NonUnitStatements",
-  "org.wartremover.warts.Any"
-))
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
 class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with HttpService with ForAllTestContainer {
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
@@ -34,7 +31,8 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession.builder()
+  val spark = SparkSession
+    .builder()
     .master("local")
     .appName("TSP Spark test")
     .config("spark.io.compression.codec", "snappy")
@@ -98,24 +96,29 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   override def afterStart(): Unit = {
     super.afterStart()
 
-    Files.readResource("/sql/test-db-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/test-db-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/wide/source-schema.sql")
-         .mkString.split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/wide/source-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/wide/source-inserts.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/wide/source-inserts.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
 
-    Files.readResource("/sql/sink-schema.sql")
-         .mkString
-         .split(";")
-         .foreach(container.executeUpdate)
+    Files
+      .readResource("/sql/sink-schema.sql")
+      .mkString
+      .split(";")
+      .foreach(container.executeUpdate)
   }
 
   override def afterAll(): Unit = {
