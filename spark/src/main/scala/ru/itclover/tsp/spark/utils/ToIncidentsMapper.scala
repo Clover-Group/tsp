@@ -8,6 +8,7 @@ import scala.util.Try
 final case class ToIncidentsMapper[E, EKey, EItem](
   patternId: Int,
   forwardedFields: Seq[(String, EKey)],
+  unitIdField: EKey,
   subunit: Int,
   payload: Seq[(String, String)],
   sessionWindowMs: Long,
@@ -19,6 +20,7 @@ final case class ToIncidentsMapper[E, EKey, EItem](
     val extractedFields = forwardedFields.map {
       case (name, k) => name -> Try(extractor[Any](event, k).toString).getOrElse("null")
     }
-    segment => Incident(incidentId, patternId, sessionWindowMs, segment, extractedFields, subunit, payload)
+    val unit = Try(extractor[Any](event, unitIdField).toString.toInt).getOrElse(Int.MinValue)
+    segment => Incident(incidentId, patternId, sessionWindowMs, segment, extractedFields, unit, subunit, payload)
   }
 }

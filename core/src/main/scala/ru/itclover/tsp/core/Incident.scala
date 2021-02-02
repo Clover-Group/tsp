@@ -15,8 +15,11 @@ case class Incident(
   patternId: Int,
   maxWindowMs: Long,
   segment: Segment,
+  @deprecated("Unused and scheduled to be removed in 0.17", since = "TSP 0.16")
   forwardedFields: Seq[(String, String)],
+  patternUnit: Int,
   patternSubunit: Int,
+  @deprecated("Unused and scheduled to be removed in 0.17", since = "TSP 0.16")
   patternPayload: Seq[(String, String)]
 ) extends Product
     with Serializable
@@ -37,6 +40,7 @@ object IncidentInstances {
         b.maxWindowMs,
         Segment(from, to),
         b.forwardedFields,
+        b.patternUnit,
         b.patternSubunit,
         b.patternPayload
       )

@@ -96,6 +96,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
         val toIncidents = ToIncidentsMapper(
           rawP.id,
           allForwardFields.map { case (id, k) => id.toString.tail -> k },
+          source.fieldToEKey(source.conf.unitIdField.get),
           rawP.subunit.getOrElse(0),
           rawP.payload.getOrElse(Map.empty).toSeq,
           if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
