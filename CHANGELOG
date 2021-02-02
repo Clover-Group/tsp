@@ -2,6 +2,10 @@
 
 ## 0.16.0
 - added Spark support for JDBC wide tables and Kafka
+
+## 0.15.14
+- Kafka sourceId is now required from query
+
 ## 0.15.13
 
 ## 0.15.12

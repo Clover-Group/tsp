@@ -139,7 +139,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "additionalTypeChecking"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat13(
+  implicit val kafkaInpConfFmt = jsonFormat14(
     KafkaInputConf.apply
   )
 
