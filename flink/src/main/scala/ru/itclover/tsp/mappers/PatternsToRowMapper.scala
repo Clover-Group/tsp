@@ -18,7 +18,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
   override def map(incident: Incident) = schema match {
     case newRowSchema: NewRowSchema =>
       val resultRow = new Row(newRowSchema.fieldsCount)
-      resultRow.setField(newRowSchema.unitIdInd, sourceId)
+      resultRow.setField(newRowSchema.unitIdInd, incident.patternUnit)
       resultRow.setField(newRowSchema.patternIdInd, incident.patternId)
       resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
       resultRow.setField(newRowSchema.beginInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))

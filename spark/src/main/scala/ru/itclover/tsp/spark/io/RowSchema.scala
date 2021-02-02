@@ -33,7 +33,7 @@ case class NewRowSchema(
       DataTypes.IntegerType
     )
 
-  val sourceIdInd = fieldsIndexesMap(unitIdField)
+  val unitIdInd = fieldsIndexesMap(unitIdField)
 
   val beginInd = fieldsIndexesMap(fromTsField)
   val endInd = fieldsIndexesMap(toTsField)

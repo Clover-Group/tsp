@@ -17,7 +17,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema)
 
   def map(incident: Incident): Row = {
     val values = new Array[Any](schema.fieldsCount)
-    values(schema.sourceIdInd) = sourceId
+    values(schema.unitIdInd) = incident.patternUnit
     values(schema.patternIdInd) = incident.patternId
     values(schema.appIdInd) = schema.appIdFieldVal._2
     values(schema.beginInd) = new Timestamp(incident.segment.from.toMillis)
