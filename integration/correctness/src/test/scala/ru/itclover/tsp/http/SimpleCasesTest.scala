@@ -261,6 +261,7 @@ class SimpleCasesTest
     subunitIdField = 'subunit
   )
   lazy val wideKafkaInputConf = KafkaInputConf(
+    sourceId = 600,
     brokers = kafkaBrokerUrl,
     topic = "2te116u_tmy_test_simple_rules",
     datetimeField = 'dt,
