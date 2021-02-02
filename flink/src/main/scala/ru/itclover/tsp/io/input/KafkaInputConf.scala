@@ -5,6 +5,7 @@ import ru.itclover.tsp.RowWithIdx
 
 @SerialVersionUID(91000L)
 case class KafkaInputConf(
+  sourceId: Int,
   brokers: String,
   topic: String,
   group: String = UUID.randomUUID().toString,
@@ -24,6 +25,5 @@ case class KafkaInputConf(
   def defaultToleranceFraction: Option[Double] = None
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)
-  def sourceId: Int = 1
-
 }
+
