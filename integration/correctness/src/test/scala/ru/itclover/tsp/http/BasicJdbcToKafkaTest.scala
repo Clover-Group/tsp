@@ -70,6 +70,7 @@ class BasicJdbcToKafkaTest
     query = """select *, speed as "speed(1)(2)" from Test.SM_basic_wide""", // speed(1)(2) fancy colnames test
     driverName = clickhouseContainer.driverName,
     datetimeField = 'datetime,
+    unitIdField = Some('unit),
     eventsMaxGapMs = Some(60000L),
     defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),

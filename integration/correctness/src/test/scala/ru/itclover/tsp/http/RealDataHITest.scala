@@ -81,6 +81,7 @@ class RealDataHITest
     defaultEventsGapMs = Some(10000L),
     chunkSizeMs = Some(900000L),
     partitionFields = Seq('stock_num),
+    unitIdField = Some('stock_num),
     patternsParallelism = Some(1)
   )
 

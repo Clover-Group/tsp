@@ -88,6 +88,7 @@ class BasicInfluxToJdbcTest
     eventsMaxGapMs = Some(60000L),
     defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
+    unitIdField = Some('mechanism_id),
     partitionFields = Seq('series_id, 'mechanism_id),
     userName = Some("default"),
     additionalTypeChecking = Some(false)

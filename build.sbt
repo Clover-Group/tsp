@@ -169,7 +169,7 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson,
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
@@ -178,7 +178,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.sparkDeps
+      Library.akkaHttp ++ Library.sparkDeps ++ Library.logging
   )
   .dependsOn(core, config, flink, spark, dsl)
 
@@ -200,7 +200,7 @@ lazy val spark = project.in(file("spark"))
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers,
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
   )
   .dependsOn(core, flink, http, config)
@@ -208,7 +208,7 @@ lazy val itValid = project.in(file("integration/correctness"))
 lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
   )
   .dependsOn(itValid)
 

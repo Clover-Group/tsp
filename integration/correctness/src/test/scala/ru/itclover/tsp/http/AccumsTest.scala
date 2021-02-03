@@ -116,6 +116,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
     query = realWorkloadQuery,
     driverName = container.driverName,
     datetimeField = 'ts,
+    unitIdField = Some('unit),
     eventsMaxGapMs = Some(2000L),
     defaultEventsGapMs = Some(2000L),
     chunkSizeMs = Some(900000L),

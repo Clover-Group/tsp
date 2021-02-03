@@ -5,7 +5,7 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.encoders.{RowEncoder}
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
@@ -17,7 +17,8 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, OutputConf, NewRowSchema}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, NewRowSchema, OutputConf}
+import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
@@ -151,14 +152,18 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
   def applyTransformation(stream: Dataset[In])(implicit spark: SparkSession): Dataset[In] = {
     implicit val encIn: Encoder[In] = source.eventEncoder
     source.conf.dataTransformation match {
-      case Some(_) => stream
-//        import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
-//        val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
-//          fields)
-//        stream
-//          .union(spark.createDataset(List(source.eventCreator.create(Seq.empty))))
-//          .coalesce(1)
-//          .flatMap(acc.process)
+      case Some(_) =>
+        import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
+        val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
+          fields)
+        stream
+          .union(spark.createDataset(List(source.eventCreator.create(
+            source.fieldsClasses.map { case (f, c) =>
+              source.fieldToEKey(f) -> getNullValue(c).asInstanceOf[AnyRef]
+            }
+          ))))
+          .coalesce(1)
+          .flatMap(acc.process)
       case None => stream
     }
   }
@@ -191,6 +196,20 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
       //println(s"${event.id} stopped")
     }
+  }
+
+  def getNullValue(c: Class[_]): AnyRef = {
+    val r = c match {
+    case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte]) => 0.toByte.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short]) => 0.toShort.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int]) => 0.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long]) => 0L.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float]) => Float.NaN.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double]) => Double.NaN.asInstanceOf[AnyRef]
+    case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String]) => "".asInstanceOf[AnyRef]
+    case _ => null
+    }
+    r
   }
 }
 
@@ -281,6 +300,7 @@ object PatternsSearchJob {
           $"maxWindowMs",
           $"segment",
           $"forwardedFields",
+          $"patternUnit",
           $"patternSubunit",
           $"patternPayload"
         ).as("result")
@@ -291,6 +311,7 @@ object PatternsSearchJob {
         $"result.maxWindowMs".as("maxWindowMs"),
         $"result.segment".as("segment"),
         $"result.forwardedFields".as("forwardedFields"),
+        $"result.patternUnit".as("patternUnit"),
         $"result.patternSubunit".as("patternSubunit"),
         $"result.patternPayload".as("patternPayload")
       )
