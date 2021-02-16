@@ -128,15 +128,15 @@ case class JdbcSource(
         StructField(
           fieldName.name,
           typeName match {
-            case _: Class[Byte]    => ByteType
-            case _: Class[Short]   => ShortType
-            case _: Class[Int]     => IntegerType
-            case _: Class[Long]    => LongType
-            case _: Class[Float]   => FloatType
-            case _: Class[Double]  => DoubleType
-            case _: Class[Boolean] => BooleanType
-            case _: Class[String]  => StringType
-            case _                 => ObjectType(classOf[Any])
+            case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte])       => ByteType
+            case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short])     => ShortType
+            case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int])     => IntegerType
+            case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long])       => LongType
+            case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float])     => FloatType
+            case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
+            case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
+            case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
+            case _                                                                       => ObjectType(classOf[Any])
           }
         )
     }.toSeq

@@ -4,7 +4,6 @@ import cats.Traverse
 import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
@@ -179,9 +178,6 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 //        .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
 //    case _ => stream
 //  }
-  def rddToDataset[Out](rdd: RDD[Out], rowSchema: NewRowSchema): Dataset[Out] = {
-    source.spark.createDataFrame(rdd.asInstanceOf[RDD[Row]], rowSchemaToSchema(rowSchema)).asInstanceOf[Dataset[Out]]
-  }
 
   def queryListener: StreamingQueryListener = new StreamingQueryListener {
     override def onQueryStarted(event: StreamingQueryListener.QueryStartedEvent): Unit = {
@@ -281,16 +277,9 @@ object PatternsSearchJob {
 
     val reducer = new IncidentAggregator
 
-    val res = newIncidents.toDF
+    val res = newIncidents
       .withColumn("curr", col("segment.from.toMillis"))
       .withColumn("prev", lag("segment.to.toMillis", 1).over(win))
-      /*.map {
-          value =>
-            if (value.getAs[Long]("curr") - value.getAs[Long]("prev") > value.getAs[Long]("maxWindowMs")) {
-            seriesCount += 1
-          }
-            (seriesCount, value)
-        }*/
       .withColumn("seriesCount", sum(expr("curr - prev > maxWindowMs").cast("int")).over(win))
       .groupBy("seriesCount")
       .agg(

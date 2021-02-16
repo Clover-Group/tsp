@@ -15,7 +15,7 @@ case class DataStreamWriterWrapper[Event](writer: DataStreamWriter[Event]) exten
   override def write(): Unit = {
     val q = writer.start()
     // TODO: Stopping conditions?
-    q.awaitTermination(10000)
+    q.awaitTermination()
     q.stop()
   }
 }
