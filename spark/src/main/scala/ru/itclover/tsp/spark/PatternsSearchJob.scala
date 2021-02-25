@@ -394,6 +394,7 @@ object PatternsSearchJob {
               .format("kafka")
               .option("kafka.bootstrap.servers", oc.broker)
               .option("topic", oc.topic)
+              .option("checkpointLocation", "/tmp/tsp/checkpoint")
             log.debug("saveStream finished")
             res
         }
