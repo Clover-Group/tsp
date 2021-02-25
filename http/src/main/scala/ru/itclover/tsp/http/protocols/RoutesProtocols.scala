@@ -258,5 +258,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   )
 
   implicit val sparkJdbcOutConfFmt = jsonFormat8(spark.io.JDBCOutputConf.apply)
+  implicit val sparkKafkaOutConfFmt = jsonFormat4(spark.io.KafkaOutputConf.apply)
 
 }

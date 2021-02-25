@@ -105,6 +105,8 @@ trait JobsRoutes extends RoutesProtocols {
         val um = (from, to) match {
           case ("jdbc", "jdbc")  => as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.JDBCOutputConf]]
           case ("kafka", "jdbc") => as[FindPatternsRequest[spark.io.KafkaInputConf, spark.io.JDBCOutputConf]]
+          case ("jdbc", "kafka") => as[FindPatternsRequest[spark.io.JDBCInputConf, spark.io.KafkaOutputConf]]
+          case ("kafka", "kafka") => as[FindPatternsRequest[spark.io.KafkaInputConf, spark.io.KafkaOutputConf]]
           case _                 => null // Not implemented, will crash with a 500
         }
         entity(

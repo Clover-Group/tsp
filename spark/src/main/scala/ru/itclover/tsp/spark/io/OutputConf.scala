@@ -32,3 +32,14 @@ case class JDBCOutputConf(
 ) extends OutputConf[Row] {
   override def forwardedFieldsIds = Seq.empty
 }
+
+case class KafkaOutputConf(
+  broker: String,
+  topic: String,
+  //serializer: Option[String] = Some("json"),
+  rowSchema: NewRowSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+  override def forwardedFieldsIds = Seq.empty
+
+}

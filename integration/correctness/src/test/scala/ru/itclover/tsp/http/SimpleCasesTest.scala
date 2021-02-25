@@ -27,6 +27,7 @@ import ru.itclover.tsp.spark.io.{
   JDBCInputConf => SparkJDBCInputConf,
   JDBCOutputConf => SparkJDBCOutputConf,
   KafkaInputConf => SparkKafkaInputConf,
+  KafkaOutputConf => SparkKafkaOutputConf,
   NewRowSchema => SparkRowSchema
 }
 import ru.itclover.tsp.spark.io.{NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
@@ -417,6 +418,12 @@ class SimpleCasesTest
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  lazy val wideSparkKafkaToKafkaOutputConf = SparkKafkaOutputConf(
+    broker = kafkaBrokerUrl,
+    topic = "2te116u_events_simple_rules",
+    rowSchema = wideSparkRowSchema
   )
 
   override def afterStart(): Unit = {
@@ -833,5 +840,26 @@ class SimpleCasesTest
       )
     )
     alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
+  }
+
+  "Cases 1-17, 43-50" should "work in wide Kafka-to-Kafka table with Spark" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-kafka/to-kafka/?run_async=1",
+        FindPatternsRequest(
+          s"17kafkawide_$id",
+          wideSparkKafkaInputConf,
+          wideSparkKafkaToKafkaOutputConf,
+          List(casesPatterns(id))
+        )
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    Thread.sleep(20000)
   }
 }

@@ -5,6 +5,7 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.functions.{struct, to_json}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
 import org.apache.spark.sql.types.{StructField, StructType}
@@ -16,7 +17,7 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, NewRowSchema, OutputConf}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, NewRowSchema, OutputConf}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
@@ -340,6 +341,22 @@ object PatternsSearchJob {
             //.mode(SaveMode.Append)
             log.debug("saveStream finished")
             res
+          case oc: KafkaOutputConf =>
+            val res = stream
+              .select(to_json(struct(
+                oc.rowSchema.patternIdField.name,
+                oc.rowSchema.appIdFieldVal._1.name,
+                oc.rowSchema.fromTsField.name,
+                oc.rowSchema.toTsField.name,
+                oc.rowSchema.unitIdField.name,
+                oc.rowSchema.subunitIdField.name
+              )).as("value"))
+              .write
+              .format("kafka")
+              .option("kafka.bootstrap.servers", oc.broker)
+              .option("topic", oc.topic)
+            log.debug("saveStream finished")
+            res
         }
       case _: KafkaInputConf =>
         outputConf match {
@@ -361,6 +378,22 @@ object PatternsSearchJob {
 //              .option("password", oc.password.getOrElse(""))
             //.start()
             //.mode(SaveMode.Append)
+            log.debug("saveStream finished")
+            res
+          case oc: KafkaOutputConf =>
+            val res = stream
+              .select(to_json(struct(
+                oc.rowSchema.patternIdField.name,
+                oc.rowSchema.appIdFieldVal._1.name,
+                oc.rowSchema.fromTsField.name,
+                oc.rowSchema.toTsField.name,
+                oc.rowSchema.unitIdField.name,
+                oc.rowSchema.subunitIdField.name
+              )).as("value"))
+              .writeStream
+              .format("kafka")
+              .option("kafka.bootstrap.servers", oc.broker)
+              .option("topic", oc.topic)
             log.debug("saveStream finished")
             res
         }
