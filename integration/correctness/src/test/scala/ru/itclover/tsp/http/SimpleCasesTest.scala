@@ -300,11 +300,14 @@ class SimpleCasesTest
     sourceId = 500,
     brokers = kafkaBrokerUrl,
     topic = "2te116u_tmy_test_simple_rules",
-    datetimeField = 'dt,
+    datetimeField = 'ts,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
+    chunkSizeMs = Some(900000L),
     unitIdField = Some('loco_num),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
     fieldsTypes = Map(
-      "dt"             -> "float64",
+      "ts"             -> "float64",
       "upload_id"      -> "string",
       "loco_num"       -> "string",
       "section"        -> "string",
@@ -492,7 +495,7 @@ class SimpleCasesTest
       val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
       val data = Files.readResource(elem._2).drop(1).map(_.split(","))
       val numberIndices =
-        List("dt", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
+        List("dt", "ts", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
       data.foreach {
         row =>

@@ -55,17 +55,16 @@ case class KafkaInputConf(
   group: String = UUID.randomUUID().toString,
   serializer: Option[String] = Some("json"),
   datetimeField: Symbol,
+  eventsMaxGapMs: Option[Long],
+  defaultEventsGapMs: Option[Long],
+  chunkSizeMs: Option[Long],
   unitIdField: Option[Symbol] = None,
   partitionFields: Seq[Symbol],
   dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
   fieldsTypes: Map[String, String]
 ) extends InputConf[RowWithIdx, Symbol, Any] {
-
-  def chunkSizeMs: Option[Long] = Some(10L)
-  def defaultEventsGapMs: Option[Long] = Some(0L)
   def defaultToleranceFraction: Option[Double] = Some(0.1)
-  def eventsMaxGapMs: Option[Long] = Some(1L)
   def numParallelSources: Option[Int] = Some(1)
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)

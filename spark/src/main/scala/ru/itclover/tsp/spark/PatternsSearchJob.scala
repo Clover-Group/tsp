@@ -77,7 +77,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    source match {
+    source.conf match {
       case _: KafkaInputConf => singleIncidents // this must be processed upon writing
       case _ =>
         if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)(source.spark)
@@ -100,6 +100,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     s.streams.addListener(queryListener)
 
     implicit val encIn: Encoder[In] = source.eventEncoder
+    implicit val encSeq: Encoder[Seq[In]] = Encoders.kryo[Seq[In]](classOf[Seq[In]])
     implicit val encList: Encoder[List[In]] = Encoders.kryo[List[In]](classOf[List[In]])
 
     log.debug("incidentsFromPatterns started")
@@ -135,9 +136,15 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     val windowed: Dataset[List[In]] =
       if (useWindowing) {
         // val chunkSize = 100000
-        keyedDataset.map { List(_) }
+        keyedDataset
+          .repartition(col("_2." + source.conf.unitIdField.get.name))
+          .mapPartitions(_.grouped(1000))(encSeq)
+          .map(_.toList)(encList)
       } else {
-        keyedDataset.map { List(_) }
+        keyedDataset
+          .repartition(col("_2." + source.conf.unitIdField.get.name))
+          .mapPartitions(_.grouped(1000))(encSeq)
+          .map(_.toList)(encList)
       }
     val processed = windowed
       .flatMap[Incident](
