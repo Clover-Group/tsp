@@ -53,6 +53,8 @@ case class KafkaInputConf(
   brokers: String,
   topic: String,
   group: String = UUID.randomUUID().toString,
+  startingOffsets: Option[String] = None,
+  partitions: Option[List[Int]] = None,
   serializer: Option[String] = Some("json"),
   datetimeField: Symbol,
   eventsMaxGapMs: Option[Long],

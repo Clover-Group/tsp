@@ -321,11 +321,16 @@ case class KafkaSource(
 //  )
 
   override def createStream: Dataset[RowWithIdx] = {
-    spark.readStream
+    val stream = spark.readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", conf.brokers)
       .option("subscribe", conf.topic)
-      .option("startingOffsets", "earliest")
+      .option("startingOffsets", conf.startingOffsets.getOrElse("earliest"))
+    val partitionsStream = conf.partitions match {
+      case Some(list) => stream.option("assign", s"""{"${conf.topic}":[${list.mkString(", ")}]}""")
+      case None => stream
+    }
+    partitionsStream
       .load()
       .selectExpr("CAST(value AS STRING) as message")
       .select(functions.from_json(functions.col("message"), eventSchema).as("json"))
