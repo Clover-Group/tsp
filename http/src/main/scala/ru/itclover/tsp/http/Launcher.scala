@@ -166,6 +166,7 @@ object Launcher extends App with HttpService {
           .master(address)
           .appName("TSP Spark")
           .config("spark.io.compression.codec", "snappy")
+          .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", true)
           .getOrCreate()
       } else {
         val host = getEnvVarOrConfig("SPARK_DRIVER", "spark.driver")
@@ -174,6 +175,7 @@ object Launcher extends App with HttpService {
           .master(address)
           .appName("TSP Spark")
           .config("spark.io.compression.codec", "snappy")
+          .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", true)
           .config("spark.driver.host", host)
           .config("spark.driver.port", 2020)
           .config("spark.jars", "/opt/tsp.jar")
