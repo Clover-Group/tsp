@@ -60,7 +60,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped =
         incidents.map(resultMapper)(RowEncoder(rowSchemaToSchema(outputConf.rowSchema)).asInstanceOf[Encoder[OutE]])
-      (patterns, saveStream(mapped, source.conf, outputConf))
+      (patterns, saveStream(mapped, uuid, source.conf, outputConf))
     }
   }
 
@@ -329,6 +329,7 @@ object PatternsSearchJob {
 
   def saveStream[InE, OutE, InKey, InItem](
     stream: Dataset[OutE],
+    jobId: String,
     inputConf: InputConf[InE, InKey, InItem],
     outputConf: OutputConf[OutE]
   ): DataWriterWrapper[OutE] = {
@@ -401,7 +402,7 @@ object PatternsSearchJob {
               .format("kafka")
               .option("kafka.bootstrap.servers", oc.broker)
               .option("topic", oc.topic)
-              .option("checkpointLocation", "/tmp/tsp/checkpoint")
+              .option("checkpointLocation", s"/tmp/tsp/checkpoint/${jobId}")
             log.debug("saveStream finished")
             res
         }
