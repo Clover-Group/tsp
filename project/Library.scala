@@ -1,7 +1,7 @@
 import sbt._
 
 object Version {
-  val log4j = "2.13.3"
+  val log4j = "2.14.1"
   val scalaLogging = "3.9.2"
 
   val config = "1.3.4"
@@ -66,6 +66,7 @@ object Library {
     "org.apache.logging.log4j" % "log4j-api" % Version.log4j,
     "org.apache.logging.log4j" % "log4j-core" % Version.log4j,
     "org.apache.logging.log4j" % "log4j-slf4j-impl" % Version.log4j,
+    "org.apache.logging.log4j" % "log4j-1.2-api" % Version.log4j,
     "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
     "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % Version.jackson,
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson
