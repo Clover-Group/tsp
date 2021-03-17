@@ -1,4 +1,4 @@
-
+import sbtassembly.Log4j2MergeStrategy
 /*** Settings ***/
 
 name := "TSP"
@@ -128,7 +128,7 @@ case "git.properties"                              => MergeStrategy.first
         MergeStrategy.filterDistinctLines
       case _ => MergeStrategy.first
     }
-  case PathList(ps @ _*) if ps.last == "Log4j2Plugins.dat" => MergeStrategy.discard
+  case PathList(ps @ _*) if ps.last == "Log4j2Plugins.dat" => Log4j2MergeStrategy.plugincache
   case "application.conf" => MergeStrategy.concat
   case "reference.conf" => MergeStrategy.concat
   case _ => MergeStrategy.first

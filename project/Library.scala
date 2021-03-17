@@ -63,10 +63,12 @@ object Version {
 object Library {
 
   val logging: Seq[ModuleID] = Seq(
-    "org.apache.logging.log4j" % "log4j-api" % Version.log4j,
-    "org.apache.logging.log4j" % "log4j-core" % Version.log4j,
-    "org.apache.logging.log4j" % "log4j-slf4j-impl" % Version.log4j,
-    "org.apache.logging.log4j" % "log4j-1.2-api" % Version.log4j,
+    "ch.qos.logback" % "logback-classic" % "1.2.3",
+    // LOG4J2 is temporarily disabled
+    //"org.apache.logging.log4j" % "log4j-api" % Version.log4j,
+    //"org.apache.logging.log4j" % "log4j-core" % Version.log4j,
+    //"org.apache.logging.log4j" % "log4j-slf4j-impl" % Version.log4j,
+    //"org.apache.logging.log4j" % "log4j-1.2-api" % Version.log4j,
     "com.typesafe.scala-logging" %% "scala-logging" % Version.scalaLogging,
     "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % Version.jackson,
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson
