@@ -27,7 +27,7 @@ case class SparkMonitoringService(spark: SparkSession)(
         case s if s.contains("FAILED")  => "FAILED"
         case s if s.contains("UNKNOWN") => "UNKNOWN"
         case s if s.contains("RUNNING") => "RUNNING"
-        case _                          => "SUCCEEDED"
+        case _                          => "FINISHED"
       }
       JobDetails(name, name, state, 0, 0, vertices.toVector)
     }.toOption
