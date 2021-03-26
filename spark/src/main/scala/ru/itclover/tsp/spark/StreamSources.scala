@@ -3,20 +3,13 @@ package ru.itclover.tsp.spark
 import cats.syntax.either._
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Dataset, Encoder, SparkSession, functions}
-import ru.itclover.tsp.core.Pattern.IdxExtractor
+import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession, functions}
+import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
-import ru.itclover.tsp.spark.utils.{
-  EventCreator,
-  EventCreatorInstances,
-  JdbcService,
-  KeyCreator,
-  KeyCreatorInstances,
-  RowWithIdx
-}
+import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
 
 import scala.util.Try
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
@@ -42,7 +35,11 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def eventSchema: StructType
 
+  def transformedEventSchema: StructType
+
   def eventEncoder: Encoder[Event]
+
+  def transformedEncoder: Encoder[Event]
 
   implicit def timeExtractor: TimeExtractor[Event]
 
@@ -142,6 +139,36 @@ case class JdbcSource(
     }.toSeq
   )
 
+  override val transformedEventSchema = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(keyColumn, defaultValueColumn, _, valueColumnMapping, _)) => {
+      val untransformedName = (name: Symbol) => fieldsClasses.find(_._1 == name).map(_._1).getOrElse(defaultValueColumn)
+      StructType(
+        transformedFieldsIdxMap.toSeq.sortBy(_._2).map {
+          case (name, _) => StructField(name.name, fieldsClasses.find(_._1 == untransformedName(name)).map(_._2).orNull match {
+            case null                                                                    =>
+              println(s"Warning: type with name ${untransformedName(name)} not found in fieldsClasses")
+              DoubleType
+            case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte])       => ByteType
+            case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short])     => ShortType
+            case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int])     => IntegerType
+            case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long])       => LongType
+            case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float])     => FloatType
+            case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
+            case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
+            case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
+            case _                                                                       => ObjectType(classOf[Any])
+          })
+        }.toSeq
+      )
+    }
+    case Some(_) => eventSchema
+    case None => eventSchema
+  }
+
+  val transformedRowEncoder = RowEncoder(transformedEventSchema)
+  override val transformedEncoder: Encoder[RowWithIdx] =
+    ExpressionEncoder.tuple(ExpressionEncoder[Long](), transformedRowEncoder).asInstanceOf[Encoder[RowWithIdx]]
+
   val rowEncoder = RowEncoder(eventSchema)
   override val eventEncoder: Encoder[RowWithIdx] = ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder)
 
@@ -184,7 +211,7 @@ case class JdbcSource(
     conf.partitionFields.filter(transformedFieldsIdxMap.contains).map(_.name)
   }
 
-  val timeIndex = fieldsIdxMap(conf.datetimeField)
+  def timeIndex = fieldsIdxMap(conf.datetimeField)
   val transformedTimeIndex = transformedFieldsIdxMap(conf.datetimeField)
 
   def tsMultiplier = conf.timestampMultiplier.getOrElse {
@@ -281,9 +308,39 @@ case class KafkaSource(
     }.toSeq
   )
 
+  override val transformedEventSchema = conf.dataTransformation match {
+    case Some(NarrowDataUnfolding(keyColumn, defaultValueColumn, _, valueColumnMapping, _)) => {
+      val untransformedName = (name: Symbol) => fieldsClasses.find(_._1 == name).map(_._1).getOrElse(defaultValueColumn)
+      StructType(
+        transformedFieldsIdxMap.toSeq.sortBy(_._2).map {
+          case (name, _) => StructField(name.name, fieldsClasses.find(_._1 == untransformedName(name)).map(_._2).orNull match {
+            case null                                                                    =>
+              println(s"Warning: type with name ${untransformedName(name)} not found in fieldsClasses")
+              DoubleType
+            case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte])       => ByteType
+            case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short])     => ShortType
+            case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int])     => IntegerType
+            case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long])       => LongType
+            case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float])     => FloatType
+            case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
+            case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
+            case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
+            case _                                                                       => ObjectType(classOf[Any])
+          })
+        }.toSeq
+      )
+    }
+    case Some(_) => eventSchema
+    case None => eventSchema
+  }
+
   val rowEncoder = RowEncoder(eventSchema)
   override val eventEncoder: Encoder[RowWithIdx] =
     ExpressionEncoder.tuple(ExpressionEncoder[Long](), rowEncoder).asInstanceOf[Encoder[RowWithIdx]]
+
+  val transformedRowEncoder = RowEncoder(transformedEventSchema)
+  override val transformedEncoder: Encoder[RowWithIdx] =
+    ExpressionEncoder.tuple(ExpressionEncoder[Long](), transformedRowEncoder).asInstanceOf[Encoder[RowWithIdx]]
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   def fieldsIdxMap = fieldsIdx.toMap
