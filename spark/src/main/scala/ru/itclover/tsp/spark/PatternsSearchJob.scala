@@ -99,7 +99,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 
     s.streams.addListener(queryListener)
 
-    implicit val encIn: Encoder[In] = source.eventEncoder
+    implicit val encIn: Encoder[In] = source.transformedEncoder
     implicit val encSeq: Encoder[Seq[In]] = Encoders.kryo[Seq[In]](classOf[Seq[In]])
     implicit val encList: Encoder[List[In]] = Encoders.kryo[List[In]](classOf[List[In]])
 
@@ -157,18 +157,18 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
   }
 
   def applyTransformation(stream: Dataset[In])(implicit spark: SparkSession): Dataset[In] = {
-    implicit val encIn: Encoder[In] = source.eventEncoder
+    implicit val encIn: Encoder[In] = source.transformedEncoder
     source.conf.dataTransformation match {
       case Some(_) =>
         import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
         val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
           fields)
         stream
-          .union(spark.createDataset(List(source.eventCreator.create(
+          /*.union(spark.createDataset(List(source.eventCreator.create(
             source.fieldsClasses.map { case (f, c) =>
               source.fieldToEKey(f) -> getNullValue(c).asInstanceOf[AnyRef]
             }
-          ))))
+          ))))*/
           .coalesce(1)
           .flatMap(acc.process)
       case None => stream
