@@ -2,6 +2,7 @@ package ru.itclover.tsp.spark.transformers
 
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.types.StructType
 import ru.itclover.tsp.core.Pattern.Idx
 import ru.itclover.tsp.spark.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
@@ -26,12 +27,13 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
-  defaultTimeout: Option[Long]
+  defaultTimeout: Option[Long],
+  outEventSchema: () => StructType
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
   extractValue: Extractor[InEvent, InKey, Value],
-  eventCreator: EventCreator[OutEvent, InKey],
+  eventCreator: EventCreator[OutEvent, InKey, StructType],
   keyCreator: KeyCreator[InKey]
 ) extends Serializable {
   // potential event values with receive time
@@ -86,7 +88,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       if (value != null) list(allFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
     }
     //}
-    val outEvent = eventCreator.create(list)
+    val outEvent = eventCreator.create(list, outEventSchema.apply())
     val res = if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
       Seq(lastEvent)
     } else {
@@ -114,7 +116,7 @@ object SparseRowsDataAccumulator {
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
-    eventCreator: EventCreator[OutEvent, InKey],
+    eventCreator: EventCreator[OutEvent, InKey, StructType],
     keyCreator: KeyCreator[InKey]
   ): SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent] = {
     streamSource.conf.dataTransformation
@@ -136,7 +138,8 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = true,
-            defaultTimeout = ndu.defaultTimeout
+            defaultTimeout = ndu.defaultTimeout,
+            outEventSchema = () => streamSource.transformedEventSchema
           )(
             timeExtractor,
             extractKeyVal,
@@ -163,7 +166,8 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = false,
-            defaultTimeout = wdf.defaultTimeout
+            defaultTimeout = wdf.defaultTimeout,
+            outEventSchema = () => streamSource.transformedEventSchema
           )(
             timeExtractor,
             extractKeyVal,

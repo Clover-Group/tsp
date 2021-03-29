@@ -66,7 +66,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
       (_: Event) => sys.error("No K-V extractor without data transformation")
   }
 
-  implicit def eventCreator: EventCreator[Event, EKey]
+  implicit def eventCreator: EventCreator[Event, EKey, StructType]
 
   implicit def keyCreator: KeyCreator[EKey]
 }
@@ -139,7 +139,7 @@ case class JdbcSource(
     }.toSeq
   )
 
-  override val transformedEventSchema = conf.dataTransformation match {
+  override def transformedEventSchema = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(keyColumn, defaultValueColumn, _, valueColumnMapping, _)) => {
       val untransformedName = (name: Symbol) => fieldsClasses.find(_._1 == name).map(_._1).getOrElse(defaultValueColumn)
       StructType(
@@ -161,7 +161,9 @@ case class JdbcSource(
         }.toSeq
       )
     }
-    case Some(_) => eventSchema
+    case Some(WideDataFilling(_, _)) => StructType(
+      eventSchema.fields.sortBy(f => transformedFieldsIdxMap(Symbol(f.name)))
+    )
     case None => eventSchema
   }
 
@@ -236,7 +238,7 @@ case class JdbcSource(
 
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
-  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol, StructType] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
@@ -308,7 +310,7 @@ case class KafkaSource(
     }.toSeq
   )
 
-  override val transformedEventSchema = conf.dataTransformation match {
+  override def transformedEventSchema = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(keyColumn, defaultValueColumn, _, valueColumnMapping, _)) => {
       val untransformedName = (name: Symbol) => fieldsClasses.find(_._1 == name).map(_._1).getOrElse(defaultValueColumn)
       StructType(
@@ -330,7 +332,9 @@ case class KafkaSource(
         }.toSeq
       )
     }
-    case Some(_) => eventSchema
+    case Some(WideDataFilling(_, _)) => StructType(
+      eventSchema.fields.sortBy(f => transformedFieldsIdxMap(Symbol(f.name)))
+    )
     case None => eventSchema
   }
 
@@ -426,7 +430,7 @@ case class KafkaSource(
 
   implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
 
-  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol, StructType] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
   implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator

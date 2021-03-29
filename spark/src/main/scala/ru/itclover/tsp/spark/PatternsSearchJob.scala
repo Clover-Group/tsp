@@ -8,7 +8,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.functions.{struct, to_json}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
-import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.types._
 import org.apache.spark.storage.StorageLevel
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
@@ -165,8 +165,8 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
           fields)
         stream
           /*.union(spark.createDataset(List(source.eventCreator.create(
-            source.fieldsClasses.map { case (f, c) =>
-              source.fieldToEKey(f) -> getNullValue(c).asInstanceOf[AnyRef]
+            source.transformedEventSchema.fields.map { f =>
+              (source.fieldToEKey(Symbol(f.name)), getNullValue(f.dataType))
             }
           ))))*/
           .coalesce(1)
@@ -202,16 +202,16 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     }
   }
 
-  def getNullValue(c: Class[_]): AnyRef = {
-    val r = c match {
-    case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte]) => 0.toByte.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short]) => 0.toShort.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int]) => 0.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long]) => 0L.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float]) => Float.NaN.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double]) => Double.NaN.asInstanceOf[AnyRef]
-    case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String]) => "".asInstanceOf[AnyRef]
-    case _ => null
+  def getNullValue(dt: DataType): AnyRef = {
+    val r = dt match {
+      case ByteType    => 0.toByte.asInstanceOf[AnyRef]
+      case ShortType   => 0.toShort.asInstanceOf[AnyRef]
+      case IntegerType => 0.asInstanceOf[AnyRef]
+      case LongType    => 0L.asInstanceOf[AnyRef]
+      case FloatType   => Float.NaN.asInstanceOf[AnyRef]
+      case DoubleType  => Double.NaN.asInstanceOf[AnyRef]
+      case StringType  => "".asInstanceOf[AnyRef]
+      case _           => null
     }
     r
   }
