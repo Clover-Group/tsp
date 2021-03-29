@@ -324,12 +324,40 @@ class SimpleCasesTest
     dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
+  lazy val narrowSparkKafkaInputConf = SparkKafkaInputConf(
+    sourceId = 600,
+    brokers = kafkaBrokerUrl,
+    topic = "math_test",
+    datetimeField = 'dt,
+    eventsMaxGapMs = Some(60000L),
+    defaultEventsGapMs = Some(1000L),
+    chunkSizeMs = Some(900000L),
+    unitIdField = Some('loco_num),
+    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    fieldsTypes = Map(
+      "dt"             -> "float64",
+      "sensor_id"      -> "string",
+      "upload_id"      -> "string",
+      "loco_num"       -> "string",
+      "section"        -> "string",
+      "value_float"    -> "float64",
+    ),
+    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
+  )
+
   val wideSparkInputIvolgaConf = wideSparkInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     unitIdField = Some('stock_num),
     partitionFields = Seq('stock_num, 'upload_id),
     dataTransformation = Some(SparkWDF(Map.empty, defaultTimeout = Some(15000L)))
+  )
+
+  val narrowSparkInputIvolgaConf = wideSparkInputConf.copy(
+    sourceId = 400,
+    query = "SELECT * FROM `ivolga_test_narrow` ORDER BY dt",
+    datetimeField = 'dt,
+    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
   val narrowRowSchema = wideRowSchema.copy(
@@ -363,6 +391,14 @@ class SimpleCasesTest
 
   val wideIvolgaSparkRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 5)
+  )
+
+  val narrowIvolgaSparkRowSchema = wideSparkRowSchema.copy(
+    appIdFieldVal = ('app, 4)
+  )
+
+  val narrowSparkKafkaRowSchema = wideSparkRowSchema.copy(
+    appIdFieldVal = ('app, 6)
   )
 
   val wideOutputConf = JDBCOutputConf(
@@ -418,6 +454,13 @@ class SimpleCasesTest
 
   val wideSparkKafkaOutputConf = SparkJDBCOutputConf(
     "events_wide_kafka_spark_test",
+    wideSparkRowSchema,
+    s"jdbc:clickhouse://localhost:$port/default",
+    "ru.yandex.clickhouse.ClickHouseDriver"
+  )
+
+  val narrowSparkKafkaOutputConf = SparkJDBCOutputConf(
+    "events_narrow_kafka_spark_test",
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
@@ -843,6 +886,40 @@ class SimpleCasesTest
       )
     )
     alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_spark_test"))
+  }
+
+  "Cases 1-17, 43-50" should "work in narrow Kafka table with Spark" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/sparkJob/from-kafka/to-jdbc/?run_async=1",
+        FindPatternsRequest(
+          s"17kafkanarrow_$id",
+          narrowSparkKafkaInputConf,
+          narrowSparkKafkaOutputConf,
+          List(casesPatterns(id))
+        )
+      ) ~>
+        route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    Thread.sleep(20000)
+    alertByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
+      firstValidationQuery(
+        "events_narrow_kafka_spark_test",
+        numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted)
+      )
+    )
+    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_kafka_spark_test"))
   }
 
   "Cases 1-17, 43-50" should "work in wide Kafka-to-Kafka table with Spark" in {

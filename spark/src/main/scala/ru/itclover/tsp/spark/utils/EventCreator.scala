@@ -1,27 +1,27 @@
 package ru.itclover.tsp.spark.utils
 
 import org.apache.spark.sql.Row
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
+import org.apache.spark.sql.types.StructType
 import ru.itclover.tsp.core.Pattern.Idx
 
-trait EventCreator[Event, Key] extends Serializable {
-  def create(kv: Seq[(Key, AnyRef)]): Event
+trait EventCreator[Event, Key, Schema] extends Serializable {
+  def create(kv: Seq[(Key, AnyRef)], schema: Schema): Event
 }
 
 object EventCreatorInstances {
-  implicit val rowSymbolEventCreator: EventCreator[Row, Symbol] = new EventCreator[Row, Symbol] {
-    override def create(kv: Seq[(Symbol, AnyRef)]): Row = {
-      Row.fromSeq(kv.map(_._2))
+  implicit val rowSymbolEventCreator: EventCreator[Row, Symbol, StructType] =
+    (kv: Seq[(Symbol, AnyRef)], schema: StructType) => {
+      new GenericRowWithSchema(kv.map(_._2).toArray, schema)
     }
-  }
 
-  implicit val rowIntEventCreator: EventCreator[Row, Int] = new EventCreator[Row, Int] {
-    override def create(kv: Seq[(Int, AnyRef)]): Row = {
-      Row.fromSeq(kv.map(_._2))
+  implicit val rowIntEventCreator: EventCreator[Row, Int, StructType] =
+    (kv: Seq[(Int, AnyRef)], schema: StructType) => {
+      new GenericRowWithSchema(kv.map(_._2).toArray, schema)
     }
-  }
 
   //todo change it to not have effects here
-  implicit val rowWithIdxSymbolEventCreator: EventCreator[RowWithIdx, Symbol] = new EventCreator[RowWithIdx, Symbol] {
-    override def create(kv: Seq[(Symbol, AnyRef)]): RowWithIdx = RowWithIdx(0, rowSymbolEventCreator.create(kv))
-  }
+  implicit val rowWithIdxSymbolEventCreator: EventCreator[RowWithIdx, Symbol, StructType] =
+    (kv: Seq[(Symbol, AnyRef)], schema: StructType) =>
+      RowWithIdx(0, rowSymbolEventCreator.create(kv, schema))
 }

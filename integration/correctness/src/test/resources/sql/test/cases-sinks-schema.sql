@@ -98,3 +98,13 @@ CREATE TABLE IF NOT EXISTS events_wide_kafka_spark_test
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
+CREATE TABLE IF NOT EXISTS events_narrow_kafka_spark_test
+(
+    series_storage Int32,
+    app Int32,
+    id UInt64,
+    unit Int32,
+    subunit Int32,
+    from DateTime64,
+    to DateTime64
+) ENGINE = Log();
