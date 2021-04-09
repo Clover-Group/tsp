@@ -8,7 +8,6 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-// Flink currently does not work with Scala 2.12.8+
 scalaVersion in ThisBuild := "2.12.10"
 resolvers in ThisBuild ++= Seq(
   "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
@@ -139,7 +138,7 @@ case "git.properties"                              => MergeStrategy.first
 lazy val runTask = taskKey[Unit]("App runner")
 
 //runTask := {
-// (http/runMain ${TSP_LAUNCHER:-ru.itclover.tsp.http.Launcher} ${TSP_LAUNCHER_ARGS:-flink-local})
+// (http/runMain ${TSP_LAUNCHER:-ru.itclover.tsp.http.Launcher} ${TSP_LAUNCHER_ARGS:-spark-local})
 //}
 
 lazy val root = (project in file("."))
@@ -147,8 +146,8 @@ lazy val root = (project in file("."))
 
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, spark, dsl, itValid)
-  .dependsOn(core, config, http, flink, spark, dsl, itValid)
+  .aggregate(core, config, http, spark, dsl, itValid)
+  .dependsOn(core, config, http, spark, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -162,26 +161,18 @@ lazy val config = project.in(file("config"))
   .settings(commonSettings)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion,
-      "flinkVersion" -> Version.flink, "sparkVersion" -> Version.spark),
+      "sparkVersion" -> Version.spark),
     buildInfoPackage := "ru.itclover.tsp"
   )
   .dependsOn(core)
 
-lazy val flink = project.in(file("flink"))
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
-  )
-  .dependsOn(core, config, dsl)
-
 lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
+    libraryDependencies ++= Library.scalaTest ++ Library.akka ++
       Library.akkaHttp ++ Library.sparkDeps ++ Library.logging
   )
-  .dependsOn(core, config, flink, spark, dsl)
+  .dependsOn(core, config, spark, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
@@ -193,7 +184,7 @@ lazy val dsl = project.in(file("dsl"))
 lazy val spark = project.in(file("spark"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.sparkDeps ++ Library.logging,
+    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.sparkDeps ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
@@ -201,15 +192,15 @@ lazy val spark = project.in(file("spark"))
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
+    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
   )
-  .dependsOn(core, flink, http, config)
+  .dependsOn(core, http, config)
 
 lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
+    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
   )
   .dependsOn(itValid)
 

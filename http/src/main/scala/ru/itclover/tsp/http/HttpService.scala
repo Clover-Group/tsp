@@ -9,8 +9,6 @@ import akka.stream.ActorMaterializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.runtime.client.JobExecutionException
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.http.domain.output.FailureResponse
@@ -26,7 +24,6 @@ import scala.util.Properties
 trait HttpService extends RoutesProtocols {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
-  implicit val streamEnvironment: StreamExecutionEnvironment
   implicit val executionContext: ExecutionContextExecutor
 
   val blockingExecutorContext: ExecutionContextExecutor
@@ -116,18 +113,6 @@ trait HttpService extends RoutesProtocols {
         (
           InternalServerError,
           FailureResponse(5001, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
-        )
-      )
-
-    case ex: JobExecutionException =>
-      val stackTrace = Exceptions.getStackTrace(ex)
-      val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
-      val error = s"Uncaught error during job execution, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"
-      log.error(error)
-      complete(
-        (
-          InternalServerError,
-          FailureResponse(5002, "Job execution failure", if (!isHideExceptions) Seq(error) else Seq.empty)
         )
       )
 

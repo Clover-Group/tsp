@@ -6,15 +6,11 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import com.google.common.util.concurrent.ThreadFactoryBuilder
-import org.apache.flink.api.common.JobID
-import org.apache.flink.runtime.client.JobExecutionException
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import org.scalatest.Inspectors._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.utils.ErrorsADT.{GenericConfigError, GenericRuntimeErr}
 import ru.itclover.tsp.http.utils.Exceptions.InvalidRequest
 import ru.yandex.clickhouse.except.ClickHouseException
 
@@ -29,8 +25,6 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     implicit val system: ActorSystem = ActorSystem("TSP-system-test")
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-    implicit override val streamEnvironment: StreamExecutionEnvironment =
-      StreamExecutionEnvironment.createLocalEnvironment()
 
     val spark = SparkSession
       .builder()
@@ -81,22 +75,6 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
         resp.message shouldBe "Job execution failure"
         resp.errors.isEmpty shouldBe service.isHideExceptions
       }
-      Get() ~> service.exceptionsHandler(new JobExecutionException(new JobID(), "test", new Exception())) ~> check {
-        response.status shouldBe StatusCodes.InternalServerError
-        noException should be thrownBy Unmarshal(response.entity).to[FailureResponse]
-        val resp = Await.result(Unmarshal(response.entity).to[FailureResponse], Duration.Inf)
-        resp.errorCode shouldBe 5002
-        resp.message shouldBe "Job execution failure"
-        resp.errors.isEmpty shouldBe service.isHideExceptions
-      }
-      Get() ~> service.exceptionsHandler(new JobExecutionException(new JobID(), "test", null)) ~> check {
-        response.status shouldBe StatusCodes.InternalServerError
-        noException should be thrownBy Unmarshal(response.entity).to[FailureResponse]
-        val resp = Await.result(Unmarshal(response.entity).to[FailureResponse], Duration.Inf)
-        resp.errorCode shouldBe 5002
-        resp.message shouldBe "Job execution failure"
-        resp.errors.isEmpty shouldBe service.isHideExceptions
-      }
       Get() ~> service.exceptionsHandler(new ClickHouseException(54, null, "127.0.0.1", 8123)) ~> check {
         response.status shouldBe StatusCodes.InternalServerError
         noException should be thrownBy Unmarshal(response.entity).to[FailureResponse]
@@ -135,8 +113,5 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
   "FailureResponse objects" should "construct" in {
     FailureResponse(new Exception()).errorCode shouldBe 5000
     FailureResponse(5011, new Exception()).errorCode shouldBe 5011
-    FailureResponse(GenericRuntimeErr(new Exception(), 5012)).errorCode shouldBe 5012
-    FailureResponse(GenericConfigError(new Exception(), 4013)).errorCode shouldBe 4013
-    FailureResponse(Seq(GenericConfigError(new Exception(), 4014), GenericConfigError(new Exception(), 4015))).errorCode shouldBe 4000
   }
 }

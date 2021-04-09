@@ -8,9 +8,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.{Properties, UUID}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{Assertion, FlatSpec}
+import ru.itclover.tsp.utils.Files
 
 import scala.util.Failure
 // import org.scalatest.concurrent.Waiters._
@@ -19,10 +19,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
-import ru.itclover.tsp.utils.Files
+import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.spark.io.{
   JDBCInputConf => SparkJDBCInputConf,
   JDBCOutputConf => SparkJDBCOutputConf,
@@ -51,10 +48,6 @@ class SimpleCasesTest
     with ForAllTestContainer
     with RoutesProtocols {
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-  implicit override val streamEnvironment: StreamExecutionEnvironment =
-    StreamExecutionEnvironment.createLocalEnvironment()
-  streamEnvironment.setParallelism(1)
-  streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   val spark = SparkSession
     .builder()
@@ -89,21 +82,10 @@ class SimpleCasesTest
     waitStrategy = Some(Wait.forHttp("/"))
   )
 
-  implicit val influxContainer =
-    new InfluxDBContainer(
-      "influxdb:1.7",
-      influxPort -> 8086 :: Nil,
-      s"http://localhost:$influxPort",
-      "Test",
-      "default",
-      waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
-    )
-
   val kafkaContainer = KafkaContainer()
 
   override val container = MultipleContainers(
     clickhouseContainer,
-    influxContainer,
     kafkaContainer
   )
 
@@ -197,92 +179,6 @@ class SimpleCasesTest
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
-  val influxInputConf = InfluxDBInputConf(
-    sourceId = 300,
-    url = influxContainer.url,
-    query = "SELECT * FROM \"2te116u_tmy_test_simple_rules\" ORDER BY time",
-    userName = Some("default"),
-    password = Some("default"),
-    dbName = influxContainer.dbName,
-    eventsMaxGapMs = Some(60000L),
-    defaultEventsGapMs = Some(1000L),
-    chunkSizeMs = Some(900000L),
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
-    additionalTypeChecking = Some(false)
-  )
-
-  val wideInputConf = JDBCInputConf(
-    sourceId = 100,
-    jdbcUrl = clickhouseContainer.jdbcUrl,
-    query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
-    driverName = clickhouseContainer.driverName,
-    datetimeField = 'ts,
-    eventsMaxGapMs = Some(60000L),
-    defaultEventsGapMs = Some(1000L),
-    chunkSizeMs = Some(900000L),
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id)
-  )
-
-  val narrowInputConf = wideInputConf.copy(
-    sourceId = 200,
-    query = "SELECT * FROM math_test ORDER BY dt",
-    datetimeField = 'dt,
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
-  )
-
-  val narrowInputIvolgaConf = wideInputConf.copy(
-    sourceId = 400,
-    query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
-    datetimeField = 'dt,
-    unitIdField = Some('stock_num),
-    partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(
-      NarrowDataUnfolding(
-        'sensor_id,
-        'value_float,
-        Map.empty,
-        Some(Map('value_str -> List('SOC_2_UKV1_UOVS))),
-        Some(15000L)
-      )
-    )
-  )
-
-  val wideInputIvolgaConf = wideInputConf.copy(
-    sourceId = 500,
-    query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
-    unitIdField = Some('stock_num),
-    partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(WideDataFilling(Map.empty, defaultTimeout = Some(15000L)))
-  )
-
-  val wideRowSchema = NewRowSchema(
-    unitIdField = 'series_storage,
-    fromTsField = 'from,
-    toTsField = 'to,
-    appIdFieldVal = ('app, 1),
-    patternIdField = 'id,
-    subunitIdField = 'subunit
-  )
-  lazy val wideKafkaInputConf = KafkaInputConf(
-    sourceId = 600,
-    brokers = kafkaBrokerUrl,
-    topic = "2te116u_tmy_test_simple_rules",
-    datetimeField = 'dt,
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
-    fieldsTypes = Map(
-      "dt"             -> "float64",
-      "upload_id"      -> "string",
-      "loco_num"       -> "string",
-      "section"        -> "string",
-      "POilDieselOut"  -> "float64",
-      "SpeedThrustMin" -> "float64",
-      "PowerPolling"   -> "float64"
-    )
-  )
-
   val wideSparkInputConf = SparkJDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
@@ -360,27 +256,9 @@ class SimpleCasesTest
     dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
-  val narrowRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 2)
-  )
-
-  val influxRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 3)
-  )
-
-  val narrowIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 4)
-  )
-
-  val wideIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 5)
-  )
-
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
   val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
 
-  val wideKafkaRowSchema =
-    NewRowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'subunit)
 
   val wideSparkRowSchema =
     SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
@@ -399,40 +277,6 @@ class SimpleCasesTest
 
   val narrowSparkKafkaRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 6)
-  )
-
-  val wideOutputConf = JDBCOutputConf(
-    tableName = "events_wide_test",
-    rowSchema = wideRowSchema,
-    jdbcUrl = chConnection,
-    driverName = chDriver
-  )
-
-  val narrowOutputConf = wideOutputConf.copy(
-    tableName = "events_narrow_test",
-    rowSchema = narrowRowSchema
-  )
-
-  val influxOutputConf = wideOutputConf.copy(
-    tableName = "events_influx_test",
-    rowSchema = influxRowSchema
-  )
-
-  val narrowOutputIvolgaConf = wideOutputConf.copy(
-    tableName = "events_narrow_ivolga_test",
-    rowSchema = narrowIvolgaRowSchema
-  )
-
-  val wideOutputIvolgaConf = wideOutputConf.copy(
-    tableName = "events_wide_ivolga_test",
-    rowSchema = wideIvolgaRowSchema
-  )
-
-  val wideKafkaOutputConf = JDBCOutputConf(
-    "events_wide_kafka_test",
-    wideKafkaRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
   val wideSparkOutputConf = SparkJDBCOutputConf(
@@ -492,18 +336,6 @@ class SimpleCasesTest
         .foreach(clickhouseContainer.executeUpdate)
 
     })
-
-    Files
-      .readResource("/sql/infl-test-db-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeQuery)
-
-    Files
-      .readResource("/sql/test/cases-narrow-new.influx")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeUpdate)
 
     val insertInfo = Seq(
       ("math_test", "/sql/test/cases-narrow-new.csv"),
@@ -584,7 +416,6 @@ class SimpleCasesTest
   override def afterAll(): Unit = {
     super.afterAll()
     clickhouseContainer.stop()
-    influxContainer.stop()
     container.stop()
   }
 
@@ -603,7 +434,6 @@ class SimpleCasesTest
   "Data" should "load properly" in {
     checkByQuery(List(List(53.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
     checkByQuery(List(List(159.0)), "SELECT COUNT(*) FROM math_test")
-    checkInfluxByQuery(List(List(53.0, 53.0, 53.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
 //  "Cases 1-17, 43-53" should "work in wide table" in {

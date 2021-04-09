@@ -144,8 +144,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
           Map(
             "tsp"   -> BuildInfo.version,
             "scala" -> BuildInfo.scalaVersion,
-            "spark" -> BuildInfo.sparkVersion,
-            "flink" -> BuildInfo.flinkVersion
+            "spark" -> BuildInfo.sparkVersion
           )
         )
       )

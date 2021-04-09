@@ -10,8 +10,6 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.configuration.Configuration
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.spark.sql.SparkSession
 import ru.itclover.tsp.spark.StreamSource
 
@@ -74,39 +72,19 @@ object Launcher extends App with HttpService {
       )
     )
 
-  val streamEnvOrError = if (args.length > 0 && args(0) == "flink-cluster-test") {
-    val (host, port) = getClusterHostPort match {
-      case Right(hostAndPort) => hostAndPort
-      case Left(err)          => throw new RuntimeException(err)
-    }
-    log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
-    Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
-  } else if (args.length != 1) {
+  val streamEnvOrError = if (args.length != 1) {
     Left(
-      "You need to provide one arg: `flink-xxx spark-xxx` where `xxx` can be `local` or `cluster` " +
-      "to specify Flink and Spark execution mode."
+      "You need to provide one arg: `spark-xxx` where `xxx` can be `local` or `cluster` " +
+      "to specify Spark execution mode."
     ) // TODO: More beautiful parsing
-  } else if (args(0) == "flink-local spark-local") {
-    createLocalEnv
-  } else if (args(0) == "flink-cluster spark-local") {
-    createClusterEnv
-  } else if (args(0) == "flink-local spark-cluster") {
+  } else if (args(0) == "spark-local") {
+  } else if (args(0) == "spark-cluster") {
     useLocalSpark = false
-    createLocalEnv
-  } else if (args(0) == "flink-cluster spark-cluster") {
-    useLocalSpark = false
-    createClusterEnv
   } else {
     Left(s"Unknown argument: `${args(0)}`.")
   }
 
-  implicit override val streamEnvironment = streamEnvOrError match {
-    case Right(env) => env
-    case Left(err)  => throw new RuntimeException(err)
-  }
 
-  streamEnvironment.setParallelism(1)
-  streamEnvironment.setMaxParallelism(1) //(configs.getInt("flink.max-parallelism"))
 
   val spark = sparkSession
 
@@ -181,66 +159,5 @@ object Launcher extends App with HttpService {
           .config("spark.jars", "/opt/tsp.jar")
           .getOrCreate()
       }
-  }
-
-  /**
-    * Method for flink environment configuration
-    * @param env flink execution environment
-    */
-  def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
-
-//    env.enableCheckpointing(500)
-//
-//    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
-//
-//    val config = env.getCheckpointConfig
-//    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
-//    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-//    config.setMinPauseBetweenCheckpoints(250)
-//    config.setCheckpointTimeout(60000)
-//    config.setTolerableCheckpointFailureNumber(5)
-//    config.setMaxConcurrentCheckpoints(5)
-//
-//    var savePointsPath = ""
-//
-//    if(flinkParameters.contains("state.savepoints.dir")){
-//      savePointsPath = flinkParameters("state.savepoints.dir")
-//    }else{
-//      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
-//    }
-//
-//    val expectedStorages = Seq("s3", "hdfs", "file")
-//
-//    if (savePointsPath.nonEmpty) {
-//      val storageIndex = savePointsPath.indexOf(":")
-//      val inputStorageType = savePointsPath.substring(0, storageIndex)
-//
-//      if(!expectedStorages.contains(inputStorageType)){
-//        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
-//      }
-//      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
-//    }
-//    env.setRestartStrategy(RestartStrategies.noRestart)
-    env
-
-  }
-
-  def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort.flatMap {
-    case (clusterHost, clusterPort) =>
-      log.info(s"Starting TSP on cluster Flink: $clusterHost:$clusterPort with monitoring in $monitoringUri")
-      val rawJarPath = this.getClass.getProtectionDomain.getCodeSource.getLocation.getPath
-      val jarPath = URLDecoder.decode(rawJarPath, "UTF-8")
-
-      Either.cond(
-        jarPath.endsWith(".jar"),
-        configureEnv(StreamExecutionEnvironment.createRemoteEnvironment(clusterHost, clusterPort, jarPath)),
-        s"Jar path is invalid: `$jarPath` (no jar extension)"
-      )
-  }
-
-  def createLocalEnv: Either[String, StreamExecutionEnvironment] = {
-    val config = new Configuration()
-    log.info(s"Starting local Flink with monitoring in $monitoringUri")
-    Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)))
   }
 }

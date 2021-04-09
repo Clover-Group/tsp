@@ -38,10 +38,8 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer.update(1, res.patternId)
     buffer.update(2, res.maxWindowMs)
     buffer.update(3, res.segment)
-    buffer.update(4, res.forwardedFields)
-    buffer.update(5, res.patternUnit)
-    buffer.update(6, res.patternSubunit)
-    buffer.update(7, res.patternPayload)
+    buffer.update(4, res.patternUnit)
+    buffer.update(5, res.patternSubunit)
   }
 
   override def merge(buffer1: MutableAggregationBuffer, buffer2: Row): Unit = {
@@ -57,10 +55,8 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer1.update(1, res.patternId)
     buffer1.update(2, res.maxWindowMs)
     buffer1.update(3, res.segment)
-    buffer1.update(4, res.forwardedFields)
-    buffer1.update(5, res.patternUnit)
-    buffer1.update(6, res.patternSubunit)
-    buffer1.update(7, res.patternPayload)
+    buffer1.update(4, res.patternUnit)
+    buffer1.update(5, res.patternSubunit)
   }
 
   override def evaluate(buffer: Row): Any = Incident(
@@ -68,9 +64,7 @@ class IncidentAggregator extends UserDefinedAggregateFunction {
     buffer.getInt(1),
     buffer.getLong(2),
     Segment(Time(buffer.getAs[Row](3).getAs[Row](0).getLong(0)), Time(buffer.getAs[Row](3).getAs[Row](1).getLong(0))),
-    buffer.getAs[Seq[(String, String)]](4),
+    buffer.getInt(4),
     buffer.getInt(5),
-    buffer.getInt(6),
-    buffer.getAs[Seq[(String, String)]](7)
   )
 }

@@ -6,7 +6,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{Matchers, Suite}
 import ru.itclover.tsp.http.HttpService
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
@@ -24,8 +23,6 @@ import scala.util.Success
 trait HttpServiceMatchers extends ScalatestRouteTest with Matchers with HttpService { self: Suite =>
 
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-  implicit override val streamEnvironment = StreamExecutionEnvironment.createLocalEnvironment()
-  streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

@@ -7,7 +7,7 @@ import spray.json.DefaultJsonProtocol
 case class ValidationResult(pattern: RawPattern, success: Boolean, context: String)
 
 trait PatternsValidatorProtocols extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val rawPattern = jsonFormat5(RawPattern.apply)
+  implicit val rawPattern = jsonFormat3(RawPattern.apply)
   implicit val patterns = jsonFormat2(PatternsValidatorConf.apply)
   implicit val patternResult = jsonFormat3(ValidationResult.apply)
 }

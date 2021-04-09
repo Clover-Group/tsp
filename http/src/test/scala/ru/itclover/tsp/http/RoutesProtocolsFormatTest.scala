@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{NarrowDataUnfolding, WideDataFilling}
 import spray.json.{JsBoolean, JsNumber, JsString, JsValue}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
@@ -36,9 +35,6 @@ class RoutesProtocolsFormatTest extends FlatSpec with Matchers with RoutesProtoc
   }
 
   "SDT formats" should "work" in {
-    sdtFormat[Any, Symbol, Symbol].write(NarrowDataUnfolding('key, 'value, Map.empty[Symbol, Long])) shouldBe a[JsValue]
-    sdtFormat[Any, Symbol, Symbol].write(WideDataFilling[Any, Symbol, Symbol](Map.empty[Symbol, Long], Some(0L))) shouldBe a[
-      JsValue
-    ]
+    // TODO: Spark SDT
   }
 }

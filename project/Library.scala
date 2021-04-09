@@ -8,10 +8,8 @@ object Version {
 
   val influx = "2.15"
 
-  // expected version number, until https://github.com/ClickHouse/clickhouse-jdbc/pull/520 gets merged
-  val clickhouse = "0.2.5"
+  val clickhouse = "0.3.0"
   val chNative = "2.4.2"
-  val flink = "1.10.0"
 
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
@@ -88,35 +86,6 @@ object Library {
   )
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
-
-  val flinkCore: Seq[ModuleID] = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
-
-  val flink: Seq[ModuleID] = flinkCore ++ Seq(
-      "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" %% "flink-streaming-scala" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" % "flink-jdbc_2.12" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" % "flink-avro" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      ),
-      "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink exclude (
-        "org.slf4j", "slf4j-log4j12"
-      )
-    )
 
   val akka: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
