@@ -156,7 +156,7 @@ case class JdbcSource(
             case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
             case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
             case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
-            case _                                                                       => ObjectType(classOf[Any])
+            case _                                                                       => DoubleType//ObjectType(classOf[Any])
           })
         }.toSeq
       )

@@ -44,7 +44,7 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
   ): (WaitAccumState[T], QI[T]) = {
 
     // TODO: Temp, preventing failures if wrong idxValue arrived (investigate this better, why it happens)
-    if (idxValue.end >= idxValue.start) {
+    if (times.nonEmpty && idxValue.end >= idxValue.start) {
       val start = if (lastFail) times.head._2.minus(window) else times.head._2
       val end = if (idxValue.value.isFail) times.last._2.minus(window) else times.last._2
 
