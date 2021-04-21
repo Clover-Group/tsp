@@ -25,7 +25,7 @@ import ru.itclover.tsp.spark.io.{
   JDBCOutputConf => SparkJDBCOutputConf,
   KafkaInputConf => SparkKafkaInputConf,
   KafkaOutputConf => SparkKafkaOutputConf,
-  NewRowSchema => SparkRowSchema
+  RowSchema => SparkRowSchema
 }
 import ru.itclover.tsp.spark.io.{NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
 import spray.json._

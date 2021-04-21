@@ -17,7 +17,7 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, NewRowSchema, OutputConf}
+import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, RowSchema, OutputConf}
 import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
@@ -170,18 +170,6 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     }
   }
 
-//  def applyTransformation(stream: Dataset[In]): Dataset[In] = source.conf.dataTransformation match {
-//    case Some(_) =>
-//      import source.{extractor, timeExtractor}
-//      Dataset
-//        .keyBy(source.partitioner)
-//        .process(
-//          SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]], fields)
-//        )
-//        .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
-//    case _ => stream
-//  }
-
   def queryListener: StreamingQueryListener = new StreamingQueryListener {
     override def onQueryStarted(event: StreamingQueryListener.QueryStartedEvent): Unit = {
       //println(s"${event.id} started")
@@ -189,7 +177,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
 
     override def onQueryProgress(event: StreamingQueryListener.QueryProgressEvent): Unit = {
       val rows = event.progress.sources.map(_.numInputRows).sum
-      println(s"$rows rows processed")
+      //println(s"$rows rows processed")
     }
 
     override def onQueryTerminated(event: StreamingQueryListener.QueryTerminatedEvent): Unit = {
@@ -404,7 +392,7 @@ object PatternsSearchJob {
     }
   }
 
-  def rowSchemaToSchema(rowSchema: NewRowSchema): StructType = StructType(
+  def rowSchemaToSchema(rowSchema: RowSchema): StructType = StructType(
     rowSchema.fieldDatatypes.zip(rowSchema.fieldsNames).map { case (t, n) => new StructField(n.name, t) }
   )
 }

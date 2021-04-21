@@ -10,7 +10,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
-import ru.itclover.tsp.spark.io.{JDBCInputConf, JDBCOutputConf, NewRowSchema}
+import ru.itclover.tsp.spark.io.{JDBCInputConf, JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.util.Success
@@ -52,7 +52,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTest
     partitionFields = Seq('stock_num)
   )
 
-  val sinkSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+  val sinkSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

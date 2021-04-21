@@ -5,7 +5,7 @@ import org.apache.spark.sql.types.{DataType, DataTypes}
 
 import scala.collection.mutable
 
-case class NewRowSchema(
+case class RowSchema(
   unitIdField: Symbol,
   fromTsField: Symbol,
   toTsField: Symbol,

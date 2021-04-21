@@ -6,14 +6,14 @@ import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRow
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.spark.io.NewRowSchema
+import ru.itclover.tsp.spark.io.RowSchema
 
 import scala.util.Try
 
 /**
   * Packer of found incident into [[org.apache.spark.sql.Row]]
   */
-case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: NewRowSchema) {
+case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: RowSchema) {
 
   def map(incident: Incident): Row = {
     val values = new Array[Any](schema.fieldsCount)

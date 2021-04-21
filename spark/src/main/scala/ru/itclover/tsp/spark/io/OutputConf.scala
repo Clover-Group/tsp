@@ -7,7 +7,7 @@ trait OutputConf[Event] {
 
   def parallelism: Option[Int]
 
-  def rowSchema: NewRowSchema
+  def rowSchema: RowSchema
 }
 
 /**
@@ -21,24 +21,24 @@ trait OutputConf[Event] {
   * @param parallelism num of parallel task to write data
   */
 case class JDBCOutputConf(
-  tableName: String,
-  rowSchema: NewRowSchema,
-  jdbcUrl: String,
-  driverName: String,
-  password: Option[String] = None,
-  batchInterval: Option[Int] = None,
-  userName: Option[String] = None,
-  parallelism: Option[Int] = Some(1)
+                           tableName: String,
+                           rowSchema: RowSchema,
+                           jdbcUrl: String,
+                           driverName: String,
+                           password: Option[String] = None,
+                           batchInterval: Option[Int] = None,
+                           userName: Option[String] = None,
+                           parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
   override def forwardedFieldsIds = Seq.empty
 }
 
 case class KafkaOutputConf(
-  broker: String,
-  topic: String,
-  //serializer: Option[String] = Some("json"),
-  rowSchema: NewRowSchema,
-  parallelism: Option[Int] = Some(1)
+                            broker: String,
+                            topic: String,
+                            //serializer: Option[String] = Some("json"),
+                            rowSchema: RowSchema,
+                            parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
   override def forwardedFieldsIds = Seq.empty
 
