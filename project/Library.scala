@@ -8,8 +8,7 @@ object Version {
 
   val influx = "2.15"
 
-  // expected version number, until https://github.com/ClickHouse/clickhouse-jdbc/pull/520 gets merged
-  val clickhouse = "0.2.5"
+  val clickhouse = "0.3.0"
   val chNative = "2.4.2"
   val flink = "1.10.0"
 
