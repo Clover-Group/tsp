@@ -93,7 +93,7 @@ object JdbcSource {
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
-        case Some(nullField) => JdbcSource(conf, types, nullField, fields).asRight
+        case Some(nullField) => JdbcSource(conf, types, fields).asRight
         case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
@@ -105,7 +105,6 @@ object JdbcSource {
 case class JdbcSource(
   conf: JDBCInputConf,
   fieldsClasses: Seq[(Symbol, Class[_])],
-  nullFieldId: Symbol,
   patternFields: Set[Symbol]
 ) extends StreamSource[RowWithIdx, Symbol, Any] {
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
@@ -124,16 +123,16 @@ case class JdbcSource(
       case (fieldName, typeName) =>
         StructField(
           fieldName.name,
-          typeName match {
-            case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte])       => ByteType
-            case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short])     => ShortType
-            case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int])     => IntegerType
-            case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long])       => LongType
-            case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float])     => FloatType
-            case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
-            case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
-            case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
-            case _                                                                       => ObjectType(classOf[Any])
+          typeName.getTypeName match {
+            case "byte" | "java.lang.Byte"       => ByteType
+            case "short" | "java.lang.Short"     => ShortType
+            case "int" | "java.lang.Integer"     => IntegerType
+            case "long" | "java.lang.Long"       => LongType
+            case "float" | "java.lang.Float"     => DoubleType // it seems that JDBC cannot properly handle floats
+            case "double" | "java.lang.Double"   => DoubleType
+            case "boolean" | "java.lang.Boolean" => BooleanType
+            case "string" | "java.lang.String"   => StringType
+            //case _                               => ObjectType(classOf[Any])
           }
         )
     }.toSeq
@@ -144,19 +143,19 @@ case class JdbcSource(
       val untransformedName = (name: Symbol) => fieldsClasses.find(_._1 == name).map(_._1).getOrElse(defaultValueColumn)
       StructType(
         transformedFieldsIdxMap.toSeq.sortBy(_._2).map {
-          case (name, _) => StructField(name.name, fieldsClasses.find(_._1 == untransformedName(name)).map(_._2).orNull match {
-            case null                                                                    =>
+          case (name, _) => StructField(name.name, fieldsClasses.find(_._1 == untransformedName(name)).map(_._2.getTypeName).orNull match {
+            case null                            =>
               println(s"Warning: type with name ${untransformedName(name)} not found in fieldsClasses")
               DoubleType
-            case x if x.equals(classOf[java.lang.Byte]) || x.equals(classOf[Byte])       => ByteType
-            case x if x.equals(classOf[java.lang.Short]) || x.equals(classOf[Short])     => ShortType
-            case x if x.equals(classOf[java.lang.Integer]) || x.equals(classOf[Int])     => IntegerType
-            case x if x.equals(classOf[java.lang.Long]) || x.equals(classOf[Long])       => LongType
-            case x if x.equals(classOf[java.lang.Float]) || x.equals(classOf[Float])     => FloatType
-            case x if x.equals(classOf[java.lang.Double]) || x.equals(classOf[Double])   => DoubleType
-            case x if x.equals(classOf[java.lang.Boolean]) || x.equals(classOf[Boolean]) => BooleanType
-            case x if x.equals(classOf[java.lang.String]) || x.equals(classOf[String])   => StringType
-            case _                                                                       => DoubleType//ObjectType(classOf[Any])
+            case "byte" | "java.lang.Byte"       => ByteType
+            case "short" | "java.lang.Short"     => ShortType
+            case "int" | "java.lang.Integer"     => IntegerType
+            case "long" | "java.lang.Long"       => LongType
+            case "float" | "java.lang.Float"     => DoubleType // it seems that JDBC cannot properly handle floats
+            case "double" | "java.lang.Double"   => DoubleType
+            case "boolean" | "java.lang.Boolean" => BooleanType
+            case "string" | "java.lang.String"   => StringType
+            //case _                               => ObjectType(classOf[Any])
           })
         }.toSeq
       )
