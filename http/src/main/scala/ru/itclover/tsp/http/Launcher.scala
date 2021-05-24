@@ -148,6 +148,8 @@ object Launcher extends App with HttpService {
           .getOrCreate()
       } else {
         val host = getEnvVarOrConfig("SPARK_DRIVER", "spark.driver")
+        val driverPort = getEnvVarOrNone("SPARK_DRIVER_PORT").map(_.toInt).getOrElse(2020)
+        val blockManagerPort = getEnvVarOrNone("SPARK_BLOCK_MANAGER_PORT").map(_.toInt).getOrElse(6060)
         SparkSession
           .builder()
           .master(address)
@@ -156,6 +158,7 @@ object Launcher extends App with HttpService {
           .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", true)
           .config("spark.driver.host", host)
           .config("spark.driver.port", 2020)
+          .config("spark.blockManager.port", 6060)
           .config("spark.jars", "/opt/tsp.jar")
           .getOrCreate()
       }
