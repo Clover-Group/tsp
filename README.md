@@ -5,6 +5,13 @@ TSP is a Time Series Patterns search engine. It is a backend system behind the [
 
 TSP is a distributed compute system implemented in Modern Scala. For more information, refer to [Documentation](https://clover-group.github.io/tsp/).
 
+## Build
+To compile TSP you need to have [github.token](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) (requires the ```read:package``` grant) set in ~/.gitconfig :
+```
+[github]
+  token = TOKEN_DATA
+```
+
 ## Profiling
  
 ![YourKit logo](https://www.yourkit.com/images/yklogo.png) 
