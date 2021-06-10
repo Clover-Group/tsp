@@ -51,13 +51,17 @@ trait JobsRoutes extends RoutesProtocols {
   val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
+        log.info("JDBC-to-JDBC: query started")
         import request._
         val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
+        log.info("JDBC-to-JDBC: extracted fields from patterns. Creating source...")
         val resultOrErr = for {
           source <- JdbcSource.create(inputConf, fields)
+          _ = log.info("JDBC-to-JDBC: source created. Creating patterns stream...")
           _      <- createStream(patterns, inputConf, outConf, source)
+          _ = log.info("JDBC-to-JDBC: stream created. Starting the stream...")
           result <- runStream(uuid, isAsync)
+          _ = log.info("JDBC-to-JDBC: stream started")
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
