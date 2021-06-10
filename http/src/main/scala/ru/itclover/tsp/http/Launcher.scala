@@ -166,7 +166,7 @@ object Launcher extends App with HttpService {
       }
       env.setStateBackend(new RocksDBStateBackend(savePointsPath))
     }
-    env.setRestartStrategy(RestartStrategies.noRestart)
+    env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 10000))
     env
 
   }
