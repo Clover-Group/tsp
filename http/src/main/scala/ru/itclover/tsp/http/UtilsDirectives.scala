@@ -13,7 +13,7 @@ object UtilsDirectives {
   def logRequest(logFn: String => Unit)(implicit rejectionHandler: RejectionHandler): Directive[Unit] =
     extractRequestContext.flatMap { _ =>
       mapRequest { req =>
-        logFn(requestToString(req))
+        //logFn(requestToString(req))
         req
       } & handleRejections(rejectionHandler) // handling rejections for proper status codes
     }
@@ -23,7 +23,7 @@ object UtilsDirectives {
       val start = System.currentTimeMillis()
       mapResponse { resp =>
         val d = System.currentTimeMillis() - start
-        logFn(responseToString(resp) + s" took ${d}ms, for request: ${ctx.request.method} ${ctx.request.uri}")
+        //logFn(responseToString(resp) + s" took ${d}ms, for request: ${ctx.request.method} ${ctx.request.uri}")
         resp
       } & handleRejections(rejHandler) // handling rejections for proper status codes
     }
