@@ -126,7 +126,10 @@ case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window,
 case class AggregateCall(function: AggregateFn, value: AST, window: Window, gap: Option[Window] = None) extends AST {
   override def metadata = value.metadata |+| PatternMetadata(Set.empty, gap.getOrElse(window).toMillis)
 
-  override val valueType: ASTType = DoubleASTType //TODO: Customize return type
+  override val valueType: ASTType = function match {
+    case Lag => value.valueType // Lag returns the same type as internal function
+    case _   => DoubleASTType //TODO: Customize return type
+  }
 }
 
 sealed trait AggregateFn extends Product with Serializable
