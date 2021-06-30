@@ -5,7 +5,7 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.functions.{lit, struct, to_json}
+import org.apache.spark.sql.functions.{lit, struct, to_json, udf}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
 import org.apache.spark.sql.types._
@@ -350,8 +350,9 @@ object PatternsSearchJob {
             log.debug("saveStream finished")
             res
           case oc: KafkaOutputConf =>
+            val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
-              .select(lit(java.util.UUID.randomUUID.toString)
+              .select(randKey()
                 .as("key"),
                 to_json(struct(
                 oc.rowSchema.patternIdField.name,
@@ -391,15 +392,18 @@ object PatternsSearchJob {
             log.debug("saveStream finished")
             res
           case oc: KafkaOutputConf =>
+            val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
-              .select(to_json(struct(
-                oc.rowSchema.patternIdField.name,
-                oc.rowSchema.appIdFieldVal._1.name,
-                oc.rowSchema.fromTsField.name,
-                oc.rowSchema.toTsField.name,
-                oc.rowSchema.unitIdField.name,
-                oc.rowSchema.subunitIdField.name
-              )).as("value"))
+              .select(randKey()
+                .as("key"),
+                to_json(struct(
+                  oc.rowSchema.patternIdField.name,
+                  oc.rowSchema.appIdFieldVal._1.name,
+                  oc.rowSchema.fromTsField.name,
+                  oc.rowSchema.toTsField.name,
+                  oc.rowSchema.unitIdField.name,
+                  oc.rowSchema.subunitIdField.name
+                )).as("value"))
               .writeStream
               .format("kafka")
               .option("kafka.bootstrap.servers", oc.broker)
