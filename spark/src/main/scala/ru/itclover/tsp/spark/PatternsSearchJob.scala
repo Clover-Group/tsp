@@ -395,9 +395,10 @@ object PatternsSearchJob {
           case oc: KafkaOutputConf =>
             val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
-              .select(randKey()
-                .as("key"),
+              .withColumn("uuid", randKey())
+              .select(
                 to_json(struct(
+                  "uuid",
                   oc.rowSchema.patternIdField.name,
                   oc.rowSchema.appIdFieldVal._1.name,
                   oc.rowSchema.fromTsField.name,
