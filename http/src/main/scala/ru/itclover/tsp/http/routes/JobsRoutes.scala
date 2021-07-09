@@ -203,9 +203,8 @@ trait JobsRoutes extends RoutesProtocols {
   def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] = {
     log.debug("runStream started")
 
-    val res = if (isAsync) { // Just detach job thread in case of async run
-      Future { streamEnv.execute(uuid) }(blockingExecutionContext)
-      Right(None)
+    val res = if (isAsync) { 
+      Either.catchNonFatal(Some(streamEnv.executeAsync(uuid))).leftMap(GenericRuntimeErr(_)).map(_ => None)
     } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
     }
