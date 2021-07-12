@@ -10,7 +10,7 @@ object Version {
   val influx = "2.15"
 
   val clickhouse = "0.2"
-  val flink = "1.10.0"
+  val flink = "1.11.3"
 
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
@@ -93,7 +93,7 @@ object Library {
     "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
     "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
     "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
-    "org.apache.flink" % "flink-jdbc_2.12" % Version.flink,
+    "org.apache.flink" % "flink-connector-jdbc_2.12" % Version.flink,
     "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
     "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
     "org.apache.flink" % "flink-avro" % Version.flink,
