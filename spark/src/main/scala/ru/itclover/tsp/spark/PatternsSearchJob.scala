@@ -5,7 +5,7 @@ import cats.data.Validated
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.functions.{lit, struct, to_json, udf}
+import org.apache.spark.sql.functions.{date_format, lit, struct, to_json, udf}
 import org.apache.spark.sql.streaming.{StreamingQueryListener, Trigger}
 import org.apache.spark.sql.{Dataset, Encoder, Encoders, ForeachWriter, Row, SparkSession}
 import org.apache.spark.sql.types._
@@ -353,15 +353,17 @@ object PatternsSearchJob {
             val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
               .withColumn("uuid", randKey())
+              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
+              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
               .select(
                 to_json(struct(
-                  "uuid",
-                  oc.rowSchema.patternIdField.name,
-                  oc.rowSchema.appIdFieldVal._1.name,
-                  oc.rowSchema.fromTsField.name,
-                  oc.rowSchema.toTsField.name,
-                  oc.rowSchema.unitIdField.name,
-                  oc.rowSchema.subunitIdField.name
+                  col("uuid"),
+                  col(oc.rowSchema.patternIdField.name),
+                  col(oc.rowSchema.appIdFieldVal._1.name),
+                  col(oc.rowSchema.fromTsField.name + "_").as(oc.rowSchema.fromTsField.name),
+                  col(oc.rowSchema.toTsField.name + "_").as(oc.rowSchema.toTsField.name),
+                  col(oc.rowSchema.unitIdField.name),
+                  col(oc.rowSchema.subunitIdField.name)
               )).as("value"))
               .write
               .format("kafka")
@@ -396,15 +398,17 @@ object PatternsSearchJob {
             val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
               .withColumn("uuid", randKey())
+              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
+              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
               .select(
                 to_json(struct(
-                  "uuid",
-                  oc.rowSchema.patternIdField.name,
-                  oc.rowSchema.appIdFieldVal._1.name,
-                  oc.rowSchema.fromTsField.name,
-                  oc.rowSchema.toTsField.name,
-                  oc.rowSchema.unitIdField.name,
-                  oc.rowSchema.subunitIdField.name
+                  col("uuid"),
+                  col(oc.rowSchema.patternIdField.name),
+                  col(oc.rowSchema.appIdFieldVal._1.name),
+                  col(oc.rowSchema.fromTsField.name + "_").as(oc.rowSchema.fromTsField.name),
+                  col(oc.rowSchema.toTsField.name + "_").as(oc.rowSchema.toTsField.name),
+                  col(oc.rowSchema.unitIdField.name),
+                  col(oc.rowSchema.subunitIdField.name)
                 )).as("value"))
               .writeStream
               .format("kafka")
