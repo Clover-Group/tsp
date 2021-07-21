@@ -353,8 +353,8 @@ object PatternsSearchJob {
             val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
               .withColumn("uuid", randKey())
-              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
-              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
+              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
+              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
               .select(
                 to_json(struct(
                   col("uuid"),
@@ -398,8 +398,8 @@ object PatternsSearchJob {
             val randKey = udf(() => java.util.UUID.randomUUID.toString)
             val res = stream
               .withColumn("uuid", randKey())
-              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
-              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.n"))
+              .withColumn(oc.rowSchema.fromTsField.name + "_", date_format(col(oc.rowSchema.fromTsField.name), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
+              .withColumn(oc.rowSchema.toTsField.name + "_", date_format(col(oc.rowSchema.toTsField.name), "yyyy-MM-dd HH:mm:ss.SSSSSS"))
               .select(
                 to_json(struct(
                   col("uuid"),
