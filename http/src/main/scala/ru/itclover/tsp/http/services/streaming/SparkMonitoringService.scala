@@ -15,7 +15,7 @@ case class SparkMonitoringService(spark: SparkSession)(
 ) extends MonitoringServiceProtocols {
 
   def queryJobInfo(name: String): Future[Option[JobDetails]] = Future {
-    Try {
+    val streamTry = Try {
       val jobIds = spark.sparkContext.statusTracker.getJobIdsForGroup(name)
       val stageInfos = jobIds
         .map(jid => spark.sparkContext.statusTracker.getJobInfo(jid).get.stageIds())
@@ -31,12 +31,28 @@ case class SparkMonitoringService(spark: SparkSession)(
       }
       JobDetails(name, name, state, 0, 0, vertices.toVector)
     }.toOption
+    streamTry match {
+      case Some(_) => streamTry
+      case None => Try {
+        val query = spark.streams.active.find(_.name == name).get
+        val state = query.status.toString() match {
+          case s if s.contains("FAILED")  => "FAILED"
+          case s if s.contains("UNKNOWN") => "UNKNOWN"
+          case s if s.contains("RUNNING") => "RUNNING"
+          case _                          => "FINISHED"
+        }
+        JobDetails(query.runId.toString, name, state, query.lastProgress.numInputRows, 0, Vector.empty)
+      }.toOption
+    }
   }
 
   def queryJobExceptions(name: String): Future[Option[JobExceptions]] = Future { None }
 
   def sendStopQuery(jobName: String): Future[Option[Unit]] = Future {
-    Try(spark.sparkContext.cancelJobGroup(jobName)).toOption
+    Try {
+      spark.sparkContext.cancelJobGroup(jobName)
+      spark.streams.get(jobName).stop()
+    }.toOption
   }
 
   def queryJobsOverview: Future[JobsOverview] = Future {
@@ -45,7 +61,9 @@ case class SparkMonitoringService(spark: SparkSession)(
         .map(
           jid => JobBrief(jid.toString, jid.toString)
         )
-        .toList
+        .toList ++ spark.streams.active.map(
+        query => JobBrief(query.runId.toString, query.name)
+      )
     )
   }
 
