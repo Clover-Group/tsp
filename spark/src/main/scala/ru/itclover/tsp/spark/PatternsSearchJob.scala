@@ -383,6 +383,7 @@ object PatternsSearchJob {
               oc.password.getOrElse("")
             )
             val res = stream.writeStream
+              .queryName(jobId)
               .foreach(sink.asInstanceOf[ForeachWriter[OutE]])
               .trigger(Trigger.ProcessingTime("10 seconds"))
 //              .format("jdbc")
@@ -411,6 +412,7 @@ object PatternsSearchJob {
                   col(oc.rowSchema.subunitIdField.name)
                 )).as("value"))
               .writeStream
+              .queryName(jobId)
               .format("kafka")
               .option("kafka.bootstrap.servers", oc.broker)
               .option("topic", oc.topic)
