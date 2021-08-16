@@ -9,7 +9,9 @@ import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
-import ru.itclover.tsp.spark.io.{JDBCInputConf, JDBCOutputConf}
+import ru.itclover.tsp.spark.io.InputConf.{JDBCInputConf => SparkJDBCInputConf}
+import ru.itclover.tsp.spark.io.OutputConf.{JDBCOutputConf => SparkJDBCOutputConf}
+import ru.itclover.tsp.streaming.io.{JDBCInputConf, JDBCOutputConf}
 import ru.itclover.tsp.utils.Files
 import spray.json.JsonParser
 import spray.json.ParserInput.StringBasedParserInput
@@ -43,7 +45,7 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTes
     waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
 
-  val inputConf = JDBCInputConf(
+  val inputConf: SparkJDBCInputConf = JDBCInputConf(
     sourceId = 123,
     jdbcUrl = container.jdbcUrl,
     query = "",
@@ -81,8 +83,8 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTes
     val requestString = Files.readResource("/debug/request.json").mkString
 
     val input = JsonParser(new StringBasedParserInput(requestString))
-    val request: FindPatternsRequest[JDBCInputConf, JDBCOutputConf] =
-      spray.json.jsonReader[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]].read(input)
+    val request: FindPatternsRequest[SparkJDBCInputConf, SparkJDBCOutputConf] =
+      spray.json.jsonReader[FindPatternsRequest[SparkJDBCInputConf, SparkJDBCOutputConf]].read(input)
 
     // todo add checkpointing! https://tech.signavio.com/2017/postgres-flink-sink
     val finalRequest =

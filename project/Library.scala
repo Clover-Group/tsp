@@ -56,6 +56,8 @@ object Version {
 
   val akkaHttpMetrics = "0.6.0"
 
+  val fs2 = "3.0.6"
+
 }
 
 object Library {
@@ -163,5 +165,10 @@ object Library {
     "org.apache.spark" %% "spark-sql-kafka-0-10" % Version.spark exclude (
       "org.slf4j", "slf4j-log4j12"
     )
+  )
+
+  val fs2: Seq[ModuleID] = Seq(
+    "co.fs2" %% "fs2-core" % Version.fs2,
+    "co.fs2" %% "fs2-io" % Version.fs2,
   )
 }

@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
-import ru.itclover.tsp.spark.io.{JDBCInputConf, JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.streaming.io.{JDBCInputConf, JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
 class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {

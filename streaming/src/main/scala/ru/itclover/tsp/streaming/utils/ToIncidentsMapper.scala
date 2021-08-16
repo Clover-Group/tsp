@@ -1,4 +1,4 @@
-package ru.itclover.tsp.spark.utils
+package ru.itclover.tsp.streaming.utils
 
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
 import ru.itclover.tsp.core.{Incident, Segment}

@@ -10,6 +10,7 @@ import java.util.{Properties, UUID}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{Assertion, FlatSpec}
+import ru.itclover.tsp.streaming.io.{JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, NarrowDataUnfolding, RowSchema, WideDataFilling}
 import ru.itclover.tsp.utils.Files
 
 import scala.util.Failure
@@ -20,14 +21,14 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.spark.io.{
+import ru.itclover.tsp.spark.io.InputConf.{
   JDBCInputConf => SparkJDBCInputConf,
-  JDBCOutputConf => SparkJDBCOutputConf,
-  KafkaInputConf => SparkKafkaInputConf,
-  KafkaOutputConf => SparkKafkaOutputConf,
-  RowSchema => SparkRowSchema
+  KafkaInputConf => SparkKafkaInputConf
 }
-import ru.itclover.tsp.spark.io.{NarrowDataUnfolding => SparkNDU, WideDataFilling => SparkWDF}
+import ru.itclover.tsp.spark.io.OutputConf.{
+  JDBCOutputConf => SparkJDBCOutputConf,
+  KafkaOutputConf => SparkKafkaOutputConf
+}
 import spray.json._
 
 import scala.annotation.tailrec
@@ -179,7 +180,7 @@ class SimpleCasesTest
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
-  val wideSparkInputConf = SparkJDBCInputConf(
+  val wideSparkInputConf: SparkJDBCInputConf = JDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
     query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
@@ -192,7 +193,7 @@ class SimpleCasesTest
     partitionFields = Seq('loco_num, 'section, 'upload_id)
   )
 
-  lazy val wideSparkKafkaInputConf = SparkKafkaInputConf(
+  lazy val wideSparkKafkaInputConf: SparkKafkaInputConf = KafkaInputConf(
     sourceId = 500,
     brokers = kafkaBrokerUrl,
     topic = "2te116u_tmy_test_simple_rules",
@@ -213,14 +214,20 @@ class SimpleCasesTest
     )
   )
 
-  val narrowSparkInputConf = wideSparkInputConf.copy(
+  val narrowSparkInputConf: SparkJDBCInputConf = wideSparkInputConf.copy(
     sourceId = 200,
     query = "SELECT * FROM math_test ORDER BY dt",
     datetimeField = 'dt,
-    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
+    dataTransformation = Some(NarrowDataUnfolding(
+      'sensor_id,
+      'value_float,
+      Map.empty,
+      Some(Map.empty),
+      Some(1000))
+    )
   )
 
-  lazy val narrowSparkKafkaInputConf = SparkKafkaInputConf(
+  lazy val narrowSparkKafkaInputConf: SparkKafkaInputConf = KafkaInputConf(
     sourceId = 600,
     brokers = kafkaBrokerUrl,
     topic = "math_test",
@@ -238,22 +245,28 @@ class SimpleCasesTest
       "section"        -> "string",
       "value_float"    -> "float64",
     ),
-    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
+    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
   )
 
-  val wideSparkInputIvolgaConf = wideSparkInputConf.copy(
+  val wideSparkInputIvolgaConf: SparkJDBCInputConf = wideSparkInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
     unitIdField = Some('stock_num),
     partitionFields = Seq('stock_num, 'upload_id),
-    dataTransformation = Some(SparkWDF(Map.empty, defaultTimeout = Some(15000L)))
+    dataTransformation = Some(WideDataFilling(Map.empty, defaultTimeout = Some(15000L)))
   )
 
-  val narrowSparkInputIvolgaConf = wideSparkInputConf.copy(
+  val narrowSparkInputIvolgaConf: SparkJDBCInputConf = wideSparkInputConf.copy(
     sourceId = 400,
     query = "SELECT * FROM `ivolga_test_narrow` ORDER BY dt",
     datetimeField = 'dt,
-    dataTransformation = Some(SparkNDU('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
+    dataTransformation = Some(NarrowDataUnfolding(
+      'sensor_id,
+      'value_float,
+      Map.empty,
+      Some(Map.empty),
+      Some(1000))
+    )
   )
 
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
@@ -261,7 +274,7 @@ class SimpleCasesTest
 
 
   val wideSparkRowSchema =
-    SparkRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+   RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
 
   val narrowSparkRowSchema = wideSparkRowSchema.copy(
     appIdFieldVal = ('app, 2)
@@ -279,7 +292,7 @@ class SimpleCasesTest
     appIdFieldVal = ('app, 6)
   )
 
-  val wideSparkOutputConf = SparkJDBCOutputConf(
+  val wideSparkOutputConf: SparkJDBCOutputConf = JDBCOutputConf(
     "events_wide_spark_test",
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
@@ -296,21 +309,21 @@ class SimpleCasesTest
     rowSchema = wideIvolgaSparkRowSchema
   )
 
-  val wideSparkKafkaOutputConf = SparkJDBCOutputConf(
+  val wideSparkKafkaOutputConf: SparkJDBCOutputConf = JDBCOutputConf(
     "events_wide_kafka_spark_test",
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  val narrowSparkKafkaOutputConf = SparkJDBCOutputConf(
+  val narrowSparkKafkaOutputConf: SparkJDBCOutputConf = JDBCOutputConf(
     "events_narrow_kafka_spark_test",
     wideSparkRowSchema,
     s"jdbc:clickhouse://localhost:$port/default",
     "ru.yandex.clickhouse.ClickHouseDriver"
   )
 
-  lazy val wideSparkKafkaToKafkaOutputConf = SparkKafkaOutputConf(
+  lazy val wideSparkKafkaToKafkaOutputConf: SparkKafkaOutputConf = KafkaOutputConf(
     broker = kafkaBrokerUrl,
     topic = "2te116u_events_simple_rules",
     rowSchema = wideSparkRowSchema

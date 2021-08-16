@@ -2,7 +2,7 @@ package ru.itclover.tsp.http.domain.output
 
 import akka.http.scaladsl.model.StatusCodes.ServerError
 import ru.itclover.tsp.http.utils.Exceptions
-import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr => SparkConfErr, RuntimeErr => SparkRTErr}
+import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr => SparkConfErr, RuntimeErr => SparkRTErr}
 
 sealed trait Response[T] extends Product with Serializable
 

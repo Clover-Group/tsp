@@ -2,11 +2,10 @@ package ru.itclover.tsp.spark.utils
 
 import java.sql.Timestamp
 import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
-
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRow
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.spark.io.RowSchema
+import ru.itclover.tsp.streaming.io.RowSchema
 
 import scala.util.Try
 

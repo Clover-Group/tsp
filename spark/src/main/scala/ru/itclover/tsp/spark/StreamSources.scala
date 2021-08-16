@@ -6,80 +6,26 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession, functions}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
-import ru.itclover.tsp.spark.utils.{EventCreator, EventCreatorInstances, JdbcService, KeyCreator, KeyCreatorInstances, RowWithIdx}
+import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr, InvalidRequest, SourceUnavailable}
+import ru.itclover.tsp.spark.utils.{EventCreatorInstances, JdbcService, RowWithIdx}
 
 import scala.util.Try
 import ru.itclover.tsp.spark.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.streaming.io.WideDataFilling
+import ru.itclover.tsp.spark.io.InputConf._
+import ru.itclover.tsp.spark.utils.EmptyCheckerInstances.rowWithIdxEmptyChecker
+import ru.itclover.tsp.streaming.io.{InputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.streaming.{StreamSource, transformers}
+import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator, KeyCreatorInstances}
 
-trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
+trait SparkStreamSource[Event, EKey, EItem, EventSchema]
+  extends StreamSource[Event, EKey, EItem, EventSchema, Dataset[Event]] {
   def spark: SparkSession
-
-  def createStream: Dataset[Event]
-
-  def conf: InputConf[Event, EKey, EItem]
-
-  def fieldsClasses: Seq[(Symbol, Class[_])]
-
-  def fieldToEKey: Symbol => EKey
-
-  def fieldsIdxMap: Map[Symbol, Int]
-
-  def transformedFieldsIdxMap: Map[Symbol, Int]
-
-  def partitioner: Seq[String]
-
-  def transformedPartitioner: Seq[String]
-
-  def eventSchema: StructType
-
-  def transformedEventSchema: StructType
 
   def eventEncoder: Encoder[Event]
 
   def transformedEncoder: Encoder[Event]
-
-  implicit def timeExtractor: TimeExtractor[Event]
-
-  implicit def transformedTimeExtractor: TimeExtractor[Event]
-
-  implicit def idxExtractor: IdxExtractor[Event]
-
-  implicit def extractor: Extractor[Event, EKey, EItem]
-
-  implicit def transformedExtractor: Extractor[Event, EKey, EItem]
-
-  implicit def trivialEItemDecoder: Decoder[EItem, EItem] = (v1: EItem) => v1
-
-  implicit def itemToKeyDecoder: Decoder[EItem, EKey] // for narrow data widening
-
-  implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(key, value, _, _, _)) =>
-      (r: Event) => (extractor.apply[EKey](r, key), extractor.apply[EItem](r, value)) // TODO: See that place better
-    case Some(WideDataFilling(_, _)) =>
-      (_: Event) => sys.error("Wide data filling does not need K-V extractor")
-    case Some(_) =>
-      (_: Event) => sys.error("Unsupported data transformation")
-    case None =>
-      (_: Event) => sys.error("No K-V extractor without data transformation")
-  }
-
-  implicit def eventCreator: EventCreator[Event, EKey, StructType]
-
-  implicit def keyCreator: KeyCreator[EKey]
-}
-
-object StreamSource {
-
-  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) =
-    allFields.find { field =>
-      !excludedFields.contains(field)
-    }
-
-  // todo: no vars
-  var sparkMaster: String = "local"
 }
 
 // Stream sources deal heavily with Any values, so we must use it
@@ -106,7 +52,7 @@ case class JdbcSource(
   conf: JDBCInputConf,
   fieldsClasses: Seq[(Symbol, Class[_])],
   patternFields: Set[Symbol]
-) extends StreamSource[RowWithIdx, Symbol, Any] {
+) extends SparkStreamSource[RowWithIdx, Symbol, Any, StructType] {
   def partitionsIdx: Seq[Int] = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx: Seq[Int] = conf.partitionFields.map(transformedFieldsIdxMap)
 
@@ -192,12 +138,13 @@ case class JdbcSource(
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+      val acc = transformers.SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx, StructType](this, patternFields)(
         timeExtractor,
         kvExtractor,
         extractor,
         eventCreator,
-        keyCreator
+        keyCreator,
+        rowWithIdxEmptyChecker
       )
       acc.allFieldsIndexesMap
     case None =>
@@ -281,7 +228,7 @@ case class KafkaSource(
   fieldsClasses: Seq[(Symbol, Class[_])],
   nullFieldId: Symbol,
   patternFields: Set[Symbol]
-) extends StreamSource[RowWithIdx, Symbol, Any] {
+) extends SparkStreamSource[RowWithIdx, Symbol, Any, StructType] {
   override val spark: SparkSession = SparkSession
     .builder()
     .master(StreamSource.sparkMaster)
@@ -407,12 +354,13 @@ case class KafkaSource(
 
   override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+      val acc = transformers.SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx, StructType](this, patternFields)(
         timeExtractor,
         kvExtractor,
         extractor,
         eventCreator,
-        keyCreator
+        keyCreator,
+        rowWithIdxEmptyChecker
       )
       acc.allFieldsIndexesMap
     case None =>

@@ -6,12 +6,8 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import spray.json._
-import ru.itclover.tsp.spark
-import ru.itclover.tsp.spark.io.{
-  SourceDataTransformation => SparkSDT,
-  NarrowDataUnfolding => SparkNDU,
-  WideDataFilling => SparkWDF
-}
+import ru.itclover.tsp.streaming.io.WideDataFilling
+import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, NarrowDataUnfolding, OutputConf, RowSchema, SourceDataTransformation, WideDataFilling}
 
 import scala.util.Try
 
@@ -58,41 +54,41 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val rawPatternFmt = jsonFormat3(RawPattern.apply)
 
   // TODO: Remove type bounds for (In|Out)putConf?
-  implicit def sparkPatternsRequestFmt[IN <: spark.io.InputConf[_, _, _]: JsonFormat, OUT <: spark.io.OutputConf[_]: JsonFormat] =
+  implicit def sparkPatternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
 
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 
-  implicit def sparkNduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
     jsonFormat(
-      SparkNDU[Event, EKey, EValue],
+      NarrowDataUnfolding[Event, EKey, EValue],
       "keyColumn",
       "defaultValueColumn",
       "fieldsTimeoutsMs",
       "valueColumnMapping",
       "defaultTimeout"
     )
-  implicit def sparkWdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
-    jsonFormat(SparkWDF[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
+  implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
 
-  implicit def sparkSdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
-    new RootJsonFormat[SparkSDT[Event, EKey, EValue]] {
-      override def read(json: JsValue): SparkSDT[Event, EKey, EValue] = json match {
+  implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+    new RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] {
+      override def read(json: JsValue): SourceDataTransformation[Event, EKey, EValue] = json match {
         case obj: JsObject =>
           val tp = obj.fields.getOrElse("type", sys.error("Source data transformation: missing type"))
           val cfg = obj.fields.getOrElse("config", sys.error("Source data transformation: missing config"))
           tp match {
-            case JsString("NarrowDataUnfolding") => sparkNduFormat[Event, EKey, EValue].read(cfg)
-            case JsString("WideDataFilling")     => sparkWdfFormat[Event, EKey, EValue].read(cfg)
+            case JsString("NarrowDataUnfolding") => nduFormat[Event, EKey, EValue].read(cfg)
+            case JsString("WideDataFilling")     => wdfFormat[Event, EKey, EValue].read(cfg)
             case _                               => deserializationError(s"Source data transformation: unknown type $tp")
           }
         case _ =>
           deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
       }
-      override def write(obj: SparkSDT[Event, EKey, EValue]): JsValue = {
+      override def write(obj: SourceDataTransformation[Event, EKey, EValue]): JsValue = {
         val c = obj.config match {
-          case ndu: SparkNDU[Event, EKey, EValue] => sparkNduFormat[Event, EKey, EValue].write(ndu)
-          case wdf: SparkWDF[Event, EKey, EValue] => sparkWdfFormat[Event, EKey, EValue].write(wdf)
+          case ndu: NarrowDataUnfolding[Event, EKey, EValue] => nduFormat[Event, EKey, EValue].write(ndu)
+          case wdf: WideDataFilling[Event, EKey, EValue] => wdfFormat[Event, EKey, EValue].write(wdf)
           case _                                  => deserializationError("Unknown source data transformation")
         }
         JsObject(
@@ -102,8 +98,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
 
-  implicit val sparkRowSchemaFmt = jsonFormat(
-    spark.io.RowSchema.apply,
+  implicit val rowSchemaFmt = jsonFormat(
+    RowSchema.apply,
     "unitIdField",
     "fromTsField",
     "toTsField",
@@ -112,8 +108,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "subunitIdField"
   )
 
-  implicit val sparkJdbcInpConfFmt = jsonFormat(
-    spark.io.JDBCInputConf.apply,
+  implicit def jdbcInpConfFmt[Event] = jsonFormat(
+    JDBCInputConf.apply[Event],
     "sourceId",
     "jdbcUrl",
     "query",
@@ -134,11 +130,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timestampMultiplier"
   )
 
-  implicit val sparkKafkaInpConfFmt = jsonFormat16(
-    spark.io.KafkaInputConf.apply
+  implicit def kafkaInpConfFmt[Event] = jsonFormat16(
+    KafkaInputConf.apply[Event]
   )
 
-  implicit val sparkJdbcOutConfFmt = jsonFormat8(spark.io.JDBCOutputConf.apply)
-  implicit val sparkKafkaOutConfFmt = jsonFormat4(spark.io.KafkaOutputConf.apply)
+  implicit def jdbcOutConfFmt[Event] = jsonFormat8(JDBCOutputConf.apply[Event])
+  implicit def kafkaOutConfFmt[Event] = jsonFormat4(KafkaOutputConf.apply[Event])
 
 }

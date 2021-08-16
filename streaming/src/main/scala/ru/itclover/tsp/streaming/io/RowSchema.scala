@@ -1,7 +1,4 @@
-package ru.itclover.tsp.spark.io
-
-import org.apache.spark.sql.execution.streaming.FileStreamSource.Timestamp
-import org.apache.spark.sql.types.{DataType, DataTypes}
+package ru.itclover.tsp.streaming.io
 
 import scala.collection.mutable
 
@@ -21,17 +18,7 @@ case class RowSchema(
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
   val fieldClasses: List[Class[_]] =
-    List(classOf[Int], classOf[Timestamp], classOf[Timestamp], classOf[Int], classOf[Int], classOf[Int])
-
-  val fieldDatatypes: List[DataType] =
-    List(
-      DataTypes.IntegerType,
-      DataTypes.TimestampType,
-      DataTypes.TimestampType,
-      DataTypes.IntegerType,
-      DataTypes.IntegerType,
-      DataTypes.IntegerType
-    )
+    List(classOf[Int], classOf[Long], classOf[Long], classOf[Int], classOf[Int], classOf[Int])
 
   val unitIdInd = fieldsIndexesMap(unitIdField)
 

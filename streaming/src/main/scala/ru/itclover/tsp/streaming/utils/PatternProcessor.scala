@@ -1,9 +1,9 @@
-package ru.itclover.tsp.spark.utils
+package ru.itclover.tsp.streaming.utils
 
 import cats.Id
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.io.TimeExtractor
-import ru.itclover.tsp.core.{Time, _}
+import ru.itclover.tsp.core._
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

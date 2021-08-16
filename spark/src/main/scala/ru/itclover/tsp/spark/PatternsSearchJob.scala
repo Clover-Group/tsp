@@ -17,10 +17,18 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.core.{Incident, RawPattern, _}
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternMetadata}
 import ru.itclover.tsp.spark.utils._
-import ru.itclover.tsp.spark.io.{InputConf, JDBCInputConf, JDBCOutputConf, KafkaInputConf, KafkaOutputConf, RowSchema, OutputConf}
-import ru.itclover.tsp.spark.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.spark.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 import ru.itclover.tsp.spark.utils.DataWriterWrapperImplicits._
+import ru.itclover.tsp.spark.utils.EmptyCheckerInstances._
+import ru.itclover.tsp.streaming.io.RowSchema
+import ru.itclover.tsp.spark.io.InputConf._
+import ru.itclover.tsp.spark.io.OutputConf._
+import ru.itclover.tsp.spark.io.SparkRowSchemaImplicits._
+import ru.itclover.tsp.streaming.StreamSource
+import ru.itclover.tsp.streaming.io.{InputConf, OutputConf, RowSchema}
+import ru.itclover.tsp.streaming.transformers.{EmptyChecker, SparseRowsDataAccumulator}
+import ru.itclover.tsp.streaming.utils.{Indexer, MapWithContextPattern, PatternProcessor, ProcessorCombinator, ToIncidentsMapper}
 //import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 // import ru.itclover.tsp.spark.utils.EncoderInstances._
 import org.apache.spark.sql.expressions.{Window => SparkWindow}
@@ -31,10 +39,10 @@ import scala.reflect.runtime.universe.TypeTag
 
 case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
   uuid: String,
-  source: StreamSource[In, InKey, InItem],
+  source: SparkStreamSource[In, InKey, InItem, StructType],
   fields: Set[InKey],
   decoders: BasicDecoders[InItem]
-) {
+)(implicit indexer: Indexer[In, Any], emptyChecker: EmptyChecker[In]) {
   // TODO: Restore InKey as a type parameter
 
   import PatternsSearchJob._
@@ -156,7 +164,7 @@ case class PatternsSearchJob[In: ClassTag: TypeTag, InKey, InItem](
     source.conf.dataTransformation match {
       case Some(_) =>
         import source.{extractor, timeExtractor, kvExtractor, eventCreator, keyCreator}
-        val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](source.asInstanceOf[StreamSource[In, InKey, InItem]],
+        val acc = SparseRowsDataAccumulator[In, InKey, InItem, In, StructType](source.asInstanceOf[SparkStreamSource[In, InKey, InItem, StructType]],
           fields)
         stream
           /*.union(spark.createDataset(List(source.eventCreator.create(

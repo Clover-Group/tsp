@@ -2,7 +2,6 @@ package ru.itclover.tsp.http
 
 import java.net.URLDecoder
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
@@ -11,7 +10,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.SparkSession
-import ru.itclover.tsp.spark.StreamSource
+import ru.itclover.tsp.streaming.StreamSource
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}

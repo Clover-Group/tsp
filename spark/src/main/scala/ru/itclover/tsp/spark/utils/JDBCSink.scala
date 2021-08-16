@@ -23,7 +23,7 @@ case class JDBCSink(url: String, table: String, driver: String, user: String, pw
   }
 
   def close(errorOrNull: Throwable): Unit = {
-    connection.close
+    connection.close()
   }
 
   def sqlEscape(obj: Any): String = obj match {

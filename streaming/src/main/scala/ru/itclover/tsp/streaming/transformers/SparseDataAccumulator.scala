@@ -1,16 +1,12 @@
-package ru.itclover.tsp.spark.transformers
+package ru.itclover.tsp.streaming.transformers
 
 import com.typesafe.scalalogging.Logger
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.StructType
-import ru.itclover.tsp.core.Pattern.Idx
-import ru.itclover.tsp.spark.StreamSource
-import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
-import ru.itclover.tsp.spark.utils.{KeyCreator, RowWithIdx}
 import ru.itclover.tsp.core.Time
+import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
+import ru.itclover.tsp.streaming.StreamSource
+import ru.itclover.tsp.streaming.io.{NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator}
 //import ru.itclover.tsp.core.Time.TimeNonTransformedExtractor
-import ru.itclover.tsp.spark.utils.EventCreator
-import ru.itclover.tsp.spark.io.{NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 
 import scala.collection.mutable
@@ -18,23 +14,28 @@ import scala.util.{Success, Try}
 
 trait SparseDataAccumulator
 
+trait EmptyChecker[Event] {
+  def isEmpty(event: Event): Boolean
+}
+
 /**
   * Accumulates sparse key-value format into dense Row using timeouts.
   * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param extraFieldNames - will be added to every emitting event
   */
-class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
+class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent, OutEventSchema](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
   defaultTimeout: Option[Long],
-  outEventSchema: () => StructType
+  outEventSchema: () => OutEventSchema
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
   extractValue: Extractor[InEvent, InKey, Value],
-  eventCreator: EventCreator[OutEvent, InKey, StructType],
-  keyCreator: KeyCreator[InKey]
+  eventCreator: EventCreator[OutEvent, InKey, OutEventSchema],
+  keyCreator: KeyCreator[InKey],
+  emptyChecker: EmptyChecker[InEvent]
 ) extends Serializable {
   // potential event values with receive time
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -58,9 +59,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   // private var lastTimer: Long = _
 
   def process(item: InEvent): Seq[OutEvent] = {
-    item match {
-      case (idx: Idx, row: Row) if row.length == 0 => return if (lastEvent != null) Seq(lastEvent) else Seq.empty
-      case _                                       => // nothing, continue execution
+    if (emptyChecker.isEmpty(item)) {
+      return if (lastEvent != null) Seq(lastEvent) else Seq.empty
     }
     val time = extractTime(item)
     if (useUnfolding) {
@@ -109,16 +109,17 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
 object SparseRowsDataAccumulator {
 
-  def apply[InEvent, InKey, Value, OutEvent](
-    streamSource: StreamSource[InEvent, InKey, Value],
+  def apply[InEvent, InKey, Value, OutEvent, OutEventSchema](
+    streamSource: StreamSource[InEvent, InKey, Value, OutEventSchema, _],
     patternFields: Set[InKey]
   )(
     implicit timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
-    eventCreator: EventCreator[OutEvent, InKey, StructType],
-    keyCreator: KeyCreator[InKey]
-  ): SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent] = {
+    eventCreator: EventCreator[OutEvent, InKey, OutEventSchema],
+    keyCreator: KeyCreator[InKey],
+    emptyChecker: EmptyChecker[InEvent]
+  ): SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent, OutEventSchema] = {
     streamSource.conf.dataTransformation
       .map({
         case ndu: NarrowDataUnfolding[InEvent, InKey, _] =>
@@ -145,7 +146,8 @@ object SparseRowsDataAccumulator {
             extractKeyVal,
             extractAny,
             eventCreator,
-            keyCreator
+            keyCreator,
+            emptyChecker
           )
         case wdf: WideDataFilling[InEvent, InKey, _] =>
           val sparseRowsConf = wdf
@@ -173,7 +175,8 @@ object SparseRowsDataAccumulator {
             extractKeyVal,
             extractAny,
             eventCreator,
-            keyCreator
+            keyCreator,
+            emptyChecker
           )
         case _ =>
           sys.error(

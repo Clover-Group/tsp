@@ -1,4 +1,4 @@
-package ru.itclover.tsp.spark.io
+package ru.itclover.tsp.streaming.io
 
 sealed trait SourceDataTransformationConf
 

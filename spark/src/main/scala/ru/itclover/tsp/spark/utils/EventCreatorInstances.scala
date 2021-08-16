@@ -3,11 +3,7 @@ package ru.itclover.tsp.spark.utils
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import org.apache.spark.sql.types.StructType
-import ru.itclover.tsp.core.Pattern.Idx
-
-trait EventCreator[Event, Key, Schema] extends Serializable {
-  def create(kv: Seq[(Key, AnyRef)], schema: Schema): Event
-}
+import ru.itclover.tsp.streaming.utils.EventCreator
 
 object EventCreatorInstances {
   implicit val rowSymbolEventCreator: EventCreator[Row, Symbol, StructType] =

@@ -1,4 +1,4 @@
-package ru.itclover.tsp.spark.utils
+package ru.itclover.tsp.streaming.utils
 
 import scala.util.Try
 

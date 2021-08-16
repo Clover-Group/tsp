@@ -1,13 +1,10 @@
-package ru.itclover.tsp.spark.utils
+package ru.itclover.tsp.streaming.utils
 
-import cats.syntax.foldable._
-import cats.syntax.functor._
+import cats.implicits.{toFoldableOps, toFunctorOps}
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
-import ru.itclover.tsp.core.Result._
-import ru.itclover.tsp.core.{PQueue, Pattern, Result}
-
-import scala.language.higherKinds
+import ru.itclover.tsp.core.Result.OptionToResult
+import ru.itclover.tsp.core.{PQueue, Pattern}
 
 //todo tests
 // MapWithContextPattern is a pattern which can add context to the results of inner using information from head of `events`.

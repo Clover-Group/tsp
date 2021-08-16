@@ -10,7 +10,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
-import ru.itclover.tsp.spark.io.{JDBCInputConf, JDBCOutputConf, RowSchema}
+import ru.itclover.tsp.streaming.io.{JDBCInputConf, JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
 import scala.util.Success
