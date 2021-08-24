@@ -1,13 +1,20 @@
 package ru.itclover.tsp.streaming
 
+import cats.effect.{Blocker, IO}
+import doobie.implicits.{toDoobieStreamOps, toSqlInterpolator}
+import doobie.util.query.Query0
+import doobie.{ConnectionIO, ExecutionContexts, Transactor}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
-import ru.itclover.tsp.streaming.io.{InputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator}
+import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator, KeyCreatorInstances, Row, RowWithIdx}
+import ru.itclover.tsp.streaming.utils.RowImplicits._
+import fs2.Stream
 
-trait StreamSource[Event, EKey, EItem, EventSchema, Stream] extends Product with Serializable {
 
-  def createStream: Stream
+trait StreamSource[Event, EKey, EItem, EventSchema, StreamType] extends Product with Serializable {
+
+  def createStream: StreamType
 
   def conf: InputConf[Event, EKey, EItem]
 
@@ -55,6 +62,78 @@ trait StreamSource[Event, EKey, EItem, EventSchema, Stream] extends Product with
   implicit def eventCreator: EventCreator[Event, EKey, EventSchema]
 
   implicit def keyCreator: KeyCreator[EKey]
+}
+
+trait FS2StreamSource[Event, EKey, EItem, EventSchema]
+  extends StreamSource[Event, EKey, EItem, EventSchema, Stream[IO, Event]] {
+}
+
+case class JdbcSource(
+                       conf: JDBCInputConf[RowWithIdx],
+                       fieldsClasses: Seq[(Symbol, Class[_])],
+                       patternFields: Set[Symbol]
+                     ) extends FS2StreamSource[RowWithIdx, Symbol, Any, Map[Symbol, Class[_]]] {
+  implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
+
+  val xa = Transactor.fromDriverManager[IO](
+    conf.driverName,
+    conf.jdbcUrl,
+    conf.userName.getOrElse(""),
+    conf.password.getOrElse(""),
+    Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
+  )
+
+  override def createStream: Stream[IO, RowWithIdx] = Query0[Row](conf.query)
+    .stream
+    .scan((0L, null.asInstanceOf[Row]))((rowWithIdx, newRow) => (rowWithIdx._1 + 1, newRow))
+    .transact(xa)
+
+  override def fieldToEKey: Symbol => Symbol = identity
+
+  override def fieldsIdxMap: Map[Symbol, Int] = fieldsClasses.map(_._1).zipWithIndex.toMap
+
+  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+    case Some(_) =>
+      val acc = transformers.SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx, Map[Symbol, Class[_]]](this, patternFields)(
+        timeExtractor,
+        kvExtractor,
+        extractor,
+        eventCreator,
+        keyCreator,
+        ??? //rowWithIdxEmptyChecker
+      )
+      acc.allFieldsIndexesMap
+    case None =>
+      fieldsIdxMap
+  }
+
+  override def partitioner: Seq[String] = {
+    conf.partitionFields.filter(fieldsIdxMap.contains).map(_.name)
+  }
+
+  override def transformedPartitioner: Seq[String] = {
+    conf.partitionFields.filter(transformedFieldsIdxMap.contains).map(_.name)
+  }
+
+  override def eventSchema: Map[Symbol, Class[_]] = ???
+
+  override def transformedEventSchema: Map[Symbol, Class[_]] = ???
+
+  override implicit def timeExtractor: TimeExtractor[RowWithIdx] = ???
+
+  override implicit def transformedTimeExtractor: TimeExtractor[RowWithIdx] = ???
+
+  override implicit def idxExtractor: IdxExtractor[RowWithIdx] = ???
+
+  override implicit def extractor: Extractor[RowWithIdx, Symbol, Any] = ???
+
+  override implicit def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] = ???
+
+  override implicit def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+
+  override implicit def eventCreator: EventCreator[RowWithIdx, Symbol, Map[Symbol, Class[_]]] = ???
+
+  override implicit def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
 }
 
 object StreamSource {
