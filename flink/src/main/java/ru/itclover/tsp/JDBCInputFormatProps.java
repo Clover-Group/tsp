@@ -5,10 +5,10 @@ import org.apache.flink.api.common.io.DefaultInputSplitAssigner;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.RichInputFormat;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
-import org.apache.flink.api.java.io.jdbc.split.ParameterValuesProvider;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.jdbc.split.JdbcParameterValuesProvider;
 import org.apache.flink.core.io.GenericInputSplit;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.core.io.InputSplitAssigner;
@@ -108,7 +108,7 @@ public class JDBCInputFormatProps extends RichInputFormat<Row, InputSplit> imple
 	 * fashion</b> if
 	 * this {@link InputFormat} is built using a parameterized query (i.e. using
 	 * a {@link PreparedStatement})
-	 * and a proper {@link ParameterValuesProvider}, in a <b>non-parallel
+	 * and a proper {@link JdbcParameterValuesProvider}, in a <b>non-parallel
 	 * fashion</b> otherwise.
 	 *
 	 * @param inputSplit which is ignored if this InputFormat is executed as a
@@ -311,7 +311,7 @@ public class JDBCInputFormatProps extends RichInputFormat<Row, InputSplit> imple
 			return this;
 		}
 
-		public JDBCInputFormatProps.JDBCInputFormatPropsBuilder setParametersProvider(ParameterValuesProvider parameterValuesProvider) {
+		public JDBCInputFormatProps.JDBCInputFormatPropsBuilder setParametersProvider(JdbcParameterValuesProvider parameterValuesProvider) {
 			format.parameterValues = parameterValuesProvider.getParameterValues();
 			return this;
 		}

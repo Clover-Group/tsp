@@ -60,6 +60,7 @@ class BasicKafkaTest
   val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, partitionFields)
 
   private def kafkaInputConf() = KafkaInputConf(
+    sourceId = 123,
     brokers = servers,
     topic = inputTopic,
     datetimeField = 'timestamp,

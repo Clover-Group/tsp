@@ -2,24 +2,24 @@ package ru.itclover.tsp.io.output
 
 // import org.apache.flink.api.java.io.jdbc.JDBCAppendTableSink
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.java.io.jdbc.JDBCOutputFormat
+import org.apache.flink.connector.jdbc.JdbcOutputFormat
 
 object JDBCOutput {
   val log = Logger("ClickhouseOutput")
   val DEFAULT_BATCH_INTERVAL = 1000000
 
-  def getOutputFormat(config: JDBCOutputConf): JDBCOutputFormat = {
+  def getOutputFormat(config: JDBCOutputConf): JdbcOutputFormat = {
     val insertQuery = getInsertQuery(config.tableName, config.rowSchema)
     log.info(s"Configure ClickhouseOutput with insertQuery = `$insertQuery`")
-    JDBCOutputFormat
-      .buildJDBCOutputFormat()
+    JdbcOutputFormat
+      .buildJdbcOutputFormat()
       .setDrivername(config.driverName)
       .setDBUrl(config.jdbcUrl)
       .setUsername(config.userName.getOrElse(""))
       .setPassword(config.password.getOrElse(""))
       .setQuery(insertQuery)
       .setSqlTypes(config.rowSchema.fieldsTypes.toArray)
-      .setBatchInterval(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))
+      .setBatchSize(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))
       .finish()
   }
 

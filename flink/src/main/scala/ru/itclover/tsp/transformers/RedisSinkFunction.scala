@@ -18,7 +18,7 @@ class RedisSinkFunction[ITEM](conf: RedisOutputConf) extends RichSinkFunction[Ro
     * @param value value for save
     * @param context sink context
     */
-  override def invoke(value: Row, context: SinkFunction.Context[_]): Unit = {
+  override def invoke(value: Row, context: SinkFunction.Context): Unit = {
 
     val redisInfo = RedisService.clientInstance(this.conf, conf.serializer)
     val client = redisInfo._1
