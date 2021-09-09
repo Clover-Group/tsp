@@ -1,5 +1,6 @@
 package ru.itclover.tsp.http.services.streaming
 
+import scala.util.Try
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json._
@@ -18,8 +19,8 @@ object MonitoringServiceModel {
     vertices: Vector[Vertex]
   ) {
     // note vice-versa
-    def readRecords = vertices.head.metrics.writeRecords
-    def writeRecords: Long = vertices.last.metrics.readRecords
+    def readRecords: Long = Try(vertices.head.metrics.writeRecords).getOrElse(0)
+    def writeRecords: Long = Try(vertices.last.metrics.readRecords).getOrElse(0)
   }
 
   case class Metric(id: String, value: String)
