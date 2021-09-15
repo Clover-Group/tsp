@@ -3,7 +3,6 @@ package ru.itclover.tsp.http
 import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
@@ -24,12 +23,6 @@ import scala.util.Success
   "org.wartremover.warts.Any"
 ))
 class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
-
-  val spark = SparkSession.builder()
-    .master("local")
-    .appName("TSP Spark test")
-    .config("spark.io.compression.codec", "snappy")
-    .getOrCreate()
 
   override val log = Logger("RealDataPerfTest")
 

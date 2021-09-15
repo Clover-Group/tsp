@@ -5,11 +5,10 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+//import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.api.common.JobID
 import org.apache.flink.runtime.client.JobExecutionException
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.spark.sql.SparkSession
 import org.scalatest.Inspectors._
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.domain.output.FailureResponse
@@ -32,13 +31,6 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
     implicit override val streamEnvironment: StreamExecutionEnvironment =
       StreamExecutionEnvironment.createLocalEnvironment()
 
-    val spark = SparkSession
-      .builder()
-      .master("local")
-      .appName("TSP Spark test")
-      .config("spark.io.compression.codec", "snappy")
-      .getOrCreate()
-
     // to run blocking tasks.
     val blockingExecutorContext: ExecutionContextExecutor =
       ExecutionContext.fromExecutor(
@@ -48,7 +40,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
           1000L, //keepAliveTime
           TimeUnit.MILLISECONDS, //timeUnit
           new SynchronousQueue[Runnable](), //workQueue
-          new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+          //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
         )
       )
   }

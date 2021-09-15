@@ -4,9 +4,8 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+//import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
@@ -31,13 +30,6 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
   streamEnvironment.setParallelism(4) // To prevent run out of network buffers on large number of CPUs (e.g. 32)
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession
-    .builder()
-    .master("local")
-    .appName("TSP Spark test")
-    .config("spark.io.compression.codec", "snappy")
-    .getOrCreate()
-
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
@@ -47,7 +39,7 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
         new SynchronousQueue[Runnable](), //workQueue
-        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
 

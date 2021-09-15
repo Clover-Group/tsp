@@ -3,9 +3,8 @@ package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers.ForAllTestContainer
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+//import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.RowWithIdx
@@ -34,13 +33,6 @@ class NarrowTableTest
     StreamExecutionEnvironment.createLocalEnvironment()
   streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
-  val spark = SparkSession
-    .builder()
-    .master("local")
-    .appName("TSP Spark test")
-    .config("spark.io.compression.codec", "snappy")
-    .getOrCreate()
-
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
@@ -50,7 +42,7 @@ class NarrowTableTest
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
         new SynchronousQueue[Runnable](), //workQueue
-        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
 

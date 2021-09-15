@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http
 
 import com.dimafeng.testcontainers._
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
@@ -18,12 +17,6 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllT
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
-
-  val spark = SparkSession.builder()
-    .master("local")
-    .appName("TSP Spark test")
-    .config("spark.io.compression.codec", "snappy")
-    .getOrCreate()
 
   // format: off
   val realWorkloadQuery = """SELECT * FROM (

@@ -1,4 +1,3 @@
-import sbtassembly.Log4j2MergeStrategy
 /*** Settings ***/
 
 name := "TSP"

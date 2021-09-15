@@ -26,9 +26,9 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.services.flink.MonitoringService
+import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf, RedisOutputConf}
+import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
@@ -44,7 +44,7 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val decoders = AnyDecodersInstances
 
   val monitoringUri: Uri
-  lazy val monitoring = MonitoringService(monitoringUri)
+  lazy val monitoring = FlinkMonitoringService(monitoringUri)
 
   private val log = Logger[JobsRoutes]
 
@@ -141,25 +141,6 @@ trait JobsRoutes extends RoutesProtocols {
         } yield result
 
         matchResultToResponse(resultOrErr, uuid)
-      }
-    } ~
-    path("streamJob" / "from-redis" / "to-redis"./) {
-      entity(as[FindPatternsRequest[RedisInputConf, RedisOutputConf]]) { request =>
-
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- RedisSource.create(inputConf, fields)
-          _ = log.info("Redis create done")
-          _ <- createStream(patterns, inputConf, outConf, source)
-          _ = log.info("Redis createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Redis runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
-
       }
     }
   }

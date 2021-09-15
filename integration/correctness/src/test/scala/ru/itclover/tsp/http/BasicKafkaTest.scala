@@ -6,7 +6,7 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
-import com.google.common.util.concurrent.ThreadFactoryBuilder
+//import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.clients.producer._
@@ -16,7 +16,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.SqlMatchers
 import ru.itclover.tsp.io.input.KafkaInputConf
-import ru.itclover.tsp.io.output.{KafkaOutputConf, RowSchema}
+import ru.itclover.tsp.io.output.{KafkaOutputConf, NewRowSchema}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent._
@@ -44,7 +44,7 @@ class BasicKafkaTest
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
         new SynchronousQueue[Runnable](), //workQueue
-        new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
 
@@ -57,7 +57,7 @@ class BasicKafkaTest
   private val outputTopic = "output_topic"
 
   private val partitionFields = Seq('series_id, 'mechanism_id)
-  val rowSchema = RowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'timestamp, 'context, partitionFields)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'mechanism_id)
 
   private def kafkaInputConf() = KafkaInputConf(
     sourceId = 123,
@@ -88,11 +88,11 @@ class BasicKafkaTest
   )
 
   val basicAssertions = Seq(
-    RawPattern("1", "speed < 15"),
-    RawPattern("2", """"speed" > 10"""),
-    RawPattern("3", "speed > 10.0", Some(Map("test" -> "test")), Some(Seq('speed)))
+    RawPattern(1, "speed < 15"),
+    RawPattern(2, """"speed" > 10"""),
+    RawPattern(3, "speed > 10.0", Some(Map("test" -> "test")), Some(123))
   )
-  val windowPattern = Seq(RawPattern("20", "speed < 20 for 1 sec"))
+  val windowPattern = Seq(RawPattern(20, "speed < 20 for 1 sec"))
 
   lazy val producer: KafkaProducer[String, String] = {
     val props = new Properties()
