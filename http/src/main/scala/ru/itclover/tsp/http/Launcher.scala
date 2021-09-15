@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http
 
 import java.net.URLDecoder
+import java.nio.file.{Files, Paths}
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 
 import akka.actor.ActorSystem
@@ -10,18 +11,19 @@ import cats.implicits._
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.configuration.Configuration
+import org.apache.flink.api.common.restartstrategy.RestartStrategies
+import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
+import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
-import org.apache.spark.sql.SparkSession
-import ru.itclover.tsp.spark.StreamSource
+import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
+import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedCheckpointCleanup
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
+import scala.util.Try
 
-// We throw exceptions in the launcher.
-// Also, some statements are non-Unit but we cannot use multiple `val _` in the same scope
-@SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.NonUnitStatements"))
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
   override val isDebug: Boolean = configs.getBoolean("general.is-debug")
@@ -32,9 +34,6 @@ object Launcher extends App with HttpService {
 
   // TSP-214 Fix
   val req_timeout = 120 // in mins
-
-  // todo: no vars
-  var useLocalSpark = true
 
   implicit val system: ActorSystem = ActorSystem(
     "TSP-system",
@@ -82,19 +81,10 @@ object Launcher extends App with HttpService {
     log.info(s"Starting TEST TSP on cluster Flink: $host:$port with monitoring in $monitoringUri")
     Right(StreamExecutionEnvironment.createRemoteEnvironment(host, port, args(1)))
   } else if (args.length != 1) {
-    Left(
-      "You need to provide one arg: `flink-xxx spark-xxx` where `xxx` can be `local` or `cluster` " +
-      "to specify Flink and Spark execution mode."
-    ) // TODO: More beautiful parsing
-  } else if (args(0) == "flink-local spark-local") {
+    Left("You need to provide one arg: `flink-local` or `flink-cluster` to specify Flink execution mode.")
+  } else if (args(0) == "flink-local") {
     createLocalEnv
-  } else if (args(0) == "flink-cluster spark-local") {
-    createClusterEnv
-  } else if (args(0) == "flink-local spark-cluster") {
-    useLocalSpark = false
-    createLocalEnv
-  } else if (args(0) == "flink-cluster spark-cluster") {
-    useLocalSpark = false
+  } else if (args(0) == "flink-cluster") {
     createClusterEnv
   } else {
     Left(s"Unknown argument: `${args(0)}`.")
@@ -107,8 +97,6 @@ object Launcher extends App with HttpService {
 
   streamEnvironment.setParallelism(1)
   streamEnvironment.setMaxParallelism(1) //(configs.getInt("flink.max-parallelism"))
-
-  val spark = sparkSession
 
   private val host = configs.getString("http.host")
   private val port = configs.getInt("http.port")
@@ -141,89 +129,44 @@ object Launcher extends App with HttpService {
     port.map(p => (host, p))
   }
 
-  def getSparkHostPort: Either[String, (String, Int)] = {
-    val host = getEnvVarOrConfig("SPARK_HOST", "spark.host")
-    val portStr = getEnvVarOrConfig("SPARK_PORT", "spark.port")
-    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
-      s"Cannot parse SPARK_PORT ($portStr): ${ex.getMessage}"
-    }
-    port.map(p => (host, p))
-  }
-
-  def getSparkAddress: Either[String, String] = if (useLocalSpark) {
-    Right("local")
-  } else {
-    getSparkHostPort.map { case (host, port) => s"spark://$host:$port" }
-  }
-
-  def sparkSession = getSparkAddress match {
-    case Left(error) => throw new RuntimeException(error)
-    case Right(address) =>
-      StreamSource.sparkMaster = address
-      if (address.startsWith("local")) {
-        SparkSession
-          .builder()
-          .master(address)
-          .appName("TSP Spark")
-          .config("spark.io.compression.codec", "snappy")
-          .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", true)
-          .getOrCreate()
-      } else {
-        val host = getEnvVarOrConfig("SPARK_DRIVER", "spark.driver")
-        val driverPort = getEnvVarOrNone("SPARK_DRIVER_PORT").map(_.toInt).getOrElse(2020)
-        val blockManagerPort = getEnvVarOrNone("SPARK_BLOCK_MANAGER_PORT").map(_.toInt).getOrElse(6060)
-        SparkSession
-          .builder()
-          .master(address)
-          .appName("TSP Spark")
-          .config("spark.io.compression.codec", "snappy")
-          .config("spark.sql.streaming.forceDeleteTempCheckpointLocation", true)
-          .config("spark.driver.host", host)
-          .config("spark.driver.port", 2020)
-          .config("spark.blockManager.port", 6060)
-          .config("spark.jars", "/opt/tsp.jar")
-          .getOrCreate()
-      }
-  }
-
   /**
     * Method for flink environment configuration
     * @param env flink execution environment
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-//    env.enableCheckpointing(500)
-//
-//    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
-//
-//    val config = env.getCheckpointConfig
-//    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
-//    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-//    config.setMinPauseBetweenCheckpoints(250)
-//    config.setCheckpointTimeout(60000)
-//    config.setTolerableCheckpointFailureNumber(5)
-//    config.setMaxConcurrentCheckpoints(5)
-//
-//    var savePointsPath = ""
-//
-//    if(flinkParameters.contains("state.savepoints.dir")){
-//      savePointsPath = flinkParameters("state.savepoints.dir")
-//    }else{
-//      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
-//    }
-//
-//    val expectedStorages = Seq("s3", "hdfs", "file")
-//
-//    if (savePointsPath.nonEmpty) {
-//      val storageIndex = savePointsPath.indexOf(":")
-//      val inputStorageType = savePointsPath.substring(0, storageIndex)
-//
-//      if(!expectedStorages.contains(inputStorageType)){
-//        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
-//      }
-//      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
-//    }
-//    env.setRestartStrategy(RestartStrategies.noRestart)
+    env.enableCheckpointing(10000)
+
+    val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
+
+    val config = env.getCheckpointConfig
+    config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+    config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
+    config.setMinPauseBetweenCheckpoints(250)
+    config.setCheckpointTimeout(60000)
+    config.setTolerableCheckpointFailureNumber(5)
+    config.setMaxConcurrentCheckpoints(5)
+
+    var savePointsPath = "/tmp/tsp/flink-cp"
+
+    if (flinkParameters.contains("state.savepoints.dir")) {
+      savePointsPath = flinkParameters("state.savepoints.dir")
+    } else {
+      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
+    }
+
+    val expectedStorages = Seq("s3", "hdfs", "file")
+
+    if (savePointsPath.nonEmpty) {
+      val storageIndex = savePointsPath.indexOf(":")
+      val inputStorageType = savePointsPath.substring(0, storageIndex)
+
+      if (!expectedStorages.contains(inputStorageType)) {
+        throw new IllegalArgumentException(s"Unsupported type for checkpointing: ${inputStorageType}")
+      }
+      env.setStateBackend(new RocksDBStateBackend(savePointsPath))
+    }
+    env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 10000))
     env
 
   }
