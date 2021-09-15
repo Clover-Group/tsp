@@ -128,7 +128,6 @@ case "git.properties"                              => MergeStrategy.first
         MergeStrategy.filterDistinctLines
       case _ => MergeStrategy.first
     }
-  case PathList(ps @ _*) if ps.last == "Log4j2Plugins.dat" => Log4j2MergeStrategy.plugincache
   case "application.conf" => MergeStrategy.concat
   case "reference.conf" => MergeStrategy.concat
   case _ => MergeStrategy.first
@@ -147,8 +146,8 @@ lazy val root = (project in file("."))
 
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, spark, dsl, itValid)
-  .dependsOn(core, config, http, flink, spark, dsl, itValid)
+  .aggregate(core, config, http, flink, dsl, itValid)
+  .dependsOn(core, config, http, flink, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -162,7 +161,7 @@ lazy val config = project.in(file("config"))
   .settings(commonSettings)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion,
-      "flinkVersion" -> Version.flink, "sparkVersion" -> Version.spark),
+      "flinkVersion" -> Version.flink),
     buildInfoPackage := "ru.itclover.tsp"
   )
   .dependsOn(core)
@@ -179,9 +178,9 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
-      Library.akkaHttp ++ Library.sparkDeps ++ Library.logging
+      Library.akkaHttp ++ Library.logging
   )
-  .dependsOn(core, config, flink, spark, dsl)
+  .dependsOn(core, config, flink, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
@@ -189,14 +188,6 @@ lazy val dsl = project.in(file("dsl"))
     resolvers += "bintray-djspiewak-maven" at "https://dl.bintray.com/djspiewak/maven",
     libraryDependencies ++=  Library.scalaTest ++ Library.logging ++ Library.parboiled
   ).dependsOn(core)
-
-lazy val spark = project.in(file("spark"))
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.sparkDeps ++ Library.logging,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
-  )
-  .dependsOn(core, config, dsl)
 
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
