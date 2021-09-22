@@ -35,16 +35,17 @@ case class NewRowSchema(
   toTsField: Symbol,
   appIdFieldVal: (Symbol, Int),
   patternIdField: Symbol,
-  subunitIdField: Symbol
+  subunitIdField: Symbol,
+  incidentIdField: Symbol
 ) extends EventSchema
     with Serializable {
   override def fieldsTypes: List[Int] =
-    List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER)
+    List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR)
 
   override def fieldsNames: List[Symbol] =
-    List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField)
+    List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField)
 
-  override def fieldsCount: Int = 6
+  override def fieldsCount: Int = 7
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
@@ -56,5 +57,7 @@ case class NewRowSchema(
 
   val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
   val patternIdInd = fieldsIndexesMap(patternIdField)
+
+  val incidentIdInd = fieldsIndexesMap(incidentIdField)
 
 }

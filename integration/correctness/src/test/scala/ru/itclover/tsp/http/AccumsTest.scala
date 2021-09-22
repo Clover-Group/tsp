@@ -116,7 +116,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   )
 
   val sinkSchema =
-    NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+    NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit, 'uuid)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

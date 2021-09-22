@@ -247,7 +247,8 @@ class SimpleCasesTest
     toTsField = 'to,
     appIdFieldVal = ('app, 1),
     patternIdField = 'id,
-    subunitIdField = 'subunit
+    subunitIdField = 'subunit,
+    incidentIdField = 'uuid
   )
   lazy val wideKafkaInputConf = KafkaInputConf(
     sourceId = 600,
@@ -287,7 +288,7 @@ class SimpleCasesTest
   val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
 
   val wideKafkaRowSchema =
-    NewRowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'subunit)
+    NewRowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'subunit, 'uuid)
 
   val wideOutputConf = JDBCOutputConf(
     tableName = "events_wide_test",

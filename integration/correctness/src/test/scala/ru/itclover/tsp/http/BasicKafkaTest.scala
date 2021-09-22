@@ -57,7 +57,7 @@ class BasicKafkaTest
   private val outputTopic = "output_topic"
 
   private val partitionFields = Seq('series_id, 'mechanism_id)
-  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'mechanism_id)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'mechanism_id, 'uuid)
 
   private def kafkaInputConf() = KafkaInputConf(
     sourceId = 123,

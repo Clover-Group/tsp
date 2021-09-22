@@ -2,6 +2,8 @@ package ru.itclover.tsp.core
 
 import cats.Semigroup
 
+import java.util.UUID
+
 /**
   * Represents found pattern
   *
@@ -12,6 +14,7 @@ import cats.Semigroup
   */
 case class Incident(
   id: String,
+  incidentUUID: UUID,
   patternId: Int,
   maxWindowMs: Long,
   segment: Segment,
@@ -36,6 +39,7 @@ object IncidentInstances {
         else b.segment.to
       Incident(
         b.id,
+        b.incidentUUID,
         b.patternId,
         b.maxWindowMs,
         Segment(from, to),

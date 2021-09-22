@@ -148,7 +148,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "toTsField",
     "appIdFieldVal",
     "patternIdField",
-    "subunitIdField"
+    "subunitIdField",
+    "incidentIdField"
   )
 
   implicit object eventSchemaFmt extends JsonFormat[EventSchema] {

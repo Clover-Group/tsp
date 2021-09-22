@@ -3,6 +3,8 @@ package ru.itclover.tsp.core.patterns
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.{Incident, IncidentInstances, Segment, Time}
 
+import java.util.UUID
+
 /**
   * Test class for founded pattern
   */
@@ -24,6 +26,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val firstIncident = Incident(
         id = "first",
+        incidentUUID = UUID.fromString("00000000-0000-0000-0000-000000000001"),
         patternId = 1,
         maxWindowMs = 1000,
         segment = firstTestSegment,
@@ -35,6 +38,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val secondIncident = Incident(
         id = "second",
+        incidentUUID = UUID.fromString("00000000-0000-0000-0000-000000000002"),
         patternId = 2,
         maxWindowMs = 4000,
         segment = secondTestSegment,
@@ -46,6 +50,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
 
       val expectedIncident = Incident(
         id = "second",
+        incidentUUID = UUID.fromString("00000000-0000-0000-0000-000000000002"),
         patternId = 2,
         maxWindowMs = 4000,
         segment = Segment(

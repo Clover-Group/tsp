@@ -92,7 +92,7 @@ class BasicInfluxToJdbcTest
     dataTransformation = Some(WideDataFilling(Map('speed -> 2000L, 'pos -> 2000L), None))
   )
 
-  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit, 'uuid)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

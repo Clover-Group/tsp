@@ -47,7 +47,7 @@ class RealDataPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTest
     partitionFields = Seq('stock_num)
   )
 
-  val sinkSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+  val sinkSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit, 'uuid)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

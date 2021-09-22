@@ -77,7 +77,7 @@ class NarrowTableTest
     dataTransformation = Some(transformation)
   )
 
-  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit, 'uuid)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

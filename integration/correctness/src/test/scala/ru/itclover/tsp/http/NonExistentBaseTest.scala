@@ -45,7 +45,7 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
     partitionFields = Seq('series_id, 'mechanism_id)
   )
 
-  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit)
+  val rowSchema = NewRowSchema('series_storage, 'from, 'to, ('app, 1), 'id, 'subunit, 'uuid)
 
   val outputConf = JDBCOutputConf(
     "Test.SM_basic_patterns",

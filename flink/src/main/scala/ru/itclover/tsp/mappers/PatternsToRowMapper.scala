@@ -23,7 +23,8 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
       resultRow.setField(newRowSchema.beginInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))
       resultRow.setField(newRowSchema.endInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))
-      resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload).toString)
+      resultRow.setField(newRowSchema.subunitIdInd, incident.patternSubunit)
+      resultRow.setField(newRowSchema.incidentIdInd, incident.incidentUUID.toString)
 
       resultRow
   }
@@ -32,19 +33,5 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
     val zonedDt = ZonedDateTime.of(LocalDateTime.now, ZoneId.systemDefault)
     val utc = zonedDt.withZoneSameInstant(ZoneId.of("UTC"))
     Timestamp.valueOf(utc.toLocalDateTime).getTime / 1000.0
-  }
-
-  def payloadToJson(payload: Seq[(String, Any)]): String =
-    payload
-      .map {
-        case (fld, value) if value.isInstanceOf[String] => s""""${fld}":"${value}""""
-        case (fld, value)                               => s""""${fld}":$value"""
-      }
-      .mkString("{", ",", "}")
-
-  def findSubunit(payload: Seq[(String, Any)]): Int = {
-    payload.find { case (name, _) => name.toLowerCase == "subunit" }
-      .map{ case (_, value) => Try(value.toString.toInt).getOrElse(0) }
-      .getOrElse(0)
   }
 }

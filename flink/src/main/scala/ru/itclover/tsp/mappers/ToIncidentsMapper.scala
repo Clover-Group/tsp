@@ -3,6 +3,7 @@ package ru.itclover.tsp.mappers
 import ru.itclover.tsp.core.io.{Decoder, Extractor}
 import ru.itclover.tsp.core.{Incident, Segment}
 
+import java.util.UUID
 import scala.util.Try
 
 final case class ToIncidentsMapper[E, EKey, EItem](
@@ -19,6 +20,6 @@ final case class ToIncidentsMapper[E, EKey, EItem](
     val incidentId = s"P#$patternId;" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString
     val extractedFields = forwardedFields.map { case (name, k) => name -> extractor[Any](event, k).toString }
     val unit = Try(extractor[Any](event, unitIdField).toString.toInt).getOrElse(Int.MinValue)
-    segment => Incident(incidentId, patternId, sessionWindowMs, segment, extractedFields, unit, subunit, payload)
+    segment => Incident(incidentId, UUID.randomUUID(), patternId, sessionWindowMs, segment, extractedFields, unit, subunit, payload)
   }
 }
