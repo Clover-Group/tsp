@@ -15,8 +15,8 @@ object JDBCOutput {
       .buildJdbcOutputFormat()
       .setDrivername(config.driverName)
       .setDBUrl(config.jdbcUrl)
-      .setUsername(config.userName.getOrElse(""))
-      .setPassword(config.password.getOrElse(""))
+      .setUsername(config.userName.orNull) // get username from JDBC url if not specified separately
+      .setPassword(config.password.orNull) // get password from JDBC url if not specified separately
       .setQuery(insertQuery)
       .setSqlTypes(config.rowSchema.fieldsTypes.toArray)
       .setBatchSize(config.batchInterval.getOrElse(DEFAULT_BATCH_INTERVAL))

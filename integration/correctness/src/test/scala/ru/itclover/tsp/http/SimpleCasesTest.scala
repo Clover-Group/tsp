@@ -4,6 +4,8 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+
+import java.util
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.{Properties, UUID}
@@ -66,7 +68,7 @@ class SimpleCasesTest
   val influxPort = 8144
   val chNativePort = 9098
   implicit val clickhouseContainer = new JDBCContainer(
-    "yandex/clickhouse-server:latest",
+    "yandex/clickhouse-server:21.7.10.4",
     port -> 8123 :: chNativePort -> 9000 :: Nil,
     "ru.yandex.clickhouse.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
@@ -91,8 +93,7 @@ class SimpleCasesTest
     kafkaContainer
   )
 
-  val kafkaBrokerHost = "127.0.0.1"
-  lazy val kafkaBrokerUrl = s"$kafkaBrokerHost:${kafkaContainer.mappedPort(9092)}"
+  lazy val kafkaBrokerUrl = kafkaContainer.bootstrapServers
 
   val filesPath = "integration/correctness/src/test/resources/simple_cases"
 
@@ -294,7 +295,9 @@ class SimpleCasesTest
     tableName = "events_wide_test",
     rowSchema = wideRowSchema,
     jdbcUrl = chConnection,
-    driverName = chDriver
+    driverName = chDriver,
+    //userName = Some("default"),
+    //password = Some("")
   )
 
   val narrowOutputConf = wideOutputConf.copy(
@@ -600,31 +603,31 @@ class SimpleCasesTest
     inner(numbers, Nil)
   }
 
-//  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/streamJob/from-kafka/to-jdbc/?run_async=1",
-//        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//      route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    Thread.sleep(50000)
-//    alertByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.headOption.getOrElse(Double.NaN)),
-//      s"SELECT id, COUNT(*) FROM events_wide_kafka_test GROUP BY id ORDER BY id"
-//    )
-//    alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
-//  }
+  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/streamJob/from-kafka/to-jdbc/?run_async=1",
+        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    Thread.sleep(50000)
+    alertByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
+      s"SELECT id, COUNT(*) FROM events_wide_kafka_test GROUP BY id ORDER BY id"
+    )
+    alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
+  }
 
 
 }

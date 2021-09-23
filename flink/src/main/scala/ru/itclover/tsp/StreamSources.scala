@@ -243,8 +243,8 @@ case class JdbcSource(
       .buildJDBCInputFormat()
       .setDrivername(driverName)
       .setDBUrl(jdbcUrl)
-      .setUsername(userName.getOrElse(""))
-      .setPassword(password.getOrElse(""))
+      .setUsername(userName.orNull)
+      .setPassword(password.orNull)
       .setQuery(query)
       .setRowTypeInfo(rowTypesInfo)
       .finish()
@@ -316,7 +316,7 @@ case class InfluxDBSource(
   def partitionsIdx = partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx = partitionFields.map(transformedFieldsIdxMap)
 
-  require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
+  require(fieldsIdxMap.contains(datetimeField), "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
   private val badPartitions = partitionFields
     .map(fieldsIdxMap.get)

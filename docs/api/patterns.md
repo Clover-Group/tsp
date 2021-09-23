@@ -14,7 +14,7 @@ __Path parameters__:
 
 Name | Type | Description
 ---- | ---- | -----------
-source* | Enum | type of source to read data from, possible values: `jdbc`, `influxdb`
+source* | Enum | type of source to read data from, possible values: `jdbc`, `influxdb`, `kafka`
 sink* | Enum | type of sink to write incidents to, possible values: `jdbc`, `influxdb`, `kafka` (beta)
 
 __URL parameters__:

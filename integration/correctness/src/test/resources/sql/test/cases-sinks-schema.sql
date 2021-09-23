@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS events_wide_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -15,6 +16,7 @@ CREATE TABLE IF NOT EXISTS events_narrow_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -25,6 +27,7 @@ CREATE TABLE IF NOT EXISTS events_influx_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -35,6 +38,7 @@ CREATE TABLE IF NOT EXISTS events_narrow_ivolga_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -45,6 +49,7 @@ CREATE TABLE IF NOT EXISTS events_wide_ivolga_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -55,6 +60,7 @@ CREATE TABLE IF NOT EXISTS events_wide_kafka_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -65,6 +71,7 @@ CREATE TABLE IF NOT EXISTS events_wide_spark_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -75,6 +82,7 @@ CREATE TABLE IF NOT EXISTS events_narrow_spark_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -85,6 +93,7 @@ CREATE TABLE IF NOT EXISTS events_wide_ivolga_spark_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -95,6 +104,7 @@ CREATE TABLE IF NOT EXISTS events_wide_kafka_spark_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();
@@ -105,6 +115,7 @@ CREATE TABLE IF NOT EXISTS events_narrow_kafka_spark_test
     id UInt64,
     unit Int32,
     subunit Int32,
+    uuid UUID,
     from DateTime64,
     to DateTime64
 ) ENGINE = Log();

@@ -277,12 +277,14 @@ public class JDBCInputFormatProps extends RichInputFormat<Row, InputSplit> imple
 		}
 
 		public JDBCInputFormatProps.JDBCInputFormatPropsBuilder setUsername(String username) {
-			format.props.setProperty(USER_PROP, username);
+			if (username != null)
+				format.props.setProperty(USER_PROP, username);
 			return this;
 		}
 
 		public JDBCInputFormatProps.JDBCInputFormatPropsBuilder setPassword(String password) {
-			format.props.setProperty(PASSWORD_PROP, password);
+			if (password != null)
+				format.props.setProperty(PASSWORD_PROP, password);
 			return this;
 		}
 
