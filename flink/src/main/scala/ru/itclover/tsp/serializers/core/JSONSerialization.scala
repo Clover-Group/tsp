@@ -52,8 +52,9 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
         root.put(newRowSchema.fromTsField.name, output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp].toString)
         root.put(newRowSchema.toTsField.name, output.getField(newRowSchema.endInd).asInstanceOf[Timestamp].toString)
         root.put(newRowSchema.appIdFieldVal._1.name, output.getField(newRowSchema.appIdInd).asInstanceOf[Int])
-        root.put(newRowSchema.patternIdField.name, output.getField(newRowSchema.patternIdInd).asInstanceOf[String])
-        root.put(newRowSchema.subunitIdField.name, output.getField(newRowSchema.subunitIdInd).asInstanceOf[String])
+        root.put(newRowSchema.patternIdField.name, output.getField(newRowSchema.patternIdInd).asInstanceOf[Int])
+        root.put(newRowSchema.subunitIdField.name, output.getField(newRowSchema.subunitIdInd).asInstanceOf[Int])
+        root.put(newRowSchema.incidentIdField.name, output.getField(newRowSchema.incidentIdInd).asInstanceOf[String])
     }
 
     val jsonString = mapper.writeValueAsString(root)
