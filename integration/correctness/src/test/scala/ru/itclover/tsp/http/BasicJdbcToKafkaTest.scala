@@ -3,6 +3,7 @@ package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import ru.itclover.tsp.http.routes.JobReporting
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
@@ -144,4 +145,5 @@ class BasicJdbcToKafkaTest
       //status shouldEqual StatusCodes.OK
     }
   }
+  override val reporting: Option[JobReporting] = None
 }

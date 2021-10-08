@@ -4,6 +4,7 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import ru.itclover.tsp.http.routes.JobReporting
 
 import java.util
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
@@ -628,6 +629,5 @@ class SimpleCasesTest
     )
     alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
   }
-
-
+  override val reporting: Option[JobReporting] = None
 }

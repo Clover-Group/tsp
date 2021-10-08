@@ -3,11 +3,12 @@ package ru.itclover.tsp.http
 import java.net.URLDecoder
 import java.nio.file.{Files, Paths}
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import cats.implicits._
+import ru.itclover.tsp.http.routes.JobReporting
+import ru.itclover.tsp.http.services.streaming.StatusReporter
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
@@ -167,8 +168,8 @@ object Launcher extends App with HttpService {
       env.setStateBackend(new RocksDBStateBackend(savePointsPath))
     }
     env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 10000))
-    env
 
+    env
   }
 
   def createClusterEnv: Either[String, StreamExecutionEnvironment] = getClusterHostPort.flatMap {
@@ -188,5 +189,26 @@ object Launcher extends App with HttpService {
     val config = new Configuration()
     log.info(s"Starting local Flink with monitoring in $monitoringUri")
     Right(configureEnv(StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(config)))
+  }
+
+  override val reporting: Option[JobReporting] = {
+    val reportingEnabledConfig = getEnvVarOrNone("JOB_REPORTING_ENABLED").getOrElse("0")
+    val reportingEnabled = reportingEnabledConfig match {
+      case "0" | "false" | "off" | "no" => false
+      case "1" | "true" | "on" | "yes" => true
+      case _ => sys.error(s"JOB_REPORTING_ENABLED not set or set to a unsupported value: $reportingEnabledConfig")
+    }
+
+    if (reportingEnabled) {
+      val reportingBroker = getEnvVarOrNone("JOB_REPORTING_BROKER")
+        .getOrElse(sys.error("Job reporting enabled, but JOB_REPORTING_BROKER not set"))
+      val reportingTopic = getEnvVarOrNone("JOB_REPORTING_TOPIC")
+        .getOrElse(sys.error("Job reporting enabled, but JOB_REPORTING_TOPIC not set"))
+      log.warn(s"Job reporting enabled, sending to topic $reportingTopic on $reportingBroker")
+      Some(JobReporting(reportingBroker, reportingTopic))
+    } else {
+      log.warn("Job reporting disabled")
+      None
+    }
   }
 }

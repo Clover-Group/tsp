@@ -2,10 +2,10 @@ package ru.itclover.tsp.http
 
 import java.util.Properties
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
-
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import ru.itclover.tsp.http.routes.JobReporting
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.kafka.clients.consumer.{ConsumerRecord, KafkaConsumer}
@@ -183,5 +183,5 @@ class BasicKafkaTest
     val result = readFromKafkaForDuration(20.seconds, outputTopic)
     result.size shouldBe 1
   }
-
+  override val reporting: Option[JobReporting] = None
 }

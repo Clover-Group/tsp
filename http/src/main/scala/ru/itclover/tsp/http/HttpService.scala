@@ -30,6 +30,8 @@ trait HttpService extends RoutesProtocols {
 
   val blockingExecutorContext: ExecutionContextExecutor
 
+  val reporting: Option[JobReporting]
+
   private val configs = ConfigFactory.load()
   val isDebug = true
   val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
@@ -43,7 +45,7 @@ trait HttpService extends RoutesProtocols {
     log.debug("composeRoutes started")
 
     val res = for {
-      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, blockingExecutorContext)
+      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, reporting, blockingExecutorContext)
       monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
       validation <- ValidationRoutes.fromExecutionContext()
     } yield jobs ~ monitoring ~ validation

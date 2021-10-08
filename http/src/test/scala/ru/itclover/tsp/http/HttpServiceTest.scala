@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
+import ru.itclover.tsp.http.routes.JobReporting
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.api.common.JobID
 import org.apache.flink.runtime.client.JobExecutionException
@@ -43,6 +44,7 @@ class HttpServiceTest extends FlatSpec with Matchers with ScalatestRouteTest wit
           //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
         )
       )
+    override val reporting: Option[JobReporting] = None
   }
 
   val services = Seq(TestHttpService(false), TestHttpService(true))

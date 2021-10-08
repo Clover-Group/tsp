@@ -4,6 +4,7 @@ import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
+import ru.itclover.tsp.http.routes.JobReporting
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -145,4 +146,5 @@ class RealDataHITest
       execTimeS should ((be >= fromT).and(be <= toT))
     }
   }
+  override val reporting: Option[JobReporting] = None
 }

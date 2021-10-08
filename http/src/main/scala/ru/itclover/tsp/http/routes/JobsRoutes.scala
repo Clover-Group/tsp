@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
 import akka.http.scaladsl.model.Uri
@@ -26,7 +25,7 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
+import ru.itclover.tsp.http.services.streaming.{FlinkMonitoringService, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers._
@@ -34,6 +33,8 @@ import ru.itclover.tsp.mappers._
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.io.input.KafkaInputConf
 import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
+
+case class JobReporting(brokers: String, topic: String)
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -45,6 +46,8 @@ trait JobsRoutes extends RoutesProtocols {
 
   val monitoringUri: Uri
   lazy val monitoring = FlinkMonitoringService(monitoringUri)
+
+  val reporting: Option[JobReporting]
 
   private val log = Logger[JobsRoutes]
 
@@ -181,7 +184,15 @@ trait JobsRoutes extends RoutesProtocols {
     log.debug("runStream started")
 
     val res = if (isAsync) { // Just detach job thread in case of async run
-      Future { streamEnv.execute(uuid) }(blockingExecutionContext)
+      Future {
+        reporting match {
+          case Some(value) => streamEnv.registerJobListener(
+            StatusReporter(uuid, value.brokers, value.topic)
+          )
+          case None =>
+        }
+        streamEnv.execute(uuid)
+      }(blockingExecutionContext)
       Right(None)
     } else { // Wait for the execution finish
       Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
@@ -221,7 +232,7 @@ object JobsRoutes {
 
   private val log = Logger[JobsRoutes]
 
-  def fromExecutionContext(monitoringUrl: Uri, blocking: ExecutionContextExecutor)(
+  def fromExecutionContext(monitoringUrl: Uri, rep: Option[JobReporting], blocking: ExecutionContextExecutor)(
     implicit strEnv: StreamExecutionEnvironment,
     as: ActorSystem,
     am: ActorMaterializer
@@ -237,6 +248,7 @@ object JobsRoutes {
         implicit val actorSystem = as
         implicit val materializer = am
         override val monitoringUri = monitoringUrl
+        override val reporting: Option[JobReporting] = rep
       }.route
     }
 

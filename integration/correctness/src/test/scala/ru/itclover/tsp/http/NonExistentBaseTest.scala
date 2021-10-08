@@ -3,6 +3,7 @@ package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import ru.itclover.tsp.http.routes.JobReporting
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.FlatSpec
@@ -60,4 +61,5 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
       status shouldEqual StatusCodes.BadRequest
     }
   }
+  override val reporting: Option[JobReporting] = None
 }
