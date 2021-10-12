@@ -136,7 +136,9 @@ object Launcher extends App with HttpService {
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-    env.enableCheckpointing(10000)
+    val checkpointingInterval = Try(getEnvVarOrConfig("FLINK_CHECKPOINTING_INTERVAL", "flink.checkpointing-interval").toInt)
+      .toOption.getOrElse(10000)
+    env.enableCheckpointing(checkpointingInterval)
 
     val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
 
