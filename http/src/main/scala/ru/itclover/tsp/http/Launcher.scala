@@ -144,8 +144,8 @@ object Launcher extends App with HttpService {
     val config = env.getCheckpointConfig
     config.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
     config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
-    config.setMinPauseBetweenCheckpoints(250)
-    config.setCheckpointTimeout(60000)
+    //config.setMinPauseBetweenCheckpoints(250)
+    //config.setCheckpointTimeout(60000)
     config.setTolerableCheckpointFailureNumber(5)
     config.setMaxConcurrentCheckpoints(5)
 
