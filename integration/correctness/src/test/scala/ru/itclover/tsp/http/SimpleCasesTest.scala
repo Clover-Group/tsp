@@ -604,30 +604,42 @@ class SimpleCasesTest
     inner(numbers, Nil)
   }
 
-  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
-    casesPatterns.keys.foreach { id =>
-      Post(
-        "/streamJob/from-kafka/to-jdbc/?run_async=1",
-        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
-      ) ~>
-      route ~> check {
-        withClue(s"Pattern ID: $id") {
-          status shouldEqual StatusCodes.OK
-        }
-        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-      }
-    }
-    Thread.sleep(50000)
-    alertByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.headOption.getOrElse(Double.NaN)),
-      s"SELECT id, COUNT(*) FROM events_wide_kafka_test GROUP BY id ORDER BY id"
-    )
-    alertByQuery(incidentsTimestamps, "SELECT id, from, to FROM events_wide_kafka_test ORDER BY id, from, to")
-  }
+//  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
+//    casesPatterns.keys.foreach { id =>
+//      Post(
+//        "/streamJob/from-kafka/to-jdbc/?run_async=1",
+//        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
+//      ) ~>
+//      route ~> check {
+//        withClue(s"Pattern ID: $id") {
+//          status shouldEqual StatusCodes.OK
+//        }
+//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+//      }
+//    }
+//    Thread.sleep(50000)
+//    casesPatterns.keys.foreach { id =>
+//      Get(
+//        s"/job/17kafkawide_$id/stop"
+//      ) ~>
+//        route ~> check {
+//        withClue(s"Pattern ID: $id") {
+//          status shouldEqual StatusCodes.OK
+//          //response.toString shouldBe ""
+//        }
+//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+//      }
+//    }
+//    alertByQuery(
+//      incidentsCount
+//        .map {
+//          case (k, v) => List(k.toDouble, v.toDouble)
+//        }
+//        .toList
+//        .sortBy(_.headOption.getOrElse(Double.NaN)),
+//      firstValidationQuery("events_wide_kafka_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+//    )
+//    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
+//  }
   override val reporting: Option[JobReporting] = None
 }
