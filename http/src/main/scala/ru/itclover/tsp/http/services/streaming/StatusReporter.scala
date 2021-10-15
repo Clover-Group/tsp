@@ -65,7 +65,7 @@ case class StatusReporter(jobName: String, brokers: String, topic: String) exten
           client.getJobStatus.get().name,
           throwable match {
             case null => s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
-            case _    => s"Job executed with exception: $throwable"
+            case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
           }
         )
       )
