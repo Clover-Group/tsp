@@ -1,31 +1,15 @@
-# Sinks types
+# Sink types
 
 > Note: {% include types-note.md %}
 
-- `jdbc` - anything that support JDBC connection  
+Generic parameters:
+- `rowSchema` (JSON object) is the row schema for sink (keys are incidents fields, values are table columns/JSON object keys)
 
-```scala
-/**
-  * Sink for anything that support JDBC connection
-  * @param tableName
-  * @param rowSchema schema of writing rows, __will be replaced soon__
-  * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
-  * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
-  * @param userName for JDBC auth
-  * @param password for JDBC auth
-  * @param batchInterval batch size for writing found incidents
-  * @param parallelism num of parallel task to write data
-  */
-case class JDBCOutputConf(
-  tableName: String,
-  rowSchema: RowSchema,
-  jdbcUrl: String,
-  driverName: String,
-  password: Option[String] = None,
-  batchInterval: Option[Int] = None,
-  userName: Option[String] = None,
-  parallelism: Option[Int] = Some(1)
-) extends OutputConf[Row] { ... }
-```
+### JDBC sink
+- `jdbcUrl`, `driverName`, `userName`, `password` - the same as in JDBC source
+- `tableName` (string) is the name of an SQL table to store incidents.
+- `batchInterval` (integer) is the size of a single batch to write (in rows)
 
-- `kafka` (beta) - TODO docs
+### Kafka sink
+- `broker` and `topic` - the same of Kafka sink (note: for historical reasons, it is called `broker` in singular in sink)
+- `serializer` (string, default `"json"`) is the serializer for incident messages. 

@@ -2,7 +2,6 @@
 
 > Note: {% include types-note.md %}
 
-```scala
-case class RawPattern(id: String, sourceCode: String, payload: Map[String, String] = Map.empty,
-                      forwardedFields: Seq[Symbol] = Seq.empty) extends Serializable
-```
+- `id` (integer) - the ID of the pattern.
+- `sourceCode` (string) - the pattern itself, written in TSPL.
+- `subunit` (integer) - a sub-category ID for the pattern.
