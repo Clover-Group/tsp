@@ -42,7 +42,9 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastEnd: (Idx, 
         val newOptResult = createIdxValue(
           windowQueue.dropWhile { case (i, _) => i <= lastEnd._1 }.headOption.orElse(times.headOption),
           times.lastOption,
-          Fail
+          if(windowQueue.headOption.forall {
+            case (_, time) => time.toMillis + window.toMillis >= times.headOption.map(_._2.toMillis).getOrElse(Long.MinValue)
+          }) Fail else Succ(true)
         )
         (TimerAccumState(updatedWindowQueue, times.last, eventsMaxGapMs), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
       // in case of Success we need to return Success for all events in window older than window size.
