@@ -3,6 +3,7 @@ package ru.itclover.tsp.http
 import com.dimafeng.testcontainers._
 import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
+import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
@@ -94,4 +95,5 @@ class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllT
       resp.get.response.execTimeSec should be <= sumAvgMaxTimeSec
     }
   }*/
+  override val reporting: Option[JobReporting] = None
 }

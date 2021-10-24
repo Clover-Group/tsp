@@ -7,6 +7,7 @@ import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
+import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
 import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.JDBCOutputConf
@@ -105,4 +106,5 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTes
     }
   }
 
+  override val reporting: Option[JobReporting] = None
 }
