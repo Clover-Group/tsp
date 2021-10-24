@@ -1,3 +1,5 @@
+## 0.15.22
+
 ## 0.15.21
 - added customizable checkpointing interval via `FLINK_CHECKPOINTING_INTERVAL` (default value 10000 milliseconds)
 ## 0.15.20
