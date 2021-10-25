@@ -103,7 +103,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     }
     lastTimestamp = time
     lastEvent = outEvent
-    ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 5000)
+    ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 100)
   }
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
