@@ -5,6 +5,7 @@ import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
+import org.apache.flink.streaming.api.watermark.Watermark
 import org.apache.flink.util.Collector
 import ru.itclover.tsp.StreamSource
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
@@ -80,7 +81,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
         val newValue = Try(extractValue(item, key))
         newValue match {
           case Success(nv) if nv != null || !event.contains(key) => event(key) = (nv.asInstanceOf[Value], time)
-          case _ => // do nothing
+          case _                                                 => // do nothing
         }
       }
     }
@@ -103,7 +104,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     }
     lastTimestamp = time
     lastEvent = outEvent
-    ctx.timerService().registerProcessingTimeTimer(ctx.timerService.currentProcessingTime + 100)
+    ctx.timerService().registerEventTimeTimer(ctx.timerService().currentWatermark() + 1)
   }
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
@@ -118,7 +119,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     out: Collector[OutEvent]
   ): Unit = {
     // check if this was the last timer we registered
-    if (timestamp == lastTimer.value) {
+    if (ctx.timerService().currentWatermark() == Watermark.MAX_WATERMARK.getTimestamp) {
       // it was, so no data was received afterwards.
       // collect the last
       out.collect(lastEvent)
