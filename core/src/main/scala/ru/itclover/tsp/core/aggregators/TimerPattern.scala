@@ -59,12 +59,17 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastEnd: (Idx, 
 
         // output fail on older points (before the end of the window)
         // but don't clean the whole queue
+        def canOutput(t: Time): Boolean = {
+          val last = windowQueue.lastOption.map(_._2).getOrElse(Time(Long.MaxValue))
+          t < last | Time(last.toMillis + eventsMaxGapMs) < start
+        }
+
         val (failOutputs, cleanedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {
-          case (_, t) => t < start & t < windowQueue.lastOption.map(_._2).getOrElse(Time(Long.MaxValue))
+          case (_, t) => t < start & canOutput(t)
         }
 
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
-          case (_, t) => t.plus(window) <= end & t < windowQueue.lastOption.map(_._2).getOrElse(Time(Long.MaxValue))
+          case (_, t) => t.plus(window) <= end & canOutput(t)
         }
 
         // if event chunk is shorter than the window, and the next window is sufficiently close,
