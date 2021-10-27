@@ -6,6 +6,7 @@ import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.{Time, Window, _}
 import cats.instances.option._
 import cats.Apply
+import ru.itclover.tsp.core.Time.MaxWindow
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
@@ -61,7 +62,7 @@ case class TimerAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastEnd: (Idx, 
         // but don't clean the whole queue
         def canOutput(t: Time): Boolean = {
           val last = windowQueue.lastOption.map(_._2).getOrElse(Time(Long.MaxValue))
-          t < last | Time(last.toMillis + eventsMaxGapMs) < start
+          window != MaxWindow | t < last | Time(last.toMillis + eventsMaxGapMs) < start
         }
 
         val (failOutputs, cleanedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {
