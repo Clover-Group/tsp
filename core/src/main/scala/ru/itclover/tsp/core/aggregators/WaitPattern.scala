@@ -9,6 +9,7 @@ import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
+import scala.util.Try
 
 /* Wait pattern */
 case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
@@ -18,14 +19,14 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override def initialState(): AggregatorPState[S, T, WaitAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
-    astate = WaitAccumState(m.Queue.empty, lastFail = false),
+    astate = WaitAccumState(m.Queue.empty, lastFail = false, lastTime = (0, Time(0))),
     indexTimeMap = m.Queue.empty
   )
 }
 
 // Here, head and last are guaranteed to work, so suppress warnings for them
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean)
+case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean, lastTime: (Idx, Time))
     extends AccumState[T, T, WaitAccumState[T]] {
 
   /** This method is called for each IdxValue produced by inner patterns.
@@ -59,9 +60,16 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
         case (_, t) => t <= end
       }
 
-      val newOptResult = createIdxValue(outputs.headOption, outputs.lastOption, idxValue.value)
+      val waitStart = if (lastTime._2.toMillis != 0 && Try(outputs.head._2.plus(window) < outputs.last._2).getOrElse(false)) {
+        outputs.headOption
+      } else {
+        Some(lastTime)
+      }
+      val waitEnd = outputs.lastOption
 
-      (WaitAccumState(updatedWindowQueue, idxValue.value.isFail), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
+      val newOptResult = createIdxValue(waitStart, waitEnd, idxValue.value)
+
+      (WaitAccumState(updatedWindowQueue, idxValue.value.isFail, times.last), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
     } else {
       (this, PQueue.empty)
     }
