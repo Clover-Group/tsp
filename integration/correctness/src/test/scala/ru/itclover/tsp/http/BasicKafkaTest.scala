@@ -160,7 +160,7 @@ class BasicKafkaTest
 
     Post(
       "/streamJob/from-kafka/to-kafka/?run_async=1",
-      FindPatternsRequest("1", kafkaInputConf(), kafkaOutputConf(), basicAssertions)
+      FindPatternsRequest("1", kafkaInputConf(), kafkaOutputConf(), 50, basicAssertions)
     ) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK
@@ -174,7 +174,7 @@ class BasicKafkaTest
 
     Post(
       "/streamJob/from-kafka/to-kafka/?run_async=1",
-      FindPatternsRequest("2", kafkaInputConf(), kafkaOutputConf(), windowPattern)
+      FindPatternsRequest("2", kafkaInputConf(), kafkaOutputConf(), 50, windowPattern)
     ) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK

@@ -128,7 +128,7 @@ class RealDataHITest
 
   "Basic assertions" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, assertions)) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, assertions)) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)

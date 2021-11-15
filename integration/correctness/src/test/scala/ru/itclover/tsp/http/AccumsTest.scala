@@ -150,7 +150,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   "Count window (count)" should "compute in time" in {
     Post(
       "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-      FindPatternsRequest("1", inputConf, outputConf, countWindowPattern)
+      FindPatternsRequest("1", inputConf, outputConf, 50, countWindowPattern)
     ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
@@ -170,7 +170,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   }
 
   "Time window (truthMillis)" should "compute in time" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, timeWindowPattern)) ~> route ~> check {
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, timeWindowPattern)) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)
@@ -191,7 +191,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   "Nested time window (truthMillis)" should "compute in time" in {
     Post(
       "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-      FindPatternsRequest("1", inputConf, outputConf, nestedTimeWindowPattern)
+      FindPatternsRequest("1", inputConf, outputConf, 50, nestedTimeWindowPattern)
     ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
@@ -213,7 +213,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   "Time window count (truthMillisCount)" should "compute in time" in {
     Post(
       "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-      FindPatternsRequest("2", inputConf, outputConf, timeWindowCountPattern)
+      FindPatternsRequest("2", inputConf, outputConf, 50, timeWindowCountPattern)
     ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
@@ -233,7 +233,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   }
 
   "Timed window (.timed)" should "compute in time" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("3", inputConf, outputConf, timedPattern)) ~> route ~> check {
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("3", inputConf, outputConf, 50, timedPattern)) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)

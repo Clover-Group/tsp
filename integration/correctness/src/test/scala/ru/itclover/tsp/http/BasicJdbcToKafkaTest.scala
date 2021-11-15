@@ -130,7 +130,7 @@ class BasicJdbcToKafkaTest
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-kafka/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, basicAssertions)) ~>
+    Post("/streamJob/from-jdbc/to-kafka/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, basicAssertions)) ~>
     route ~> check {
       //status shouldEqual StatusCodes.OK
     }
@@ -139,7 +139,7 @@ class BasicJdbcToKafkaTest
   "Types casting" should "work for wide dense table" in {
     Post(
       "/streamJob/from-jdbc/to-kafka/?run_async=0",
-      FindPatternsRequest("1", typeCastingInputConf, outputConf, typesCasting)
+      FindPatternsRequest("1", typeCastingInputConf, outputConf, 50, typesCasting)
     ) ~>
     route ~> check {
       //status shouldEqual StatusCodes.OK

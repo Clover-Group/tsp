@@ -465,8 +465,8 @@ class SimpleCasesTest
   "Cases 1-17, 43-53" should "work in wide table" in {
     casesPatterns.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, List(casesPatterns(id)))
+        "/streamJob/from-jdbc/to-jdbc/",
+        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, 50, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -474,6 +474,7 @@ class SimpleCasesTest
         }
       }
     }
+    Thread.sleep(50000)
     alertByQuery(
       incidentsCount
         .map {
@@ -489,8 +490,8 @@ class SimpleCasesTest
   "Cases 1-17, 43-53" should "work in narrow table" in {
     casesPatterns.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, List(casesPatterns(id)))
+        "/streamJob/from-jdbc/to-jdbc/",
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, 50, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -498,6 +499,7 @@ class SimpleCasesTest
         }
       }
     }
+    Thread.sleep(50000)
     alertByQuery(
       incidentsCount
         .map {
@@ -513,8 +515,8 @@ class SimpleCasesTest
   "Cases 1-17, 43-53" should "work in influx table" in {
     casesPatterns.keys.foreach { id =>
       Post(
-        "/streamJob/from-influxdb/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, List(casesPatterns(id)))
+        "/streamJob/from-influxdb/to-jdbc/",
+        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, 50, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -522,6 +524,7 @@ class SimpleCasesTest
         }
       }
     }
+    Thread.sleep(50000)
     alertByQuery(
       incidentsCount
         .map {
@@ -537,8 +540,8 @@ class SimpleCasesTest
   "Cases 18-42" should "work in ivolga wide table" in {
     casesPatternsIvolga.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
-        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, List(casesPatternsIvolga(id)))
+        "/streamJob/from-jdbc/to-jdbc/",
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, 50, List(casesPatternsIvolga(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -546,6 +549,7 @@ class SimpleCasesTest
         }
       }
     }
+    Thread.sleep(50000)
     alertByQuery(
       incidentsIvolgaCount
         .map {
@@ -564,11 +568,12 @@ class SimpleCasesTest
   "Cases 18-42" should "work in ivolga narrow table" in {
     casesPatternsIvolga.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+        "/streamJob/from-jdbc/to-jdbc/",
         FindPatternsRequest(
           s"17narrow_$id",
           narrowInputIvolgaConf,
           narrowOutputIvolgaConf,
+          50,
           List(casesPatternsIvolga(id))
         )
       ) ~>
@@ -578,6 +583,7 @@ class SimpleCasesTest
         }
       }
     }
+    Thread.sleep(50000)
     alertByQuery(
       incidentsIvolgaCount
         .map {
@@ -607,7 +613,7 @@ class SimpleCasesTest
 //  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
 //    casesPatterns.keys.foreach { id =>
 //      Post(
-//        "/streamJob/from-kafka/to-jdbc/?run_async=1",
+//        "/streamJob/from-kafka/to-jdbc/",
 //        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
 //      ) ~>
 //      route ~> check {

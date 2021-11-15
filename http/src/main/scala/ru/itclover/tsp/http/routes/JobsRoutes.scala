@@ -25,6 +25,7 @@ import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
+import ru.itclover.tsp.http.services.queuing.QueueManagerService
 import ru.itclover.tsp.http.services.streaming.{FlinkMonitoringService, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, RedisInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
@@ -46,185 +47,49 @@ trait JobsRoutes extends RoutesProtocols {
 
   val monitoringUri: Uri
   lazy val monitoring = FlinkMonitoringService(monitoringUri)
+  lazy val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutionContext)
 
-  val reporting: Option[JobReporting]
+  implicit val reporting: Option[JobReporting]
 
   private val log = Logger[JobsRoutes]
 
-  val route: Route = parameter('run_async.as[Boolean] ? true) { isAsync =>
+  val route: Route =
     path("streamJob" / "from-jdbc" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
-        log.info("JDBC-to-JDBC: query started")
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-        log.info("JDBC-to-JDBC: extracted fields from patterns. Creating source...")
-        val resultOrErr = for {
-          source <- JdbcSource.create(inputConf, fields)
-          _ = log.info("JDBC-to-JDBC: source created. Creating patterns stream...")
-          _      <- createStream(patterns, inputConf, outConf, source)
-          _ = log.info("JDBC-to-JDBC: stream created. Starting the stream...")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("JDBC-to-JDBC: stream started")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     } ~
     path("streamJob" / "from-influxdb" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     } ~
     path("streamJob" / "from-kafka" / "to-jdbc"./) {
       entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- KafkaSource.create(inputConf, fields)
-          _ = log.info("Kafka create done")
-          _ <- createStream(patterns, inputConf, outConf, source)
-          _ = log.info("Kafka createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Kafka runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     } ~
     path("streamJob" / "from-jdbc" / "to-kafka"./) {
       entity(as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- JdbcSource.create(inputConf, fields)
-          _      <- createStream(patterns, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     } ~
     path("streamJob" / "from-influxdb" / "to-kafka"./) {
       entity(as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- InfluxDBSource.create(inputConf, fields)
-          _      <- createStream(patterns, inputConf, outConf, source)
-          result <- runStream(uuid, isAsync)
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     } ~
     path("streamJob" / "from-kafka" / "to-kafka"./) {
       entity(as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]) { request =>
-        import request._
-        val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-        val resultOrErr = for {
-          source <- KafkaSource.create(inputConf, fields)
-          _ = log.info("Kafka create done")
-          _ <- createStream(patterns, inputConf, outConf, source)
-          _ = log.info("Kafka createStream done")
-          result <- runStream(uuid, isAsync)
-          _ = log.info("Kafka runStream done")
-        } yield result
-
-        matchResultToResponse(resultOrErr, uuid)
+        queueManager.enqueue(request)
+        complete(s"Job ${request.uuid} enqueued.")
       }
     }
-  }
-
-  // TODO: Restore EKey type parameter
-  type EKey = Symbol
-
-  def createStream[E: TypeInformation, EItem](
-    patterns: Seq[RawPattern],
-    inputConf: InputConf[E, EKey, EItem],
-    outConf: OutputConf[Row],
-    source: StreamSource[E, EKey, EItem]
-  )(implicit decoders: BasicDecoders[EItem]) = {
-    streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-
-    log.debug("createStream started")
-
-    val searcher = PatternsSearchJob(source, decoders)
-    val strOrErr = searcher.patternsSearchStream(
-      patterns,
-      outConf,
-      PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
-    )
-    strOrErr.map {
-      case (parsedPatterns, stream) =>
-        // .. patternV2.format
-        val strPatterns = parsedPatterns.map {
-          case ((_, meta), _) =>
-            /*p.format(source.emptyEvent) +*/
-            s" ;; Meta=$meta"
-        }
-        log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
-        stream
-    }
-  }
-
-  def runStream(uuid: String, isAsync: Boolean): Either[RuntimeErr, Option[JobExecutionResult]] = {
-    log.debug("runStream started")
-
-    val res = if (isAsync) { // Just detach job thread in case of async run
-      Future {
-        reporting match {
-          case Some(value) => streamEnv.registerJobListener(
-            StatusReporter(uuid, value.brokers, value.topic)
-          )
-          case None =>
-        }
-        streamEnv.execute(uuid)
-      }(blockingExecutionContext)
-      Right(None)
-    } else { // Wait for the execution finish
-      Either.catchNonFatal(Some(streamEnv.execute(uuid))).leftMap(GenericRuntimeErr(_))
-    }
-
-    log.debug("runStream finished")
-    res
-  }
-
-  def matchResultToResponse(result: Either[Err, Option[JobExecutionResult]], uuid: String): Route = {
-
-    log.debug("matchResultToResponse started")
-
-    val res = result match {
-      case Left(err: ConfigErr) => complete((BadRequest, FailureResponse(err)))
-      case Left(err: RuntimeErr) =>
-        log.error("Error in processing", err.asInstanceOf[GenericRuntimeErr].ex)
-        complete((InternalServerError, FailureResponse(err)))
-      // Async job - response with message about successful start
-      case Right(None) => complete(SuccessfulResponse(uuid, Seq(s"Job `$uuid` has started.")))
-      // Sync job - response with message about successful ending
-      case Right(Some(execResult)) => {
-        // todo query read and written rows (onComplete(monitoring.queryJobInfo(request.uuid)))
-        val execTime = execResult.getNetRuntime(TimeUnit.SECONDS)
-        complete(SuccessfulResponse(ExecInfo(execTime, Map.empty)))
-      }
-    }
-    log.debug("matchResultToResponse finished")
-
-    res
-
-  }
 
 }
 

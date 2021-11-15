@@ -56,7 +56,7 @@ class NonExistentBaseTest extends FlatSpec with SqlMatchers with ScalatestRouteT
   )
 
   "Non-existent database" should "give error upon execution" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, Seq())) ~>
+    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, Seq())) ~>
     route ~> check {
       status shouldEqual StatusCodes.BadRequest
     }

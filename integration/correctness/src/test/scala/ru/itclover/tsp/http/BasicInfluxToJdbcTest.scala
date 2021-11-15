@@ -146,7 +146,7 @@ class BasicInfluxToJdbcTest
 
     Post(
       "/streamJob/from-influxdb/to-jdbc/?run_async=0",
-      FindPatternsRequest("1", inputConf, outputConf, basicAssertions)
+      FindPatternsRequest("1", inputConf, outputConf, 50, basicAssertions)
     ) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK
@@ -168,7 +168,7 @@ class BasicInfluxToJdbcTest
   "Types casting" should "work for wide dense table" in {
     Post(
       "/streamJob/from-influxdb/to-jdbc/?run_async=0",
-      FindPatternsRequest("2", typeCastingInputConf, outputConf, typesCasting)
+      FindPatternsRequest("2", typeCastingInputConf, outputConf, 50, typesCasting)
     ) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK

@@ -169,7 +169,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val rawPatternFmt = jsonFormat5(RawPattern.apply)
 
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
-    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "patterns")
+    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "priority", "patterns")
 
   // TODO: Remove type bounds for (In|Out)putConf?
 

@@ -3,11 +3,19 @@ import ru.itclover.tsp.core.RawPattern
 
 trait Request
 
-final case class FindPatternsRequest[IN /* <: InputConf[_, _, _]*/, OUT /*<: OutputConf[_]*/ ](
-  uuid: String,
+trait QueueableRequest extends Request with Ordered[QueueableRequest] {
+  def priority: Int
+  def uuid: String
+
+  override def compare(that: QueueableRequest): Int = this.priority.compare(that.priority)
+}
+
+final case class FindPatternsRequest[IN /* <: InputConf[_, _, _]*/, OUT /*<: OutputConf[_]*/ ] (
+  override val uuid: String,
   inputConf: IN,
   outConf: OUT,
+  override val priority: Int,
   patterns: Seq[RawPattern]
-) extends Request
+) extends QueueableRequest
 
 final case class DSLPatternRequest(pattern: String) extends Request
