@@ -56,19 +56,25 @@ case class StatusReporter(jobName: String, brokers: String, topic: String) exten
   }
 
   override def onJobExecuted(jobExecutionResult: JobExecutionResult, throwable: Throwable): Unit = {
-    client.foreach { client =>
+    client.foreach { c =>
+      val status = c.getJobStatus.get().name
       val record = new ProducerRecord[String, StatusMessage](
         topic,
         LocalDateTime.now.toString,
         StatusMessage(
           jobName,
-          client.getJobStatus.get().name,
+          status,
           throwable match {
             case null => s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
             case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
           }
         )
       )
+      status match {
+        case "FINISHED" | "CANCELED" =>
+          // Clear client value
+          client = None
+      }
       messageProducer.send(record)
       messageProducer.flush()
     }
