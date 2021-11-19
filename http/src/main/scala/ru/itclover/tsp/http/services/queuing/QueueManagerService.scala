@@ -61,10 +61,13 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 30, 15, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 5, 5, TimeUnit.SECONDS)
   //f.cancel(false)
 
-  def enqueue[In: ClassTag, Out: ClassTag](r: FindPatternsRequest[In, Out]): Unit = {
+  def enqueue[
+    In <: InputConf[_, _, _] : ClassTag,
+    Out <: OutputConf[_] : ClassTag
+  ](r: FindPatternsRequest[In, Out]): Unit = {
     jobQueue.enqueue((r, implicitly[ClassTag[In]], implicitly[ClassTag[Out]]))
   }
 
@@ -146,8 +149,18 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     } yield result
   }
 
-  def dequeueAndRun(): Unit = {
-    val (request, inClass, outClass) = jobQueue.dequeue()
+  def dequeueAndRun(slots: Int): Unit = {
+    // TODO: Functional style
+    var slotsRemaining = slots
+    while (jobQueue.nonEmpty && slotsRemaining > jobQueue.head._1.requiredSlots) {
+      val request = jobQueue.dequeue()
+      slotsRemaining -= request._1.requiredSlots
+      run(request)
+    }
+  }
+
+  def run(typedRequest: TypedRequest): Unit = {
+    val (request, inClass, outClass) = typedRequest
     log.info(s"Dequeued job ${request.uuid}, sending")
     (inClass.runtimeClass, outClass.runtimeClass) match {
       case (c1, c2) if c1.isAssignableFrom(classOf[JDBCInputConf]) && c2.isAssignableFrom(classOf[JDBCOutputConf]) =>
@@ -161,7 +174,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       case (c1, c2) if c1.isAssignableFrom(classOf[InfluxDBInputConf]) && c2.isAssignableFrom(classOf[JDBCOutputConf]) =>
         runInfluxToJdbc(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]])
       case (c1, c2)
-          if c1.isAssignableFrom(classOf[InfluxDBInputConf]) && c2.isAssignableFrom(classOf[KafkaOutputConf]) =>
+        if c1.isAssignableFrom(classOf[InfluxDBInputConf]) && c2.isAssignableFrom(classOf[KafkaOutputConf]) =>
         runInfluxToKafka(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]])
     }
   }
@@ -226,7 +239,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     availableSlots.onComplete {
       case Success(slots) => if (slots > 0 && jobQueue.nonEmpty) {
         log.info(s"$slots slots available")
-        dequeueAndRun()
+        dequeueAndRun(slots)
       } else {
         log.info(
           if (jobQueue.isEmpty)
@@ -237,8 +250,8 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       }
       case Failure(exception) =>
         log.warn(s"An exception occurred when checking available slots: $exception --- ${exception.getMessage}")
-        log.warn("Trying to send job anyway...")
-        dequeueAndRun()
+        log.warn("Trying to send job anyway (assuming 1 available slot)...")
+        dequeueAndRun(1)
     }
 
   }
