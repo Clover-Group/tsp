@@ -19,7 +19,7 @@ import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.routes.JobReporting
-import ru.itclover.tsp.http.services.streaming.StatusReporter
+import ru.itclover.tsp.http.services.streaming.{ConsoleStatusReporter, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers.PatternsToRowMapper
@@ -57,6 +57,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
   val jobQueue: mutable.PriorityQueue[TypedRequest] = mutable.PriorityQueue.empty
 
+  val isLocalhost: Boolean = uri.authority.host.toString match {
+    case "localhost" | "127.0.0.1" | "::1" => true
+    case _ => false
+  }
+
   val ex = new ScheduledThreadPoolExecutor(1)
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
@@ -86,6 +91,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       result <- runStream(uuid)
       _ = log.info("JDBC-to-JDBC: stream started")
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_) => log.info(s"Stream successfully started!")
+    }
   }
 
   def runJdbcToKafka(request: FindPatternsRequest[JDBCInputConf, KafkaOutputConf]): Unit = {
@@ -97,6 +106,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_) => log.info(s"Stream successfully started!")
+    }
   }
 
   def runKafkaToJdbc(request: FindPatternsRequest[KafkaInputConf, JDBCOutputConf]): Unit = {
@@ -111,6 +124,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       result <- runStream(uuid)
       _ = log.info("Kafka runStream done")
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_) => log.info(s"Stream successfully started!")
+    }
   }
 
   def runKafkaToKafka(request: FindPatternsRequest[KafkaInputConf, KafkaOutputConf]): Unit = {
@@ -125,6 +142,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       result <- runStream(uuid)
       _ = log.info("Kafka runStream done")
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_) => log.info(s"Stream successfully started!")
+    }
   }
 
   def runInfluxToJdbc(request: FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]): Unit = {
@@ -136,6 +157,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_) => log.info(s"Stream successfully started!")
+    }
   }
 
   def runInfluxToKafka(request: FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]): Unit = {
@@ -152,7 +177,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   def dequeueAndRun(slots: Int): Unit = {
     // TODO: Functional style
     var slotsRemaining = slots
-    while (jobQueue.nonEmpty && slotsRemaining > jobQueue.head._1.requiredSlots) {
+    while (jobQueue.nonEmpty && slotsRemaining >= jobQueue.head._1.requiredSlots) {
       val request = jobQueue.dequeue()
       slotsRemaining -= request._1.requiredSlots
       run(request)
@@ -221,6 +246,9 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
             StatusReporter(uuid, value.brokers, value.topic)
           )
         case None =>
+          streamEnv.registerJobListener(
+            ConsoleStatusReporter(uuid)
+          )
       }
       streamEnv.execute(uuid)
     }(blockingExecutionContext)
@@ -229,7 +257,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     Right(None)
   }
 
-  def availableSlots: Future[Int] =
+  def availableSlots: Future[Int] = if (isLocalhost) Future(32) else
       Http()
         .singleRequest(HttpRequest(uri = uri.toString + "/jobmanager/metrics?get=taskSlotsAvailable"))
         .flatMap(resp => Unmarshal(resp).to[Seq[Metric]])
@@ -241,10 +269,8 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
         log.info(s"$slots slots available")
         dequeueAndRun(slots)
       } else {
+        if (jobQueue.nonEmpty)
         log.info(
-          if (jobQueue.isEmpty)
-            s"$slots slots available, but the queue is empty"
-          else
             s"Waiting for free slot ($slots available), cannot run jobs right now"
         )
       }

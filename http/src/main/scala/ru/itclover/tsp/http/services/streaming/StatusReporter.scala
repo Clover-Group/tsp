@@ -3,6 +3,7 @@ package ru.itclover.tsp.http.services.streaming
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.flink.api.common.{JobExecutionResult, JobID}
 import org.apache.flink.core.execution.{JobClient, JobListener}
+import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.serialization.Serializer
 
@@ -25,7 +26,9 @@ class StatusMessageSerializer extends Serializer[StatusMessage] {
     objectMapper.writeValueAsBytes(data)
 }
 
-case class StatusReporter(jobName: String, brokers: String, topic: String) extends JobListener {
+case class StatusReporter(jobName: String, brokers: String, topic: String)
+                         (implicit executionEnvironment: StreamExecutionEnvironment)
+  extends JobListener {
 
   val config: Map[String, Object] = Map(
     "bootstrap.servers" -> brokers,
@@ -55,9 +58,13 @@ case class StatusReporter(jobName: String, brokers: String, topic: String) exten
     messageProducer.flush()
   }
 
+  def unregisterSelf(): Unit = {
+    executionEnvironment.getJavaEnv.getJobListeners.remove(this)
+  }
+
   override def onJobExecuted(jobExecutionResult: JobExecutionResult, throwable: Throwable): Unit = {
     client.foreach { c =>
-      val status = c.getJobStatus.get().name
+      val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val record = new ProducerRecord[String, StatusMessage](
         topic,
         LocalDateTime.now.toString,
@@ -65,15 +72,18 @@ case class StatusReporter(jobName: String, brokers: String, topic: String) exten
           jobName,
           status,
           throwable match {
-            case null => s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
+            case null =>
+              // Unregister
+              unregisterSelf()
+              s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
             case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
           }
         )
       )
       status match {
         case "FINISHED" | "CANCELED" =>
-          // Clear client value
-          client = None
+          // Unregister
+          unregisterSelf()
       }
       messageProducer.send(record)
       messageProducer.flush()
