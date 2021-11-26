@@ -60,12 +60,12 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
         case (_, t) => t <= end
       }
 
-      val waitStart =
-        if (lastTime._2.toMillis != 0 && Try(outputs.head._2.plus(window) < outputs.last._2).getOrElse(false)) {
-          outputs.headOption
-        } else {
-          Some(lastTime)
-        }
+      val waitStart = if (lastTime._2.toMillis != 0 && Try(outputs.head._2.plus(window) < outputs.last._2).getOrElse(false)) {
+        outputs.headOption
+      } else {
+        Some(cleanedWindowQueue.lastOption.getOrElse(lastTime))
+      }
+
       val waitEnd = outputs.lastOption
 
       val newOptResult = createIdxValue(waitStart, waitEnd, idxValue.value)
