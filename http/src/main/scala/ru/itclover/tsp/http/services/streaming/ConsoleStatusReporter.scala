@@ -37,24 +37,23 @@ case class ConsoleStatusReporter(jobName: String)
 
   override def onJobExecuted(jobExecutionResult: JobExecutionResult, throwable: Throwable): Unit = {
     client.foreach { c =>
+      if (jobExecutionResult != null && c.getJobID.toHexString != jobExecutionResult.getJobID.toHexString) {
+        return
+      }
       val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val msg = StatusMessage(
         jobName,
         status,
         throwable match {
           case null =>
-            // Unregister
-            unregisterSelf()
             s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
-          case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
+          case _    =>
+            s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
         }
       )
+      // Unregister
+      unregisterSelf()
       log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
-      status match {
-        case "FINISHED" | "CANCELED" =>
-          // Unregister
-          unregisterSelf()
-      }
     }
   }
 }

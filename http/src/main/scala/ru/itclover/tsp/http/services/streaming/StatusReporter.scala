@@ -41,21 +41,23 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
   var client: Option[JobClient] = None
 
   override def onJobSubmitted(jobClient: JobClient, throwable: Throwable): Unit = {
-    if (jobClient != null) client = Some(jobClient)
-    val record = new ProducerRecord[String, StatusMessage](
-      topic,
-      LocalDateTime.now.toString,
-      StatusMessage(
-        jobName,
-        Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
-        client match {
-          case Some(value) => s"Job submitted with id ${value.getJobID}"
-          case None        => s"Job submission failed"
-        }
+    if (jobClient != null && client.isEmpty) {
+      client = Some(jobClient)
+      val record = new ProducerRecord[String, StatusMessage](
+        topic,
+        LocalDateTime.now.toString,
+        StatusMessage(
+          jobName,
+          Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
+          client match {
+            case Some(value) => s"Job submitted with id ${value.getJobID}"
+            case None        => s"Job submission failed"
+          }
+        )
       )
-    )
-    messageProducer.send(record)
-    messageProducer.flush()
+      messageProducer.send(record)
+      messageProducer.flush()
+    }
   }
 
   def unregisterSelf(): Unit = {
@@ -64,6 +66,9 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
 
   override def onJobExecuted(jobExecutionResult: JobExecutionResult, throwable: Throwable): Unit = {
     client.foreach { c =>
+      if (jobExecutionResult != null && c.getJobID.toHexString != jobExecutionResult.getJobID.toHexString) {
+        return
+      }
       val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val record = new ProducerRecord[String, StatusMessage](
         topic,
@@ -73,18 +78,13 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
           status,
           throwable match {
             case null =>
-              // Unregister
-              unregisterSelf()
               s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
             case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
           }
         )
       )
-      status match {
-        case "FINISHED" | "CANCELED" =>
-          // Unregister
-          unregisterSelf()
-      }
+      // Unregister
+      unregisterSelf()
       messageProducer.send(record)
       messageProducer.flush()
     }
