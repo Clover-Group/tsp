@@ -35,7 +35,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       resultRow.setField(newRowSchema.patternIdInd, incident.patternId)
       resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
       resultRow.setField(newRowSchema.beginInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))
-      resultRow.setField(newRowSchema.endInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))
+      resultRow.setField(newRowSchema.endInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.to.toMillis)))
       resultRow.setField(newRowSchema.subunitIdInd, findSubunit(incident.patternPayload).toString)
 
       resultRow
