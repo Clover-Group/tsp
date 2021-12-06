@@ -147,8 +147,8 @@ object Launcher extends App with HttpService {
     config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE)
     config.setMinPauseBetweenCheckpoints(250)
     config.setCheckpointTimeout(60000)
-    config.setTolerableCheckpointFailureNumber(5)
-    config.setMaxConcurrentCheckpoints(5)
+    //config.setTolerableCheckpointFailureNumber(5)
+    //config.setMaxConcurrentCheckpoints(5)
 
     var savePointsPath = "/tmp/tsp/flink-cp"
 
@@ -169,7 +169,7 @@ object Launcher extends App with HttpService {
       }
       env.setStateBackend(new RocksDBStateBackend(savePointsPath))
     }
-    env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 10000))
+    //env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 10000))
 
     env
   }
