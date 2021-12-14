@@ -28,7 +28,7 @@ import spray.json.DefaultJsonProtocol
 
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, SECONDS}
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -66,7 +66,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 5, 5, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 1, 5, TimeUnit.SECONDS)
   //f.cancel(false)
 
   def enqueue[
@@ -252,6 +252,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       }
       streamEnv.execute(uuid)
     }(blockingExecutionContext)
+    Try(Await.ready(res, Duration.create(1, SECONDS)))
 
     log.debug("runStream finished")
     Right(None)
