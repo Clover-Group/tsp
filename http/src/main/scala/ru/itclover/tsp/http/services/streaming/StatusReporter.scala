@@ -16,6 +16,7 @@ import scala.util.Try
 case class StatusMessage(
   @BeanProperty uuid: String,
   @BeanProperty status: String,
+  @BeanProperty flinkStatus: String,
   @BeanProperty text: String
 )
 
@@ -48,6 +49,7 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
         LocalDateTime.now.toString,
         StatusMessage(
           jobName,
+          "SUBMITTED",
           Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
           client match {
             case Some(value) => s"Job submitted with id ${value.getJobID}"
@@ -75,6 +77,10 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
         LocalDateTime.now.toString,
         StatusMessage(
           jobName,
+          throwable match {
+            case null => "FINISHED"
+            case _    => "FAILED"
+          },
           status,
           throwable match {
             case null =>

@@ -22,13 +22,14 @@ case class ConsoleStatusReporter(jobName: String)
     if (jobClient != null) client = Some(jobClient)
     val msg = StatusMessage(
       jobName,
+      "SUBMITTED",
       Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
       client match {
         case Some(value) => s"Job submitted with id ${value.getJobID}"
         case None        => s"Job submission failed"
       }
     )
-    log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
+    log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
   }
 
   def unregisterSelf(): Unit = {
@@ -43,6 +44,10 @@ case class ConsoleStatusReporter(jobName: String)
       val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val msg = StatusMessage(
         jobName,
+        throwable match {
+          case null => "FINISHED"
+          case _    => "FAILED"
+        },
         status,
         throwable match {
           case null =>
@@ -53,7 +58,7 @@ case class ConsoleStatusReporter(jobName: String)
       )
       // Unregister
       unregisterSelf()
-      log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
+      log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
     }
   }
 }
