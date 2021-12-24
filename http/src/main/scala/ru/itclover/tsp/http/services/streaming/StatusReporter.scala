@@ -15,6 +15,7 @@ import scala.util.Try
 
 case class StatusMessage(
   @BeanProperty uuid: String,
+  @BeanProperty timestamp: String,
   @BeanProperty status: String,
   @BeanProperty flinkStatus: String,
   @BeanProperty text: String
@@ -44,11 +45,13 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
   override def onJobSubmitted(jobClient: JobClient, throwable: Throwable): Unit = {
     if (jobClient != null && client.isEmpty) {
       client = Some(jobClient)
+      val now = LocalDateTime.now.toString
       val record = new ProducerRecord[String, StatusMessage](
         topic,
-        LocalDateTime.now.toString,
+        now,
         StatusMessage(
           jobName,
+          now,
           "SUBMITTED",
           Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
           client match {
@@ -71,12 +74,14 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
       if (jobExecutionResult != null && c.getJobID.toHexString != jobExecutionResult.getJobID.toHexString) {
         return
       }
+      val now = LocalDateTime.now.toString
       val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val record = new ProducerRecord[String, StatusMessage](
         topic,
-        LocalDateTime.now.toString,
+        now,
         StatusMessage(
           jobName,
+          now,
           throwable match {
             case null => "FINISHED"
             case _    => "FAILED"

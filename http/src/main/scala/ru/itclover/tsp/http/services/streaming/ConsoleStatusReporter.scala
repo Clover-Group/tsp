@@ -6,7 +6,7 @@ import org.apache.flink.core.execution.{JobClient, JobListener}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaEnv}
 
-
+import java.time.LocalDateTime
 import scala.util.Try
 
 case class ConsoleStatusReporter(jobName: String)
@@ -22,6 +22,7 @@ case class ConsoleStatusReporter(jobName: String)
     if (jobClient != null) client = Some(jobClient)
     val msg = StatusMessage(
       jobName,
+      LocalDateTime.now.toString,
       "SUBMITTED",
       Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
       client match {
@@ -44,6 +45,7 @@ case class ConsoleStatusReporter(jobName: String)
       val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val msg = StatusMessage(
         jobName,
+        LocalDateTime.now.toString,
         throwable match {
           case null => "FINISHED"
           case _    => "FAILED"
