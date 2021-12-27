@@ -66,7 +66,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 1, 5, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS)
   //f.cancel(false)
 
   def enqueue[
