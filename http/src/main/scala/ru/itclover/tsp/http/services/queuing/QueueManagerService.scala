@@ -66,7 +66,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 1, TimeUnit.SECONDS)
   //f.cancel(false)
 
   def enqueue[
@@ -174,7 +174,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     } yield result
   }
 
-  def dequeueAndRun(slots: Int): Unit = {
+  /*def dequeueAndRun(slots: Int): Unit = {
     // TODO: Functional style
     var slotsRemaining = slots
     while (jobQueue.nonEmpty && slotsRemaining >= jobQueue.head._1.requiredSlots) {
@@ -182,6 +182,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       slotsRemaining -= request._1.requiredSlots
       run(request)
     }
+  }*/
+
+  def dequeueAndRunSingleJob(): Unit = {
+    val request = jobQueue.dequeue()
+    run(request)
   }
 
   def run(typedRequest: TypedRequest): Unit = {
@@ -268,7 +273,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     availableSlots.onComplete {
       case Success(slots) => if (slots > 0 && jobQueue.nonEmpty) {
         log.info(s"$slots slots available")
-        dequeueAndRun(slots)
+        dequeueAndRunSingleJob()
       } else {
         if (jobQueue.nonEmpty)
         log.info(
@@ -278,7 +283,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       case Failure(exception) =>
         log.warn(s"An exception occurred when checking available slots: $exception --- ${exception.getMessage}")
         log.warn("Trying to send job anyway (assuming 1 available slot)...")
-        dequeueAndRun(1)
+        dequeueAndRunSingleJob()
     }
 
   }
