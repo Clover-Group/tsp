@@ -5,12 +5,15 @@ import org.apache.flink.api.common.{JobExecutionResult, JobID}
 import org.apache.flink.core.execution.{JobClient, JobListener}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.environment.{StreamExecutionEnvironment => JavaEnv}
+import ru.itclover.tsp.http.services.queuing.QueueManagerService
 
 import java.time.LocalDateTime
-import scala.util.Try
+import scala.concurrent.ExecutionContextExecutor
+import scala.util.{Failure, Success, Try}
 
-case class ConsoleStatusReporter(jobName: String)
-                                (implicit executionEnvironment: StreamExecutionEnvironment)
+case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueManagerService)
+                                (implicit executionEnvironment: StreamExecutionEnvironment,
+                                          executionContext: ExecutionContextExecutor)
   extends JobListener {
 
 
@@ -19,7 +22,15 @@ case class ConsoleStatusReporter(jobName: String)
   val log = Logger[ConsoleStatusReporter]
 
   override def onJobSubmitted(jobClient: JobClient, throwable: Throwable): Unit = {
-    if (jobClient != null) client = Some(jobClient)
+    val jobNameOption = queueManagerService.getJobNameByID(jobClient.getJobID)
+    if (!jobNameOption.contains(jobName)) {
+      log.warn(s"Wrong job name $jobNameOption for job ID ${jobClient.getJobID}, skipping")
+      return
+    }
+
+    if (jobClient != null &&
+      client.isEmpty)
+      client = Some(jobClient)
     val msg = StatusMessage(
       jobName,
       LocalDateTime.now.toString,

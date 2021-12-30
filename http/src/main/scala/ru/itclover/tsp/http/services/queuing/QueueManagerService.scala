@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.common.JobExecutionResult
+import org.apache.flink.api.common.{JobExecutionResult, JobID}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -19,16 +19,17 @@ import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.routes.JobReporting
+import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
 import ru.itclover.tsp.http.services.streaming.{ConsoleStatusReporter, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers.PatternsToRowMapper
 import ru.itclover.tsp.utils.ErrorsADT.RuntimeErr
-import spray.json.DefaultJsonProtocol
+import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
 
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.collection.mutable
-import scala.concurrent.duration.{Duration, SECONDS}
+import scala.concurrent.duration.{Duration, MILLISECONDS, SECONDS}
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -45,6 +46,39 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 ) extends SprayJsonSupport
     with DefaultJsonProtocol {
   import ru.itclover.tsp.http.services.AkkaHttpUtils._
+
+  implicit val vertexMetricsFormat = jsonFormat(
+    VertexMetrics.apply,
+    "read-records",
+    "write-records",
+    "currentEventTs"
+  )
+  implicit val vertexFormat = jsonFormat3(Vertex.apply)
+  implicit object jobFormat extends RootJsonFormat[JobDetails] {
+    override def write(obj: JobDetails): JsValue = JsObject(
+      ("jid", JsString(obj.jid)),
+      ("name", JsString(obj.name)),
+      ("state", JsString(obj.state)),
+      ("start-time", JsNumber(obj.startTsMs)),
+      ("duration", JsNumber(obj.durationMs)),
+      ("vertices", JsArray(obj.vertices.map(vertexFormat.write))),
+      ("read-records", JsNumber(obj.readRecords)),
+      ("write-records", JsNumber(obj.writeRecords))
+    )
+
+    override def read(json: JsValue): JobDetails = json match {
+      case JsObject(fields) =>
+        JobDetails(
+          fields("jid").convertTo[String],
+          fields("name").convertTo[String],
+          fields("state").convertTo[String],
+          fields("start-time").convertTo[Long],
+          fields("duration").convertTo[Long],
+          fields("vertices").convertTo[Vector[Vertex]]
+        )
+      case _ => throw new DeserializationException(s"Cannot deserialize $json as JobDetails")
+    }
+  }
 
   type TypedRequest = (QueueableRequest, ClassTag[_], ClassTag[_])
   implicit val requestOrdering: Ordering[TypedRequest] = (x: TypedRequest, y: TypedRequest) => x._1.compare(y._1)
@@ -66,7 +100,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 1, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 4, TimeUnit.SECONDS)
   //f.cancel(false)
 
   def enqueue[
@@ -248,11 +282,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       reporting match {
         case Some(value) =>
           streamEnv.registerJobListener(
-            StatusReporter(uuid, value.brokers, value.topic)
+            StatusReporter(uuid, value.brokers, value.topic, this)
           )
         case None =>
           streamEnv.registerJobListener(
-            ConsoleStatusReporter(uuid)
+            ConsoleStatusReporter(uuid, this)
           )
       }
       streamEnv.execute(uuid)
@@ -268,6 +302,14 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
         .singleRequest(HttpRequest(uri = uri.toString + "/jobmanager/metrics?get=taskSlotsAvailable"))
         .flatMap(resp => Unmarshal(resp).to[Seq[Metric]])
         .map(m => Try(m.head.value.toInt).getOrElse(0))
+
+  def getJobNameByID(id: JobID): Option[String] = {
+    val res: Future[String] = Http()
+      .singleRequest(HttpRequest(uri = uri.toString + s"/jobs/${id}/"))
+      .flatMap(resp => Unmarshal(resp).to[JobDetails])
+      .map(det => det.name)
+    Try(Await.result(res, Duration.create(500, MILLISECONDS))).toOption
+  }
 
   def onTimer(): Unit = {
     availableSlots.onComplete {

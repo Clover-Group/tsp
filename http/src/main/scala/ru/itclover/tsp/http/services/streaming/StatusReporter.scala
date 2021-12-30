@@ -1,17 +1,20 @@
 package ru.itclover.tsp.http.services.streaming
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.{JobExecutionResult, JobID}
 import org.apache.flink.core.execution.{JobClient, JobListener}
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import org.apache.kafka.common.serialization.Serializer
+import ru.itclover.tsp.http.services.queuing.QueueManagerService
 
 import java.time.LocalDateTime
 import collection.JavaConverters._
 import scala.beans.BeanProperty
 import scala.collection.mutable
-import scala.util.Try
+import scala.concurrent.ExecutionContextExecutor
+import scala.util.{Failure, Success, Try}
 
 case class StatusMessage(
   @BeanProperty uuid: String,
@@ -28,8 +31,9 @@ class StatusMessageSerializer extends Serializer[StatusMessage] {
     objectMapper.writeValueAsBytes(data)
 }
 
-case class StatusReporter(jobName: String, brokers: String, topic: String)
-                         (implicit executionEnvironment: StreamExecutionEnvironment)
+case class StatusReporter(jobName: String, brokers: String, topic: String, queueManagerService: QueueManagerService)
+                         (implicit executionEnvironment: StreamExecutionEnvironment,
+                                   executionContext: ExecutionContextExecutor)
   extends JobListener {
 
   val config: Map[String, Object] = Map(
@@ -42,7 +46,16 @@ case class StatusReporter(jobName: String, brokers: String, topic: String)
 
   var client: Option[JobClient] = None
 
+  val log = Logger[StatusReporter]
+
+
   override def onJobSubmitted(jobClient: JobClient, throwable: Throwable): Unit = {
+    val jobNameOption = queueManagerService.getJobNameByID(jobClient.getJobID)
+    if (!jobNameOption.contains(jobName)) {
+      log.warn(s"Wrong job name $jobNameOption for job ID ${jobClient.getJobID}, skipping")
+      return
+    }
+
     if (jobClient != null && client.isEmpty) {
       client = Some(jobClient)
       val now = LocalDateTime.now.toString
