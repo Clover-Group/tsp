@@ -108,7 +108,7 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
         )
       )
       // Unregister
-      unregisterSelf()
+      if (throwable == null) unregisterSelf()
       messageProducer.send(record)
       messageProducer.flush()
     }

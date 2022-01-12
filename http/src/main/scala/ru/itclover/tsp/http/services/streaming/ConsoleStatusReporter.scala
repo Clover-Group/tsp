@@ -70,7 +70,7 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
         }
       )
       // Unregister
-      unregisterSelf()
+      if (throwable == null) unregisterSelf()
       log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
     }
   }
