@@ -229,17 +229,22 @@ git.useGitDescribe := true
 git.baseVersion := IO.read(file("./VERSION")) // if no tags are present
 val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 
-def nextVersion(v: String): String = git.gitCurrentBranch.value match {
-  case "master" => Bump.Major.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
-  case _ => Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
-}
+def nextMinorVersion(v: String): String =  Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
 
-git.gitTagToVersionNumber := {
-  case VersionRegex(v, "") => Some(v)
-  case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
-  case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-preview$s")
-  case VersionRegex(v, s) => Some(s"$v-$s")
-  case _ => None
+def nextMajorVersion(v: String): String =  Bump.Major.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+
+git.gitTagToVersionNumber := { (tag: String) =>
+  val nextVersion = git.gitCurrentBranch.value match {
+    case "master" => nextMajorVersion _
+    case _        => nextMinorVersion _
+  }
+  tag match {
+    case VersionRegex(v, "") => Some(v)
+    case VersionRegex(v, "SNAPSHOT") => Some(s"${nextVersion(v)}-SNAPSHOT")
+    case VersionRegex(v, s) if s.matches("[0-9].+") => Some(s"${nextVersion(v)}-preview$s")
+    case VersionRegex(v, s) => Some(s"$v-$s")
+    case _ => None
+  }
 }
 
 // Release specific settings
