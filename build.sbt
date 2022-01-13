@@ -229,7 +229,10 @@ git.useGitDescribe := true
 git.baseVersion := IO.read(file("./VERSION")) // if no tags are present
 val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 
-def nextVersion(v: String): String = Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+def nextVersion(v: String): String = git.gitCurrentBranch.value match {
+  case "master" => Bump.Major.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+  case _ => Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+}
 
 git.gitTagToVersionNumber := {
   case VersionRegex(v, "") => Some(v)
