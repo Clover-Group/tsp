@@ -39,7 +39,7 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
         Int.MaxValue, // maxPoolSize
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
+        new SynchronousQueue[Runnable]() //workQueue
         //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
@@ -122,7 +122,10 @@ class BasicJdbcTest extends FlatSpec with SqlMatchers with ScalatestRouteTest wi
 
   "Basic assertions and forwarded fields" should "work for wide dense table" in {
 
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, basicAssertions)) ~>
+    Post(
+      "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+      FindPatternsRequest("1", inputConf, outputConf, 50, basicAssertions)
+    ) ~>
     route ~> check {
       status shouldEqual StatusCodes.OK
 

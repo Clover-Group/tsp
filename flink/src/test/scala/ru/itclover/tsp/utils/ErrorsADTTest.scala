@@ -2,6 +2,8 @@ package ru.itclover.tsp.utils
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.utils.ErrorsADT._
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class ErrorsADTTest extends FlatSpec with Matchers {
   "Request errors" should "inform the user correctly" in {
     InvalidRequest("test").errorCode shouldBe 4010

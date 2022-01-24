@@ -23,6 +23,8 @@ import scala.concurrent._
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class BasicKafkaTest
     extends FlatSpec
     with SqlMatchers
@@ -43,7 +45,7 @@ class BasicKafkaTest
         Int.MaxValue, // maxPoolSize
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
+        new SynchronousQueue[Runnable]() //workQueue
         //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )

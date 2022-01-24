@@ -1,19 +1,16 @@
 package ru.itclover.tsp.http
 
 import java.net.URLDecoder
-import java.nio.file.{Files, Paths}
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import cats.implicits._
 import ru.itclover.tsp.http.routes.JobReporting
-import ru.itclover.tsp.http.services.streaming.StatusReporter
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
-import org.apache.flink.api.common.restartstrategy.RestartStrategies
-import org.apache.flink.configuration.{ConfigConstants, Configuration, RestOptions}
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.contrib.streaming.state.RocksDBStateBackend
@@ -69,7 +66,7 @@ object Launcher extends App with HttpService {
         Int.MaxValue, // maxPoolSize
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
+        new SynchronousQueue[Runnable]() //workQueue
         //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
@@ -136,9 +133,10 @@ object Launcher extends App with HttpService {
     */
   def configureEnv(env: StreamExecutionEnvironment): StreamExecutionEnvironment = {
 
-    val checkpointingInterval = Try(getEnvVarOrConfig("FLINK_CHECKPOINTING_INTERVAL", "flink.checkpointing-interval").toInt)
-      .toOption.getOrElse(10000)
-    env.enableCheckpointing(checkpointingInterval)
+    val checkpointingInterval = Try(
+      getEnvVarOrConfig("FLINK_CHECKPOINTING_INTERVAL", "flink.checkpointing-interval").toInt
+    ).toOption.getOrElse(10000)
+    env.enableCheckpointing(checkpointingInterval.toLong)
 
     val flinkParameters = Try(env.getConfig.getGlobalJobParameters.toMap.asScala).getOrElse(Map.empty[String, String])
 
@@ -150,12 +148,10 @@ object Launcher extends App with HttpService {
     //config.setTolerableCheckpointFailureNumber(5)
     //config.setMaxConcurrentCheckpoints(5)
 
-    var savePointsPath = "/tmp/tsp/flink-cp"
-
-    if (flinkParameters.contains("state.savepoints.dir")) {
-      savePointsPath = flinkParameters("state.savepoints.dir")
+    val savePointsPath = if (flinkParameters.contains("state.savepoints.dir")) {
+      flinkParameters("state.savepoints.dir")
     } else {
-      savePointsPath = getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
+      getEnvVarOrConfig("FLINK_SAVEPOINTS_PATH", "flink.savepoints-dir")
     }
 
     val expectedStorages = Seq("s3", "hdfs", "file")
@@ -197,8 +193,8 @@ object Launcher extends App with HttpService {
     val reportingEnabledConfig = getEnvVarOrNone("JOB_REPORTING_ENABLED").getOrElse("0")
     val reportingEnabled = reportingEnabledConfig match {
       case "0" | "false" | "off" | "no" => false
-      case "1" | "true" | "on" | "yes" => true
-      case _ => sys.error(s"JOB_REPORTING_ENABLED not set or set to a unsupported value: $reportingEnabledConfig")
+      case "1" | "true" | "on" | "yes"  => true
+      case _                            => sys.error(s"JOB_REPORTING_ENABLED not set or set to a unsupported value: $reportingEnabledConfig")
     }
 
     if (reportingEnabled) {

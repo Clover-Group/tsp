@@ -1,7 +1,6 @@
 package ru.itclover.tsp.utils
 
 import java.io.{ByteArrayInputStream, File, FileInputStream, FileOutputStream}
-
 import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.dictionary.DictionaryProvider
 import org.apache.arrow.vector.ipc.{
@@ -31,7 +30,10 @@ import org.apache.flink.types.Row
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.util.control.Breaks.{break, breakable}
 
+// Types are not known at compile time, so we use asInstanceOf and Any
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf"))
 object ArrowOps {
 
   /**
@@ -80,7 +82,7 @@ object ArrowOps {
     */
   def retrieveSchemaAndReader(input: File, allocatorValue: Int): (Schema, ArrowReader, RootAllocator) = {
 
-    val allocator = new RootAllocator(allocatorValue)
+    val allocator = new RootAllocator(allocatorValue.toLong)
     val fileStream = new FileInputStream(input)
 
     val readChannel = new SeekableReadChannel(fileStream.getChannel)
@@ -99,7 +101,7 @@ object ArrowOps {
     */
   def retrieveSchemaAndReader(input: Array[Byte], allocatorValue: Int): (Schema, ArrowReader, RootAllocator) = {
 
-    val allocator = new RootAllocator(allocatorValue)
+    val allocator = new RootAllocator(allocatorValue.toLong)
     val inputStream = new ByteArrayInputStream(input)
 
     val reader = new ArrowStreamReader(inputStream, allocator)
@@ -133,37 +135,35 @@ object ArrowOps {
     val schemaFields = getSchemaFields(schema)
 
     val schemaRoot = reader.getVectorSchemaRoot
-    var rowCount = 0
 
-    var readCondition = reader.loadNextBatch()
     val result: mutable.ListBuffer[Row] = mutable.ListBuffer.empty[Row]
     val objectsList: mutable.ListBuffer[Any] = mutable.ListBuffer.empty[Any]
 
-    while (readCondition) {
+    while (reader.loadNextBatch()) {
+      breakable {
+        val rowCount = schemaRoot.getRowCount
 
-      rowCount = schemaRoot.getRowCount
+        for (i <- 0 until rowCount) {
 
-      for (i <- 0 until rowCount) {
+          for (field <- schemaFields) {
 
-        for (field <- schemaFields) {
+            val valueVector = schemaRoot.getVector(field)
+            objectsList += retrieveFieldValue(valueVector).getObject(i)
 
-          val valueVector = schemaRoot.getVector(field)
-          objectsList += retrieveFieldValue(valueVector).getObject(i)
+          }
+
+          val row = new Row(objectsList.size)
+          for (i <- objectsList.indices) {
+            row.setField(i, objectsList(i))
+          }
+
+          val _ = result += row
+          objectsList.clear()
 
         }
 
-        val row = new Row(objectsList.size)
-        for (i <- objectsList.indices) {
-          row.setField(i, objectsList(i))
-        }
-
-        result += row
-        objectsList.clear()
-
+        if (!reader.loadNextBatch()) break
       }
-
-      readCondition = reader.loadNextBatch()
-
     }
 
     reader.close()

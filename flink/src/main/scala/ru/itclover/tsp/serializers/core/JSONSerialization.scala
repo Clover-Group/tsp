@@ -35,12 +35,15 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
 
   }
 
+
   /**
     * Method for serialize to json string
     * @param output flink row
     * @param rowSchema schema from flink row
     * @return bytes array from json string
     */
+  // Flink rows are untyped, so asInstanceOf
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.NonUnitStatements"))
   override def serialize(output: Row, eventSchema: EventSchema): Array[Byte] = {
 
     val mapper = new ObjectMapper()

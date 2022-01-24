@@ -15,7 +15,7 @@ import scala.collection.{mutable => m}
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window,
-  val eventsMaxGapMs: Long,
+  val eventsMaxGapMs: Long
 ) extends AccumPattern[Event, S, T, Boolean, TimerAccumState[T]] {
   override def initialState(): AggregatorPState[S, T, TimerAccumState[T]] = AggregatorPState(
     inner.initialState(),
@@ -26,12 +26,11 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
 }
 
 case class TimerAccumState[T](
-                               windowQueue: m.Queue[(Idx, Time)],
-                               lastEnd: (Idx, Time),
-                               lastValue: Result[T],
-                               eventsMaxGapMs: Long
-                             )
-    extends AccumState[T, Boolean, TimerAccumState[T]] {
+  windowQueue: m.Queue[(Idx, Time)],
+  lastEnd: (Idx, Time),
+  lastValue: Result[T],
+  eventsMaxGapMs: Long
+) extends AccumState[T, Boolean, TimerAccumState[T]] {
 
   @inline
   override def updated(
@@ -49,12 +48,18 @@ case class TimerAccumState[T](
         val newOptResult = createIdxValue(
           windowQueue.dropWhile { case (i, _) => i <= lastEnd._1 }.headOption.orElse(times.headOption),
           times.lastOption,
-          if(lastValue.isFail || (times.headOption.map(_._2.toMillis).getOrElse(Long.MinValue) < lastEnd._2.toMillis + window.toMillis))
-             { Fail }
-          else
-             { Succ(true) }
+          if (lastValue.isFail || (times.headOption
+                .map(_._2.toMillis)
+                .getOrElse(Long.MinValue) < lastEnd._2.toMillis + window.toMillis)) {
+            Fail
+          } else {
+            Succ(true)
+          }
         )
-        (TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs), newOptResult.map(PQueue.apply).getOrElse(PQueue.empty))
+        (
+          TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs),
+          newOptResult.map(PQueue.apply).getOrElse(PQueue.empty)
+        )
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
         val start: Time = times.head._2.plus(window)

@@ -42,7 +42,7 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
         Int.MaxValue, // maxPoolSize
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
+        new SynchronousQueue[Runnable]() //workQueue
         //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
@@ -170,7 +170,10 @@ class AccumsTest extends FlatSpec with SqlMatchers with ScalatestRouteTest with 
   }
 
   "Time window (truthMillis)" should "compute in time" in {
-    Post("/streamJob/from-jdbc/to-jdbc/?run_async=0", FindPatternsRequest("1", inputConf, outputConf, 50, timeWindowPattern)) ~> route ~> check {
+    Post(
+      "/streamJob/from-jdbc/to-jdbc/?run_async=0",
+      FindPatternsRequest("1", inputConf, outputConf, 50, timeWindowPattern)
+    ) ~> route ~> check {
 
       status shouldEqual StatusCodes.OK
       val resp = unmarshal[FinishedJobResponse](responseEntity)

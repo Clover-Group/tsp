@@ -10,7 +10,6 @@ import org.apache.flink.streaming.api.functions.timestamps.AscendingTimestampExt
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, _}
 import org.apache.flink.types.Row
 import org.influxdb.dto.QueryResult
-import org.redisson.client.codec.ByteArrayCodec
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.io.input._
@@ -22,10 +21,10 @@ import ru.itclover.tsp.utils.RowOps.{RowIsoTimeExtractor, RowSymbolExtractor, Ro
 import ru.itclover.tsp.utils.{KeyCreator, KeyCreatorInstances}
 
 import scala.collection.JavaConverters._
-import scala.util.{Failure, Success}
 import scala.collection.mutable
 
-/*sealed*/
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def createStream: DataStream[Event]
 
@@ -130,6 +129,8 @@ object StreamSource {
 
 case class RowWithIdx(idx: Idx, row: Row)
 
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object JdbcSource {
 
   def create(conf: JDBCInputConf, fields: Set[Symbol])(
@@ -160,6 +161,8 @@ object JdbcSource {
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class JdbcSource(
   conf: JDBCInputConf,
   fieldsClasses: Seq[(Symbol, Class[_])],
@@ -238,6 +241,8 @@ case class JdbcSource(
 
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
+  // JDBC uses Java's null, so we must use it for interop
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   val inputFormat: RichInputFormat[Row, InputSplit] =
     JDBCInputFormatProps
       .buildJDBCInputFormat()
@@ -278,6 +283,8 @@ case class JdbcSource(
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 }
 
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object InfluxDBSource {
 
   def create(conf: InfluxDBInputConf, fields: Set[Symbol])(
@@ -295,6 +302,8 @@ object InfluxDBSource {
     } yield source
 }
 
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class InfluxDBSource(
   conf: InfluxDBInputConf,
   fieldsClasses: Seq[(Symbol, Class[_])],
@@ -306,6 +315,8 @@ case class InfluxDBSource(
 
   import conf._
 
+  // we use cast for Java class, so we need to use asInstanceOf
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   val dummyResult: Class[QueryResult.Result] = new QueryResult.Result().getClass.asInstanceOf[Class[QueryResult.Result]]
   val queryResultTypeInfo: TypeInformation[QueryResult.Result] = TypeInformation.of(dummyResult)
   val stageName = "InfluxDB input processing stage"
@@ -419,6 +430,8 @@ case class InfluxDBSource(
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 }
 
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object KafkaSource {
 
   val log = Logger[KafkaSource]
@@ -440,6 +453,8 @@ object KafkaSource {
 
 }
 
+// Fields types are only known at runtime, so we have to use Any here
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class KafkaSource(
   conf: KafkaInputConf,
   fieldsClasses: Seq[(Symbol, Class[_])],
@@ -473,11 +488,10 @@ case class KafkaSource(
   val stageName = "Kafka input processing stage"
 
   def createStream: DataStream[RowWithIdx] = {
-    val consumer = KafkaService.consumer(conf, fieldsIdxMap)
     // TODO: Make this parameter configurable
-    consumer.setStartFromGroupOffsets()
-    streamEnv.enableCheckpointing(5000)
+    val consumer = KafkaService.consumer(conf, fieldsIdxMap).setStartFromGroupOffsets()
     streamEnv
+      .enableCheckpointing(5000)
       .addSource(consumer)
       // we need to set parallelism of Kafka source to 1 to persist ordering.
       // If we know number of topic partitions, it's better to pass this number here.

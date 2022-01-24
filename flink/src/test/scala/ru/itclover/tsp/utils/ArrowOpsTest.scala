@@ -1,17 +1,14 @@
 package ru.itclover.tsp.utils
 
 import java.io.File
-import java.nio.file.{Files => JavaFiles}
 
 import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowStreamReader}
-import org.apache.arrow.vector.types.pojo.{ArrowType, Field, Schema}
+import org.apache.arrow.vector.ipc.ArrowFileReader
+import org.apache.arrow.vector.types.pojo.Schema
 import org.scalatest.{Matchers, WordSpec}
-import ru.itclover.tsp.services.FileService
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class ArrowOpsTest extends WordSpec with Matchers {
 
   val testFiles: List[File] = new File(

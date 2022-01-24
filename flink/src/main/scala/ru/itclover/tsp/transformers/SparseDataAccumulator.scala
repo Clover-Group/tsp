@@ -29,6 +29,9 @@ trait SparseDataAccumulator
   * @param fieldsKeysTimeoutsMs - indexes to collect and timeouts (milliseconds) per each (collect by-hand for now)
   * @param extraFieldNames - will be added to every emitting event
   */
+// Types are not known at compile time, so we use asInstanceOf and Any
+// The accumulator is stateful, so we use vars for storing the state
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Var"))
 class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],

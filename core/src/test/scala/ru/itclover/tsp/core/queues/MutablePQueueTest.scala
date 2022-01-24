@@ -2,7 +2,7 @@ package ru.itclover.tsp.core.queues
 
 import org.scalatest.{Matchers, WordSpec}
 import ru.itclover.tsp.core.PQueue.MutablePQueue
-import ru.itclover.tsp.core.{IdxValue, Result, Succ}
+import ru.itclover.tsp.core.{IdxValue, PQueue, Result, Succ}
 
 import scala.collection.mutable
 
@@ -22,8 +22,8 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     "retrieve head option" in {
 
-      val expectedData = Succ(0)
-      val actualData = testQueue.headOption.get.value
+      val expectedData = Result.succ(0)
+      val actualData = testQueue.headOption.map(_.value).getOrElse(Result.fail)
 
       actualData shouldBe expectedData
 
@@ -41,7 +41,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
     "retrieve dequeue option" in {
 
       val expectedData = Result.succ(1)
-      val actualData = testQueue.dequeueOption().get._1.value
+      val actualData = testQueue.dequeueOption().map(_._1.value).getOrElse(Result.fail)
 
       actualData shouldBe expectedData
 
@@ -52,7 +52,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
       val tempQueue = testQueue.behead()
 
       val expectedData = Result.succ(3)
-      val actualData = tempQueue.headOption.get.value
+      val actualData = tempQueue.headOption.map(_.value).getOrElse(Result.fail)
 
       actualData shouldBe expectedData
 
@@ -60,10 +60,10 @@ class MutablePQueueTest extends WordSpec with Matchers {
 
     "retrieve behead option" in {
 
-      val tempQueue = testQueue.beheadOption().get
+      val tempQueue = testQueue.beheadOption().getOrElse(PQueue.empty)
 
       val expectedData = Result.succ(4)
-      val actualData = tempQueue.headOption.get.value
+      val actualData = tempQueue.headOption.map(_.value).getOrElse(Result.fail)
 
       actualData shouldBe expectedData
 
@@ -74,7 +74,7 @@ class MutablePQueueTest extends WordSpec with Matchers {
       testQueue.enqueue(IdxValue(1, 1, Result.succ(1)))
 
       val expectedData = Result.succ(4)
-      val actualData = testQueue.dequeueOption().get._1.value
+      val actualData = testQueue.dequeueOption().map(_._1.value).getOrElse(Result.fail)
 
       actualData shouldBe expectedData
 
@@ -124,8 +124,8 @@ class MutablePQueueTest extends WordSpec with Matchers {
     "rewindTo-1" in {
       getTestQueue.rewindTo(0).size shouldBe 1001
       getTestQueue.rewindTo(1).size shouldBe 1001
-      getTestQueue.rewindTo(1).headOption.get.start shouldBe 1
-      getTestQueue.rewindTo(23).headOption.get.start shouldBe 23
+      getTestQueue.rewindTo(1).headOption.map(_.start) shouldBe Some(1)
+      getTestQueue.rewindTo(23).headOption.map(_.start) shouldBe Some(23)
       getTestQueue.rewindTo(100000).size shouldBe 0
     }
 

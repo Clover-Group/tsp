@@ -11,11 +11,10 @@ import java.time.LocalDateTime
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success, Try}
 
-case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueManagerService)
-                                (implicit executionEnvironment: StreamExecutionEnvironment,
-                                          executionContext: ExecutionContextExecutor)
-  extends JobListener {
-
+case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueManagerService)(
+  implicit executionEnvironment: StreamExecutionEnvironment,
+  executionContext: ExecutionContextExecutor
+) extends JobListener {
 
   var client: Option[JobClient] = None
 
@@ -29,7 +28,7 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
     }
 
     if (jobClient != null &&
-      client.isEmpty)
+        client.isEmpty)
       client = Some(jobClient)
     val msg = StatusMessage(
       jobName,
@@ -65,7 +64,7 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
         throwable match {
           case null =>
             s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
-          case _    =>
+          case _ =>
             s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
         }
       )

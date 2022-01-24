@@ -20,6 +20,8 @@ case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerStat
     }
   }
 
+  // Using isInstanceOf/asInstanceOf due to type erasure
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.IsInstanceOf"))
   private def getInnerQueue(queue: PQueue[T2]): PQueue[T1] = {
     queue match {
       case MapPQueue(innerQueue, _) if innerQueue.isInstanceOf[PQueue[T1]] => innerQueue.asInstanceOf[PQueue[T1]]

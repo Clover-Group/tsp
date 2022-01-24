@@ -14,7 +14,7 @@ trait QueueableRequest extends Request with Ordered[QueueableRequest] {
   def requiredSlots: Int
 }
 
-final case class FindPatternsRequest[IN <: InputConf[_, _, _], OUT <: OutputConf[_]] (
+final case class FindPatternsRequest[IN <: InputConf[_, _, _], OUT <: OutputConf[_]](
   override val uuid: String,
   inputConf: IN,
   outConf: OUT,
@@ -23,8 +23,8 @@ final case class FindPatternsRequest[IN <: InputConf[_, _, _], OUT <: OutputConf
 ) extends QueueableRequest {
   override def requiredSlots: Int =
     (inputConf.parallelism.getOrElse(1)
-      * inputConf.patternsParallelism.getOrElse(1)
-      * inputConf.numParallelSources.getOrElse(1))
+    * inputConf.patternsParallelism.getOrElse(1)
+    * inputConf.numParallelSources.getOrElse(1))
 }
 
 final case class DSLPatternRequest(pattern: String) extends Request

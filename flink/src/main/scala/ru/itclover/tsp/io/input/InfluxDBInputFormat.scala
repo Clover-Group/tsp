@@ -68,6 +68,8 @@ object InfluxDBInputFormat {
 }
 
 @SerialVersionUID(42L)
+// TODO: replace Java-style builder with Scala-conformant code
+@SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
 class InfluxDBInputFormat extends GenericInputFormat[QueryResult.Result] with NonParallelInput {
   var url: String = _
   var username: String = _

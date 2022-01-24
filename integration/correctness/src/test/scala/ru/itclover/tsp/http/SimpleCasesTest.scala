@@ -6,7 +6,6 @@ import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import ru.itclover.tsp.http.routes.JobReporting
 
-import java.util
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.{Properties, UUID}
@@ -58,7 +57,7 @@ class SimpleCasesTest
         Int.MaxValue, // maxPoolSize
         1000L, //keepAliveTime
         TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable](), //workQueue
+        new SynchronousQueue[Runnable]() //workQueue
         //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
@@ -296,7 +295,7 @@ class SimpleCasesTest
     tableName = "events_wide_test",
     rowSchema = wideRowSchema,
     jdbcUrl = chConnection,
-    driverName = chDriver,
+    driverName = chDriver
     //userName = Some("default"),
     //password = Some("")
   )

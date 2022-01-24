@@ -26,4 +26,3 @@ case class KafkaInputConf(
   def parallelism: Option[Int] = Some(1)
   def patternsParallelism: Option[Int] = Some(1)
 }
-

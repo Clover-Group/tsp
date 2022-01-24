@@ -28,12 +28,12 @@ import ru.itclover.tsp.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
 
 import scala.reflect.ClassTag
 
+// Types are not known at compile time
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.IsInstanceOf"))
 case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
-  // TODO: Restore InKey as a type parameter
-
   import PatternsSearchJob._
   import decoders._
   import source.{eventCreator, keyCreator, kvExtractor}
@@ -159,6 +159,8 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   }
 }
 
+// Types are not known at compile time
+@SuppressWarnings(Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf"))
 object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
   type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
@@ -221,7 +223,7 @@ object PatternsSearchJob {
 
     val res = incidents
       .assignAscendingTimestamps_withoutWarns(p => p.segment.from.toMillis)
-      .keyBy(p => (p.id, p.patternPayload))
+      .keyBy(p => (p.id, p.patternUnit, p.patternSubunit))
       .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
         override def extract(element: Incident): Long = element.maxWindowMs
       }))

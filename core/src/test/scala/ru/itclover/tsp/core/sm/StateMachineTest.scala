@@ -10,6 +10,8 @@ import ru.itclover.tsp.core.fixtures.Common._
 
 import scala.collection.mutable.ArrayBuffer
 
+// In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
+@SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class StateMachineTest extends FlatSpec with Matchers {
 
   it should "process ConstPattern correctly" in {

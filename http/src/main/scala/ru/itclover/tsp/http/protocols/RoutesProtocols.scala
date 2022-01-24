@@ -175,5 +175,4 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 
-
 }

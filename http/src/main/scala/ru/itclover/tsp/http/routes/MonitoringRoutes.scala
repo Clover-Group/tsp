@@ -19,10 +19,7 @@ import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.met
 
 import scala.concurrent.ExecutionContextExecutor
 import com.typesafe.scalalogging.Logger
-import ru.itclover.tsp.http.services.streaming.{
-  FlinkMonitoringService,
-  MonitoringServiceProtocols
-}
+import ru.itclover.tsp.http.services.streaming.{FlinkMonitoringService, MonitoringServiceProtocols}
 import spray.json.PrettyPrinter
 
 import scala.util.{Failure, Success}
@@ -32,7 +29,7 @@ object MonitoringRoutes {
   private val log = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
-    monitoringUri: Uri,
+    monitoringUri: Uri
   )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
 
     log.debug("fromExecutionContext started")

@@ -21,7 +21,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
         try {
           Helper.strToDouble(s)
         } catch {
-          case e: Exception =>
+          case _: Exception =>
             //throw new RuntimeException(s"Cannot parse String ($s) to Double, exception: ${e.toString}")
             Double.NaN
         }
@@ -81,6 +81,7 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
 //  }
 }
 
+@SuppressWarnings(Array("org.wartremover.warts.Any"))
 object DoubleDecoderInstances extends BasicDecoders[Double] {
   implicit override def decodeToDouble: Decoder[Double, Double] = Decoder { d: Double =>
     d

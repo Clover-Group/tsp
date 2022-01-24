@@ -31,10 +31,10 @@ class StatusMessageSerializer extends Serializer[StatusMessage] {
     objectMapper.writeValueAsBytes(data)
 }
 
-case class StatusReporter(jobName: String, brokers: String, topic: String, queueManagerService: QueueManagerService)
-                         (implicit executionEnvironment: StreamExecutionEnvironment,
-                                   executionContext: ExecutionContextExecutor)
-  extends JobListener {
+case class StatusReporter(jobName: String, brokers: String, topic: String, queueManagerService: QueueManagerService)(
+  implicit executionEnvironment: StreamExecutionEnvironment,
+  executionContext: ExecutionContextExecutor
+) extends JobListener {
 
   val config: Map[String, Object] = Map(
     "bootstrap.servers" -> brokers,
@@ -47,7 +47,6 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
   var client: Option[JobClient] = None
 
   val log = Logger[StatusReporter]
-
 
   override def onJobSubmitted(jobClient: JobClient, throwable: Throwable): Unit = {
     val jobNameOption = queueManagerService.getJobNameByID(jobClient.getJobID)
@@ -103,7 +102,7 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
           throwable match {
             case null =>
               s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
-            case _    => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
+            case _ => s"Job executed with exception: ${throwable.getStackTrace.mkString("\n")}"
           }
         )
       )
