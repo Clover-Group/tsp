@@ -1,13 +1,5 @@
 # Debugging guidelines
 
-### Known bugs
+It is advised to use IntelliJ IDEA debugging features, the `sbt Task` configuration to run should use `http/"run flink-local"` as main task to run.
 
-- __No results in sink:__ <br>
-In version _bellow 0.9_ - may be if the last successful segment in
-the source data was not closed by ending nulls, or failure result.
-Or just no single pattern was found.
-
-
-- `JobManager responsible for f8cb9b9e4 lost the leadership.` -
-this error caused by our Flink deployment style, try to run job again,
-it is not persistent.
+Using Visual Studio Code with Scalameta LSP implementation may not work as expected, since the extension supports Scala 2.13+ (including 3.0), and Flink does not yet support Scala versions beyond 2.12.

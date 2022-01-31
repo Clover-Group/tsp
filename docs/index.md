@@ -31,21 +31,17 @@ max(oilPump, 20 sec) > 0
 __Deployment options:__
 <br>It can be used as the service and library:
 - As a service it:
-    - Takes as input: source and sink type in URL (JDBC or InfluxDB
-    for now), they configuration and patterns to search in the body
+    - Takes as input: source and sink type in URL (JDBC, InfluxDB or Kafka topic
+    for now), then configuration and patterns to search in the body
     ([endpoints details](./api/patterns.md))
     - Write incidents (occurrences of the pattern) in the sink as they're found, with neighbours united together
     - Provide monitoring [end-points](./api/monitoring.md)
-- As a library it provides functions for transforming each input
-event and some previous state into some result and new state
-(see [architectural overview](./architectural-overview.md)).
 
 
 ### Guides
-- [Architectural overview](./architectural-overview.md)
+- [Getting started](./getting-started.md)
 - [Writing patterns](./writing-patterns.md)
 - [Debugging guidelines](./debugging-guidelines.md)
-- [Installation](./installation.md)
 - [Deployment](./deployment.md)
 - [Contribution guide](./contribution-guide.md)
     - [Coding guidelines](./coding-guidelines.md)
@@ -55,6 +51,3 @@ event and some previous state into some result and new state
 - [Patters search](./api/patterns.md)
 - [Monitoring](./api/monitoring.md)
 
-### Presentations
-- [Patterns in Data with Tsp (Slides)](https://docs.google.com/presentation/d/1VN0aJS_XxwRhAiQ2sis6z_5tD1xp5cZVp8rjVJH8JX8/edit#slide=id.p) - 
-motivation, visual documentation, performance questions.
