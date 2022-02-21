@@ -113,6 +113,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   private val log = Logger[QueueManagerService]
 
   val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
+  log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
 
   val isLocalhost: Boolean = uri.authority.host.toString match {
     case "localhost" | "127.0.0.1" | "::1" => true
