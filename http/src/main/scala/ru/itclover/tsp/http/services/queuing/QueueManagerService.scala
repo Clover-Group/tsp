@@ -3,10 +3,10 @@ package ru.itclover.tsp.http.services.queuing
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, Uri}
-import akka.http.scaladsl.server.Directives.complete
+import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
+import boopickle.Default._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.api.common.{JobExecutionResult, JobID}
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -19,23 +19,21 @@ import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.routes.JobReporting
+import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
 import ru.itclover.tsp.http.services.streaming.{ConsoleStatusReporter, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers.PatternsToRowMapper
 import ru.itclover.tsp.utils.ErrorsADT.RuntimeErr
-import spray.json.{
-  DefaultJsonProtocol,
-  DeserializationException,
-  JsArray,
-  JsNumber,
-  JsObject,
-  JsString,
-  JsValue,
-  RootJsonFormat
-}
+import spray.json._
+import swaydb.Glass
+import swaydb.persistent.{Set => PersistentSet}
+import swaydb.data.order.KeyOrder
+import swaydb.data.slice.Slice
+import swaydb.serializers.Serializer
 
+import java.nio.file.Paths
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, MILLISECONDS, SECONDS}
@@ -89,8 +87,24 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  type TypedRequest = (QueueableRequest, ClassTag[_], ClassTag[_])
-  implicit val requestOrdering: Ordering[TypedRequest] = (x: TypedRequest, y: TypedRequest) => x._1.compare(y._1)
+  type TypedRequest = (QueueableRequest, String, String)
+  implicit val requestOrdering: KeyOrder[TypedRequest] = (x: TypedRequest, y: TypedRequest) => -x._1.compare(y._1)
+  implicit val requestSerialiser = new Serializer[TypedRequest] {
+    override def write(data: (QueueableRequest, String, String)): Slice[Byte] = Slice
+      .ofBytesScala(100000)
+      .addStringUTF8WithSize(data._2)
+      .addStringUTF8WithSize(data._3)
+      .addAll(data._1.serialize)
+      .close()
+
+    override def read(slice: Slice[Byte]): (QueueableRequest, String, String) = {
+      val reader = slice.createReader
+      val in = reader.readStringWithSizeUTF8
+      val out = reader.readStringWithSizeUTF8
+      val request = QueueableRequest.deserialize(reader.readRemaining.toArray)
+      (request, in, out)
+    }
+  }
 
   case class Metric(id: String, value: String)
 
@@ -98,7 +112,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
   private val log = Logger[QueueManagerService]
 
-  val jobQueue: mutable.PriorityQueue[TypedRequest] = mutable.PriorityQueue.empty
+  val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
 
   val isLocalhost: Boolean = uri.authority.host.toString match {
     case "localhost" | "127.0.0.1" | "::1" => true
@@ -117,10 +131,24 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     In <: InputConf[_, _, _]: ClassTag,
     Out <: OutputConf[_]: ClassTag
   ](r: FindPatternsRequest[In, Out]): Unit = {
-    jobQueue.enqueue((r, implicitly[ClassTag[In]], implicitly[ClassTag[Out]]))
+    jobQueue.add(
+      (r,
+        confClassTagToString(implicitly[ClassTag[In]]),
+        confClassTagToString(implicitly[ClassTag[Out]])
+      )
+      )
   }
 
-  def getQueuedJobs: Seq[QueueableRequest] = jobQueue.clone().dequeueAll.map(_._1)
+  def confClassTagToString(ct: ClassTag[_]): String = ct.runtimeClass match {
+    case c if c.isAssignableFrom(classOf[JDBCInputConf]) => "from-jdbc"
+    case c if c.isAssignableFrom(classOf[InfluxDBInputConf]) => "from-influxdb"
+    case c if c.isAssignableFrom(classOf[KafkaInputConf]) => "from-kafka"
+    case c if c.isAssignableFrom(classOf[JDBCOutputConf]) => "to-jdbc"
+    case c if c.isAssignableFrom(classOf[KafkaOutputConf]) => "to-kafka"
+    case _ => "unknown"
+  }
+
+  def getQueuedJobs: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
 
   def runJdbcToJdbc(request: FindPatternsRequest[JDBCInputConf, JDBCOutputConf]): Unit = {
     log.info("JDBC-to-JDBC: query started")
@@ -216,6 +244,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
+    resultOrErr match {
+      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Right(_)    => log.info(s"Stream successfully started!")
+    }
   }
 
   /*def dequeueAndRun(slots: Int): Unit = {
@@ -229,27 +261,28 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   }*/
 
   def dequeueAndRunSingleJob(): Unit = {
-    val request = jobQueue.dequeue()
+    val request = jobQueue.head.get
     run(request)
   }
 
   def run(typedRequest: TypedRequest): Unit = {
     val (request, inClass, outClass) = typedRequest
     log.info(s"Dequeued job ${request.uuid}, sending")
-    (inClass.runtimeClass, outClass.runtimeClass) match {
-      case (c1, c2) if c1.isAssignableFrom(classOf[JDBCInputConf]) && c2.isAssignableFrom(classOf[JDBCOutputConf]) =>
+    (inClass, outClass) match {
+      case ("from-jdbc", "to-jdbc") =>
         runJdbcToJdbc(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]])
-      case (c1, c2) if c1.isAssignableFrom(classOf[JDBCInputConf]) && c2.isAssignableFrom(classOf[KafkaOutputConf]) =>
+      case ("from-jdbc", "to-kafka") =>
         runJdbcToKafka(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]])
-      case (c1, c2) if c1.isAssignableFrom(classOf[KafkaInputConf]) && c2.isAssignableFrom(classOf[JDBCOutputConf]) =>
+      case ("from-kafka", "to-jdbc") =>
         runKafkaToJdbc(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]])
-      case (c1, c2) if c1.isAssignableFrom(classOf[KafkaInputConf]) && c2.isAssignableFrom(classOf[KafkaOutputConf]) =>
+      case ("from-kafka", "to-jdbc") =>
         runKafkaToKafka(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]])
-      case (c1, c2) if c1.isAssignableFrom(classOf[InfluxDBInputConf]) && c2.isAssignableFrom(classOf[JDBCOutputConf]) =>
+      case ("from-influxdb", "to-jdbc") =>
         runInfluxToJdbc(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]])
-      case (c1, c2)
-          if c1.isAssignableFrom(classOf[InfluxDBInputConf]) && c2.isAssignableFrom(classOf[KafkaOutputConf]) =>
+      case ("from-influxdb", "to-jdbc") =>
         runInfluxToKafka(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]])
+      case _ =>
+        log.error(s"Unknown job request type: IN: $inClass --- OUT: $outClass")
     }
   }
 

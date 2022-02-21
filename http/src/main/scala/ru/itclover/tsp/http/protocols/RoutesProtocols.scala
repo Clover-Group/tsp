@@ -2,7 +2,7 @@ package ru.itclover.tsp.http.protocols
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest}
+import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
@@ -170,6 +170,18 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
     jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "priority", "patterns")
+
+  class QueueableRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] extends JsonFormat[QueueableRequest] {
+    override def read(json: JsValue): QueueableRequest = patternsRequestFmt[IN, OUT].read(json)
+
+    override def write(obj: QueueableRequest): JsValue = obj match {
+      case x @ FindPatternsRequest(_, _, _, _, _) => patternsRequestFmt[IN, OUT]
+        .write(x.asInstanceOf[FindPatternsRequest[IN, OUT]])
+    }
+  }
+
+  implicit def queueableRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat]
+  : JsonFormat[QueueableRequest] = (new QueueableRequestFmt[IN, OUT])
 
   // TODO: Remove type bounds for (In|Out)putConf?
 

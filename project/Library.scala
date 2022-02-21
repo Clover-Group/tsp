@@ -56,6 +56,8 @@ object Version {
 
   val akkaHttpMetrics = "0.6.0"
 
+  val swayDB = "0.16.2"
+
 }
 
 object Library {
@@ -174,6 +176,11 @@ object Library {
 
   val redisson: Seq[ModuleID] = Seq(
     "org.redisson" % "redisson" % Version.redissonVersion
+  )
+
+  val swayDB: Seq[ModuleID] = Seq(
+    "io.swaydb" %% "swaydb" % Version.swayDB,
+    "io.swaydb" %% "boopickle" % Version.swayDB
   )
 
 }

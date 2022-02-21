@@ -3,15 +3,34 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.io.input.InputConf
 import ru.itclover.tsp.io.output.OutputConf
 
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
+
 trait Request
 
-trait QueueableRequest extends Request with Ordered[QueueableRequest] {
+sealed trait QueueableRequest extends Request with Ordered[QueueableRequest] with Serializable {
   def priority: Int
   def uuid: String
 
   override def compare(that: QueueableRequest): Int = this.priority.compare(that.priority)
 
   def requiredSlots: Int
+
+  val maxLength = 1000000
+
+  def serialize: Array[Byte] = {
+    val baos = new ByteArrayOutputStream(maxLength)
+    val oos = new ObjectOutputStream(baos)
+    oos.writeObject(this)
+    oos.close
+    baos.toByteArray
+  }
+}
+
+object QueueableRequest {
+  def deserialize(data: Array[Byte]): QueueableRequest = {
+    val ois = new ObjectInputStream(new ByteArrayInputStream(data))
+    ois.readObject().asInstanceOf[QueueableRequest]
+  }
 }
 
 final case class FindPatternsRequest[IN <: InputConf[_, _, _], OUT <: OutputConf[_]](
