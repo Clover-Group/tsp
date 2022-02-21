@@ -262,6 +262,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
   def dequeueAndRunSingleJob(): Unit = {
     val request = jobQueue.head.get
+    jobQueue.remove(request)
     run(request)
   }
 
