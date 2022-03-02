@@ -47,7 +47,7 @@ trait JobsRoutes extends RoutesProtocols {
 
   val monitoringUri: Uri
   lazy val monitoring = FlinkMonitoringService(monitoringUri)
-  lazy val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutionContext)
+  val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutionContext)
 
   implicit val reporting: Option[JobReporting]
 
