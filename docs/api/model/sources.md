@@ -17,12 +17,31 @@ General parameters for all sources:
 - `query` (string) is the SQL query for obtaining data (e.g. `SELECT time, sensor1, sensor2 FROM telemetry_data`)
 - `userName` and `password` (strings) are the user name and password (for overriding those specified in JDBC URL).
 
+#### Example
+```json
+{
+  "jdbcUrl": "jdbc:clickhouse://127.0.0.1:8123/mydb?user=default",
+  "query": "SELECT time, engine_id, speed, voltage FROM engine_telemetry",
+  "userName": "default",
+  "password": "qwerty"
+}
+```
+
 ### Kafka source
 > Note the `parallelism` and `patternsParallelism` are hard-coded to 1 for Kafka.
 
 - `brokers` (string) is the address of the Kafka brokers (e.g. `127.0.0.1:9092;127.0.0.1:9093`)
 - `topic` (string) is the name of the topic containing time-series data.
 - `group` (string) is the name of the consumer group for reading data.
+
+#### Example
+```json
+{
+  "brokers": "127.0.0.1:9092;127.0.0.1:9093",
+  "topic": "engine_telemetry",
+  "group": "TSP1"
+}
+```
 
 ### InfluxDB source 
 TODO
