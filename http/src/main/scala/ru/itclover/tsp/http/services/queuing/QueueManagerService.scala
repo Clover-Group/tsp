@@ -267,6 +267,19 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     run(request)
   }
 
+  def removeFromQueue(uuid: String): Option[Unit] = {
+    val job = jobQueue.asScala.find(_._1.uuid == uuid)
+    job match {
+      case Some(value) => {
+        jobQueue.remove(value)
+        Some(())
+      }
+      case None => None
+    }
+  }
+
+  def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
+
   def run(typedRequest: TypedRequest): Unit = {
     val (request, inClass, outClass) = typedRequest
     log.info(s"Dequeued job ${request.uuid}, sending")

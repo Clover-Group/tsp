@@ -2,7 +2,8 @@ package ru.itclover.tsp.http.routes
 
 import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError}
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, NotFound}
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -47,7 +48,7 @@ trait JobsRoutes extends RoutesProtocols {
 
   val monitoringUri: Uri
   lazy val monitoring = FlinkMonitoringService(monitoringUri)
-  val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutionContext)
+  val queueManager: QueueManagerService
 
   implicit val reporting: Option[JobReporting]
 
@@ -89,15 +90,25 @@ trait JobsRoutes extends RoutesProtocols {
         queueManager.enqueue(request)
         complete(Map("status" -> s"Job ${request.uuid} enqueued."))
       }
+    } ~
+    /* path("queue" / "show") {
+      complete(queueManager.queueAsScalaSeq.toList)
+    } ~ */
+    path("queue" / Segment / "remove") { uuid =>
+      queueManager.removeFromQueue(uuid) match {
+        case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue."))
+        case None => complete((NotFound, s"Job $uuid was not found in the queue."))
+      }
     }
-
 }
 
 object JobsRoutes {
 
   private val log = Logger[JobsRoutes]
 
-  def fromExecutionContext(monitoringUrl: Uri, rep: Option[JobReporting], blocking: ExecutionContextExecutor)(
+  def fromExecutionContext(monitoringUrl: Uri,
+                           rep: Option[JobReporting],
+                           blocking: ExecutionContextExecutor)(
     implicit strEnv: StreamExecutionEnvironment,
     as: ActorSystem,
     am: ActorMaterializer
@@ -113,6 +124,10 @@ object JobsRoutes {
         implicit val actorSystem = as
         implicit val materializer = am
         override val monitoringUri = monitoringUrl
+        override val queueManager = QueueManagerService.getOrCreate(monitoringUrl, blocking)(
+          execContext, strEnv, as, am, AnyDecodersInstances, rep,
+          implicitly[TypeInformation[RowWithIdx]], implicitly[TypeInformation[Row]]
+        )
         override val reporting: Option[JobReporting] = rep
       }.route
     }
