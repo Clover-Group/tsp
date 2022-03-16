@@ -290,11 +290,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
         runJdbcToKafka(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]])
       case ("from-kafka", "to-jdbc") =>
         runKafkaToJdbc(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]])
-      case ("from-kafka", "to-jdbc") =>
+      case ("from-kafka", "to-kafka") =>
         runKafkaToKafka(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]])
       case ("from-influxdb", "to-jdbc") =>
         runInfluxToJdbc(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]])
-      case ("from-influxdb", "to-jdbc") =>
+      case ("from-influxdb", "to-kafka") =>
         runInfluxToKafka(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]])
       case _ =>
         log.error(s"Unknown job request type: IN: $inClass --- OUT: $outClass")
