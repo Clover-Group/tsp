@@ -7,7 +7,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.KeyedProcessFunction
 import org.apache.flink.streaming.api.watermark.Watermark
 import org.apache.flink.util.Collector
-import ru.itclover.tsp.StreamSource
+import ru.itclover.tsp.{KafkaSource, StreamSource}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.utils.KeyCreator
 //import ru.itclover.tsp.phases.NumericPhases.InKeyNumberExtractor
@@ -33,7 +33,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
-  defaultTimeout: Option[Long]
+  defaultTimeout: Option[Long],
+  streamMode: Boolean
 )(
   implicit extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
@@ -103,8 +104,18 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       out.collect(lastEvent)
     }
     lastTimestamp = time
+    val timeoutTime = if (streamMode) {
+      ctx.timerService().currentProcessingTime() + 2000
+    } else {
+      ctx.timerService().currentWatermark() + 1
+    }
+    lastTimer.update(timeoutTime)
     lastEvent = outEvent
-    ctx.timerService().registerEventTimeTimer(ctx.timerService().currentWatermark() + 1)
+    if (streamMode) {
+      ctx.timerService().registerProcessingTimeTimer(timeoutTime)
+    } else {
+      ctx.timerService().registerEventTimeTimer(timeoutTime)
+    }
   }
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
@@ -119,7 +130,12 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     out: Collector[OutEvent]
   ): Unit = {
     // check if this was the last timer we registered
-    if (ctx.timerService().currentWatermark() == Watermark.MAX_WATERMARK.getTimestamp) {
+    val condition = if (streamMode) {
+      timestamp == lastTimer.value()
+    } else {
+      ctx.timerService().currentWatermark() == Watermark.MAX_WATERMARK.getTimestamp
+    }
+    if (condition) {
       // it was, so no data was received afterwards.
       // collect the last
       out.collect(lastEvent)
@@ -159,7 +175,8 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = true,
-            defaultTimeout = ndu.defaultTimeout
+            defaultTimeout = ndu.defaultTimeout,
+            streamMode = streamSource.isInstanceOf[KafkaSource]
           )(
             timeExtractor,
             extractKeyVal,
@@ -186,7 +203,8 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = false,
-            defaultTimeout = wdf.defaultTimeout
+            defaultTimeout = wdf.defaultTimeout,
+            streamMode = streamSource.isInstanceOf[KafkaSource]
           )(
             timeExtractor,
             extractKeyVal,
