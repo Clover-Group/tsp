@@ -6,7 +6,7 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output.{EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf}
+import ru.itclover.tsp.io.output.{Context, EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf}
 import spray.json._
 
 import scala.util.Try
@@ -141,6 +141,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     RedisInputConf.apply
   )
 
+  implicit val contextFmt = jsonFormat2(Context.apply)
+
   implicit val newRowSchemaFmt = jsonFormat(
     NewRowSchema.apply,
     "unitIdField",
@@ -149,7 +151,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "appIdFieldVal",
     "patternIdField",
     "subunitIdField",
-    "incidentIdField"
+    "incidentIdField",
+    "context"
   )
 
   implicit object eventSchemaFmt extends JsonFormat[EventSchema] {
