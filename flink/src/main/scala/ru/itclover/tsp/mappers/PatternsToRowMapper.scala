@@ -26,7 +26,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       resultRow.setField(newRowSchema.incidentIdInd, incident.incidentUUID.toString)
       newRowSchema.context match {
         case Some(Context(_, data)) =>
-          resultRow.setField(newRowSchema.contextIdInd, data)
+          resultRow.setField(newRowSchema.contextIdInd, toJsonString(data))
         case None => // do nothing if no context
       }
 
@@ -37,5 +37,15 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
     val zonedDt = ZonedDateTime.of(LocalDateTime.now, ZoneId.systemDefault)
     val utc = zonedDt.withZoneSameInstant(ZoneId.of("UTC"))
     Timestamp.valueOf(utc.toLocalDateTime).getTime / 1000.0
+  }
+
+  def escape(raw: String): String = {
+    import scala.reflect.runtime.universe._
+    Literal(Constant(raw)).toString
+  }
+
+  def toJsonString(ctx: Map[Symbol, String]): String = {
+    ctx.map { case (k, v) => s""""${escape(k.name)}": "${escape(v)}"""" }
+      .mkString("{", ", ", "}")
   }
 }
