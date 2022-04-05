@@ -3,7 +3,7 @@ package ru.itclover.tsp.http.routes
 import java.util.concurrent.TimeUnit
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, NotFound}
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, InternalServerError, NotFound, PermanentRedirect}
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -97,7 +97,7 @@ trait JobsRoutes extends RoutesProtocols {
     path("queue" / Segment / "remove") { uuid =>
       queueManager.removeFromQueue(uuid) match {
         case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue."))
-        case None => complete((NotFound, s"Job $uuid was not found in the queue."))
+        case None => redirect(s"/job/$uuid/stop", PermanentRedirect)
       }
     }
 }
