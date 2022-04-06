@@ -45,7 +45,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
   }
 
   def toJsonString(ctx: Map[Symbol, String]): String = {
-    ctx.map { case (k, v) => s""""${escape(k.name)}": "${escape(v)}"""" }
+    ctx.map { case (k, v) => s"""${escape(k.name)}: ${escape(v)}""" }
       .mkString("{", ", ", "}")
   }
 }
