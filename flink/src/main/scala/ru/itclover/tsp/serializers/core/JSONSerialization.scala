@@ -1,11 +1,12 @@
 package ru.itclover.tsp.serializers.core
 
+import com.fasterxml.jackson.databind.node.ObjectNode
+
 import java.nio.charset.Charset
 import java.sql.Timestamp
-
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
+import ru.itclover.tsp.io.output.{Context, EventSchema, NewRowSchema}
 
 /**
   * JSON Serialization for Redis
@@ -58,6 +59,15 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
         root.put(newRowSchema.patternIdField.name, output.getField(newRowSchema.patternIdInd).asInstanceOf[Int])
         root.put(newRowSchema.subunitIdField.name, output.getField(newRowSchema.subunitIdInd).asInstanceOf[Int])
         root.put(newRowSchema.incidentIdField.name, output.getField(newRowSchema.incidentIdInd).asInstanceOf[String])
+        newRowSchema.context match {
+          case Some(Context(field, data)) =>
+            val node: ObjectNode = mapper.createObjectNode()
+            data.foreach { case (k, v) =>
+              node.put(k.name, v)
+            }
+            root.put(field.name, node)
+          case None =>
+        }
     }
 
     val jsonString = mapper.writeValueAsString(root)

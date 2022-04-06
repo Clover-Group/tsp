@@ -13,6 +13,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.types.Row
+import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.{InfluxDBSource, JdbcSource, KafkaSource, PatternsSearchJob, RowWithIdx, StreamSource}
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
@@ -21,7 +22,7 @@ import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
-import ru.itclover.tsp.http.services.streaming.{ConsoleStatusReporter, StatusReporter}
+import ru.itclover.tsp.http.services.streaming.{ConsoleStatusReporter, StatusMessage, StatusReporter}
 import ru.itclover.tsp.io.input.{InfluxDBInputConf, InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers.PatternsToRowMapper
@@ -34,12 +35,15 @@ import swaydb.data.slice.Slice
 import swaydb.serializers.Serializer
 
 import java.nio.file.Paths
+import java.time.LocalDateTime
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.collection.mutable
 import scala.concurrent.duration.{Duration, MILLISECONDS, SECONDS}
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
+import collection.JavaConverters._
+
 
 class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
@@ -138,6 +142,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
         confClassTagToString(implicitly[ClassTag[Out]])
       )
       )
+    reportJobEnqueued(r.uuid)
   }
 
   def confClassTagToString(ct: ClassTag[_]): String = ct.runtimeClass match {
@@ -267,6 +272,19 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     run(request)
   }
 
+  def removeFromQueue(uuid: String): Option[Unit] = {
+    val job = jobQueue.asScala.find(_._1.uuid == uuid)
+    job match {
+      case Some(value) => {
+        jobQueue.remove(value)
+        Some(())
+      }
+      case None => None
+    }
+  }
+
+  def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
+
   def run(typedRequest: TypedRequest): Unit = {
     val (request, inClass, outClass) = typedRequest
     log.info(s"Dequeued job ${request.uuid}, sending")
@@ -277,11 +295,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
         runJdbcToKafka(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]])
       case ("from-kafka", "to-jdbc") =>
         runKafkaToJdbc(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]])
-      case ("from-kafka", "to-jdbc") =>
+      case ("from-kafka", "to-kafka") =>
         runKafkaToKafka(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]])
       case ("from-influxdb", "to-jdbc") =>
         runInfluxToJdbc(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]])
-      case ("from-influxdb", "to-jdbc") =>
+      case ("from-influxdb", "to-kafka") =>
         runInfluxToKafka(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]])
       case _ =>
         log.error(s"Unknown job request type: IN: $inClass --- OUT: $outClass")
@@ -336,7 +354,10 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       }
       streamEnv.execute(uuid)
     }(blockingExecutionContext)
-    Try(Await.ready(res, Duration.create(1, SECONDS)))
+    Try(Await.ready(res, Duration.create(1, SECONDS))) match {
+      case Failure(exception) => reportJobSentToFlink(uuid)
+      case Success(value) => reportJobSendingFailed(uuid)
+    }
 
     log.debug("runStream finished")
     Right(None)
@@ -355,6 +376,54 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       .flatMap(resp => Unmarshal(resp).to[JobDetails])
       .map(det => det.name)
     Try(Await.result(res, Duration.create(500, MILLISECONDS))).toOption
+  }
+
+  def reportJobEnqueued(uuid: String): Unit = {
+    val msg = StatusMessage(
+      uuid = uuid,
+      timestamp = LocalDateTime.now.toString,
+      status = "ENQUEUED",
+      flinkStatus = "(no status)",
+      text = s"Job $uuid enqueued to TSP job queue."
+    )
+    sendStatusMessage(msg)
+  }
+
+  def reportJobSentToFlink(uuid: String): Unit = {
+    val msg = StatusMessage(
+      uuid = uuid,
+      timestamp = LocalDateTime.now.toString,
+      status = "SENT",
+      flinkStatus = "(no status)",
+      text = s"Job $uuid sent to Flink."
+    )
+    sendStatusMessage(msg)
+  }
+
+  def reportJobSendingFailed(uuid: String): Unit = {
+    val msg = StatusMessage(
+      uuid = uuid,
+      timestamp = LocalDateTime.now.toString,
+      status = "FAILED",
+      flinkStatus = "(no status)",
+      text = s"Job $uuid failed to send to Flink properly."
+    )
+    sendStatusMessage(msg)
+  }
+
+  def sendStatusMessage(msg: StatusMessage): Unit = reporting match {
+    case Some(value) =>
+      val config: Map[String, Object] = Map(
+        "bootstrap.servers" -> value.brokers,
+        "key.serializer"    -> "org.apache.kafka.common.serialization.StringSerializer",
+        "value.serializer"  -> "ru.itclover.tsp.http.services.streaming.StatusMessageSerializer"
+      )
+      val messageProducer = new KafkaProducer[String, StatusMessage](config.asJava)
+      val record = new ProducerRecord[String, StatusMessage](value.topic, msg.timestamp, msg)
+      messageProducer.send(record)
+      messageProducer.flush()
+    case None =>
+      log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
   }
 
   def onTimer(): Unit = {

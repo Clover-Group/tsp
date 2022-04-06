@@ -6,7 +6,10 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import cats.implicits._
+import org.apache.flink.streaming.api.scala.createTypeInformation
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.http.routes.JobReporting
+import ru.itclover.tsp.http.services.queuing.QueueManagerService
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
@@ -209,4 +212,8 @@ object Launcher extends App with HttpService {
       None
     }
   }
+
+  implicit val rep = reporting
+  implicit val typeInfo = createTypeInformation[RowWithIdx]
+  val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutorContext)
 }

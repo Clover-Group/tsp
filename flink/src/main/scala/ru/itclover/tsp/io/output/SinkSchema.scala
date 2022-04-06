@@ -29,6 +29,11 @@ trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
   def fieldsCount: Int
 }
 
+case class Context(
+  field: Symbol,
+  data: Map[Symbol, String]
+) extends Serializable
+
 case class NewRowSchema(
   unitIdField: Symbol,
   fromTsField: Symbol,
@@ -36,16 +41,30 @@ case class NewRowSchema(
   appIdFieldVal: (Symbol, Int),
   patternIdField: Symbol,
   subunitIdField: Symbol,
-  incidentIdField: Symbol
+  incidentIdField: Symbol,
+  context: Option[Context] = None
 ) extends EventSchema
     with Serializable {
-  override def fieldsTypes: List[Int] =
-    List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR)
 
-  override def fieldsNames: List[Symbol] =
-    List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField)
+  override def fieldsTypes: List[Int] = context match {
+    case Some(_) =>
+      List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR, Types.STRUCT)
+    case None =>
+      List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR)
+  }
 
-  override def fieldsCount: Int = 7
+  override def fieldsNames: List[Symbol] = context match {
+    case Some(Context(field, _)) =>
+      List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField, field)
+    case None =>
+      List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField)
+  }
+
+
+  override def fieldsCount: Int = context match {
+    case Some(_) => 8
+    case None => 7
+  }
 
   val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
 
@@ -59,5 +78,7 @@ case class NewRowSchema(
   val patternIdInd = fieldsIndexesMap(patternIdField)
 
   val incidentIdInd = fieldsIndexesMap(incidentIdField)
+
+  val contextIdInd = context.map(c => fieldsIndexesMap(c.field)).getOrElse(-1)
 
 }
