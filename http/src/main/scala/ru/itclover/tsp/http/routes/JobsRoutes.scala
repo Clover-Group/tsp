@@ -55,43 +55,13 @@ trait JobsRoutes extends RoutesProtocols {
   private val log = Logger[JobsRoutes]
 
   val route: Route =
-    path("streamJob" / "from-jdbc" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]]) { request =>
+    path("job" / "submit"./) {
+      entity(as[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]]) { request =>
         queueManager.enqueue(request)
         complete(Map("status" -> s"Job ${request.uuid} enqueued."))
       }
     } ~
-    path("streamJob" / "from-influxdb" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]]) { request =>
-        queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
-      }
-    } ~
-    path("streamJob" / "from-kafka" / "to-jdbc"./) {
-      entity(as[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]]) { request =>
-        queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
-      }
-    } ~
-    path("streamJob" / "from-jdbc" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]]) { request =>
-        queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
-      }
-    } ~
-    path("streamJob" / "from-influxdb" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]]) { request =>
-        queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
-      }
-    } ~
-    path("streamJob" / "from-kafka" / "to-kafka"./) {
-      entity(as[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]]) { request =>
-        queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
-      }
-    } ~
-    /* path("queue" / "show") {
+    /*path("queue" / "show") {
       complete(queueManager.queueAsScalaSeq.toList)
     } ~ */
     path("queue" / Segment / "remove") { uuid =>

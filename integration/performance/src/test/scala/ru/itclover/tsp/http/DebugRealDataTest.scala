@@ -3,8 +3,10 @@ package ru.itclover.tsp.http
 import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
+import org.apache.flink.types.Row
 import org.scalatest.FlatSpec
 import org.testcontainers.containers.wait.strategy.Wait
+import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.FinishedJobResponse
 import ru.itclover.tsp.http.routes.JobReporting
@@ -76,14 +78,14 @@ class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTes
     val requestString = Files.readResource("/debug/request.json").mkString
 
     val input = JsonParser(new StringBasedParserInput(requestString))
-    val request: FindPatternsRequest[JDBCInputConf, JDBCOutputConf] =
-      spray.json.jsonReader[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]].read(input)
+    val request: FindPatternsRequest[RowWithIdx, Symbol, Any, Row] =
+      spray.json.jsonReader[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]].read(input)
 
     // todo add checkpointing! https://tech.signavio.com/2017/postgres-flink-sink
     val finalRequest =
       request.copy(
-        inputConf = request.inputConf.copy(jdbcUrl = inputConf.jdbcUrl),
-        outConf = request.outConf.copy(
+        inputConf = request.inputConf.asInstanceOf[JDBCInputConf].copy(jdbcUrl = inputConf.jdbcUrl),
+        outConf = request.outConf.asInstanceOf[JDBCOutputConf].copy(
           jdbcUrl = s"jdbc:clickhouse://localhost:$port/default",
           driverName = "ru.yandex.clickhouse.ClickHouseDriver",
           password = None,

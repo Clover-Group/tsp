@@ -33,10 +33,10 @@ object QueueableRequest {
   }
 }
 
-final case class FindPatternsRequest[IN <: InputConf[_, _, _], OUT <: OutputConf[_]](
+final case class FindPatternsRequest[Event, EKey, EItem, OutEvent](
   override val uuid: String,
-  inputConf: IN,
-  outConf: OUT,
+  inputConf: InputConf[Event, EKey, EItem],
+  outConf: OutputConf[OutEvent],
   override val priority: Int,
   patterns: Seq[RawPattern]
 ) extends QueueableRequest {

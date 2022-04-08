@@ -92,6 +92,8 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   }
 
   type TypedRequest = (QueueableRequest, String, String)
+  type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
+
   implicit val requestOrdering: KeyOrder[TypedRequest] = (x: TypedRequest, y: TypedRequest) => -x._1.compare(y._1)
   implicit val requestSerialiser = new Serializer[TypedRequest] {
     override def write(data: (QueueableRequest, String, String)): Slice[Byte] = Slice
@@ -132,14 +134,11 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 4, TimeUnit.SECONDS)
   //f.cancel(false)
 
-  def enqueue[
-    In <: InputConf[_, _, _]: ClassTag,
-    Out <: OutputConf[_]: ClassTag
-  ](r: FindPatternsRequest[In, Out]): Unit = {
+  def enqueue(r: Request): Unit = {
     jobQueue.add(
       (r,
-        confClassTagToString(implicitly[ClassTag[In]]),
-        confClassTagToString(implicitly[ClassTag[Out]])
+        confClassTagToString(ClassTag(r.inputConf.getClass)),
+        confClassTagToString(ClassTag(r.outConf.getClass))
       )
       )
     reportJobEnqueued(r.uuid)
@@ -156,13 +155,13 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
   def getQueuedJobs: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
 
-  def runJdbcToJdbc(request: FindPatternsRequest[JDBCInputConf, JDBCOutputConf]): Unit = {
+  def runJdbcToJdbc(request: Request): Unit = {
     log.info("JDBC-to-JDBC: query started")
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
     log.info("JDBC-to-JDBC: extracted fields from patterns. Creating source...")
     val resultOrErr = for {
-      source <- JdbcSource.create(inputConf, fields)
+      source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
       _ = log.info("JDBC-to-JDBC: source created. Creating patterns stream...")
       _ <- createStream(patterns, inputConf, outConf, source)
       _ = log.info("JDBC-to-JDBC: stream created. Starting the stream...")
@@ -175,12 +174,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runJdbcToKafka(request: FindPatternsRequest[JDBCInputConf, KafkaOutputConf]): Unit = {
+  def runJdbcToKafka(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
-      source <- JdbcSource.create(inputConf, fields)
+      source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
@@ -190,12 +189,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runKafkaToJdbc(request: FindPatternsRequest[KafkaInputConf, JDBCOutputConf]): Unit = {
+  def runKafkaToJdbc(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
-      source <- KafkaSource.create(inputConf, fields)
+      source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
       _ = log.info("Kafka create done")
       _ <- createStream(patterns, inputConf, outConf, source)
       _ = log.info("Kafka createStream done")
@@ -208,12 +207,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runKafkaToKafka(request: FindPatternsRequest[KafkaInputConf, KafkaOutputConf]): Unit = {
+  def runKafkaToKafka(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
-      source <- KafkaSource.create(inputConf, fields)
+      source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
       _ = log.info("Kafka create done")
       _ <- createStream(patterns, inputConf, outConf, source)
       _ = log.info("Kafka createStream done")
@@ -226,12 +225,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runInfluxToJdbc(request: FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]): Unit = {
+  def runInfluxToJdbc(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
-      source <- InfluxDBSource.create(inputConf, fields)
+      source <- InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
@@ -241,12 +240,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runInfluxToKafka(request: FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]): Unit = {
+  def runInfluxToKafka(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
-      source <- InfluxDBSource.create(inputConf, fields)
+      source <- InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
       _      <- createStream(patterns, inputConf, outConf, source)
       result <- runStream(uuid)
     } yield result
@@ -286,21 +285,22 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
 
   def run(typedRequest: TypedRequest): Unit = {
-    val (request, inClass, outClass) = typedRequest
+    val (r, inClass, outClass) = typedRequest
+    val request = r.asInstanceOf[Request]
     log.info(s"Dequeued job ${request.uuid}, sending")
     (inClass, outClass) match {
       case ("from-jdbc", "to-jdbc") =>
-        runJdbcToJdbc(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, JDBCOutputConf]])
+        runJdbcToJdbc(request)
       case ("from-jdbc", "to-kafka") =>
-        runJdbcToKafka(request.asInstanceOf[FindPatternsRequest[JDBCInputConf, KafkaOutputConf]])
+        runJdbcToKafka(request)
       case ("from-kafka", "to-jdbc") =>
-        runKafkaToJdbc(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, JDBCOutputConf]])
+        runKafkaToJdbc(request)
       case ("from-kafka", "to-kafka") =>
-        runKafkaToKafka(request.asInstanceOf[FindPatternsRequest[KafkaInputConf, KafkaOutputConf]])
+        runKafkaToKafka(request)
       case ("from-influxdb", "to-jdbc") =>
-        runInfluxToJdbc(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, JDBCOutputConf]])
+        runInfluxToJdbc(request)
       case ("from-influxdb", "to-kafka") =>
-        runInfluxToKafka(request.asInstanceOf[FindPatternsRequest[InfluxDBInputConf, KafkaOutputConf]])
+        runInfluxToKafka(request)
       case _ =>
         log.error(s"Unknown job request type: IN: $inClass --- OUT: $outClass")
     }

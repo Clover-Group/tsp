@@ -141,6 +141,37 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     RedisInputConf.apply
   )
 
+  implicit def inpConfFmt[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  new RootJsonFormat[InputConf[Event, EKey, EValue]] {
+    override def read(json: JsValue): InputConf[Event, EKey, EValue] = json match {
+      case obj: JsObject =>
+        val tp = obj.fields.getOrElse("type", sys.error("Input (source) config: missing type"))
+        val cfg = obj.fields.getOrElse("config", sys.error("Input (source) config: missing config"))
+        tp match {
+          case JsString("kafka") => kafkaInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+          case JsString("jdbc")  => jdbcInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+          case JsString("influx")  => influxInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+          case JsString("redis")  => redisConfInputFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+          case _                               => deserializationError(s"Input (source) config: unknown type $tp")
+        }
+      case _ =>
+        deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
+    }
+    override def write(obj: InputConf[Event, EKey, EValue]): JsValue = {
+      val (t, c) = obj match {
+        case kafkain: KafkaInputConf => ("kafka", kafkaInpConfFmt.write(kafkain))
+        case jdbcin: JDBCInputConf   => ("jdbc", jdbcInpConfFmt.write(jdbcin))
+        case influxin: InfluxDBInputConf   => ("influx", influxInpConfFmt.write(influxin))
+        case redisin: RedisInputConf   => ("redis", redisConfInputFmt.write(redisin))
+        case _  => deserializationError("Unknown input (source) config")
+      }
+      JsObject(
+        "type"   -> t.toJson,
+        "config" -> c
+      )
+    }
+  }
+
   implicit val contextFmt = jsonFormat2(Context.apply)
 
   implicit val newRowSchemaFmt = jsonFormat(
@@ -169,24 +200,52 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
 
+  implicit def outConfFmt[Event] =
+    new RootJsonFormat[OutputConf[Event]] {
+      override def read(json: JsValue): OutputConf[Event] = json match {
+        case obj: JsObject =>
+          val tp = obj.fields.getOrElse("type", sys.error("Output (sink) config: missing type"))
+          val cfg = obj.fields.getOrElse("config", sys.error("Output (sink) config: missing config"))
+          tp match {
+            case JsString("kafka") => kafkaOutConfFmt.read(cfg).asInstanceOf[OutputConf[Event]]
+            case JsString("jdbc")  => jdbcOutConfFmt.read(cfg).asInstanceOf[OutputConf[Event]]
+            case _                               => deserializationError(s"Output (sink) config: unknown type $tp")
+          }
+        case _ =>
+          deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
+      }
+      override def write(obj: OutputConf[Event]): JsValue = {
+        val (t, c) = obj match {
+          case kafkaout: KafkaOutputConf => ("kafka", kafkaOutConfFmt.write(kafkaout))
+          case jdbcout: JDBCOutputConf   => ("jdbc", jdbcOutConfFmt.write(jdbcout))
+          case _  => deserializationError("Unknown output (sink) config")
+        }
+        JsObject(
+          "type"   -> t.toJson,
+          "config" -> c
+        )
+      }
+    }
+
   implicit val rawPatternFmt = jsonFormat5(RawPattern.apply)
 
-  implicit def patternsRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] =
-    jsonFormat(FindPatternsRequest.apply[IN, OUT], "uuid", "source", "sink", "priority", "patterns")
+  implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent]
+  (implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]) =
+    jsonFormat5(FindPatternsRequest.apply[Event, EKey, EValue, OutEvent])
 
-  class QueueableRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat] extends JsonFormat[QueueableRequest] {
-    override def read(json: JsValue): QueueableRequest = patternsRequestFmt[IN, OUT].read(json)
+  class QueueableRequestFmt[Event, EKey, EValue, OutEvent](implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
+                                                 outFormat: JsonFormat[OutputConf[OutEvent]]) extends JsonFormat[QueueableRequest] {
+
+    override def read(json: JsValue): QueueableRequest = patternsRequestFmt[Event, EKey, EValue, OutEvent].read(json)
 
     override def write(obj: QueueableRequest): JsValue = obj match {
-      case x @ FindPatternsRequest(_, _, _, _, _) => patternsRequestFmt[IN, OUT]
-        .write(x.asInstanceOf[FindPatternsRequest[IN, OUT]])
+      case x @ FindPatternsRequest(_, _, _, _, _) => patternsRequestFmt[Event, EKey, EValue, OutEvent]
+        .write(x.asInstanceOf[FindPatternsRequest[Event, EKey, EValue, OutEvent]])
     }
   }
 
-  implicit def queueableRequestFmt[IN <: InputConf[_, _, _]: JsonFormat, OUT <: OutputConf[_]: JsonFormat]
-  : JsonFormat[QueueableRequest] = (new QueueableRequestFmt[IN, OUT])
-
-  // TODO: Remove type bounds for (In|Out)putConf?
+  implicit def queueableRequestFmt[Event, EKey, EValue, OutEvent](implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]])
+  : JsonFormat[QueueableRequest] = (new QueueableRequestFmt[Event, EKey, EValue, OutEvent])
 
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 
