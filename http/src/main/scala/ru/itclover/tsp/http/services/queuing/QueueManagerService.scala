@@ -91,24 +91,22 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  type TypedRequest = (QueueableRequest, String, String)
+  type TypedRequest = (QueueableRequest, String)
   type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
 
   implicit val requestOrdering: KeyOrder[TypedRequest] = (x: TypedRequest, y: TypedRequest) => -x._1.compare(y._1)
   implicit val requestSerialiser = new Serializer[TypedRequest] {
-    override def write(data: (QueueableRequest, String, String)): Slice[Byte] = Slice
+    override def write(data: (QueueableRequest, String)): Slice[Byte] = Slice
       .ofBytesScala(100000)
       .addStringUTF8WithSize(data._2)
-      .addStringUTF8WithSize(data._3)
       .addAll(data._1.serialize)
       .close()
 
-    override def read(slice: Slice[Byte]): (QueueableRequest, String, String) = {
+    override def read(slice: Slice[Byte]): (QueueableRequest, String) = {
       val reader = slice.createReader
       val in = reader.readStringWithSizeUTF8
-      val out = reader.readStringWithSizeUTF8
       val request = QueueableRequest.deserialize(reader.readRemaining.toArray)
-      (request, in, out)
+      (request, in)
     }
   }
 
@@ -137,8 +135,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   def enqueue(r: Request): Unit = {
     jobQueue.add(
       (r,
-        confClassTagToString(ClassTag(r.inputConf.getClass)),
-        confClassTagToString(ClassTag(r.outConf.getClass))
+        confClassTagToString(ClassTag(r.inputConf.getClass))
       )
       )
     reportJobEnqueued(r.uuid)
@@ -148,14 +145,12 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     case c if c.isAssignableFrom(classOf[JDBCInputConf]) => "from-jdbc"
     case c if c.isAssignableFrom(classOf[InfluxDBInputConf]) => "from-influxdb"
     case c if c.isAssignableFrom(classOf[KafkaInputConf]) => "from-kafka"
-    case c if c.isAssignableFrom(classOf[JDBCOutputConf]) => "to-jdbc"
-    case c if c.isAssignableFrom(classOf[KafkaOutputConf]) => "to-kafka"
     case _ => "unknown"
   }
 
   def getQueuedJobs: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
 
-  def runJdbcToJdbc(request: Request): Unit = {
+  def runJdbc(request: Request): Unit = {
     log.info("JDBC-to-JDBC: query started")
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
@@ -174,22 +169,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runJdbcToKafka(request: Request): Unit = {
-    import request._
-    val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-    val resultOrErr = for {
-      source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
-      _      <- createStream(patterns, inputConf, outConf, source)
-      result <- runStream(uuid)
-    } yield result
-    resultOrErr match {
-      case Left(error) => log.error(s"Cannot run request. Reason: $error")
-      case Right(_)    => log.info(s"Stream successfully started!")
-    }
-  }
-
-  def runKafkaToJdbc(request: Request): Unit = {
+  def runKafka(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
@@ -207,40 +187,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     }
   }
 
-  def runKafkaToKafka(request: Request): Unit = {
-    import request._
-    val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-    val resultOrErr = for {
-      source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
-      _ = log.info("Kafka create done")
-      _ <- createStream(patterns, inputConf, outConf, source)
-      _ = log.info("Kafka createStream done")
-      result <- runStream(uuid)
-      _ = log.info("Kafka runStream done")
-    } yield result
-    resultOrErr match {
-      case Left(error) => log.error(s"Cannot run request. Reason: $error")
-      case Right(_)    => log.info(s"Stream successfully started!")
-    }
-  }
-
-  def runInfluxToJdbc(request: Request): Unit = {
-    import request._
-    val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
-
-    val resultOrErr = for {
-      source <- InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
-      _      <- createStream(patterns, inputConf, outConf, source)
-      result <- runStream(uuid)
-    } yield result
-    resultOrErr match {
-      case Left(error) => log.error(s"Cannot run request. Reason: $error")
-      case Right(_)    => log.info(s"Stream successfully started!")
-    }
-  }
-
-  def runInfluxToKafka(request: Request): Unit = {
+  def runInflux(request: Request): Unit = {
     import request._
     val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
 
@@ -285,24 +232,18 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
 
   def run(typedRequest: TypedRequest): Unit = {
-    val (r, inClass, outClass) = typedRequest
+    val (r, inClass) = typedRequest
     val request = r.asInstanceOf[Request]
     log.info(s"Dequeued job ${request.uuid}, sending")
-    (inClass, outClass) match {
-      case ("from-jdbc", "to-jdbc") =>
-        runJdbcToJdbc(request)
-      case ("from-jdbc", "to-kafka") =>
-        runJdbcToKafka(request)
-      case ("from-kafka", "to-jdbc") =>
-        runKafkaToJdbc(request)
-      case ("from-kafka", "to-kafka") =>
-        runKafkaToKafka(request)
-      case ("from-influxdb", "to-jdbc") =>
-        runInfluxToJdbc(request)
-      case ("from-influxdb", "to-kafka") =>
-        runInfluxToKafka(request)
+    inClass match {
+      case "from-jdbc" =>
+        runJdbc(request)
+      case "from-kafka" =>
+        runKafka(request)
+      case "from-influxdb" =>
+        runInflux(request)
       case _ =>
-        log.error(s"Unknown job request type: IN: $inClass --- OUT: $outClass")
+        log.error(s"Unknown job request type: IN: $inClass")
     }
   }
 
@@ -311,7 +252,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   def createStream[E: TypeInformation, EItem](
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
-    outConf: OutputConf[Row],
+    outConf: Seq[OutputConf[Row]],
     source: StreamSource[E, EKey, EItem]
   )(implicit decoders: BasicDecoders[EItem]) = {
     streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
@@ -322,7 +263,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,
-      PatternsToRowMapper(inputConf.sourceId, outConf.rowSchema)
+      PatternsToRowMapper(inputConf.sourceId, outConf.head.rowSchema)
     )
     strOrErr.map {
       case (parsedPatterns, stream) =>

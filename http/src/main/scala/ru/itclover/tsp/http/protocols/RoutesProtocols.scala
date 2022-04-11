@@ -231,7 +231,13 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent]
   (implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]) =
-    jsonFormat5(FindPatternsRequest.apply[Event, EKey, EValue, OutEvent])
+    jsonFormat(FindPatternsRequest.apply[Event, EKey, EValue, OutEvent],
+      "uuid",
+      "source",
+      "sinks",
+      "priority",
+      "patterns"
+    )
 
   class QueueableRequestFmt[Event, EKey, EValue, OutEvent](implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
                                                  outFormat: JsonFormat[OutputConf[OutEvent]]) extends JsonFormat[QueueableRequest] {

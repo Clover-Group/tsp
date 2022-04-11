@@ -12,6 +12,7 @@ import org.apache.flink.streaming.api.windowing.assigners._
 import org.apache.flink.streaming.api.windowing.time.{Time => WindowingTime}
 import org.apache.flink.streaming.api.windowing.windows.{Window => FlinkWindow}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer
+import org.apache.flink.types.Row
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
@@ -40,9 +41,9 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
 
   def patternsSearchStream[OutE: TypeInformation, OutKey, S](
     rawPatterns: Seq[RawPattern],
-    outputConf: OutputConf[OutE],
+    outputConf: Seq[OutputConf[OutE]],
     resultMapper: RichMapFunction[Incident, OutE]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], DataStreamSink[OutE])] = {
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Seq[DataStreamSink[OutE]])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
@@ -52,7 +53,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
       source.patternFields
     ).map { patterns =>
-      val forwardFields = outputConf.forwardedFieldsIds.map(id => (id, source.fieldToEKey(id)))
+      val forwardFields = Seq.empty
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = incidents.map(resultMapper)
@@ -234,21 +235,21 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](stream: DataStream[E], outputConf: OutputConf[E]): DataStreamSink[E] = {
+  def saveStream[E](stream: DataStream[E], outputConf: Seq[OutputConf[E]]): Seq[DataStreamSink[E]] = {
     log.debug("saveStream started")
-    outputConf match {
+    outputConf.map {
       case kafkaConf: KafkaOutputConf =>
         val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.dataSerializer)
           .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
-        val res = stream.addSink(producer)
+        val res: DataStreamSink[E] = stream.addSink(producer)
         log.debug("saveStream finished")
         res
 
-      case _ =>
-        val outputFormat = outputConf.getOutputFormat
+      case otherOutputConf =>
+        val outputFormat = otherOutputConf.getOutputFormat
         val res = stream.writeUsingOutputFormat(outputFormat)
         log.debug("saveStream finished")
         res
-    }
+    }.asInstanceOf[Seq[DataStreamSink[E]]]
   }
 }

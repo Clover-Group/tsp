@@ -101,9 +101,9 @@ trait HttpService extends RoutesProtocols {
     .handleAll[MalformedRequestContentRejection] { x =>
       complete((BadRequest, FailureResponse(4003, "Malformed request content.", x.map(_.toString))))
     }
-    .handleAll[Rejection] { _ =>
+    /*.handleAll[Rejection] { _ =>
       complete((InternalServerError, FailureResponse(5003, "Unknown rejection.", Seq.empty)))
-    }
+    }*/
     .result()
 
   implicit def exceptionsHandler = ExceptionHandler {
