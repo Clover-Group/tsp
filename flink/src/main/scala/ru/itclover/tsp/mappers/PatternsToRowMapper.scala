@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
 import ru.itclover.tsp.core.Incident
-import ru.itclover.tsp.io.output.{Context, EventSchema, NewRowSchema}
+import ru.itclover.tsp.io.output._
 
 import scala.util.Try
 
@@ -17,19 +17,18 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
   override def map(incident: Incident) = schema match {
     case newRowSchema: NewRowSchema =>
       val resultRow = new Row(newRowSchema.fieldsCount)
-      resultRow.setField(newRowSchema.unitIdInd, incident.patternUnit)
-      resultRow.setField(newRowSchema.patternIdInd, incident.patternId)
-      resultRow.setField(newRowSchema.appIdInd, newRowSchema.appIdFieldVal._2)
-      resultRow.setField(newRowSchema.beginInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.from.toMillis)))
-      resultRow.setField(newRowSchema.endInd, Timestamp.from(Instant.ofEpochMilli(incident.segment.to.toMillis)))
-      resultRow.setField(newRowSchema.subunitIdInd, incident.patternSubunit)
-      resultRow.setField(newRowSchema.incidentIdInd, incident.incidentUUID.toString)
-      newRowSchema.context match {
-        case Some(Context(_, data)) =>
-          resultRow.setField(newRowSchema.contextIdInd, toJsonString(data))
-        case None => // do nothing if no context
+      newRowSchema.data.foreach {
+        case (k, v) =>
+          val pos = newRowSchema.fieldsIndices(Symbol(k))
+          v match {
+            case value: IntESValue => resultRow.setField(pos, convertFromInt(value.value, value.`type`))
+            case value: FloatESValue => resultRow.setField(pos, convertFromFloat(value.value, value.`type`))
+            case value: StringESValue => resultRow.setField(pos,
+              convertFromString(interpolateString(value.value, incident),
+                value.`type`))
+            case value: ObjectESValue => resultRow.setField(pos, convertFromObject(value.value, incident))
+        }
       }
-
       resultRow
   }
 
@@ -47,5 +46,76 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
   def toJsonString(ctx: Map[Symbol, String]): String = {
     ctx.map { case (k, v) => s"""${escape(k.name)}: ${escape(v)}""" }
       .mkString("{", ", ", "}")
+  }
+
+  def interpolateString(value: String, incident: Incident): String = value
+    .replace("$IncidentID", incident.id)
+    .replace("$UUID", incident.incidentUUID.toString)
+    .replace("$PatternID", incident.patternId.toString)
+    .replace("$Unit", incident.patternUnit.toString)
+    .replace("$Subunit", incident.patternSubunit.toString)
+    .replace("$IncidentStart", incident.segment.from.toString)
+    .replace("$IncidentEnd", incident.segment.to.toString)
+    .replace("$$", "$")
+
+  def convertFromInt(value: Long, toType: String): Any = {
+    toType match {
+      case "int8" => value.toByte
+      case "int16" => value.toShort
+      case "int32" => value.toInt
+      case "int64" => value
+      case "boolean" => value != 0
+      case "string" => value.toString
+      case "float32" => value.toFloat
+      case "float64" => value.toDouble
+      case "timestamp" => Timestamp.from(Instant.ofEpochSecond(value))
+      case "object" => value
+      case _       =>
+    }
+  }
+
+  def convertFromFloat(value: Double, toType: String): Any = {
+    toType match {
+      case "int8" => value.toByte
+      case "int16" => value.toShort
+      case "int32" => value.toInt
+      case "int64" => value.toLong
+      case "boolean" => value != 0
+      case "string" => value.toString
+      case "float32" => value.toFloat
+      case "float64" => value
+      case "timestamp" => Timestamp.from(Instant.ofEpochSecond(value.toLong, ((value - value.toLong) * 1e9).toInt))
+      case "object" => value
+      case _       =>
+    }
+  }
+
+  def convertFromString(value: String, toType: String): Any = {
+    toType match {
+      case "int8" => value.toByte
+      case "int16" => value.toShort
+      case "int32" => value.toInt
+      case "int64" => value.toLong
+      case "boolean" => value != "0" && value != "false" && value != "off"
+      case "string" => value
+      case "float32" => value.toFloat
+      case "float64" => value.toDouble
+      case "timestamp" => Timestamp.valueOf(value)
+      case "object" => value
+      case _       =>
+    }
+  }
+
+  def convertFromObject(value: Map[String, EventSchemaValue], incident: Incident): Map[String, Any] = {
+    value.map {
+      case (k, v) =>
+        val s = v match {
+          case value: IntESValue => convertFromInt(value.value, value.`type`)
+          case value: FloatESValue => convertFromFloat(value.value, value.`type`)
+          case value: StringESValue => convertFromString(interpolateString(value.value, incident), value.`type`)
+          case value: ObjectESValue => convertFromObject(value.value, incident)
+        }
+        (k, s)
+    }
   }
 }

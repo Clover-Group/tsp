@@ -12,7 +12,7 @@ import org.apache.flink.types.Row
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import ru.itclover.tsp.io.input.KafkaInputConf
-import ru.itclover.tsp.serializers.core.{ArrowSerialization, JSONSerialization}
+import ru.itclover.tsp.serializers.core.JSONSerialization
 
 class StreamEndException(message: String) extends Exception(message)
 
@@ -47,7 +47,6 @@ object KafkaService {
 
     val deserializer = conf.serializer.getOrElse("json") match {
       case "json"  => new RowDeserializationSchema(fieldsIdxMap)
-      case "arrow" => new ArrowRowDeserializationSchema()
       case _       => throw new IllegalArgumentException(s"No deserializer for type ${conf.serializer}")
     }
 
@@ -68,18 +67,6 @@ class RowDeserializationSchema(fieldsIdxMap: Map[Symbol, Int]) extends KafkaDese
   override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
 }
 
-/**
-  * Deserialization for Apache Arrow format
-  */
-class ArrowRowDeserializationSchema extends KafkaDeserializationSchema[Row] {
-
-  override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): Row =
-    new ArrowSerialization().deserialize(record.value(), null)
-
-  override def isEndOfStream(nextElement: Row): Boolean = false
-
-  override def getProducedType: TypeInformation[Row] = TypeInformation.of(classOf[Row])
-}
 
 class TimeOutFunction( // delay after which an alert flag is thrown
   val timeOut: Long,

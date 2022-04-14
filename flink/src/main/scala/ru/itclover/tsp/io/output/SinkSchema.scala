@@ -27,58 +27,41 @@ trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
   def fieldsNames: List[Symbol]
 
   def fieldsCount: Int
+
+  def fieldsIndices: Map[Symbol, Int]
 }
 
-case class Context(
-  field: Symbol,
-  data: Map[Symbol, String]
-) extends Serializable
+sealed trait EventSchemaValue{
+  def `type`: String
+}
 
-case class NewRowSchema(
-  unitIdField: Symbol,
-  fromTsField: Symbol,
-  toTsField: Symbol,
-  appIdFieldVal: (Symbol, Int),
-  patternIdField: Symbol,
-  subunitIdField: Symbol,
-  incidentIdField: Symbol,
-  context: Option[Context] = None
-) extends EventSchema
-    with Serializable {
+case class IntESValue(override val `type`: String, value: Long) extends EventSchemaValue
+case class FloatESValue(override val `type`: String, value: Double) extends EventSchemaValue
+case class StringESValue(override val `type`: String, value: String) extends EventSchemaValue
+case class ObjectESValue(override val `type`: String, value: Map[String, EventSchemaValue]) extends EventSchemaValue
 
-  override def fieldsTypes: List[Int] = context match {
-    case Some(_) =>
-      List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR, Types.STRUCT)
-    case None =>
-      List(Types.INTEGER, Types.TIMESTAMP, Types.TIMESTAMP, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR)
-  }
+case class NewRowSchema(data: Map[String, EventSchemaValue]) extends EventSchema {
+  override def fieldsTypes: List[Int] = data.map {
+    case (k, _) => k match {
+      case "int8" => Types.INTEGER
+      case "int16" => Types.INTEGER
+      case "int32" => Types.INTEGER
+      case "int64" => Types.INTEGER
+      case "boolean" => Types.BOOLEAN
+      case "string" => Types.VARCHAR
+      case "float32" => Types.FLOAT
+      case "float64" => Types.DOUBLE
+      case "timestamp" => Types.TIMESTAMP
+      case "object" => Types.STRUCT
+      case _       => Types.BINARY
+    }
+  }.toList
 
-  override def fieldsNames: List[Symbol] = context match {
-    case Some(Context(field, _)) =>
-      List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField, field)
-    case None =>
-      List(unitIdField, fromTsField, toTsField, appIdFieldVal._1, patternIdField, subunitIdField, incidentIdField)
-  }
+  override def fieldsNames: List[Symbol] = data.map {
+    case (k, _) => Symbol(k)
+  }.toList
 
+  override def fieldsCount: Int = data.size
 
-  override def fieldsCount: Int = context match {
-    case Some(_) => 8
-    case None => 7
-  }
-
-  val fieldsIndexesMap: mutable.LinkedHashMap[Symbol, Int] = mutable.LinkedHashMap(fieldsNames.zipWithIndex: _*)
-
-  val unitIdInd = fieldsIndexesMap(unitIdField)
-  val subunitIdInd = fieldsIndexesMap(subunitIdField)
-
-  val beginInd = fieldsIndexesMap(fromTsField)
-  val endInd = fieldsIndexesMap(toTsField)
-
-  val appIdInd = fieldsIndexesMap(appIdFieldVal._1)
-  val patternIdInd = fieldsIndexesMap(patternIdField)
-
-  val incidentIdInd = fieldsIndexesMap(incidentIdField)
-
-  val contextIdInd = context.map(c => fieldsIndexesMap(c.field)).getOrElse(-1)
-
+  override def fieldsIndices: Map[Symbol, Int] = fieldsNames.zipWithIndex.toMap
 }

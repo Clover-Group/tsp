@@ -6,7 +6,7 @@ import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output.{Context, EventSchema, JDBCOutputConf, KafkaOutputConf, NewRowSchema, OutputConf}
+import ru.itclover.tsp.io.output._
 import spray.json._
 
 import scala.util.Try
@@ -172,19 +172,46 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     }
   }
 
-  implicit val contextFmt = jsonFormat2(Context.apply)
 
-  implicit val newRowSchemaFmt = jsonFormat(
-    NewRowSchema.apply,
-    "unitIdField",
-    "fromTsField",
-    "toTsField",
-    "appIdFieldVal",
-    "patternIdField",
-    "subunitIdField",
-    "incidentIdField",
-    "context"
-  )
+  implicit val newRowSchemaFmt = jsonFormat1(NewRowSchema.apply)
+
+  implicit val intESValueFormat = jsonFormat2(IntESValue.apply)
+  implicit val floatESValueFormat = jsonFormat2(FloatESValue.apply)
+  implicit val stringESValueFormat = jsonFormat2(StringESValue.apply)
+  implicit val objectESValueFormat = jsonFormat2(ObjectESValue.apply)
+
+  implicit def eventSchemaValueFormat: RootJsonFormat[EventSchemaValue] = new RootJsonFormat[EventSchemaValue] {
+    override def read(json: JsValue): EventSchemaValue = json match {
+      case obj: JsObject =>
+        val t = obj.fields.getOrElse("type", deserializationError("Event schema field: missing type"))
+        val v = obj.fields.getOrElse("value", deserializationError("Event schema field: missing value"))
+        val typeName = t match {
+          case JsString(value) => value
+          case _ => deserializationError(s"Type name must be string, but got `${t.compactPrint}` instead")
+        }
+        v match {
+          case JsObject(fields) =>
+            if (typeName != "object")
+              deserializationError("Type name for nested structure must be `object`")
+            else
+              ObjectESValue(typeName, fields.map { case (k, v) => (k, read(v)) })
+          case JsArray(elements) => deserializationError("Array values not yet supported")
+          case JsString(value) => StringESValue(typeName, value)
+          case JsNumber(value) => FloatESValue(typeName, value.floatValue)
+          case boolean: JsBoolean => deserializationError("Boolean values not yet supported")
+          case JsNull => deserializationError("Null values not supported")
+        }
+      case _ =>
+        deserializationError("Event schema field must be an object, but got ${json.compactPrint} instead")
+    }
+
+    override def write(obj: EventSchemaValue): JsValue = obj match {
+      case IntESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
+      case FloatESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
+      case StringESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
+      case ObjectESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson(mapFormat(StringJsonFormat, eventSchemaValueFormat)))
+    }
+  }
 
   implicit object eventSchemaFmt extends JsonFormat[EventSchema] {
     override def read(json: JsValue): EventSchema = Try(newRowSchemaFmt.read(json))

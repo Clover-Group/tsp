@@ -4,7 +4,7 @@ import org.apache.flink.api.common.io.OutputFormat
 import org.apache.flink.api.common.serialization.SerializationSchema
 import org.apache.flink.formats.avro.AvroOutputFormat
 import org.apache.flink.types.Row
-import ru.itclover.tsp.serializers.KafkaSerializers.{ArrowSerializer, JSONSerializer}
+import ru.itclover.tsp.serializers.KafkaSerializers.JSONSerializer
 
 trait OutputConf[Event] {
   def forwardedFieldsIds: Seq[Symbol]
@@ -76,7 +76,6 @@ case class KafkaOutputConf(
 
   def dataSerializer: SerializationSchema[Row] = serializer.getOrElse("json") match {
     case "json"  => new JSONSerializer(rowSchema)
-    case "arrow" => new ArrowSerializer(rowSchema)
     case _       => throw new IllegalArgumentException(s"No deserializer for type ${serializer}")
   }
 

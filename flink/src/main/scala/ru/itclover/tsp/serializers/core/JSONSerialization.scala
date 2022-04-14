@@ -6,7 +6,7 @@ import java.nio.charset.Charset
 import java.sql.Timestamp
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{Context, EventSchema, NewRowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
 
 /**
   * JSON Serialization for Redis
@@ -50,7 +50,33 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
     val mapper = new ObjectMapper()
     val root = mapper.createObjectNode()
 
+    // TODO: Write JSON
+
     eventSchema match {
+      case newRowSchema: NewRowSchema =>
+        newRowSchema.data.foreach { case (k, v) =>
+          v.`type` match {
+            case "int8" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Byte])
+            case "int16" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Short])
+            case "int32" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Int])
+            case "int64" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Long])
+            case "float32" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Float])
+            case "float64" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Double])
+            case "boolean" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Boolean])
+            case "string" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[String])
+            case "timestamp" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Timestamp].toString)
+            case "object" =>
+              val node: ObjectNode = mapper.createObjectNode()
+              val data = output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Map[String, Any]]
+              data.foreach {
+                case (k, v) => node.put(k, v.toString) // TODO: Types
+              }
+              root.put(k, node)
+          }
+        }
+    }
+
+    /*eventSchema match {
       case newRowSchema: NewRowSchema =>
         root.put(newRowSchema.unitIdField.name, output.getField(newRowSchema.unitIdInd).asInstanceOf[Int])
         root.put(newRowSchema.fromTsField.name, output.getField(newRowSchema.beginInd).asInstanceOf[Timestamp].toString)
@@ -68,7 +94,7 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
             root.put(field.name, node)
           case None =>
         }
-    }
+    }*/
 
     val jsonString = mapper.writeValueAsString(root)
 
