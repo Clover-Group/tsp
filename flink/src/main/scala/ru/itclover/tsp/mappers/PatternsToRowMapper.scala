@@ -48,15 +48,22 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       .mkString("{", ", ", "}")
   }
 
-  def interpolateString(value: String, incident: Incident): String = value
-    .replace("$IncidentID", incident.id)
-    .replace("$UUID", incident.incidentUUID.toString)
-    .replace("$PatternID", incident.patternId.toString)
-    .replace("$Unit", incident.patternUnit.toString)
-    .replace("$Subunit", incident.patternSubunit.toString)
-    .replace("$IncidentStart", incident.segment.from.toString)
-    .replace("$IncidentEnd", incident.segment.to.toString)
-    .replace("$$", "$")
+  def interpolateString(value: String, incident: Incident): String = {
+    val replaced = value
+      .replace("$IncidentID", incident.id)
+      .replace("$UUID", incident.incidentUUID.toString)
+      .replace("$PatternID", incident.patternId.toString)
+      .replace("$Unit", incident.patternUnit.toString)
+      .replace("$Subunit", incident.patternSubunit.toString)
+      .replace("$IncidentStart", incident.segment.from.toString)
+      .replace("$IncidentEnd", incident.segment.to.toString)
+      .replace("$$", "$")
+
+    // Replace pattern metadata
+    incident.patternMetadata.foldLeft(replaced) {
+      case (r, (k, v)) => r.replace(s"$$PatternMetadata@$k", v)
+    }
+  }
 
   def convertFromInt(value: Long, toType: String): Any = {
     toType match {

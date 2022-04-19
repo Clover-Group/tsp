@@ -202,7 +202,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
           case JsNull => deserializationError("Null values not supported")
         }
       case _ =>
-        deserializationError("Event schema field must be an object, but got ${json.compactPrint} instead")
+        deserializationError(s"Event schema field must be an object, but got ${json.compactPrint} instead")
     }
 
     override def write(obj: EventSchemaValue): JsValue = obj match {
@@ -254,7 +254,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
 
-  implicit val rawPatternFmt = jsonFormat5(RawPattern.apply)
+  implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 
   implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent]
   (implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]) =

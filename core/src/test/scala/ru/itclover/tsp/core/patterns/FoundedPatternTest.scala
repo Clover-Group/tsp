@@ -32,6 +32,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
         segment = firstTestSegment,
         patternUnit = 13,
         patternSubunit = 42,
+        patternMetadata = Map.empty
       )
 
       val secondIncident = Incident(
@@ -42,6 +43,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
         segment = secondTestSegment,
         patternUnit = 13,
         patternSubunit = 42,
+        patternMetadata = Map.empty
       )
 
       val expectedIncident = Incident(
@@ -55,6 +57,7 @@ class FoundedPatternTest extends WordSpec with Matchers {
         ),
         patternUnit = 13,
         patternSubunit = 42,
+        patternMetadata = Map.empty
       )
 
       val actualIncident = IncidentInstances.semigroup.combine(firstIncident, secondIncident)
