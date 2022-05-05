@@ -6,7 +6,7 @@ import java.nio.charset.Charset
 import java.sql.Timestamp
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import org.apache.flink.types.Row
-import ru.itclover.tsp.io.output.{EventSchema, NewRowSchema}
+import ru.itclover.tsp.io.output.{EventSchema, EventSchemaValue, FloatESValue, IntESValue, NewRowSchema, ObjectESValue, StringESValue}
 
 /**
   * JSON Serialization for Redis
@@ -55,25 +55,42 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
     eventSchema match {
       case newRowSchema: NewRowSchema =>
         newRowSchema.data.foreach { case (k, v) =>
-          v.`type` match {
-            case "int8" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Byte])
-            case "int16" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Short])
-            case "int32" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Int])
-            case "int64" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Long])
-            case "float32" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Float])
-            case "float64" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Double])
-            case "boolean" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Boolean])
-            case "string" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[String])
-            case "timestamp" => root.put(k, output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Timestamp].toString)
-            case "object" =>
-              val node: ObjectNode = mapper.createObjectNode()
-              val data = output.getField(newRowSchema.fieldsIndices(Symbol(k))).asInstanceOf[Map[String, Any]]
-              data.foreach {
-                case (k, v) => node.put(k, v.toString) // TODO: Types
-              }
-              root.put(k, node)
-          }
+          putValueToObjectNode(k, v, root, output.getField(newRowSchema.fieldsIndices(Symbol(k))))
         }
+    }
+
+    def putValueToObjectNode(k: String,
+                             v: EventSchemaValue,
+                             root: ObjectNode,
+                             value: Object): Unit = {
+      v.`type` match {
+        case "int8" => root.put(k, value.asInstanceOf[Byte])
+        case "int16" => root.put(k, value.asInstanceOf[Short])
+        case "int32" => root.put(k, value.asInstanceOf[Int])
+        case "int64" => root.put(k, value.asInstanceOf[Long])
+        case "float32" => root.put(k, value.asInstanceOf[Float])
+        case "float64" => root.put(k, value.asInstanceOf[Double])
+        case "boolean" => root.put(k, value.asInstanceOf[Boolean])
+        case "string" => root.put(k, value.asInstanceOf[String])
+        case "timestamp" => root.put(k, value.asInstanceOf[Timestamp].toString)
+        case "object" =>
+          val node: ObjectNode = mapper.createObjectNode()
+          val data = value.asInstanceOf[Map[String, Any]]
+          data.foreach { case (k, v) =>
+            v match {
+              case x: Byte => node.put(k, x)
+              case x: Short => node.put(k, x)
+              case x: Int => node.put(k, x)
+              case x: Long => node.put(k, x)
+              case x: Float => node.put(k, x)
+              case x: Double => node.put(k, x)
+              case x: Boolean => node.put(k, x)
+              case x: String => node.put(k, x)
+              case _ => node.put(k, v.toString)
+            }
+          }
+          root.put(k, node)
+      }
     }
 
     /*eventSchema match {
