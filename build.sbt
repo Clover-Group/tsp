@@ -168,7 +168,7 @@ lazy val config = project.in(file("config"))
 lazy val flink = project.in(file("flink"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging,
+    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)

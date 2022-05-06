@@ -28,8 +28,6 @@ object JDBCOutput {
       .sortBy(f => rowSchema.fieldsIndices(f))
       .map(_.name)
     val statements = columns.map(_ => "?").mkString(", ")
-    log.warn("Insert query: " + s"INSERT INTO ${tableName} (${columns.mkString(", ")}) VALUES (${statements})")
-    log.warn("Types: " + s"(${rowSchema.fieldsTypes.mkString(", ")})")
     s"INSERT INTO ${tableName} (${columns.mkString(", ")}) VALUES (${statements})"
   }
 }

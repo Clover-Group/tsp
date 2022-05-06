@@ -74,7 +74,10 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
         case "string" => root.put(k, value.asInstanceOf[String])
         case "timestamp" => root.put(k, value.asInstanceOf[Timestamp].toString)
         case "object" =>
-          val node: ObjectNode = mapper.createObjectNode()
+          val data = value.toString
+          val parsedJson = mapper.readTree(data)
+          root.put(k, parsedJson)
+          /*val node: ObjectNode = mapper.createObjectNode()
           val data = value.asInstanceOf[Map[String, Any]]
           data.foreach { case (k, v) =>
             v match {
@@ -89,7 +92,7 @@ class JSONSerialization extends Serialization[Array[Byte], Row] {
               case _ => node.put(k, v.toString)
             }
           }
-          root.put(k, node)
+          root.put(k, node)*/
       }
     }
 

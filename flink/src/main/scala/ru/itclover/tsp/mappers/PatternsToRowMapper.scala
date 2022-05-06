@@ -1,5 +1,8 @@
 package ru.itclover.tsp.mappers
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+
 import java.sql.Timestamp
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 import org.apache.flink.api.common.functions.RichMapFunction
@@ -14,6 +17,7 @@ import scala.util.Try
   */
 case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) extends RichMapFunction[Incident, Row] {
 
+
   override def map(incident: Incident) = schema match {
     case newRowSchema: NewRowSchema =>
       val resultRow = new Row(newRowSchema.fieldsCount)
@@ -26,10 +30,16 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
             case value: StringESValue => resultRow.setField(pos,
               convertFromString(interpolateString(value.value, incident),
                 value.`type`))
-            case value: ObjectESValue => resultRow.setField(pos, convertFromObject(value.value, incident))
+            case value: ObjectESValue => resultRow.setField(pos, mapToJson(convertFromObject(value.value, incident)))
         }
       }
       resultRow
+  }
+
+  def mapToJson(data: Map[String, Any]): String = {
+    val mapper = new ObjectMapper()
+    mapper.registerModule(DefaultScalaModule)
+    mapper.writeValueAsString(data)
   }
 
   def nowInUtcMillis: Double = {

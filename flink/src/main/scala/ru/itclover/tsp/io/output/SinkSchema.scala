@@ -52,7 +52,7 @@ case class NewRowSchema(data: Map[String, EventSchemaValue]) extends EventSchema
       case "float32" => Types.FLOAT
       case "float64" => Types.DOUBLE
       case "timestamp" => Types.TIMESTAMP
-      case "object" => Types.STRUCT
+      case "object" => Types.VARCHAR
       case _       => Types.BINARY
     }
   }.toList
