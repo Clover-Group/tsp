@@ -42,7 +42,7 @@ case class ObjectESValue(override val `type`: String, value: Map[String, EventSc
 
 case class NewRowSchema(data: Map[String, EventSchemaValue]) extends EventSchema {
   override def fieldsTypes: List[Int] = data.map {
-    case (k, _) => k match {
+    case (_, v) => v.`type` match {
       case "int8" => Types.INTEGER
       case "int16" => Types.INTEGER
       case "int32" => Types.INTEGER
