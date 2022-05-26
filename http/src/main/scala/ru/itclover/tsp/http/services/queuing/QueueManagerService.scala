@@ -263,7 +263,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,
-      PatternsToRowMapper(inputConf.sourceId, outConf.head.rowSchema)
+      outConf.map(conf => PatternsToRowMapper(inputConf.sourceId, conf.rowSchema))
     )
     strOrErr.map {
       case (parsedPatterns, stream) =>

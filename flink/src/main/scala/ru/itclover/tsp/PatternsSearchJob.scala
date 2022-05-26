@@ -42,7 +42,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
   def patternsSearchStream[OutE: TypeInformation, OutKey, S](
     rawPatterns: Seq[RawPattern],
     outputConf: Seq[OutputConf[OutE]],
-    resultMapper: RichMapFunction[Incident, OutE]
+    resultMappers: Seq[RichMapFunction[Incident, OutE]]
   ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Seq[DataStreamSink[OutE]])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
@@ -56,7 +56,7 @@ case class PatternsSearchJob[In: TypeInformation, InKey, InItem](
       val forwardFields = Seq.empty
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
-      val mapped = incidents.map(resultMapper)
+      val mapped = resultMappers.map(resultMapper => incidents.map(resultMapper))
       (patterns, saveStream(mapped, outputConf))
     }
   }
@@ -231,9 +231,9 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](stream: DataStream[E], outputConf: Seq[OutputConf[E]]): Seq[DataStreamSink[E]] = {
+  def saveStream[E](streams: Seq[DataStream[E]], outputConfs: Seq[OutputConf[E]]): Seq[DataStreamSink[E]] = {
     log.debug("saveStream started")
-    outputConf.map {
+    streams.zip(outputConfs).map { case (stream, outputConf) => outputConf match {
       case kafkaConf: KafkaOutputConf =>
         val producer = new FlinkKafkaProducer(kafkaConf.broker, kafkaConf.topic, kafkaConf.dataSerializer)
           .asInstanceOf[FlinkKafkaProducer[E]] // here we know that E == Row
@@ -246,6 +246,7 @@ object PatternsSearchJob {
         val res = stream.writeUsingOutputFormat(outputFormat)
         log.debug("saveStream finished")
         res
+      }
     }.asInstanceOf[Seq[DataStreamSink[E]]]
   }
 }
