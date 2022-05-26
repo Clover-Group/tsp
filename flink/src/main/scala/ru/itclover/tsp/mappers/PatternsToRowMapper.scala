@@ -7,7 +7,7 @@ import java.sql.Timestamp
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.types.Row
-import ru.itclover.tsp.core.Incident
+import ru.itclover.tsp.core.{Incident, Time}
 import ru.itclover.tsp.io.output._
 
 import scala.util.Try
@@ -67,6 +67,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       .replace("$Subunit", incident.patternSubunit.toString)
       .replace("$IncidentStart", incident.segment.from.toString)
       .replace("$IncidentEnd", incident.segment.to.toString)
+      .replace("$ProcessingDate", Time(nowInUtcMillis.toLong).toString)
       .replace("$$", "$")
 
     // Replace pattern metadata
