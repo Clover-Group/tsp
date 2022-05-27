@@ -42,10 +42,10 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
     mapper.writeValueAsString(data)
   }
 
-  def nowInUtcMillis: Double = {
+  def nowInUtcMillis: Long = {
     val zonedDt = ZonedDateTime.of(LocalDateTime.now, ZoneId.systemDefault)
     val utc = zonedDt.withZoneSameInstant(ZoneId.of("UTC"))
-    Timestamp.valueOf(utc.toLocalDateTime).getTime / 1000.0
+    Timestamp.valueOf(utc.toLocalDateTime).getTime
   }
 
   def escape(raw: String): String = {
@@ -67,7 +67,7 @@ case class PatternsToRowMapper[Event, EKey](sourceId: Int, schema: EventSchema) 
       .replace("$Subunit", incident.patternSubunit.toString)
       .replace("$IncidentStart", incident.segment.from.toString)
       .replace("$IncidentEnd", incident.segment.to.toString)
-      .replace("$ProcessingDate", Time(nowInUtcMillis.toLong).toString)
+      .replace("$ProcessingDate", Time(nowInUtcMillis).toString)
       .replace("$$", "$")
 
     // Replace pattern metadata
