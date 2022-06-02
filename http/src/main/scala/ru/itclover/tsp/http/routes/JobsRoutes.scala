@@ -61,9 +61,11 @@ trait JobsRoutes extends RoutesProtocols {
         complete(Map("status" -> s"Job ${request.uuid} enqueued."))
       }
     } ~
-    /*path("queue" / "show") {
-      complete(queueManager.queueAsScalaSeq.toList)
-    } ~ */
+    path("queue" / "show") {
+      complete(queueManager.queueAsScalaSeq
+        .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]])
+        .toList)
+    } ~
     path("queue" / Segment / "remove") { uuid =>
       queueManager.removeFromQueue(uuid) match {
         case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue."))
