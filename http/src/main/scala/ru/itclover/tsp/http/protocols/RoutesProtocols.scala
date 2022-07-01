@@ -5,8 +5,7 @@ import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.{DSLPatternRequest, FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
-import ru.itclover.tsp.io.input._
-import ru.itclover.tsp.io.output._
+import ru.itclover.tsp.streaming.io._
 import spray.json._
 
 import scala.util.Try
@@ -110,36 +109,12 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "patternsParallelism",
     "timestampMultiplier"
   )
-  implicit val influxInpConfFmt = jsonFormat(
-    InfluxDBInputConf.apply,
-    "sourceId",
-    "dbName",
-    "url",
-    "query",
-    "eventsMaxGapMs",
-    "defaultEventsGapMs",
-    "chunkSizeMs",
-    "partitionFields",
-    "datetimeField",
-    "unitIdField",
-    "userName",
-    "password",
-    "timeoutSec",
-    "dataTransformation",
-    "defaultToleranceFraction",
-    "parallelism",
-    "numParallelSources",
-    "patternsParallelism",
-    "additionalTypeChecking"
-  )
+
 
   implicit val kafkaInpConfFmt = jsonFormat14(
     KafkaInputConf.apply
   )
 
-  implicit val redisConfInputFmt = jsonFormat8(
-    RedisInputConf.apply
-  )
 
   implicit def inpConfFmt[Event, EKey: JsonFormat, EValue: JsonFormat] =
   new RootJsonFormat[InputConf[Event, EKey, EValue]] {
@@ -150,8 +125,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
         tp match {
           case JsString("kafka") => kafkaInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
           case JsString("jdbc")  => jdbcInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
-          case JsString("influx")  => influxInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
-          case JsString("redis")  => redisConfInputFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
           case _                               => deserializationError(s"Input (source) config: unknown type $tp")
         }
       case _ =>
@@ -161,8 +134,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       val (t, c) = obj match {
         case kafkain: KafkaInputConf => ("kafka", kafkaInpConfFmt.write(kafkain))
         case jdbcin: JDBCInputConf   => ("jdbc", jdbcInpConfFmt.write(jdbcin))
-        case influxin: InfluxDBInputConf   => ("influx", influxInpConfFmt.write(influxin))
-        case redisin: RedisInputConf   => ("redis", redisConfInputFmt.write(redisin))
         case _  => deserializationError("Unknown input (source) config")
       }
       JsObject(
@@ -223,7 +194,16 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
-  implicit val jdbcOutConfFmt = jsonFormat8(JDBCOutputConf.apply)
+  implicit val jdbcOutConfFmt = jsonFormat(JDBCOutputConf.apply,
+    "tableName",
+    "rowSchema",
+    "jdbcUrl",
+    "driverName",
+    "password",
+    "batchInterval",
+    "userName",
+    "parallelism"
+  )
 
   implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
 

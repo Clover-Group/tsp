@@ -10,12 +10,13 @@ object Version {
   val influx = "2.15"
 
   val clickhouse = "0.3.0"
-  val flink = "1.13.1"
 
   val akka = "2.5.25"
   val akkaHttp = "10.1.9"
 
-  val cats = "2.0.0"
+  val cats = "3.3.12"
+  val fs2 = "3.2.7"
+  val doobie = "1.0.0-RC2"
 
   val scalaTest = "3.0.8"
   val scalaCheck = "1.14.0"
@@ -89,19 +90,6 @@ object Library {
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
 
-  val flinkCore: Seq[ModuleID] = Seq("org.apache.flink" %% "flink-scala" % Version.flink)
-
-  val flink: Seq[ModuleID] = flinkCore ++ Seq(
-      "org.apache.flink" % "flink-runtime-web_2.12" % Version.flink,
-      "org.apache.flink" %% "flink-streaming-scala" % Version.flink,
-      "org.apache.flink" % "flink-connector-kafka_2.12" % Version.flink,
-      "org.apache.flink" % "flink-connector-jdbc_2.12" % Version.flink,
-      "org.apache.flink" % "flink-metrics-dropwizard" % Version.flink,
-      "org.apache.flink" %% "flink-metrics-prometheus" % Version.flink,
-      "org.apache.flink" % "flink-avro" % Version.flink,
-      "org.apache.flink" %% "flink-statebackend-rocksdb" % Version.flink
-    )
-
   val akka: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     "com.typesafe.akka" %% "akka-stream" % Version.akka,
@@ -116,7 +104,16 @@ object Library {
   )
 
   val cats: Seq[ModuleID] = Seq(
-    "org.typelevel" %% "cats-core" % Version.cats
+    "org.typelevel" %% "cats-effect-kernel" % Version.cats,
+    "org.typelevel" %% "cats-effect" % Version.cats
+  )
+
+  val fs2: Seq[ModuleID] = Seq(
+    "co.fs2" %% "fs2-core" % Version.fs2
+  )
+
+  val doobie: Seq[ModuleID] = Seq(
+    "org.tpolecat" %% "doobie-core" % Version.doobie
   )
 
   val scrum: Seq[ModuleID] = Seq(

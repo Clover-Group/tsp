@@ -145,8 +145,8 @@ lazy val root = (project in file("."))
 
   .settings(commonSettings)
   .settings(githubRelease := Utils.defaultGithubRelease.evaluated)
-  .aggregate(core, config, http, flink, dsl, itValid)
-  .dependsOn(core, config, http, flink, dsl, itValid)
+  .aggregate(core, config, http, streaming, dsl, itValid)
+  .dependsOn(core, config, http, streaming, dsl, itValid)
 
 lazy val core = project.in(file("core"))
   .settings(commonSettings)
@@ -159,16 +159,15 @@ lazy val config = project.in(file("config"))
   .enablePlugins(BuildInfoPlugin)
   .settings(commonSettings)
   .settings(
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion,
-      "flinkVersion" -> Version.flink),
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "ru.itclover.tsp"
   )
   .dependsOn(core)
 
-lazy val flink = project.in(file("flink"))
+lazy val streaming = project.in(file("streaming"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson,
+    libraryDependencies ++= Library.fs2 ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
@@ -176,10 +175,10 @@ lazy val flink = project.in(file("flink"))
 lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.flink ++ Library.akka ++
+    libraryDependencies ++= Library.scalaTest ++ Library.akka ++
       Library.akkaHttp ++ Library.logging ++ Library.swayDB
   )
-  .dependsOn(core, config, flink, dsl)
+  .dependsOn(core, config, streaming, dsl)
 
 lazy val dsl = project.in(file("dsl"))
   .settings(commonSettings)
@@ -191,15 +190,15 @@ lazy val dsl = project.in(file("dsl"))
 lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
+    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
     dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
   )
-  .dependsOn(core, flink, http, config)
+  .dependsOn(core, streaming, http, config)
 
 lazy val itPerf = project.in(file("integration/performance"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.flink ++ Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
+    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
   )
   .dependsOn(itValid)
 

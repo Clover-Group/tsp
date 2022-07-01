@@ -106,8 +106,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
         SuccessfulResponse(
           Map(
             "tsp"   -> BuildInfo.version,
-            "scala" -> BuildInfo.scalaVersion,
-            "flink" -> BuildInfo.flinkVersion
+            "scala" -> BuildInfo.scalaVersion
           )
         )
       )

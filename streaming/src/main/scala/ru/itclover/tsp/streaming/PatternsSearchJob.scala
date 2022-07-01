@@ -1,0 +1,253 @@
+package ru.itclover.tsp.streaming
+
+import cats.Traverse
+import cats.data.Validated
+import cats.effect.IO
+import cats.implicits.catsSyntaxSemigroup
+import com.typesafe.scalalogging.Logger
+import fs2.Chunk
+import ru.itclover.tsp.StreamSource
+import ru.itclover.tsp.core.IncidentInstances.semigroup
+import ru.itclover.tsp.core.Pattern.IdxExtractor
+import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
+import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Segment, SegmentizerPattern}
+import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.optimizations.Optimizer
+import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternFieldExtractor, PatternMetadata}
+import ru.itclover.tsp.streaming.PatternsSearchJob.{RichPattern, preparePatterns, reduceIncidents, saveStream}
+import ru.itclover.tsp.streaming.io.{KafkaInputConf, OutputConf}
+import ru.itclover.tsp.streaming.mappers.{MapWithContextPattern, PatternProcessor, PatternsToRowMapper, ProcessorCombinator, ToIncidentsMapper}
+import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
+import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr, InvalidPatternsCode}
+import ru.itclover.tsp.streaming.utils.StreamPartitionOps
+
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+import scala.reflect.ClassTag
+
+case class PatternsSearchJob[In, InKey, InItem](
+  source: StreamSource[In, InKey, InItem],
+  decoders: BasicDecoders[InItem]
+) {
+  def patternsSearchStream[OutE, OutKey, S](
+                                                              rawPatterns: Seq[RawPattern],
+                                                              outputConf: Seq[OutputConf[OutE]],
+                                                              resultMappers: Seq[PatternsToRowMapper[Incident, OutE]]
+                                                            ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Seq[fs2.Stream[IO, Unit]])] = {
+    import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
+    preparePatterns[In, S, InKey, InItem](
+      rawPatterns,
+      source.fieldToEKey,
+      0,
+      source.conf.eventsMaxGapMs.getOrElse(60000L),
+      source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
+      source.patternFields
+    ).map { patterns =>
+      val forwardFields = Seq.empty
+      val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
+      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
+      val mapped = resultMappers.map(resultMapper =>
+        incidents.chunkLimit(1000).map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
+      )
+      (patterns, saveStream[OutE](mapped, outputConf))
+    }
+  }
+
+  def incidentsFromPatterns[T](
+                                stream: fs2.Stream[IO, In],
+                                patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
+                                forwardedFields: Seq[(Symbol, InKey)],
+                                useWindowing: Boolean
+                              ): fs2.Stream[IO, Incident] = {
+
+    import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
+    import decoders.decodeToAny
+
+    //log.debug("incidentsFromPatterns started")
+
+    val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
+      case ((pattern, meta), rawP) =>
+
+        val toIncidents = ToIncidentsMapper(
+          rawP.id,
+          source.fieldToEKey(source.conf.unitIdField.get),
+          rawP.subunit.getOrElse(0),
+          rawP.metadata.getOrElse(Map.empty),
+          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
+          source.conf.partitionFields.map(source.fieldToEKey)
+        )
+
+        val optimizedPattern = new Optimizer[In].optimize(pattern)
+
+        val incidentPattern = MapWithContextPattern(optimizedPattern)(toIncidents.apply)
+
+        PatternProcessor[In, Optimizer.S[Segment], Incident](
+          incidentPattern,
+          source.conf.eventsMaxGapMs.getOrElse(60000L)
+        )
+    }
+    val keyedStream = stream
+      //.assignAscendingTimestamps(timeExtractor(_).toMillis)
+      .through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
+    val windowed: fs2.Stream[IO, fs2.Stream[IO, Chunk[In]]] =
+      if (useWindowing) {
+        keyedStream
+          .map { case (_, str) => str
+            .groupAdjacentBy(e => timeExtractor(e).toMillis / source.conf.chunkSizeMs.getOrElse(900000L))
+              .map { case (_, chunk) => chunk }
+          }
+      } else {
+        // For Kafka we generate windows by processing time (not event time) every 1 second,
+        // so we always get the results without collecting huge window.
+        keyedStream.map { case (_, str) => str
+          .groupWithin(100000,
+            FiniteDuration(1000, TimeUnit.MILLISECONDS)
+          )
+        }
+      }
+    val processed = windowed
+      .map(_.map(ProcessorCombinator(mappers, timeExtractor).process))
+      .parJoinUnbounded
+      .flatMap(c => fs2.Stream.chunk(c))
+
+    //log.debug("incidentsFromPatterns finished")
+    processed
+  }
+
+  def cleanIncidentsFromPatterns(
+                                  richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
+                                  forwardedFields: Seq[(Symbol, InKey)],
+                                  useWindowing: Boolean
+                                ): fs2.Stream[IO, Incident] = {
+    import source.timeExtractor
+    val stream = source.createStream
+    val singleIncidents = incidentsFromPatterns(
+      applyTransformation(stream),
+      richPatterns,
+      forwardedFields,
+      useWindowing
+    )
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents) else singleIncidents
+  }
+
+
+
+  def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
+    case Some(_) =>
+      import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator}
+      dataStream
+        //.keyBy(source.partitioner)
+        .map( event =>
+          SparseRowsDataAccumulator[In, InKey, InItem, In](
+            source.asInstanceOf[StreamSource[In, InKey, InItem]],
+            source.patternFields
+          ).map(event)
+        )
+        .unNone
+        //.setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
+    case _ => dataStream
+  }
+
+}
+
+object PatternsSearchJob {
+  type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
+  type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
+
+  val log = Logger("PatternsSearchJob")
+  def maxPartitionsParallelism = 8192
+
+  def preparePatterns[E, S, EKey, EItem](
+                                          rawPatterns: Seq[RawPattern],
+                                          fieldsIdxMap: Symbol => EKey,
+                                          toleranceFraction: Double,
+                                          eventsMaxGapMs: Long,
+                                          fieldsTags: Map[Symbol, ClassTag[_]],
+                                          patternFields: Set[EKey]
+                                        )(
+                                          implicit extractor: Extractor[E, EKey, EItem],
+                                          getTime: TimeExtractor[E],
+                                          idxExtractor: IdxExtractor[E]
+                                        ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
+
+    log.debug("preparePatterns started")
+
+    val filteredPatterns = rawPatterns.filter(
+      p => PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
+    )
+
+    val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
+      idxExtractor,
+      getTime,
+      extractor,
+      fieldsIdxMap
+    )
+    val res = Traverse[List]
+      .traverse(filteredPatterns.toList)(
+        p =>
+          Validated
+            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
+            .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
+            .map(
+              p =>
+                (
+                  new TimestampsAdderPattern(SegmentizerPattern(p._1))
+                    .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+                  p._2
+                )
+            )
+      )
+      .leftMap[ConfigErr](InvalidPatternsCode(_))
+      .map(_.zip(filteredPatterns))
+      .toEither
+
+    log.debug("preparePatterns finished")
+
+    res
+  }
+
+  def reduceIncidents(incidents: fs2.Stream[IO, Incident]): fs2.Stream[IO, Incident] = {
+    log.debug("reduceIncidents started")
+
+    val res = incidents
+      .through(StreamPartitionOps.groupBy(p => IO { (p.id, p.patternUnit, p.patternSubunit) }))
+      //.window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
+      //  override def extract(element: Incident): Long = element.maxWindowMs
+      //}))
+      .map {
+        case (_, str) => str
+          .zipWithPrevious
+          .flatMap { case (pr, c) =>
+            pr match {
+              case Some(p) =>
+                val start = c.segment.from.toMillis - p.segment.to.toMillis > c.maxWindowMs
+                val chunk = if (start) {
+                  Chunk((Some(c), true), (None, false))
+                } else {
+                  Chunk((Some(c), false))
+                }
+                fs2.Stream.chunk(chunk)
+              case None => fs2.Stream.chunk(Chunk((Some(c), true), (None, false)))
+            }
+          }
+          .groupAdjacentBy(_._2)
+          .chunkN(2, allowFewer = true)
+          .map(c => c.flatMap(_._2).map(_._1).filter(_.isDefined).map(_.get))
+          .map(c => if (c.nonEmpty) Some(c.foldLeft(c.head.get)(_ |+| _)) else None)
+          .unNone
+          //.reduce { _ |+| _ }
+      }
+      .parJoinUnbounded
+      //.name("Uniting adjacent incidents")
+
+    log.debug("reduceIncidents finished")
+    res
+  }
+
+  def saveStream[E](streams: Seq[fs2.Stream[IO, E]], outputConfs: Seq[OutputConf[E]]): Seq[fs2.Stream[IO, Unit]] = {
+    log.debug("saveStream started")
+    streams.zip(outputConfs).map { case (stream, outputConf) =>
+      stream.through(outputConf.getSink)
+    }
+  }
+}

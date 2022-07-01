@@ -5,9 +5,9 @@ import org.scalatest.FlatSpec
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
-import ru.itclover.tsp.io.input.JDBCInputConf
-import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
-import ru.itclover.tsp.utils.Files
+import ru.itclover.tsp.streaming.io.JDBCInputConf
+import ru.itclover.tsp.streaming.io.{JDBCOutputConf, NewRowSchema}
+import ru.itclover.tsp.streaming.utils.Files
 
 class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
 

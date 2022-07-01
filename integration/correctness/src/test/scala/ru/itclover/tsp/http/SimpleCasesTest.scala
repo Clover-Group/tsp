@@ -5,12 +5,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
 import com.dimafeng.testcontainers._
 import ru.itclover.tsp.http.routes.JobReporting
+import ru.itclover.tsp.streaming.io.{IntESValue, StringESValue}
 
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.{Properties, UUID}
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.scalatest.{Assertion, FlatSpec}
 
 import scala.util.Failure
@@ -20,10 +19,10 @@ import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.utils.{InfluxDBContainer, JDBCContainer, SqlMatchers}
-import ru.itclover.tsp.io.input.{InfluxDBInputConf, JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.io.output.{JDBCOutputConf, NewRowSchema}
-import ru.itclover.tsp.utils.Files
+import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
+import ru.itclover.tsp.streaming.io.{JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.streaming.io.{JDBCOutputConf, NewRowSchema}
+import ru.itclover.tsp.streaming.utils.Files
 import spray.json._
 
 import scala.annotation.tailrec
@@ -44,10 +43,6 @@ class SimpleCasesTest
     with ForAllTestContainer
     with RoutesProtocols {
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
-  implicit override val streamEnvironment: StreamExecutionEnvironment =
-    StreamExecutionEnvironment.createLocalEnvironment()
-  streamEnvironment.setParallelism(1)
-  streamEnvironment.setMaxParallelism(30000) // For proper keyBy partitioning
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =
@@ -75,21 +70,10 @@ class SimpleCasesTest
     waitStrategy = Some(Wait.forHttp("/"))
   )
 
-  implicit val influxContainer =
-    new InfluxDBContainer(
-      "influxdb:1.7",
-      influxPort -> 8086 :: Nil,
-      s"http://localhost:$influxPort",
-      "Test",
-      "default",
-      waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(404))
-    )
-
   val kafkaContainer = KafkaContainer()
 
   override val container = MultipleContainers(
     clickhouseContainer,
-    influxContainer,
     kafkaContainer
   )
 
@@ -182,20 +166,6 @@ class SimpleCasesTest
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
-  val influxInputConf = InfluxDBInputConf(
-    sourceId = 300,
-    url = influxContainer.url,
-    query = "SELECT * FROM \"2te116u_tmy_test_simple_rules\" ORDER BY time",
-    userName = Some("default"),
-    password = Some("default"),
-    dbName = influxContainer.dbName,
-    eventsMaxGapMs = Some(60000L),
-    defaultEventsGapMs = Some(1000L),
-    chunkSizeMs = Some(900000L),
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
-    additionalTypeChecking = Some(false)
-  )
 
   val wideInputConf = JDBCInputConf(
     sourceId = 100,
@@ -207,7 +177,8 @@ class SimpleCasesTest
     defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id)
+    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    userName = Some("default")
   )
 
   val narrowInputConf = wideInputConf.copy(
@@ -243,13 +214,15 @@ class SimpleCasesTest
   )
 
   val wideRowSchema = NewRowSchema(
-    unitIdField = 'series_storage,
-    fromTsField = 'from,
-    toTsField = 'to,
-    appIdFieldVal = ('app, 1),
-    patternIdField = 'id,
-    subunitIdField = 'subunit,
-    incidentIdField = 'uuid
+    Map(
+      "series_storage" -> StringESValue("int32", "$Unit"),
+      "from" -> StringESValue("timestamp", "$IncidentStart"),
+      "to" -> StringESValue("timestamp", "$IncidentEnd"),
+      "app" -> IntESValue("int32", 1),
+      "id" ->StringESValue("int32", "$PatternID"),
+      "subunit" ->StringESValue("int32", "$Subunit"),
+      "uuid" -> StringESValue("string", "$UUID")
+    )
   )
   lazy val wideKafkaInputConf = KafkaInputConf(
     sourceId = 600,
@@ -270,44 +243,35 @@ class SimpleCasesTest
   )
 
   val narrowRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 2)
-  )
-
-  val influxRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 3)
+    data = wideRowSchema.data.updated("app", IntESValue("int32", 2))
   )
 
   val narrowIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 4)
+    data = wideRowSchema.data.updated("app", IntESValue("int32", 3))
   )
 
   val wideIvolgaRowSchema = wideRowSchema.copy(
-    appIdFieldVal = ('app, 5)
+    data = wideRowSchema.data.updated("app", IntESValue("int32", 4))
   )
 
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
   val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
 
   val wideKafkaRowSchema =
-    NewRowSchema('series_storage, 'from, 'to, ('app, 4), 'id, 'subunit, 'uuid)
+    wideRowSchema
 
   val wideOutputConf = JDBCOutputConf(
     tableName = "events_wide_test",
     rowSchema = wideRowSchema,
     jdbcUrl = chConnection,
-    driverName = chDriver
-    //userName = Some("default"),
+    driverName = chDriver,
+    userName = Some("default"),
     //password = Some("")
   )
 
   val narrowOutputConf = wideOutputConf.copy(
     tableName = "events_narrow_test",
     rowSchema = narrowRowSchema
-  )
-
-  val influxOutputConf = wideOutputConf.copy(
-    tableName = "events_influx_test",
-    rowSchema = influxRowSchema
   )
 
   val narrowOutputIvolgaConf = wideOutputConf.copy(
@@ -348,18 +312,6 @@ class SimpleCasesTest
 
     })
 
-    Files
-      .readResource("/sql/infl-test-db-schema.sql")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeQuery)
-
-    Files
-      .readResource("/sql/test/cases-narrow-new.influx")
-      .mkString
-      .split(";")
-      .foreach(influxContainer.executeUpdate)
-
     val insertInfo = Seq(
       ("math_test", "/sql/test/cases-narrow-new.csv"),
       ("ivolga_test_narrow", "/sql/test/cases-narrow-ivolga.csv"),
@@ -368,6 +320,7 @@ class SimpleCasesTest
     )
 
     // Kafka producer
+    // TODO: Send to Kafka
     val props = new Properties()
     props.put("bootstrap.servers", kafkaBrokerUrl)
     props.put("acks", "all")
@@ -379,7 +332,6 @@ class SimpleCasesTest
     props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
     props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-    val producer = new KafkaProducer[String, String](props)
 
     insertInfo.foreach(elem => {
 
@@ -416,11 +368,11 @@ class SimpleCasesTest
               .mkString(", ") + "}"
           val topic = elem._1.filter(_ != '`')
           println(s"Sending to $topic $msgKey --- $json")
-          producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
+          //producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
       }
     })
 
-    producer.close()
+    //producer.close()
   }
 
   def firstValidationQuery(table: String, numbers: Seq[Range]) = s"""
@@ -439,7 +391,6 @@ class SimpleCasesTest
   override def afterAll(): Unit = {
     super.afterAll()
     clickhouseContainer.stop()
-    influxContainer.stop()
     container.stop()
   }
 
@@ -457,15 +408,16 @@ class SimpleCasesTest
 
   "Data" should "load properly" in {
     checkByQuery(List(List(53.0)), "SELECT COUNT(*) FROM `2te116u_tmy_test_simple_rules`")
+    checkByQuery(List(List(150.0)), "SELECT COUNT(*) FROM `ivolga_test_narrow`")
+    checkByQuery(List(List(48.0)), "SELECT COUNT(*) FROM `ivolga_test_wide`")
     checkByQuery(List(List(159.0)), "SELECT COUNT(*) FROM math_test")
-    checkInfluxByQuery(List(List(53.0, 53.0, 53.0)), "SELECT COUNT(*) FROM \"2te116u_tmy_test_simple_rules\"")
   }
 
   "Cases 1-17, 43-53" should "work in wide table" in {
     casesPatterns.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/",
-        FindPatternsRequest(s"17wide_$id", wideInputConf, wideOutputConf, 50, List(casesPatterns(id)))
+        "/job/submit/",
+        FindPatternsRequest(s"17wide_$id", wideInputConf, Seq(wideOutputConf), 50, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -473,7 +425,7 @@ class SimpleCasesTest
         }
       }
     }
-    Thread.sleep(50000)
+    Thread.sleep(60000)
     alertByQuery(
       incidentsCount
         .map {
@@ -489,8 +441,8 @@ class SimpleCasesTest
   "Cases 1-17, 43-53" should "work in narrow table" in {
     casesPatterns.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/",
-        FindPatternsRequest(s"17narrow_$id", narrowInputConf, narrowOutputConf, 50, List(casesPatterns(id)))
+        "/job/submit/",
+        FindPatternsRequest(s"17narrow_$id", narrowInputConf, Seq(narrowOutputConf), 50, List(casesPatterns(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -498,7 +450,7 @@ class SimpleCasesTest
         }
       }
     }
-    Thread.sleep(50000)
+    Thread.sleep(60000)
     alertByQuery(
       incidentsCount
         .map {
@@ -511,36 +463,11 @@ class SimpleCasesTest
     alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_narrow_test"))
   }
 
-  "Cases 1-17, 43-53" should "work in influx table" in {
-    casesPatterns.keys.foreach { id =>
-      Post(
-        "/streamJob/from-influxdb/to-jdbc/",
-        FindPatternsRequest(s"17influx_$id", influxInputConf, influxOutputConf, 50, List(casesPatterns(id)))
-      ) ~>
-      route ~> check {
-        withClue(s"Pattern ID: $id") {
-          status shouldEqual StatusCodes.OK
-        }
-      }
-    }
-    Thread.sleep(50000)
-    alertByQuery(
-      incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.headOption.getOrElse(Double.NaN)),
-      firstValidationQuery("events_influx_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-    )
-    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_influx_test"))
-  }
-
   "Cases 18-42" should "work in ivolga wide table" in {
     casesPatternsIvolga.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/",
-        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, wideOutputIvolgaConf, 50, List(casesPatternsIvolga(id)))
+        "/job/submit/",
+        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, Seq(wideOutputIvolgaConf), 50, List(casesPatternsIvolga(id)))
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -548,7 +475,7 @@ class SimpleCasesTest
         }
       }
     }
-    Thread.sleep(50000)
+    Thread.sleep(60000)
     alertByQuery(
       incidentsIvolgaCount
         .map {
@@ -567,11 +494,11 @@ class SimpleCasesTest
   "Cases 18-42" should "work in ivolga narrow table" in {
     casesPatternsIvolga.keys.foreach { id =>
       Post(
-        "/streamJob/from-jdbc/to-jdbc/",
+        "/job/submit/",
         FindPatternsRequest(
           s"17narrow_$id",
           narrowInputIvolgaConf,
-          narrowOutputIvolgaConf,
+          Seq(narrowOutputIvolgaConf),
           50,
           List(casesPatternsIvolga(id))
         )
@@ -582,7 +509,7 @@ class SimpleCasesTest
         }
       }
     }
-    Thread.sleep(50000)
+    Thread.sleep(60000)
     alertByQuery(
       incidentsIvolgaCount
         .map {
@@ -612,7 +539,7 @@ class SimpleCasesTest
 //  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
 //    casesPatterns.keys.foreach { id =>
 //      Post(
-//        "/streamJob/from-kafka/to-jdbc/",
+//        "/job/submit/",
 //        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
 //      ) ~>
 //      route ~> check {
@@ -622,7 +549,7 @@ class SimpleCasesTest
 //        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
 //      }
 //    }
-//    Thread.sleep(50000)
+//    Thread.sleep(60000)
 //    casesPatterns.keys.foreach { id =>
 //      Get(
 //        s"/job/17kafkawide_$id/stop"

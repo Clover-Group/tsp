@@ -51,39 +51,5 @@ trait SqlMatchers extends Matchers {
     }
   }
 
-  // Here, default argument for `epsilon` is useful.
-  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-  def checkInfluxByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(
-    implicit container: InfluxDBContainer
-  ): Assertion = {
-    val resultSet = container.executeQuery(query)
-    val results: List[Seq[Double]] = resultSet.getResults
-      .get(0)
-      .getSeries
-      .asScala
-      .map(
-        _.getValues.asScala.map(_.asScala.drop(1).map(x => Try(x.toString.toDouble).getOrElse(Double.NaN)).toList).toList
-      )
-      .foldLeft(List.empty[Seq[Double]])(_ ++ _)
-    logger.info(
-      s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
-      s"actual values: [${toStringRepresentation(results)}]"
-    )
-    implicit val customEqualityList: Equality[List[Double]] = (a: scala.List[Double], b: Any) => {
-      a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall {
-        case (x, y) => Math.abs(x - y) < epsilon
-      }
-    }
-    val unfound = expectedValues.filter(x => !results.exists(y => customEqualityList.areEqual(x.toList, y)))
-    val unexpected = results.filter(x => !expectedValues.exists(y => customEqualityList.areEqual(x.toList, y)))
-    withClue(
-      s"Expected but not found:\n [${toStringRepresentation(unfound)}]\n; found\n [${toStringRepresentation(unexpected)}]\n instead"
-    ) {
-      // results should ===(expectedValues)
-      unfound shouldBe empty
-      unexpected shouldBe empty
-    }
-  }
-
   def toStringRepresentation(data: Seq[Seq[Double]]): String = data.map(_.mkString(", ")).mkString(";\n")
 }

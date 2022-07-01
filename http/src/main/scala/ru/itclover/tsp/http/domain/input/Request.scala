@@ -1,7 +1,6 @@
 package ru.itclover.tsp.http.domain.input
 import ru.itclover.tsp.core.RawPattern
-import ru.itclover.tsp.io.input.InputConf
-import ru.itclover.tsp.io.output.OutputConf
+import ru.itclover.tsp.streaming.io.{InputConf, OutputConf}
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream}
 

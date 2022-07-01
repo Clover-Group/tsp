@@ -1,7 +1,7 @@
 package ru.itclover.tsp.http
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.io.input.{NarrowDataUnfolding, WideDataFilling}
+import ru.itclover.tsp.streaming.io.{NarrowDataUnfolding, WideDataFilling}
 import spray.json.{JsBoolean, JsNumber, JsString, JsValue}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
