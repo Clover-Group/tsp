@@ -194,7 +194,8 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
-  implicit val jdbcOutConfFmt = jsonFormat(JDBCOutputConf.apply,
+  implicit val jdbcOutConfFmt = jsonFormat(
+    JDBCOutputConf.apply,
     "tableName",
     "rowSchema",
     "jdbcUrl",
@@ -205,7 +206,15 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism"
   )
 
-  implicit val kafkaOutConfFmt = jsonFormat5(KafkaOutputConf.apply)
+  implicit val kafkaOutConfFmt = jsonFormat(
+    KafkaOutputConf.apply,
+    "broker",
+    "topic",
+    "serializer",
+    "rowSchema",
+    "parallelism"
+  )
+
 
   implicit def outConfFmt[Event] =
     new RootJsonFormat[OutputConf[Event]] {

@@ -233,7 +233,8 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
           // TODO: Report throwable
           log.error(s"Job $uuid failed: $throwable")
         case Right(_) =>
-          // success,
+          // success
+          log.info(s"Job $uuid finished")
       }
     }
 

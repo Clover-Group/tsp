@@ -15,7 +15,8 @@ object Version {
   val akkaHttp = "10.1.9"
 
   val cats = "3.3.12"
-  val fs2 = "3.2.7"
+  val fs2 = "3.2.8"
+  val fs2Kafka = "2.4.0"
   val doobie = "1.0.0-RC2"
 
   val scalaTest = "3.0.8"
@@ -110,6 +111,10 @@ object Library {
 
   val fs2: Seq[ModuleID] = Seq(
     "co.fs2" %% "fs2-core" % Version.fs2
+  )
+
+  val fs2Kafka: Seq[ModuleID] = Seq(
+    "com.github.fd4s" %% "fs2-kafka" % Version.fs2Kafka
   )
 
   val doobie: Seq[ModuleID] = Seq(

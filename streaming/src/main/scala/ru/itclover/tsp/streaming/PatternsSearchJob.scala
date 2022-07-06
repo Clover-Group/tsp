@@ -136,14 +136,17 @@ case class PatternsSearchJob[In, InKey, InItem](
     case Some(_) =>
       import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator}
       dataStream
-        //.keyBy(source.partitioner)
-        .map( event =>
-          SparseRowsDataAccumulator[In, InKey, InItem, In](
-            source.asInstanceOf[StreamSource[In, InKey, InItem]],
-            source.patternFields
-          ).map(event)
-        )
-        .unNone
+        .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
+        .map {
+          case (_, str ) => str.map( event =>
+            SparseRowsDataAccumulator[In, InKey, InItem, In](
+              source.asInstanceOf[StreamSource[In, InKey, InItem]],
+              source.patternFields
+            ).map(event)
+          )
+          .unNone
+        }
+        .parJoinUnbounded
         //.setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }

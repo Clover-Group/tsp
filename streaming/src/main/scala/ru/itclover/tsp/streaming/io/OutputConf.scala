@@ -2,14 +2,20 @@ package ru.itclover.tsp.streaming.io
 
 import cats.effect.{IO, MonadCancelThrow, Resource}
 import cats.implicits._
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import doobie.WeakAsync.doobieWeakAsyncForAsync
 import doobie.{ConnectionIO, FC, Transactor, Update0}
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 import fs2.Pipe
+import fs2.kafka.{Acks, KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings, Serializer}
 import ru.itclover.tsp.StreamSource.Row
 
-import java.sql.Connection
+import java.sql.{Connection, Timestamp}
+import java.time.{ZoneId, ZonedDateTime}
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
 import scala.util.control.NonFatal
 
 trait OutputConf[Event] {
@@ -137,5 +143,59 @@ case class KafkaOutputConf(
                             rowSchema: EventSchema,
                             parallelism: Option[Int] = Some(1)
                           ) extends OutputConf[Row] {
-  override def getSink: Pipe[IO, Row, Unit] = ???
+  val producerSettings = ProducerSettings(
+    keySerializer = Serializer[IO, String],
+    valueSerializer = Serializer[IO, String]
+  ).withBootstrapServers(broker)
+    .withAcks(Acks.All)
+    .withProperty("auto.create.topics.enable", "true")
+
+  override def getSink: Pipe[IO, Row, Unit] = stream =>
+    stream
+      .map { data =>
+        val serialized = serialize(data, rowSchema)
+        val rec = ProducerRecord(topic, ZonedDateTime.now(ZoneId.of("UTC")).toString, serialized)
+        ProducerRecords.one(rec)
+      }
+      .through(KafkaProducer.pipe(producerSettings))
+      .drain
+
+  def serialize(output: Row, eventSchema: EventSchema): String = {
+
+    val mapper = new ObjectMapper()
+    val root = mapper.createObjectNode()
+
+    // TODO: Write JSON
+
+    eventSchema match {
+      case newRowSchema: NewRowSchema =>
+        newRowSchema.data.foreach { case (k, v) =>
+          putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(Symbol(k))))
+        }
+    }
+
+    def putValueToObjectNode(k: String,
+                             v: EventSchemaValue,
+                             root: ObjectNode,
+                             value: Object): Unit = {
+      v.`type` match {
+        case "int8" => root.put(k, value.asInstanceOf[Byte])
+        case "int16" => root.put(k, value.asInstanceOf[Short])
+        case "int32" => root.put(k, value.asInstanceOf[Int])
+        case "int64" => root.put(k, value.asInstanceOf[Long])
+        case "float32" => root.put(k, value.asInstanceOf[Float])
+        case "float64" => root.put(k, value.asInstanceOf[Double])
+        case "boolean" => root.put(k, value.asInstanceOf[Boolean])
+        case "string" => root.put(k, value.asInstanceOf[String])
+        case "timestamp" => root.put(k, value.asInstanceOf[Timestamp].toString)
+        case "object" =>
+          val data = value.toString
+          val parsedJson = mapper.readTree(data)
+          root.put(k, parsedJson)
+      }
+    }
+
+    mapper.writeValueAsString(root)
+
+  }
 }

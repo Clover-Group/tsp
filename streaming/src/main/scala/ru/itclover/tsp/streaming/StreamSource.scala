@@ -8,11 +8,13 @@ import doobie.implicits._
 import java.sql.{PreparedStatement, ResultSet}
 import doobie.{ConnectionIO, FC, FPS, FRS, PreparedStatementIO, ResultSetIO, Transactor}
 import doobie.util.stream.repeatEvalChunks
+import fs2.kafka.{AutoOffsetReset, ConsumerSettings, Deserializer, KafkaConsumer}
 import ru.itclover.tsp.StreamSource.Row
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor}
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 import ru.itclover.tsp.services.KafkaService
 import ru.itclover.tsp.streaming.io._
+import ru.itclover.tsp.streaming.serialization.JsonDeserializer
 import ru.itclover.tsp.streaming.services.JdbcService
 import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
 import ru.itclover.tsp.streaming.utils.{EventCreator, EventCreatorInstances, KeyCreator, KeyCreatorInstances}
@@ -359,7 +361,32 @@ case class KafkaSource(
 
   val stageName = "Kafka input processing stage"
 
-  def createStream: fs2.Stream[IO, RowWithIdx] = ???
+  val consumerSettings = ConsumerSettings(
+    keyDeserializer = Deserializer.unit[IO],
+    valueDeserializer = Deserializer.instance[IO, Row](
+      (topic, headers, bytes) => {
+        val deserialized = JsonDeserializer(fieldsClasses).deserialize(bytes)
+        deserialized match {
+          case Right(value) => IO.pure(value)
+          case Left(throwable) => ??? // TODO: Deserialization error
+        }
+      }
+    )
+  )
+    .withBootstrapServers(conf.brokers)
+    .withGroupId(conf.group)
+    .withAutoOffsetReset(AutoOffsetReset.Latest)
+
+  def createStream: fs2.Stream[IO, RowWithIdx] =
+    KafkaConsumer
+      .stream(consumerSettings)
+      .subscribeTo(conf.topic)
+      .records
+      .map { committable =>
+        committable.record.value
+      }
+      .zipWithIndex
+      .map { case (r, i) => RowWithIdx(i + 1, r) }
 
   def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)

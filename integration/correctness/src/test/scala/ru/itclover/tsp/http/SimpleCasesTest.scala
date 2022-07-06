@@ -3,9 +3,14 @@ package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import com.dimafeng.testcontainers._
+import fs2.kafka.{Acks, KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings, Serializer}
 import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.streaming.io.{IntESValue, StringESValue}
+
+import scala.concurrent.duration.FiniteDuration
 
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
@@ -285,10 +290,11 @@ class SimpleCasesTest
   )
 
   val wideKafkaOutputConf = JDBCOutputConf(
-    "events_wide_kafka_test",
-    wideKafkaRowSchema,
-    s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    tableName = "events_wide_kafka_test",
+    rowSchema = wideKafkaRowSchema,
+    jdbcUrl = chConnection,
+    driverName = chDriver,
+    userName = Some("default")
   )
 
   override def afterStart(): Unit = {
@@ -321,16 +327,25 @@ class SimpleCasesTest
 
     // Kafka producer
     // TODO: Send to Kafka
-    val props = new Properties()
-    props.put("bootstrap.servers", kafkaBrokerUrl)
-    props.put("acks", "all")
-    props.put("retries", "2")
-    props.put("auto.commit.interval.ms", "1000")
-    props.put("linger.ms", "1")
-    props.put("block.on.buffer.full", "true")
-    props.put("auto.create.topics.enable", "true")
-    props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+//    val props = new Properties()
+//    props.put("bootstrap.servers", kafkaBrokerUrl)
+//    props.put("acks", "all")
+//    props.put("retries", "2")
+//    props.put("auto.commit.interval.ms", "1000")
+//    props.put("linger.ms", "1")
+//    props.put("block.on.buffer.full", "true")
+//    props.put("auto.create.topics.enable", "true")
+//    props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+//    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+
+    val producerSettings = ProducerSettings(
+      keySerializer = Serializer[IO, String],
+      valueSerializer = Serializer[IO, String]
+    ).withBootstrapServers(kafkaBrokerUrl)
+      .withRetries(2)
+      .withLinger(FiniteDuration.apply(1, TimeUnit.MILLISECONDS))
+      .withAcks(Acks.All)
+      .withProperty("auto.create.topics.enable", "true")
 
 
     insertInfo.foreach(elem => {
@@ -343,11 +358,11 @@ class SimpleCasesTest
       clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
 
       val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
-      val data = Files.readResource(elem._2).drop(1).map(_.split(","))
+      val data = Files.readResource(elem._2).drop(1).map(_.split(",")).toArray
       val numberIndices =
         List("dt", "ts", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
-      data.foreach {
+      fs2.Stream.emits(data).map {
         row =>
           val convertedRow: Seq[Any] = row.indices.map(
             idx =>
@@ -368,11 +383,15 @@ class SimpleCasesTest
               .mkString(", ") + "}"
           val topic = elem._1.filter(_ != '`')
           println(s"Sending to $topic $msgKey --- $json")
-          //producer.send(new ProducerRecord[String, String](topic, msgKey, json)).get()
+          val rec = ProducerRecord(topic, msgKey, json)
+          ProducerRecords.one(rec)
       }
-    })
+        .through(KafkaProducer.pipe(producerSettings))
+        .compile
+        .drain
+        .unsafeRunSync
 
-    //producer.close()
+    })
   }
 
   def firstValidationQuery(table: String, numbers: Seq[Range]) = s"""
@@ -536,42 +555,30 @@ class SimpleCasesTest
     inner(numbers, Nil)
   }
 
-//  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
-//    casesPatterns.keys.foreach { id =>
-//      Post(
-//        "/job/submit/",
-//        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, wideKafkaOutputConf, List(casesPatterns(id)))
-//      ) ~>
-//      route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//        }
-//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    Thread.sleep(60000)
-//    casesPatterns.keys.foreach { id =>
-//      Get(
-//        s"/job/17kafkawide_$id/stop"
-//      ) ~>
-//        route ~> check {
-//        withClue(s"Pattern ID: $id") {
-//          status shouldEqual StatusCodes.OK
-//          //response.toString shouldBe ""
-//        }
-//        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-//      }
-//    }
-//    alertByQuery(
-//      incidentsCount
-//        .map {
-//          case (k, v) => List(k.toDouble, v.toDouble)
-//        }
-//        .toList
-//        .sortBy(_.headOption.getOrElse(Double.NaN)),
-//      firstValidationQuery("events_wide_kafka_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-//    )
-//    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
-//  }
+  "Cases 1-17, 43-50" should "work in wide Kafka table" in {
+    casesPatterns.keys.foreach { id =>
+      Post(
+        "/job/submit/",
+        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, Seq(wideKafkaOutputConf), 50, List(casesPatterns(id)))
+      ) ~>
+      route ~> check {
+        withClue(s"Pattern ID: $id") {
+          status shouldEqual StatusCodes.OK
+        }
+        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+      }
+    }
+    Thread.sleep(60000)
+    alertByQuery(
+      incidentsCount
+        .map {
+          case (k, v) => List(k.toDouble, v.toDouble)
+        }
+        .toList
+        .sortBy(_.headOption.getOrElse(Double.NaN)),
+      firstValidationQuery("events_wide_kafka_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+    )
+    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
+  }
   override val reporting: Option[JobReporting] = None
 }
