@@ -66,10 +66,10 @@ trait JobsRoutes extends RoutesProtocols {
         .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]])
         .toList)
     } ~
-    path("queue" / Segment / "remove") { uuid =>
+    path("job" / Segment / "stop") { uuid =>
       queueManager.removeFromQueue(uuid) match {
         case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue."))
-        case None => redirect(s"/job/$uuid/stop", PermanentRedirect)
+        case None => redirect(s"/job/$uuid/stop-flink", PermanentRedirect)
       }
     }
 }

@@ -88,7 +88,7 @@ trait MonitoringRoutes extends RoutesProtocols with MonitoringServiceProtocols {
         case Failure(err)              => complete((InternalServerError, FailureResponse(5005, err)))
       }
     } ~
-    path("job" / Segment / "stop") { uuid =>
+    path("job" / Segment / "stop-flink") { uuid =>
       onComplete(monitoring.sendStopQuery(uuid)) {
         case Success(Some(_)) => complete((SuccessfulResponse(1)))
         case Success(None)    => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
