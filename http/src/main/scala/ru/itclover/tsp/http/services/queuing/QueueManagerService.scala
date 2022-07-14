@@ -6,7 +6,6 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import boopickle.Default._
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.typesafe.scalalogging.Logger
@@ -16,7 +15,6 @@ import ru.itclover.tsp.{JdbcSource, KafkaSource, RowWithIdx, StreamSource}
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
-import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
 import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
@@ -26,11 +24,6 @@ import ru.itclover.tsp.streaming.PatternsSearchJob
 import ru.itclover.tsp.streaming.utils.ErrorsADT
 import ru.itclover.tsp.streaming.utils.ErrorsADT.RuntimeErr
 import spray.json._
-import swaydb.Glass
-import swaydb.persistent.{Set => PersistentSet}
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
 
 import java.nio.file.Paths
 import java.time.LocalDateTime
@@ -43,12 +36,11 @@ import scala.util.{Failure, Success, Try}
 import collection.JavaConverters._
 
 
-class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextExecutor)(
+class QueueManagerService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
   actorSystem: ActorSystem,
   materializer: ActorMaterializer,
-  decoders: BasicDecoders[Any] = AnyDecodersInstances,
-  reporting: Option[JobReporting]
+  decoders: BasicDecoders[Any] = AnyDecodersInstances
 ) extends SprayJsonSupport
     with DefaultJsonProtocol {
   import ru.itclover.tsp.http.services.AkkaHttpUtils._
@@ -56,21 +48,6 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   type TypedRequest = (QueueableRequest, String)
   type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
 
-  implicit val requestOrdering: KeyOrder[TypedRequest] = (x: TypedRequest, y: TypedRequest) => -x._1.compare(y._1)
-  implicit val requestSerialiser = new Serializer[TypedRequest] {
-    override def write(data: (QueueableRequest, String)): Slice[Byte] = Slice
-      .ofBytesScala(100000)
-      .addStringUTF8WithSize(data._2)
-      .addAll(data._1.serialize)
-      .close()
-
-    override def read(slice: Slice[Byte]): (QueueableRequest, String) = {
-      val reader = slice.createReader
-      val in = reader.readStringWithSizeUTF8
-      val request = QueueableRequest.deserialize(reader.readRemaining.toArray)
-      (request, in)
-    }
-  }
 
   case class Metric(id: String, value: String)
 
@@ -82,10 +59,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   //log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
   val jobQueue = mutable.Queue[TypedRequest]()
 
-  val isLocalhost: Boolean = uri.authority.host.toString match {
-    case "localhost" | "127.0.0.1" | "::1" => true
-    case _                                 => false
-  }
+  val isLocalhost: Boolean = true
 
   val ex = new ScheduledThreadPoolExecutor(1)
 
@@ -242,12 +216,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     Right(None)
   }
 
-  def availableSlots: Future[Int] = if (isLocalhost) Future(32)
-  else
-    Http()
-      .singleRequest(HttpRequest(uri = uri.toString + "/jobmanager/metrics?get=taskSlotsAvailable"))
-      .flatMap(resp => Unmarshal(resp).to[Seq[Metric]])
-      .map(m => Try(m.head.value.toInt).getOrElse(0))
+  def availableSlots: Future[Int] = Future(32)
 
 
   def onTimer(): Unit = {
@@ -274,14 +243,13 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 object QueueManagerService {
   val services: mutable.Map[Uri, QueueManagerService] = mutable.Map.empty
 
-  def getOrCreate(uri: Uri, blockingExecutionContext: ExecutionContextExecutor)(
+  def getOrCreate(id: String, blockingExecutionContext: ExecutionContextExecutor)(
     implicit executionContext: ExecutionContextExecutor,
     actorSystem: ActorSystem,
     materializer: ActorMaterializer,
-    decoders: BasicDecoders[Any] = AnyDecodersInstances,
-    reporting: Option[JobReporting]
+    decoders: BasicDecoders[Any] = AnyDecodersInstances
   ): QueueManagerService = {
-    if (!services.contains(uri)) services(uri) = new QueueManagerService(uri, blockingExecutionContext)
-    services(uri)
+    if (!services.contains(id)) services(id) = new QueueManagerService(id, blockingExecutionContext)
+    services(id)
   }
 }

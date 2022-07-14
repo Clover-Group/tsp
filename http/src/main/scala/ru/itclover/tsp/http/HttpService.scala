@@ -28,14 +28,9 @@ trait HttpService extends RoutesProtocols {
 
   val blockingExecutorContext: ExecutionContextExecutor
 
-  val reporting: Option[JobReporting]
-
   private val configs = ConfigFactory.load()
   val isDebug = true
   val isHideExceptions = configs.getBoolean("general.is-hide-exceptions")
-  val flinkMonitoringHost: String = getEnvVarOrConfig("FLINK_MONITORING_HOST", "flink.monitoring.host")
-  val flinkMonitoringPort: Int = getEnvVarOrConfig("FLINK_MONITORING_PORT", "flink.monitoring.port").toInt
-  val monitoringUri: Uri = s"http://$flinkMonitoringHost:$flinkMonitoringPort"
 
   private val log = Logger[HttpService]
 
@@ -43,10 +38,9 @@ trait HttpService extends RoutesProtocols {
     log.debug("composeRoutes started")
 
     val res = for {
-      jobs       <- JobsRoutes.fromExecutionContext(monitoringUri, reporting, blockingExecutorContext)
-      monitoring <- MonitoringRoutes.fromExecutionContext(monitoringUri)
+      jobs       <- JobsRoutes.fromExecutionContext(blockingExecutorContext)
       validation <- ValidationRoutes.fromExecutionContext()
-    } yield jobs ~ monitoring ~ validation
+    } yield jobs ~ validation
 
     log.debug("composeRoutes finished")
     res

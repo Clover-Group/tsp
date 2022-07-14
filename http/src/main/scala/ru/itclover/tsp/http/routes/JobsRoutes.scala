@@ -23,15 +23,12 @@ import ru.itclover.tsp.http.domain.output.SuccessfulResponse.ExecInfo
 import ru.itclover.tsp.http.domain.output._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
-import ru.itclover.tsp.http.services.streaming.FlinkMonitoringService
 import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.streaming.mappers._
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr, Err, GenericRuntimeErr, RuntimeErr}
-
-case class JobReporting(brokers: String, topic: String)
 
 trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
@@ -40,11 +37,7 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val materializer: ActorMaterializer
   implicit val decoders = AnyDecodersInstances
 
-  val monitoringUri: Uri
-  lazy val monitoring = FlinkMonitoringService(monitoringUri)
   val queueManager: QueueManagerService
-
-  implicit val reporting: Option[JobReporting]
 
   private val log = Logger[JobsRoutes]
 
@@ -72,9 +65,7 @@ object JobsRoutes {
 
   private val log = Logger[JobsRoutes]
 
-  def fromExecutionContext(monitoringUrl: Uri,
-                           rep: Option[JobReporting],
-                           blocking: ExecutionContextExecutor)(
+  def fromExecutionContext(blocking: ExecutionContextExecutor)(
     implicit as: ActorSystem,
     am: ActorMaterializer
   ): Reader[ExecutionContextExecutor, Route] = {
@@ -87,11 +78,9 @@ object JobsRoutes {
         implicit val executionContext: ExecutionContextExecutor = execContext
         implicit val actorSystem = as
         implicit val materializer = am
-        override val monitoringUri = monitoringUrl
-        override val queueManager = QueueManagerService.getOrCreate(monitoringUrl, blocking)(
-          execContext, as, am, AnyDecodersInstances, rep
+        override val queueManager = QueueManagerService.getOrCreate("mgr", blocking)(
+          execContext, as, am, AnyDecodersInstances
         )
-        override val reporting: Option[JobReporting] = rep
       }.route
     }
 

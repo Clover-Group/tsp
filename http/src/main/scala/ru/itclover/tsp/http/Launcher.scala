@@ -4,11 +4,14 @@ import java.net.URLDecoder
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.ActorMaterializer
 import cats.implicits._
 import ru.itclover.tsp.RowWithIdx
-import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
@@ -73,6 +76,25 @@ object Launcher extends App with HttpService {
   val bindingFuture = Http().bindAndHandle(route, host, port)
 
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))
+  val coordinator = getCoordinatorHostPort
+  coordinator.map {
+    case (enabled, host, port) => if (enabled) {
+      val uri = s"http://$host:$port/register"
+      log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
+
+      val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = uri))
+
+      responseFuture
+        .onComplete {
+          case Success(res) => {
+            if (res.status.isFailure) sys.error(s"Error: TSP coordinator returned ${res.status}")
+          }
+          case Failure(ex)   => sys.error(s"Cannot connect to $uri: $ex")
+        }
+    } else {
+      log.warn("TSP coordinator connection disabled.")
+    }
+  }
 
   if (configs.getBoolean("general.is-follow-input")) {
     log.info("Press RETURN to stop...")
@@ -90,36 +112,23 @@ object Launcher extends App with HttpService {
     }
   }
 
-  def getClusterHostPort: Either[String, (String, Int)] = {
-    val host = getEnvVarOrConfig("FLINK_JOBMGR_HOST", "flink.job-manager.host")
-    val portStr = getEnvVarOrConfig("FLINK_JOBMGR_PORT", "flink.job-manager.port")
+  def getCoordinatorHostPort: Either[String, (Boolean, String, Int)] = {
+    val enabledStr = getEnvVarOrConfig("COORDINATOR_ENABLED", "coordinator.enabled")
+    val host = getEnvVarOrConfig("COORDINATOR_HOST", "coordinator.host")
+    val portStr = getEnvVarOrConfig("COORDINATOR_PORT", "coordinator.port")
     val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
-      s"Cannot parse FLINK_JOBMGR_PORT ($portStr): ${ex.getMessage}"
+      s"Cannot parse COORDINATOR_PORT ($portStr): ${ex.getMessage}"
     }
-    port.map(p => (host, p))
+    val enabled = Either.catchNonFatal(enabledStr.toBoolean) match {
+      case Left(ex) => {
+        log.warn(s"Cannot parse COORDINATOR_ENABLED ($enabledStr), defaulting to false:  ${ex.getMessage}")
+        false
+      }
+      case Right(value) => value
+    }
+    port.map(p => (enabled, host, p))
   }
 
-  override val reporting: Option[JobReporting] = {
-    val reportingEnabledConfig = getEnvVarOrNone("JOB_REPORTING_ENABLED").getOrElse("0")
-    val reportingEnabled = reportingEnabledConfig match {
-      case "0" | "false" | "off" | "no" => false
-      case "1" | "true" | "on" | "yes"  => true
-      case _                            => sys.error(s"JOB_REPORTING_ENABLED not set or set to a unsupported value: $reportingEnabledConfig")
-    }
 
-    if (reportingEnabled) {
-      val reportingBroker = getEnvVarOrNone("JOB_REPORTING_BROKER")
-        .getOrElse(sys.error("Job reporting enabled, but JOB_REPORTING_BROKER not set"))
-      val reportingTopic = getEnvVarOrNone("JOB_REPORTING_TOPIC")
-        .getOrElse(sys.error("Job reporting enabled, but JOB_REPORTING_TOPIC not set"))
-      log.warn(s"Job reporting enabled, sending to topic $reportingTopic on $reportingBroker")
-      Some(JobReporting(reportingBroker, reportingTopic))
-    } else {
-      log.warn("Job reporting disabled")
-      None
-    }
-  }
-
-  implicit val rep = reporting
-  val queueManager = QueueManagerService.getOrCreate(monitoringUri, blockingExecutorContext)
+  val queueManager = QueueManagerService.getOrCreate("mgr", blockingExecutorContext)
 }

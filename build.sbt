@@ -152,7 +152,7 @@ lazy val core = project.in(file("core"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.logging ++ Library.config ++ Library.cats
-      ++ Library.jol.map(_ % "test") ++ Library.arrowDeps
+      ++ Library.jol.map(_ % "test")
   )
 
 lazy val config = project.in(file("config"))
@@ -176,7 +176,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.akka ++
-      Library.akkaHttp ++ Library.logging ++ Library.swayDB
+      Library.akkaHttp ++ Library.logging
   )
   .dependsOn(core, config, streaming, dsl)
 
@@ -195,12 +195,12 @@ lazy val itValid = project.in(file("integration/correctness"))
   )
   .dependsOn(core, streaming, http, config)
 
-lazy val itPerf = project.in(file("integration/performance"))
-  .settings(commonSettings)
-  .settings(
-    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
-  )
-  .dependsOn(itValid)
+//lazy val itPerf = project.in(file("integration/performance"))
+//  .settings(commonSettings)
+//  .settings(
+//    libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging
+//  )
+//  .dependsOn(itValid)
 
 
 /*** Other settings ***/

@@ -154,35 +154,12 @@ object Library {
     "ch.epfl.scala" %% "collection-strawman" % Version.strawmanVersion
   )
 
-  val arrowDeps: Seq[ModuleID] = Seq(
-    "org.apache.arrow" % "arrow-memory" % Version.arrow,
-    "org.apache.arrow" % "arrow-vector" % Version.arrow
-  )
-
-  val parquetDeps: Seq[ModuleID] = Seq(
-    "org.apache.hadoop" % "hadoop-client" % Version.hadoopClient exclude (
-      "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
-    "org.apache.hadoop" % "hadoop-common" % Version.hadoopClient exclude (
-      "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
-    "org.apache.parquet" % "parquet-hadoop" % Version.parquetCodecs exclude (
-      "org.slf4j", "slf4j-log4j12"
-    ) exclude ("log4j", "log4j"),
-    "com.github.rdblue" % "brotli-codec" % Version.brotli
-  )
-
   val jol: Seq[ModuleID] = Seq(
     "org.openjdk.jol" % "jol-core" % Version.jolVersion
   )
 
   val redisson: Seq[ModuleID] = Seq(
     "org.redisson" % "redisson" % Version.redissonVersion
-  )
-
-  val swayDB: Seq[ModuleID] = Seq(
-    "io.swaydb" %% "swaydb" % Version.swayDB,
-    "io.swaydb" %% "boopickle" % Version.swayDB
   )
 
 }
