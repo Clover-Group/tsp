@@ -59,7 +59,7 @@ object CollectionOps {
       while (queue.nonEmpty && predicate(queue.head)) {
         deqList.append(queue.dequeue())
       }
-      deqList
+      deqList.toSeq
     }
   }
 }

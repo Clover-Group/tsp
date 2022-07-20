@@ -26,7 +26,7 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
 }
 
 case class TimerAccumState[T](
-  windowQueue: m.Queue[(Idx, Time)],
+  windowQueue: m.ArrayDeque[(Idx, Time)],
   lastEnd: (Idx, Time),
   lastValue: Result[T],
   eventsMaxGapMs: Long
@@ -35,7 +35,7 @@ case class TimerAccumState[T](
   @inline
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (TimerAccumState[T], QI[Boolean]) = {
 
@@ -66,7 +66,7 @@ case class TimerAccumState[T](
         val end: Time = times.last._2 // time corresponding to the idxValue.end
 
         // don't use ++ here, slow!
-        val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
+        val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.append(b); a }
 
         // output fail on older points (before the end of the window)
         // but don't clean the whole queue
@@ -86,7 +86,7 @@ case class TimerAccumState[T](
         // if event chunk is shorter than the window, and the next window is sufficiently close,
         // then save it in the queue, and return empty state (since the later events can continue the window)
         if (cleanedWindowQueue.isEmpty && times.head._2.toMillis - lastEnd._2.toMillis < eventsMaxGapMs) {
-          updatedWindowQueue.enqueue(failOutputs: _*)
+          updatedWindowQueue.appendAll(failOutputs)
           (
             TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs),
             PQueue.empty[Boolean]

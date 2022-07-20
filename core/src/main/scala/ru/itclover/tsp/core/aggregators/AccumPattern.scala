@@ -19,7 +19,7 @@ case class AggregatorPState[InnerState, InnerOut, AState](
   innerState: InnerState,
   innerQueue: PQueue[InnerOut],
   astate: AState,
-  indexTimeMap: m.Queue[(Idx, Time)]
+  indexTimeMap: m.ArrayDeque[(Idx, Time)]
 )
 
 abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, InnerOut, Out, AState <: AccumState[
@@ -39,7 +39,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
   ): F[(AggregatorPState[InnerState, InnerOut, AState], PQueue[Out])] = {
 
     val idxTimeMapWithNewEvents =
-      event.foldLeft(state.indexTimeMap) { case (a, b) => a.enqueue(b.index -> b.time); a }
+      event.foldLeft(state.indexTimeMap) { case (a, b) => a.append(b.index -> b.time); a }
 
     inner
       .apply[F, Cont](state.innerState, state.innerQueue, event)
@@ -63,8 +63,8 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
     innerQueue: QI[InnerOut],
     accumState: AState,
     results: QI[Out],
-    indexTimeMap: m.Queue[(Idx, Time)]
-  ): (QI[InnerOut], AState, QI[Out], m.Queue[(Idx, Time)]) = {
+    indexTimeMap: m.ArrayDeque[(Idx, Time)]
+  ): (QI[InnerOut], AState, QI[Out], m.ArrayDeque[(Idx, Time)]) = {
     innerQueue.dequeueOption() match {
       case None                                               => (innerQueue, accumState, results, indexTimeMap)
       case Some((iv @ IdxValue(start, end, _), updatedQueue)) =>
@@ -91,5 +91,5 @@ trait AccumState[In, Out, Self <: AccumState[In, Out, Self]] extends Product wit
     * @param idxValue - result from inner pattern.
     * @return Tuple of updated state and queue of results to be emitted from this pattern.
     */
-  def updated(window: Window, times: m.Queue[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
+  def updated(window: Window, times: m.ArrayDeque[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
 }

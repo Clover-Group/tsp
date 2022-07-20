@@ -7,6 +7,7 @@ import cats.implicits.catsSyntaxSemigroup
 import com.typesafe.scalalogging.Logger
 import fs2.Chunk
 import ru.itclover.tsp.StreamSource
+import ru.itclover.tsp.StreamSource.Row
 import ru.itclover.tsp.core.IncidentInstances.semigroup
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
@@ -15,6 +16,7 @@ import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternFieldExtractor, PatternMetadata}
 import ru.itclover.tsp.streaming.PatternsSearchJob.{RichPattern, preparePatterns, reduceIncidents, saveStream}
+import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 import ru.itclover.tsp.streaming.io.{KafkaInputConf, OutputConf}
 import ru.itclover.tsp.streaming.mappers.{MapWithContextPattern, PatternProcessor, PatternsToRowMapper, ProcessorCombinator, ToIncidentsMapper}
 import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
@@ -26,6 +28,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 
 case class PatternsSearchJob[In, InKey, InItem](
+  jobId: String,
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
@@ -65,6 +68,7 @@ case class PatternsSearchJob[In, InKey, InItem](
 
     //log.debug("incidentsFromPatterns started")
 
+    val (checkpointOption, stateOption) = CheckpointingService.getCheckpointAndState(jobId)
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
       case ((pattern, meta), rawP) =>
 
@@ -83,10 +87,12 @@ case class PatternsSearchJob[In, InKey, InItem](
 
         PatternProcessor[In, Optimizer.S[Segment], Incident](
           incidentPattern,
-          source.conf.eventsMaxGapMs.getOrElse(60000L)
+          source.conf.eventsMaxGapMs.getOrElse(60000L),
+          stateOption.flatMap(_.states.get(rawP)).getOrElse(incidentPattern.initialState())
         )
     }
     val keyedStream = stream
+      .drop(checkpointOption.map(_.readRows).getOrElse(0L))
       //.assignAscendingTimestamps(timeExtractor(_).toMillis)
       .through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
     val windowed: fs2.Stream[IO, fs2.Stream[IO, Chunk[In]]] =
@@ -105,8 +111,14 @@ case class PatternsSearchJob[In, InKey, InItem](
           )
         }
       }
+    val rawPatterns = patterns.map(_._2)
     val processed = windowed
-      .map(_.map(ProcessorCombinator(mappers, timeExtractor).process))
+      .map(_.map(c => ProcessorCombinator(
+        mappers,
+        timeExtractor,
+        (states: Seq[Optimizer.S[Segment]]) =>
+          CheckpointingService.updateCheckpointRead(jobId, c.size, rawPatterns.zip(states).toMap)
+      ).process(c)))
       .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
 

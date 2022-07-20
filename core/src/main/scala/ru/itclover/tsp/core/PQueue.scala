@@ -73,6 +73,7 @@ object PQueue {
       val buffer = scala.collection.mutable.ArrayBuffer.empty[IdxValue[T]]
       import scala.collection.convert.ImplicitConversionsToScala._
       buffer ++= queue.iterator()
+      buffer.toSeq
     }
     override def size: Int = queue.size
 
@@ -140,7 +141,7 @@ object PQueue {
     )
     override def clean(): PQueue[T] = this.copy(queue = queue.clean())
 
-    override def toSeq: Seq[IdxValue[T]] = queue.toSeq.view.map(x => x.map(_ => func(x)))
+    override def toSeq: Seq[IdxValue[T]] = queue.toSeq.view.map(x => x.map(_ => func(x))).toSeq
 
     override def rewindTo(newStart: Idx): PQueue[T] = this.copy(queue = queue.rewindTo(newStart))
   }

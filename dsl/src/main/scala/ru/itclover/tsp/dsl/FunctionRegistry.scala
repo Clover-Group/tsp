@@ -1,11 +1,11 @@
 package ru.itclover.tsp.dsl
 
 import java.io.Serializable
-
 import com.typesafe.scalalogging.LazyLogging
 import ru.itclover.tsp.core.{Fail, Result, Succ}
 
 import scala.reflect.ClassTag
+import scala.util.Try
 
 @SerialVersionUID(81001L)
 trait PFunction extends (Seq[Result[Any]] => Result[Any]) with Serializable
@@ -287,7 +287,7 @@ object DefaultFunctions extends LazyLogging {
       //log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
       //log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
       //log.info(s"Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
-      (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(Unit))) match {
+      (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(()))) match {
         case (Succ(x0), Succ(x1)) =>
           sym match {
 
@@ -533,6 +533,8 @@ object DefaultFunctions extends LazyLogging {
     override def toFloat(x: Int): Float = x.toFloat
     override def toDouble(x: Int): Double = x.toDouble
     override def compare(x: Int, y: Int): Int = java.lang.Long.compare(x.toLong, y.toLong)
+
+    override def parseString(str: String): Option[Int] = Try(str.toInt).toOption
   }
 
   implicit val fractionalLong: Fractional[Long] = new Fractional[Long] {
@@ -547,6 +549,9 @@ object DefaultFunctions extends LazyLogging {
     override def toFloat(x: Long): Float = x.toFloat
     override def toDouble(x: Long): Double = x.toDouble
     override def compare(x: Long, y: Long): Int = java.lang.Long.compare(x, y)
+
+    override def parseString(str: String): Option[Long] = Try(str.toLong).toOption
+
   }
 }
 

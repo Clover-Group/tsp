@@ -7,7 +7,8 @@ import ru.itclover.tsp.core.io.TimeExtractor
 
 case class ProcessorCombinator[In, S, Out](
                                                    mappers: Seq[PatternProcessor[In, S, Out]],
-                                                   timeExtractor: TimeExtractor[In]
+                                                   timeExtractor: TimeExtractor[In],
+                                                   statesTransformer: Seq[S] => Unit
                                                  ) {
 
   private val counter = new AtomicLong(0)
@@ -22,6 +23,8 @@ case class ProcessorCombinator[In, S, Out](
     } else {
       mappers.flatMap(_.map(sorted))
     }
+    val states = mappers.map(_.getState)
+    statesTransformer(states)
     fs2.Chunk(processed:_*)
   }
 

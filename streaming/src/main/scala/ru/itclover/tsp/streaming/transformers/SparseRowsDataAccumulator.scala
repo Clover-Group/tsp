@@ -69,7 +69,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       val value = extractValue(item, name)
       if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
     }
-    val outEvent = eventCreator.create(list)
+    val outEvent = eventCreator.create(list.toSeq)
     val returnEvent = if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
       Some(lastEvent)
     } else {

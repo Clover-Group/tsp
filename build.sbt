@@ -7,8 +7,7 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-// Flink currently does not work with Scala 2.12.8+
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.13.8"
 resolvers in ThisBuild ++= Seq(
   "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
   Resolver.mavenLocal,
@@ -217,7 +216,7 @@ unmanagedResourceDirectories in Compile -= (resourceDirectory in Compile).value 
 // Kind projector
 resolvers += Resolver.sonatypeRepo("releases")
 //addCompilerPlugin("org.spire-math" %% "kind-projector" % Version.kindProjector)
-addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+//addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 
 
 // Git-specific settings

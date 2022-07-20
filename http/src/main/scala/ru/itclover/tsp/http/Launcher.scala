@@ -4,11 +4,14 @@ import java.net.URLDecoder
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.model.headers.Origin
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest, HttpResponse}
 import akka.stream.ActorMaterializer
 import cats.implicits._
-import ru.itclover.tsp.RowWithIdx
+import ru.itclover.tsp.http.services.coordinator.CoordinatorService
+import ru.itclover.tsp.{BuildInfo, RowWithIdx}
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -79,20 +82,23 @@ object Launcher extends App with HttpService {
   val coordinator = getCoordinatorHostPort
   coordinator.map {
     case (enabled, host, port) => if (enabled) {
-      val uri = s"http://$host:$port/register"
+      val uri = s"http://$host:$port"
       log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
+      CoordinatorService.getOrCreate(uri).notifyRegister
 
-      val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(uri = uri))
-
-      responseFuture
-        .onComplete {
-          case Success(res) => {
-            if (res.status.isFailure) sys.error(s"Error: TSP coordinator returned ${res.status}")
-          }
-          case Failure(ex)   => sys.error(s"Cannot connect to $uri: $ex")
-        }
     } else {
       log.warn("TSP coordinator connection disabled.")
+    }
+  }
+
+  val checkpointing = getCheckpointingHostPort
+  checkpointing.map {
+    case (enabled, host, port) => if (enabled) {
+      val uri = s"redis://$host:$port"
+      log.warn(s"TSP checkpointing enabled: registering service on $uri...")
+      CheckpointingService.getOrCreate(uri)
+      } else {
+      log.warn("TSP checkpointing disabled.")
     }
   }
 
@@ -122,6 +128,23 @@ object Launcher extends App with HttpService {
     val enabled = Either.catchNonFatal(enabledStr.toBoolean) match {
       case Left(ex) => {
         log.warn(s"Cannot parse COORDINATOR_ENABLED ($enabledStr), defaulting to false:  ${ex.getMessage}")
+        false
+      }
+      case Right(value) => value
+    }
+    port.map(p => (enabled, host, p))
+  }
+
+  def getCheckpointingHostPort: Either[String, (Boolean, String, Int)] = {
+    val enabledStr = getEnvVarOrConfig("CHECKPOINTING_ENABLED", "checkpointing.enabled")
+    val host = getEnvVarOrConfig("CHECKPOINTING_HOST", "checkpointing.host")
+    val portStr = getEnvVarOrConfig("CHECKPOINTING_PORT", "checkpointing.port")
+    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
+      s"Cannot parse CHECKPOINTING_PORT ($portStr): ${ex.getMessage}"
+    }
+    val enabled = Either.catchNonFatal(enabledStr.toBoolean) match {
+      case Left(ex) => {
+        log.warn(s"Cannot parse CHECKPOINTING_ENABLED ($enabledStr), defaulting to false:  ${ex.getMessage}")
         false
       }
       case Right(value) => value

@@ -9,26 +9,26 @@ object QueueUtils {
 
   private val trueFunction = (_: Any) => true
 
-  def takeWhileFromQueue[A](queue: m.Queue[A])(predicate: A => Boolean = trueFunction): (m.Queue[A], m.Queue[A]) =
-    if (predicate.eq(trueFunction)) (queue, m.Queue.empty)
+  def takeWhileFromQueue[A](queue: m.ArrayDeque[A])(predicate: A => Boolean = trueFunction): (m.ArrayDeque[A], m.ArrayDeque[A]) =
+    if (predicate.eq(trueFunction)) (queue, m.ArrayDeque.empty)
     else {
 
       @tailrec
-      def inner(result: m.Queue[A], q: m.Queue[A]): (m.Queue[A], m.Queue[A]) =
+      def inner(result: m.ArrayDeque[A], q: m.ArrayDeque[A]): (m.ArrayDeque[A], m.ArrayDeque[A]) =
         q.headOption match {
-          case Some(x) if predicate(x) => inner({ result.enqueue(x); result }, { q.dequeue(); q })
+          case Some(x) if predicate(x) => inner({ result.append(x); result }, { q.removeHead(); q })
           case _                       => (result, q)
         }
 
-      inner(m.Queue.empty, queue)
+      inner(m.ArrayDeque.empty, queue)
     }
 
   /**
     * Splits inner `q` at point idx, so all records with id < idx are in first returned queue, and all with id >= idx are in second.
     */
-  def splitAtIdx(q: m.Queue[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(
+  def splitAtIdx(q: m.ArrayDeque[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(
     implicit ord: Order[Idx]
-  ): (m.Queue[(Idx, Time)], m.Queue[(Idx, Time)]) = {
+  ): (m.ArrayDeque[(Idx, Time)], m.ArrayDeque[(Idx, Time)]) = {
     takeWhileFromQueue(q) {
       if (marginToFirst) {
         case (idx1: Idx, _: Time) => ord.lteqv(idx1, idx)

@@ -18,18 +18,18 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
     AggregatorPState(
       innerState = inner.initialState(),
       innerQueue = PQueue.empty,
-      astate = WindowStatisticAccumState(None, m.Queue.empty),
-      indexTimeMap = m.Queue.empty
+      astate = WindowStatisticAccumState(None, m.ArrayDeque.empty),
+      indexTimeMap = m.ArrayDeque.empty
     )
 }
 
 case class WindowStatisticAccumState[T](
   lastValue: Option[WindowStatisticResult],
-  windowQueue: m.Queue[WindowStatisticQueueInstance]
+  windowQueue: m.ArrayDeque[WindowStatisticQueueInstance]
 ) extends AccumState[T, WindowStatisticResult, WindowStatisticAccumState[T]] {
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (WindowStatisticAccumState[T], QI[WindowStatisticResult]) = {
     val isSuccess = idxValue.value.isSuccess
@@ -48,9 +48,9 @@ case class WindowStatisticAccumState[T](
     window: Window,
     isSuccess: Boolean,
     lastValue: Option[WindowStatisticResult],
-    windowQueue: m.Queue[WindowStatisticQueueInstance],
+    windowQueue: m.ArrayDeque[WindowStatisticQueueInstance],
     outputQueue: QI[WindowStatisticResult]
-  ): (Option[WindowStatisticResult], m.Queue[WindowStatisticQueueInstance], QI[WindowStatisticResult]) = {
+  ): (Option[WindowStatisticResult], m.ArrayDeque[WindowStatisticQueueInstance], QI[WindowStatisticResult]) = {
 
     // add new element to queue
     val (newLastValue, newWindowStatisticQueueInstance) =
@@ -96,7 +96,7 @@ case class WindowStatisticAccumState[T](
       }
       .getOrElse(finalNewLastValue)
 
-    val finalWindowQueue = { updatedWindowQueue.enqueue(newWindowStatisticQueueInstance); updatedWindowQueue }
+    val finalWindowQueue = { updatedWindowQueue.append(newWindowStatisticQueueInstance); updatedWindowQueue }
     val updatedOutputQueue = outputQueue.enqueue(IdxValue(idx, idx, Result.succ(correctedLastValue)))
 
     Tuple3(Some(correctedLastValue), finalWindowQueue, updatedOutputQueue)

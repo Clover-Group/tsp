@@ -27,7 +27,7 @@ protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment
   @inline
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (TimestampAdderAccumState[T], QI[Segment]) = {
     if (times.isEmpty) (this, PQueue.empty)

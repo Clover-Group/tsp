@@ -22,7 +22,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       case _                    => JsString(obj.toString)
     }
     override def read(json: JsValue): AnyRef = json match {
-      case JsNumber(n)       => n.intValue().asInstanceOf[AnyRef]
+      case JsNumber(n)       => n.intValue.asInstanceOf[AnyRef]
       case JsString(s)       => s
       case JsBoolean(b)      => b.asInstanceOf[AnyRef]
       case JsArray(elements) => elements
@@ -38,7 +38,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       case _                    => JsString(obj.toString)
     }
     override def read(json: JsValue): Any = json match {
-      case JsNumber(n)       => n.intValue().asInstanceOf[AnyRef]
+      case JsNumber(n)       => n.intValue.asInstanceOf[AnyRef]
       case JsString(s)       => s
       case JsBoolean(b)      => b.asInstanceOf[AnyRef]
       case JsArray(elements) => elements

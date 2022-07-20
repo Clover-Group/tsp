@@ -10,7 +10,8 @@ import scala.collection.mutable.ListBuffer
 
 case class PatternProcessor[E: TimeExtractor, State, Out](
                                                            pattern: Pattern[E, State, Out],
-                                                           eventsMaxGapMs: Long
+                                                           eventsMaxGapMs: Long,
+                                                           initialState: State
                                                          ) {
 
   private val log = Logger("PatternLogger")
@@ -27,7 +28,6 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
       return List.empty
     }
 
-    val initialState = pattern.initialState()
     val firstElement = elements.head
     // if the last event occurred so long ago, clear the state
     if (lastState == null || timeExtractor(firstElement).toMillis - lastTime.toMillis > eventsMaxGapMs) {
@@ -57,6 +57,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
 
     data.toList
   }
+
+  def getState: State = lastState
 }
 
 object PatternProcessor {

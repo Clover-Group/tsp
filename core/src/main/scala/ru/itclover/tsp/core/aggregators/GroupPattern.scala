@@ -33,12 +33,12 @@ case class GroupPattern[Event: IdxExtractor: TimeExtractor, S, T: Group](
     )
 }
 
-case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], windowQueue: m.Queue[GroupAccumValue[T]])
+case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], windowQueue: m.ArrayDeque[GroupAccumValue[T]])
     extends AccumState[T, GroupAccumResult[T], GroupAccumState[T]] {
 
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (GroupAccumState[T], QI[GroupAccumResult[T]]) = {
 
@@ -57,9 +57,9 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
     window: Window,
     value: Result[T],
     lastValue: Option[GroupAccumResult[T]],
-    windowQueue: m.Queue[GroupAccumValue[T]],
+    windowQueue: m.ArrayDeque[GroupAccumValue[T]],
     outputQueue: QI[GroupAccumResult[T]]
-  ): (Option[GroupAccumResult[T]], m.Queue[GroupAccumValue[T]], QI[GroupAccumResult[T]]) = {
+  ): (Option[GroupAccumResult[T]], m.ArrayDeque[GroupAccumValue[T]], QI[GroupAccumResult[T]]) = {
     value
       .map { t =>
         val newLastValue = lastValue
@@ -77,7 +77,7 @@ case class GroupAccumState[T: Group](lastValue: Option[GroupAccumResult[T]], win
         }
 
         // add new element to queue
-        val finalWindowQueue = { updatedWindowQueue.enqueue(GroupAccumValue(idx, time, t)); updatedWindowQueue }
+        val finalWindowQueue = { updatedWindowQueue.append(GroupAccumValue(idx, time, t)); updatedWindowQueue }
 
         Tuple3(
           finalNewLastValue,

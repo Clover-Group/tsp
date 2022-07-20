@@ -26,7 +26,7 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
 
 // Here, head and last are guaranteed to work, so suppress warnings for them
 @SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
-case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolean, lastTime: (Idx, Time))
+case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: Boolean, lastTime: (Idx, Time))
     extends AccumState[T, T, WaitAccumState[T]] {
 
   /** This method is called for each IdxValue produced by inner patterns.
@@ -40,7 +40,7 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
   @inline
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (WaitAccumState[T], QI[T]) = {
 
@@ -50,7 +50,7 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
       val end = if (idxValue.value.isFail) times.last._2.minus(window) else times.last._2
 
       // don't use ++ here, slow!
-      val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.enqueue(b); a }
+      val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.append(b); a }
 
       val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
         case (_, t) => t < start

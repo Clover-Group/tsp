@@ -16,6 +16,7 @@ import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
+import ru.itclover.tsp.http.services.coordinator.CoordinatorService
 import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
 import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, KafkaOutputConf, OutputConf}
@@ -94,7 +95,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     val resultOrErr = for {
       source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
       _ = log.info("JDBC-to-JDBC: source created. Creating patterns stream...")
-      streams <- createStream(patterns, inputConf, outConf, source)
+      streams <- createStream(request.uuid, patterns, inputConf, outConf, source)
       _ = log.info("JDBC-to-JDBC: stream created. Starting the stream...")
       result <- runStream(uuid, streams)
       _ = log.info("JDBC-to-JDBC: stream started")
@@ -112,7 +113,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     val resultOrErr = for {
       source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
       _ = log.info("Kafka create done")
-      streams <- createStream(patterns, inputConf, outConf, source)
+      streams <- createStream(request.uuid, patterns, inputConf, outConf, source)
       _ = log.info("Kafka createStream done")
       result <- runStream(uuid, streams)
       _ = log.info("Kafka runStream done")
@@ -170,6 +171,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   type EKey = Symbol
 
   def createStream[E, EItem](
+    uuid: String,
     patterns: Seq[RawPattern],
     inputConf: InputConf[E, EKey, EItem],
     outConf: Seq[OutputConf[Row]],
@@ -178,7 +180,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
     log.debug("createStream started")
 
-    val searcher = PatternsSearchJob(source, decoders)
+    val searcher = PatternsSearchJob(uuid, source, decoders)
     val strOrErr = searcher.patternsSearchStream(
       patterns,
       outConf,
@@ -199,16 +201,18 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   def runStream(uuid: String, streams: Seq[fs2.Stream[IO, Unit]]): Either[RuntimeErr, Option[String]] = {
     log.debug("runStream started")
+    CoordinatorService.notifyJobStarted(uuid)
 
     // Run the streams (multiple sinks)
     streams.foreach { stream =>
       stream.compile.drain.unsafeRunAsync {
         case Left(throwable) =>
-          // TODO: Report throwable
           log.error(s"Job $uuid failed: $throwable")
+          CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
         case Right(_) =>
           // success
           log.info(s"Job $uuid finished")
+          CoordinatorService.notifyJobCompleted(uuid, None)
       }
     }
 

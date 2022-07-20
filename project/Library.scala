@@ -54,7 +54,8 @@ object Version {
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.11.6"
+  val redissonVersion = "3.17.3"
+  val kryoVersion = "5.3.0"
 
   val akkaHttpMetrics = "0.6.0"
 
@@ -159,7 +160,8 @@ object Library {
   )
 
   val redisson: Seq[ModuleID] = Seq(
-    "org.redisson" % "redisson" % Version.redissonVersion
+    "org.redisson" % "redisson" % Version.redissonVersion,
+    "com.esotericsoftware" % "kryo" % Version.kryoVersion
   )
 
 }

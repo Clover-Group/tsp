@@ -27,7 +27,7 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State, Out](
 case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
   override def updated(
     window: Window,
-    times: m.Queue[(Idx, Time)],
+    times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (PreviousValueAccumState[T], QI[T]) = {
     val (newQueue, newOutputQueue) =
