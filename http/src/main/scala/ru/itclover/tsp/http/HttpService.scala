@@ -25,6 +25,7 @@ trait HttpService extends RoutesProtocols {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   implicit val executionContext: ExecutionContextExecutor
+  implicit val queueManagerService: QueueManagerService
 
   val blockingExecutorContext: ExecutionContextExecutor
 
@@ -39,8 +40,9 @@ trait HttpService extends RoutesProtocols {
 
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(blockingExecutorContext)
+      monitoring <- MonitoringRoutes.fromExecutionContext(queueManagerService)
       validation <- ValidationRoutes.fromExecutionContext()
-    } yield jobs ~ validation
+    } yield jobs ~ monitoring ~ validation
 
     log.debug("composeRoutes finished")
     res

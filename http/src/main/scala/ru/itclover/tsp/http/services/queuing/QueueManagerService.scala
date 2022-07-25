@@ -6,9 +6,12 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import cats.effect.IO
+import cats.effect.{Deferred, IO}
+import cats.effect.syntax.async
 import cats.effect.unsafe.implicits.global
+import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.Logger
+import fs2.concurrent.SignallingRef
 import ru.itclover.tsp.StreamSource.Row
 import ru.itclover.tsp.core.{Incident, RawPattern}
 import ru.itclover.tsp.{JdbcSource, KafkaSource, RowWithIdx, StreamSource}
@@ -17,7 +20,6 @@ import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
-import ru.itclover.tsp.http.services.streaming.MonitoringServiceModel.{JobDetails, Vertex, VertexMetrics}
 import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.streaming.mappers.PatternsToRowMapper
@@ -35,7 +37,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 import collection.JavaConverters._
-
+import scala.collection.mutable.ListBuffer
 
 class QueueManagerService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
@@ -49,7 +51,6 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   type TypedRequest = (QueueableRequest, String)
   type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
 
-
   case class Metric(id: String, value: String)
 
   implicit val metricFmt = jsonFormat2(Metric.apply)
@@ -59,6 +60,8 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   //val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
   //log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
   val jobQueue = mutable.Queue[TypedRequest]()
+
+  val runningStreams = mutable.Map[String, SignallingRef[IO, Boolean]]()
 
   val isLocalhost: Boolean = true
 
@@ -72,17 +75,15 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   def enqueue(r: Request): Unit = {
     jobQueue.enqueue(
-      (r,
-        confClassTagToString(ClassTag(r.inputConf.getClass))
-      )
-      )
+      (r, confClassTagToString(ClassTag(r.inputConf.getClass)))
+    )
     log.info(s"Job ${r.uuid} enqueued.")
   }
 
   def confClassTagToString(ct: ClassTag[_]): String = ct.runtimeClass match {
-    case c if c.isAssignableFrom(classOf[JDBCInputConf]) => "from-jdbc"
+    case c if c.isAssignableFrom(classOf[JDBCInputConf])  => "from-jdbc"
     case c if c.isAssignableFrom(classOf[KafkaInputConf]) => "from-kafka"
-    case _ => "unknown"
+    case _                                                => "unknown"
   }
 
   def getQueuedJobs: Seq[QueueableRequest] = jobQueue.map(_._1).toSeq
@@ -101,7 +102,9 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
       _ = log.info("JDBC-to-JDBC: stream started")
     } yield result
     resultOrErr match {
-      case Left(error) => log.error(s"Cannot run request. Reason: $error")
+      case Left(error) =>
+        log.error(s"Cannot run request. Reason: $error")
+        CoordinatorService.notifyJobCompleted(uuid, Some(new Exception(error.toString)))
       case Right(_)    => log.info(s"Stream successfully started!")
     }
   }
@@ -123,7 +126,6 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
       case Right(_)    => log.info(s"Stream successfully started!")
     }
   }
-
 
   /*def dequeueAndRun(slots: Int): Unit = {
     // TODO: Functional style
@@ -204,24 +206,39 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     CoordinatorService.notifyJobStarted(uuid)
 
     // Run the streams (multiple sinks)
-    streams.foreach { stream =>
-      stream.compile.drain.unsafeRunAsync {
-        case Left(throwable) =>
-          log.error(s"Job $uuid failed: $throwable")
-          CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
-        case Right(_) =>
-          // success
-          log.info(s"Job $uuid finished")
-          CoordinatorService.notifyJobCompleted(uuid, None)
-      }
-    }
+      SignallingRef[IO, Boolean](false)
+        .flatMap { signal =>
+          runningStreams(uuid) = signal
+          streams
+            .sequence
+            .interruptWhen(signal)
+            .compile
+            .drain
+        }
+        .unsafeRunAsync {
+          case Left(throwable) =>
+            log.error(s"Job $uuid failed: $throwable")
+            CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
+            runningStreams.remove(uuid)
+          case Right(_) =>
+            // success
+            log.info(s"Job $uuid finished")
+            CoordinatorService.notifyJobCompleted(uuid, None)
+            runningStreams.remove(uuid)
+        }
 
     log.debug("runStream finished")
     Right(None)
   }
 
-  def availableSlots: Future[Int] = Future(32)
+  def stopStream(uuid: String): Unit = runningStreams.get(uuid).map { signal =>
+    log.info(s"Job $uuid stopped")
+    signal.set(true)
+  }
 
+  def getRunningJobsIds: Seq[String] = runningStreams.keys.toSeq
+
+  def availableSlots: Future[Int] = Future(32)
 
   def onTimer(): Unit = {
     availableSlots.onComplete {

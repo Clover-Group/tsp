@@ -7,6 +7,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.dimafeng.testcontainers._
 import fs2.kafka.{Acks, KafkaProducer, ProducerRecord, ProducerRecords, ProducerSettings, Serializer}
+import ru.itclover.tsp.http.services.queuing.QueueManagerService
 import ru.itclover.tsp.streaming.io.{IntESValue, StringESValue}
 
 import scala.concurrent.duration.FiniteDuration
@@ -47,6 +48,8 @@ class SimpleCasesTest
     with ForAllTestContainer
     with RoutesProtocols {
   implicit override val executionContext: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
+
+  override val queueManagerService: QueueManagerService = QueueManagerService.getOrCreate("mgr", executionContext)
 
   // to run blocking tasks.
   val blockingExecutorContext: ExecutionContextExecutor =

@@ -52,7 +52,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       val mapped = resultMappers.map(resultMapper =>
         incidents.chunkLimit(1000).map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
       )
-      (patterns, saveStream[OutE](mapped, outputConf))
+      (patterns, saveStream[OutE](jobId, mapped, outputConf))
     }
   }
 
@@ -253,16 +253,23 @@ object PatternsSearchJob {
           //.reduce { _ |+| _ }
       }
       .parJoinUnbounded
+
       //.name("Uniting adjacent incidents")
 
     log.debug("reduceIncidents finished")
     res
   }
 
-  def saveStream[E](streams: Seq[fs2.Stream[IO, E]], outputConfs: Seq[OutputConf[E]]): Seq[fs2.Stream[IO, Unit]] = {
+  def saveStream[E](uuid: String, streams: Seq[fs2.Stream[IO, E]], outputConfs: Seq[OutputConf[E]]): Seq[fs2.Stream[IO, Unit]] = {
     log.debug("saveStream started")
     streams.zip(outputConfs).map { case (stream, outputConf) =>
-      stream.through(outputConf.getSink)
+      stream
+        .chunkLimit(100)
+        .flatMap { c =>
+          CheckpointingService.updateCheckpointWritten(uuid, c.size)
+          fs2.Stream.chunk(c)
+        }
+        .through(outputConf.getSink)
     }
   }
 }

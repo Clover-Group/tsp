@@ -153,5 +153,5 @@ object Launcher extends App with HttpService {
   }
 
 
-  val queueManager = QueueManagerService.getOrCreate("mgr", blockingExecutorContext)
+  implicit val queueManagerService = QueueManagerService.getOrCreate("mgr", blockingExecutorContext)
 }

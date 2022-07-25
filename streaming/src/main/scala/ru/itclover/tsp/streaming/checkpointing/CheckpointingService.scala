@@ -55,6 +55,18 @@ case class CheckpointingService(redisUri: String) {
     val checkpointStateBucket = redissonClient.getBucket[CheckpointState](s"tsp-cp-$uuid-state")
     (Option(checkpointBucket.get()), Option(checkpointStateBucket.get()))
   }
+
+  def getCheckpoint(uuid: String): Option[Checkpoint] = {
+    val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
+    Option(checkpointBucket.get())
+  }
+
+  def removeCheckpointAndState(uuid: String): Unit = {
+    val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
+    val checkpointStateBucket = redissonClient.getBucket[CheckpointState](s"tsp-cp-$uuid-state")
+    checkpointBucket.delete()
+    checkpointStateBucket.delete()
+  }
 }
 
 object CheckpointingService {
@@ -80,4 +92,10 @@ object CheckpointingService {
 
   def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) =
     service.map(_.getCheckpointAndState(uuid)).getOrElse((None, None))
+
+  def getCheckpoint(uuid: String): Option[Checkpoint] =
+    service.flatMap(_.getCheckpoint(uuid))
+
+  def removeCheckpointAndState(uuid: String): Unit =
+    service.map(_.removeCheckpointAndState(uuid)).getOrElse(())
 }

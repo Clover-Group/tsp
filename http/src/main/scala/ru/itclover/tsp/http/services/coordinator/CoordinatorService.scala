@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest, HttpResponse}
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.BuildInfo
+import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -62,12 +63,22 @@ case class CoordinatorService (coordUri: String)
     val success = exception.isEmpty
     val error = exception.map(_.getMessage).getOrElse("")
 
+    val metrics = CheckpointingService.getCheckpoint(jobId)
+    val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.writtenRows)).getOrElse((0, 0))
+
     val responseFuture: Future[HttpResponse] = Http().singleRequest(
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
         entity = HttpEntity(ContentTypes.`application/json`,
-          s"""{"jobId": "$jobId", "success": $success, "error": "$error"}""")
+          s"""
+             |{"jobId": "$jobId",
+             |"success": $success,
+             |"error": "Exception occurred",
+             |"rowsRead": $rowsRead,
+             |"rowsWritten": $rowsWritten
+             |}
+             |""".stripMargin)
       )
     )
 
