@@ -53,6 +53,15 @@ trait MonitoringRoutes extends RoutesProtocols {
       case None          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
       //case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
     }
+  } ~ path("job" / Segment / "stop") { uuid =>
+    qm.getRunningJobsIds.find(_ == uuid) match {
+      case Some(_) =>
+        qm.stopStream(uuid)
+        complete(Map("message" -> s"Job $uuid stopped."))
+      case None =>
+        complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+    }
+
   } ~ path("jobs" / "overview") {
     complete(qm.getRunningJobsIds)
   } ~
