@@ -28,11 +28,6 @@ import ru.itclover.tsp.io.output.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.mappers.PatternsToRowMapper
 import ru.itclover.tsp.utils.ErrorsADT.RuntimeErr
 import spray.json._
-import swaydb.Glass
-import swaydb.persistent.{Set => PersistentSet}
-import swaydb.data.order.KeyOrder
-import swaydb.data.slice.Slice
-import swaydb.serializers.Serializer
 
 import java.nio.file.Paths
 import java.time.LocalDateTime
@@ -43,6 +38,7 @@ import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 import collection.JavaConverters._
+import scala.collection.mutable.ListBuffer
 
 
 class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextExecutor)(
@@ -94,21 +90,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   type TypedRequest = (QueueableRequest, String)
   type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
 
-  implicit val requestOrdering: KeyOrder[TypedRequest] = (x: TypedRequest, y: TypedRequest) => -x._1.compare(y._1)
-  implicit val requestSerialiser = new Serializer[TypedRequest] {
-    override def write(data: (QueueableRequest, String)): Slice[Byte] = Slice
-      .ofBytesScala(100000)
-      .addStringUTF8WithSize(data._2)
-      .addAll(data._1.serialize)
-      .close()
-
-    override def read(slice: Slice[Byte]): (QueueableRequest, String) = {
-      val reader = slice.createReader
-      val in = reader.readStringWithSizeUTF8
-      val request = QueueableRequest.deserialize(reader.readRemaining.toArray)
-      (request, in)
-    }
-  }
+  implicit val requestOrdering: Ordering[TypedRequest] = (x: TypedRequest, y: TypedRequest) => x._1.compare(y._1)
 
   case class Metric(id: String, value: String)
 
@@ -116,8 +98,8 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
   private val log = Logger[QueueManagerService]
 
-  val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
-  log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
+  val jobQueue = mutable.PriorityQueue[TypedRequest]()(requestOrdering)
+  log.warn(s"Recovering job queue: ${jobQueue.count(_ => true)} entries found")
 
   val isLocalhost: Boolean = uri.authority.host.toString match {
     case "localhost" | "127.0.0.1" | "::1" => true
@@ -133,7 +115,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   //f.cancel(false)
 
   def enqueue(r: Request): Unit = {
-    jobQueue.add(
+    jobQueue.enqueue(
       (r,
         confClassTagToString(ClassTag(r.inputConf.getClass))
       )
@@ -148,7 +130,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     case _ => "unknown"
   }
 
-  def getQueuedJobs: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
+  def getQueuedJobs: Seq[QueueableRequest] = jobQueue.map(_._1).to[Seq]
 
   def runJdbc(request: Request): Unit = {
     log.info("JDBC-to-JDBC: query started")
@@ -158,7 +140,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     val resultOrErr = for {
       source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
       _ = log.info("JDBC-to-JDBC: source created. Creating patterns stream...")
-      _ <- createStream(patterns, inputConf, outConf, source)
+      _ <- createStream(patterns.to[Seq], inputConf, outConf.to[Seq], source)
       _ = log.info("JDBC-to-JDBC: stream created. Starting the stream...")
       result <- runStream(uuid)
       _ = log.info("JDBC-to-JDBC: stream started")
@@ -176,7 +158,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
     val resultOrErr = for {
       source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
       _ = log.info("Kafka create done")
-      _ <- createStream(patterns, inputConf, outConf, source)
+      _ <- createStream(patterns.to[Seq], inputConf, outConf.to[Seq], source)
       _ = log.info("Kafka createStream done")
       result <- runStream(uuid)
       _ = log.info("Kafka runStream done")
@@ -193,7 +175,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
 
     val resultOrErr = for {
       source <- InfluxDBSource.create(inputConf.asInstanceOf[InfluxDBInputConf], fields)
-      _      <- createStream(patterns, inputConf, outConf, source)
+      _      <- createStream(patterns.to[Seq], inputConf, outConf.to[Seq], source)
       result <- runStream(uuid)
     } yield result
     resultOrErr match {
@@ -213,23 +195,26 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
   }*/
 
   def dequeueAndRunSingleJob(): Unit = {
-    val request = jobQueue.head.get
-    jobQueue.remove(request)
+    val request = jobQueue.head
+    jobQueue.dequeue()
     run(request)
   }
 
   def removeFromQueue(uuid: String): Option[Unit] = {
-    val job = jobQueue.asScala.find(_._1.uuid == uuid)
+    val job = jobQueue.find(_._1.uuid == uuid)
     job match {
       case Some(value) => {
-        jobQueue.remove(value)
+        val jobQueueAsList = jobQueue.toSeq.to[ListBuffer]
+        jobQueueAsList -= value
+        jobQueue.clear()
+        jobQueue.enqueue(jobQueueAsList: _*)
         Some(())
       }
       case None => None
     }
   }
 
-  def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.asScala.map(_._1).toSeq
+  def queueAsScalaSeq: Seq[QueueableRequest] = jobQueue.map(_._1).to[Seq]
 
   def run(typedRequest: TypedRequest): Unit = {
     val (r, inClass) = typedRequest
