@@ -147,15 +147,19 @@ case class PatternsSearchJob[In, InKey, InItem](
   def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
     case Some(_) =>
       import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator}
+
       dataStream
         .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
         .map {
-          case (_, str ) => str.map( event =>
-            SparseRowsDataAccumulator[In, InKey, InItem, In](
+          case (_, str ) => {
+            val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
               source.asInstanceOf[StreamSource[In, InKey, InItem]],
               source.patternFields
-            ).map(event)
-          )
+            )
+            str.map( event => {
+              acc.map(event)
+            }) ++ fs2.Stream(Some(acc.getLastEvent))
+          }
           .unNone
         }
         .parJoinUnbounded

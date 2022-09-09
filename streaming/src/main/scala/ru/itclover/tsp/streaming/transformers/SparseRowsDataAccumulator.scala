@@ -44,6 +44,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val log = Logger("SparseDataAccumulator")
 
+
   def map(item: InEvent): Option[OutEvent] = {
     val time = extractTime(item)
     if (useUnfolding) {
@@ -79,6 +80,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     lastEvent = outEvent
     returnEvent
   }
+
+  def getLastEvent: OutEvent = lastEvent
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
     event.retain(
