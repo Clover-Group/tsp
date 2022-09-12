@@ -24,6 +24,7 @@ import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, KafkaOutputConf, OutputConf}
 import ru.itclover.tsp.streaming.mappers.PatternsToRowMapper
 import ru.itclover.tsp.streaming.PatternsSearchJob
+import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 import ru.itclover.tsp.streaming.utils.ErrorsADT
 import ru.itclover.tsp.streaming.utils.ErrorsADT.RuntimeErr
 import spray.json._
@@ -223,6 +224,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
           case Right(_) =>
             // success
             log.info(s"Job $uuid finished")
+            CheckpointingService.removeCheckpointAndState(uuid)
             CoordinatorService.notifyJobCompleted(uuid, None)
             runningStreams.remove(uuid)
         }
