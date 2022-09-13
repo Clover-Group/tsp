@@ -220,12 +220,13 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
           case Left(throwable) =>
             log.error(s"Job $uuid failed: $throwable")
             CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
+            CheckpointingService.removeCheckpointAndState(uuid)
             runningStreams.remove(uuid)
           case Right(_) =>
             // success
             log.info(s"Job $uuid finished")
-            CheckpointingService.removeCheckpointAndState(uuid)
             CoordinatorService.notifyJobCompleted(uuid, None)
+            CheckpointingService.removeCheckpointAndState(uuid)
             runningStreams.remove(uuid)
         }
 
