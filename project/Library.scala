@@ -15,8 +15,8 @@ object Version {
   val akkaHttp = "10.1.9"
 
   val cats = "3.3.12"
-  val fs2 = "3.2.8"
-  val fs2Kafka = "2.4.0"
+  val fs2 = "3.2.14"
+  val fs2Kafka = "2.5.0"
   val doobie = "1.0.0-RC2"
 
   val scalaTest = "3.0.8"
@@ -58,8 +58,6 @@ object Version {
   val kryoVersion = "5.3.0"
 
   val akkaHttpMetrics = "0.6.0"
-
-  val swayDB = "0.16.2"
 
 }
 

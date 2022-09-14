@@ -19,11 +19,13 @@ object ASTType {
     case c if c.isAssignableFrom(classOf[Double])  => DoubleASTType
     case c if c.isAssignableFrom(classOf[Long])    => LongASTType
     case c if c.isAssignableFrom(classOf[Int])     => IntASTType
+    case c if c.isAssignableFrom(classOf[Short])   => IntASTType
+    case c if c.isAssignableFrom(classOf[Byte])    => IntASTType
     case c if c.isAssignableFrom(classOf[Boolean]) => BooleanASTType
     case c if c.isAssignableFrom(classOf[String])  => StringASTType
     case c if c.isAssignableFrom(classOf[Nothing]) => NullASTType
 
-    // Extra check, in case type T i lost
+    // Extra check, in case type T is lost
     case c
         if isNamesMatch(
           c,
@@ -32,10 +34,16 @@ object ASTType {
       DoubleASTType
     case c if isNamesMatch(c, Seq(Long.getClass, classOf[java.lang.Long]))       => LongASTType
     case c if isNamesMatch(c, Seq(Int.getClass, classOf[java.lang.Integer]))     => IntASTType
+    case c if isNamesMatch(c, Seq(Short.getClass, classOf[java.lang.Short]))     => IntASTType
+    case c if isNamesMatch(c, Seq(Byte.getClass, classOf[java.lang.Byte]))       => IntASTType
     case c if isNamesMatch(c, Seq(Boolean.getClass, classOf[java.lang.Boolean])) => BooleanASTType
     case c if isNamesMatch(c, Seq(classOf[java.lang.String]))                    => StringASTType
 
-    case _ => AnyASTType
+    case _ => {
+      // TODO: Logger
+      println(s"${ct.runtimeClass.getName()} is not a known class, defaulting to AnyASTType")
+      AnyASTType
+    }
   }
 
   private def isNamesMatch(tag: Class[_], classes: Seq[Class[_]]) =

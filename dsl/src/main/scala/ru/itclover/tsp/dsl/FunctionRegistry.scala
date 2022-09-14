@@ -336,7 +336,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -346,7 +346,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -356,7 +356,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -366,7 +366,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -376,7 +376,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -386,7 +386,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, conv(t1)))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -396,7 +396,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.lt(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -406,7 +406,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.lteq(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -416,7 +416,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.gt(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -426,7 +426,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.gteq(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -436,7 +436,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(ord.equiv(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
@@ -446,7 +446,7 @@ object DefaultFunctions extends LazyLogging {
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
-              case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(t0, t1))
+              case (Succ(t0), Succ(t1)) => Result.succ(!ord.equiv(conv(t0), t1))
               case _                    => Result.fail
             },
           BooleanASTType
