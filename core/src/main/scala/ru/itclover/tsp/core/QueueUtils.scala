@@ -16,7 +16,7 @@ object QueueUtils {
       @tailrec
       def inner(result: m.ArrayDeque[A], q: m.ArrayDeque[A]): (m.ArrayDeque[A], m.ArrayDeque[A]) =
         q.headOption match {
-          case Some(x) if predicate(x) => inner({ result.append(x); result }, { q.removeHead(); q })
+          case Some(x) if predicate(x) => inner({ result.append(x); result }, { q.removeHead(true); q })
           case _                       => (result, q)
         }
 

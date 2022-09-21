@@ -1,8 +1,8 @@
 package ru.itclover.tsp.core
-import java.util
 
 import ru.itclover.tsp.core.Pattern.Idx
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 trait PQueue[T] {
 
@@ -23,7 +23,7 @@ object PQueue {
 
   def apply[T](idxValue: IdxValue[T]): PQueue[T] = MutablePQueue(idxValue)
 
-  def empty[T]: PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
+  def empty[T]: PQueue[T] = MutablePQueue(new mutable.ArrayDeque[IdxValue[T]]())
 
   @tailrec
   def spillQueueToAnother[A](source: PQueue[A], dest: PQueue[A]): PQueue[A] = {
@@ -43,38 +43,33 @@ object PQueue {
   }
 
   // PQueue with mutable queue backend. This is the default implementation used in the majority of patterns
-  case class MutablePQueue[T](queue: java.util.Deque[IdxValue[T]]) extends PQueue[T] {
+  case class MutablePQueue[T](queue: mutable.ArrayDeque[IdxValue[T]]) extends PQueue[T] {
 
-    override def headOption: Option[IdxValue[T]] = Option.apply(queue.peekFirst())
+    override def headOption: Option[IdxValue[T]] = queue.headOption
 
     override def dequeue(): (IdxValue[T], PQueue[T]) = {
-      val result = queue.remove()
+      val result = queue.removeHead(true)
       result -> this
     }
     override def dequeueOption(): Option[(IdxValue[T], PQueue[T])] = {
       if (!queue.isEmpty) {
-        Some(queue.poll() -> this)
+        Some(queue.removeHead(true) -> this)
       } else None
     }
     override def behead(): MutablePQueue[T] = {
-      val _ = queue.remove()
+      val _ = queue.removeHead(true)
       this
     }
     override def beheadOption(): Option[PQueue[T]] = if (!queue.isEmpty) {
-      val _ = queue.remove()
+      val _ = queue.removeHead(true)
       Some(this)
     } else None
-    override def clean(): PQueue[T] = MutablePQueue(new java.util.ArrayDeque[IdxValue[T]]())
+    override def clean(): PQueue[T] = MutablePQueue(new mutable.ArrayDeque[IdxValue[T]]())
     override def enqueue(idxValues: IdxValue[T]*): PQueue[T] = {
       idxValues.foreach(enqueueWithUniting)
       this
     }
-    override def toSeq: Seq[IdxValue[T]] = {
-      val buffer = scala.collection.mutable.ArrayBuffer.empty[IdxValue[T]]
-      import scala.collection.convert.ImplicitConversionsToScala._
-      buffer ++= queue.iterator()
-      buffer.toSeq
-    }
+    override def toSeq: Seq[IdxValue[T]] = queue.toSeq
     override def size: Int = queue.size
 
     override def rewindTo(newStart: Idx): PQueue[T] = {
@@ -86,8 +81,8 @@ object PQueue {
           case Some(IdxValue(start, _, _)) if start > newStart => q
           case Some(IdxValue(_, end, _)) if end < newStart     => inner(q.behead())
           case Some(_) => {
-            val first = queue.remove()
-            val _ = queue.offerFirst(first.copy(start = newStart))
+            val first = queue.removeHead(true)
+            val _ = queue.prepend(first.copy(start = newStart))
             this
           }
         }
@@ -96,27 +91,25 @@ object PQueue {
       inner(this)
     }
 
-    // We are using Java queues, and peekLast() may return null.
-    @SuppressWarnings(Array("org.wartremover.warts.Null"))
     private def enqueueWithUniting(idxValue: IdxValue[T]): Unit = {
-      queue.peekLast match {
-        case null =>
-          val _ = queue.offerLast(idxValue)
-        case IdxValue(start, end, value) if value == idxValue.value => { val _ = queue.pollLast() }
-        val _ = queue.offerLast(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
-      case _ =>
-          val _ = queue.offerLast(idxValue)
+      queue.lastOption match {
+        case None =>
+          val _ = queue.append(idxValue)
+        case Some(IdxValue(start, end, value)) if value == idxValue.value => { val _ = queue.removeLast() }
+          val _ = queue.append(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
+        case _ =>
+          val _ = queue.append(idxValue)  
       }
     }
   }
 
   object MutablePQueue {
 
-    def apply[T](): MutablePQueue[T] = new MutablePQueue(new util.ArrayDeque[IdxValue[T]]())
+    def apply[T](): MutablePQueue[T] = new MutablePQueue(new mutable.ArrayDeque[IdxValue[T]]())
 
     def apply[T](idxValue: IdxValue[T]): MutablePQueue[T] = new MutablePQueue({
-      val queue: util.ArrayDeque[IdxValue[T]] = new java.util.ArrayDeque();
-      val _ = queue.offer(idxValue)
+      val queue: mutable.ArrayDeque[IdxValue[T]] = mutable.ArrayDeque()
+      val _ = queue.append(idxValue)
       queue
     })
   }
