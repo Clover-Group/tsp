@@ -50,7 +50,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = resultMappers.map(resultMapper =>
-        incidents.chunkLimit(1000).map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
+        incidents.chunkLimit(10000).map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
       )
       (patterns, saveStream[OutE](jobId, mapped, outputConf))
     }
@@ -112,13 +112,15 @@ case class PatternsSearchJob[In, InKey, InItem](
         }
       }
     val rawPatterns = patterns.map(_._2)
-    val processed = windowed
-      .map(_.map(c => ProcessorCombinator(
+
+    val combinator = ProcessorCombinator(
         mappers,
         timeExtractor,
-        (states: Seq[Optimizer.S[Segment]]) =>
-          CheckpointingService.updateCheckpointRead(jobId, c.size, rawPatterns.zip(states).toMap)
-      ).process(c)))
+        (states: Seq[Optimizer.S[Segment]], size: Int) =>
+          CheckpointingService.updateCheckpointRead(jobId, size.toLong, rawPatterns.zip(states).toMap)
+      )
+    val processed = windowed
+      .map(_.map(c => combinator.process(c)))
       .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
 
