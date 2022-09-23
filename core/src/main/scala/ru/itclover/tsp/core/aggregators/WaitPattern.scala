@@ -52,8 +52,11 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
       // don't use ++ here, slow!
       val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.append(b); a }
 
-      val cleanedWindowQueue = windowQueueWithNewPoints.dropWhile {
-        case (_, t) => t < start
+      val cleanedWindowQueue = {
+        while (windowQueueWithNewPoints.length > 1 && windowQueueWithNewPoints.toArray.apply(1)._2 < start) {
+          windowQueueWithNewPoints.removeHeadOption()
+        }
+        windowQueueWithNewPoints
       }
 
       val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
@@ -61,15 +64,17 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
       }
 
       val waitStart =
-        if (lastTime._2.toMillis != 0 && Try(outputs.head._2.plus(window) < outputs.last._2).getOrElse(false)) {
+        if (lastTime._2.toMillis != 0 && Try(outputs.head._2.plus(window) <= outputs.last._2).getOrElse(false)) {
           outputs.headOption
         } else {
           Some(cleanedWindowQueue.lastOption.getOrElse(lastTime))
         }
       val waitEnd = outputs.lastOption
 
-      val newOptResult = createIdxValue(waitStart, waitEnd, idxValue.value)
-
+      val newOptResult = Apply[Option].map2(waitStart, waitEnd) { (s, e) =>
+        if (s._1 <= e._1) Some(IdxValue(s._1, e._1, idxValue.value)) else None
+      }.flatten
+      
       (
         WaitAccumState(updatedWindowQueue, idxValue.value.isFail, times.last),
         newOptResult.map(PQueue.apply).getOrElse(PQueue.empty)
