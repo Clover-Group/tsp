@@ -54,7 +54,7 @@ case class WaitAccumState[T](windowQueue: m.Queue[(Idx, Time)], lastFail: Boolea
 
       val cleanedWindowQueue = {
         while (windowQueueWithNewPoints.length > 1 && windowQueueWithNewPoints.toArray.apply(1)._2 < start) {
-          windowQueueWithNewPoints.removeHeadOption()
+          windowQueueWithNewPoints.dequeue()
         }
         windowQueueWithNewPoints
       }
