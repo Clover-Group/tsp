@@ -50,7 +50,8 @@ case class PatternsSearchJob[In, InKey, InItem](
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       val mapped = resultMappers.map(resultMapper =>
-        incidents.chunkLimit(10000).map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
+        incidents.chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
+          .map(_.map(resultMapper.map(_).asInstanceOf[OutE])).flatMap(c => fs2.Stream.chunk(c))
       )
       (patterns, saveStream[OutE](jobId, mapped, outputConf))
     }

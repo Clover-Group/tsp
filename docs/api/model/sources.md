@@ -11,6 +11,7 @@ General parameters for all sources:
 - `eventsMaxGapMs` (integer, default 60000) is the duration in milliseconds (event time, not realtime) after which (receiving no data) the current time series will break, and a new one will be commenced, starting from the next event.
 - `defaultEventsGapMs` (integer, default 2000) is the duration in milliseconds for combining events (i.e. if the gap between incidents (ending of one and starting of another) is less than the specified value, then these two incidents will squash into a single one).
 - `chunkSizeMs` (integer, default 900000) is the size of a chunk (for batch execution) in terms of event time (the source data will be chunked according to this parameter).
+- `processingBatchSize` (integer, default 10000) is the size of a batch (in rows) for sending data to the pattern engine.
 
 ### JDBC source
 - `jdbcUrl` (string) is the JDBC-standardized URL for connecting to the database (e.g. `jdbc:clickhouse://127.0.0.1:8123/platform_db?user=default` for ClickHouse)
@@ -42,8 +43,5 @@ General parameters for all sources:
   "group": "TSP1"
 }
 ```
-
-### InfluxDB source 
-TODO
 
 For supported data transformations, see [Data Transformation](./data-transformation.md).

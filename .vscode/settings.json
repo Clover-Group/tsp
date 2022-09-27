@@ -1,5 +1,14 @@
 {
     "files.watcherExclude": {
         "**/target": true
-    }
+    },
+    "spellright.language": [
+        "en_GB.utf8",
+        "ru_RU.utf8"
+    ],
+    "spellright.documentTypes": [
+        "markdown",
+        "latex",
+        "plaintext"
+    ]
 }

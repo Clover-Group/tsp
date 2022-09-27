@@ -16,6 +16,7 @@ case class KafkaInputConf(
                            timestampMultiplier: Option[Double] = Some(1000.0),
                            eventsMaxGapMs: Option[Long] = Some(90000),
                            chunkSizeMs: Option[Long] = Some(10L),
+                           processingBatchSize: Option[Int],
                            numParallelSources: Option[Int] = Some(1),
                            fieldsTypes: Map[String, String]
                          ) extends InputConf[RowWithIdx, Symbol, Any] {

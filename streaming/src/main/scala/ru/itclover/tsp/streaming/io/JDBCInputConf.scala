@@ -30,6 +30,7 @@ case class JDBCInputConf(
                           eventsMaxGapMs: Option[Long] = Some(60000L),
                           defaultEventsGapMs: Option[Long] = Some(2000L),
                           chunkSizeMs: Option[Long],
+                           processingBatchSize: Option[Int],
                           partitionFields: Seq[Symbol],
                           unitIdField: Option[Symbol] = None,
                           userName: Option[String] = None,

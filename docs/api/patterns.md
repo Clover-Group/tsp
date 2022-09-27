@@ -7,15 +7,15 @@
 
 Note: params with '*' suffix are required.
 
-### POST `streamJob/from-{source}/to-{sink}/`
+### POST `job/submit`
 Main method to run patterns search job.
 
-__Path parameters__:
+__Source and sink types__:
 
 Name | Type | Description
 ---- | ---- | -----------
-source* | Enum | type of source to read data from, possible values: `jdbc`, `influxdb`, `kafka`
-sink* | Enum | type of sink to write incidents to, possible values: `jdbc`, `influxdb`, `kafka` (beta)
+source* | Enum | type of source to read data from, possible values: `jdbc`, `kafka`
+sink* | Enum | type of sink to write incidents to, possible values: `jdbc`, `kafka` (beta)
 
 __URL parameters__:
 

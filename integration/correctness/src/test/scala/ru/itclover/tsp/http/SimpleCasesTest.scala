@@ -183,6 +183,7 @@ class SimpleCasesTest
     eventsMaxGapMs = Some(60000L),
     defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
+    processingBatchSize = Some(10000),
     unitIdField = Some('loco_num),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
     userName = Some("default")
@@ -238,6 +239,7 @@ class SimpleCasesTest
     datetimeField = 'dt,
     unitIdField = Some('loco_num),
     partitionFields = Seq('loco_num, 'section, 'upload_id),
+    processingBatchSize = Some(10000),
     fieldsTypes = Map(
       "dt"             -> "float64",
       "upload_id"      -> "string",
