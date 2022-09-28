@@ -96,9 +96,10 @@ object Launcher extends App with HttpService {
     case (enabled, host, port) => if (enabled) {
       val uri = s"redis://$host:$port"
       log.warn(s"TSP checkpointing enabled: registering service on $uri...")
-      CheckpointingService.getOrCreate(uri)
+      CheckpointingService.getOrCreate(Some(uri))
       } else {
       log.warn("TSP checkpointing disabled.")
+      CheckpointingService.getOrCreate(None)
     }
   }
 

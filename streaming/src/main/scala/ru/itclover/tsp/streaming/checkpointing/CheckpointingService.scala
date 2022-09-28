@@ -10,13 +10,25 @@ import ru.itclover.tsp.core.optimizations.Optimizer.{S => State}
 
 import scala.collection.mutable
 import scala.util.Try
+import ru.itclover.tsp.core.optimizations.Optimizer
 
-case class CheckpointingService(redisUri: String) {
-  //val codec = new Kryo5Codec()
+trait CheckpointingService {
+  def updateCheckpointRead(uuid: String, newRowsRead: Long, newStates: Map[RawPattern, State[Segment]]): Unit
 
-  val redisConfig = new Config()//.setCodec(codec)
+  def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit
 
-  val log = Logger("Checkpointing")
+  def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState])
+
+  def getCheckpoint(uuid: String): Option[Checkpoint]
+
+  def removeCheckpointAndState(uuid: String): Unit
+}
+
+case class RedisCheckpointingService(redisUri: String) extends CheckpointingService {
+
+  val redisConfig = new Config()
+
+  val log = Logger("RedisCheckpointing")
 
   redisConfig
     .useSingleServer()
@@ -26,9 +38,11 @@ case class CheckpointingService(redisUri: String) {
 
   val redissonClient = Redisson.create(redisConfig)
 
-  def updateCheckpointRead(uuid: String,
-                           newRowsRead: Long,
-                           newStates: Map[RawPattern, State[Segment]]): Unit = {
+  override def updateCheckpointRead(
+    uuid: String,
+    newRowsRead: Long,
+    newStates: Map[RawPattern, State[Segment]]
+  ): Unit = {
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     val checkpoint = Option(checkpointBucket.get).getOrElse(Checkpoint(0, 0))
     val newCheckpoint = checkpoint.copy(
@@ -40,28 +54,27 @@ case class CheckpointingService(redisUri: String) {
     checkpointStateBucket.set(CheckpointState(newStates))
   }
 
-  def updateCheckpointWritten(uuid: String,
-                           newRowsWritten: Long): Unit = {
+  override def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit = {
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     val checkpoint = checkpointBucket.get()
     val newCheckpoint = checkpoint.copy(
-      writtenRows = checkpoint.writtenRows + newRowsWritten,
+      writtenRows = checkpoint.writtenRows + newRowsWritten
     )
     checkpointBucket.set(newCheckpoint)
   }
 
-  def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) = {
+  override def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) = {
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     val checkpointStateBucket = redissonClient.getBucket[CheckpointState](s"tsp-cp-$uuid-state")
     (Option(checkpointBucket.get()), Option(checkpointStateBucket.get()))
   }
 
-  def getCheckpoint(uuid: String): Option[Checkpoint] = {
+  override def getCheckpoint(uuid: String): Option[Checkpoint] = {
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     Option(checkpointBucket.get())
   }
 
-  def removeCheckpointAndState(uuid: String): Unit = {
+  override def removeCheckpointAndState(uuid: String): Unit = {
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     val checkpointStateBucket = redissonClient.getBucket[CheckpointState](s"tsp-cp-$uuid-state")
     checkpointBucket.delete()
@@ -69,25 +82,66 @@ case class CheckpointingService(redisUri: String) {
   }
 }
 
+case class MemoryCheckpointingService() extends CheckpointingService {
+
+  val log = Logger("MemoryCheckpointing")
+
+  private val checkpoints: mutable.Map[String, Checkpoint] = mutable.Map.empty
+  private val checkpointStates: mutable.Map[String, CheckpointState] = mutable.Map.empty
+
+  override def updateCheckpointRead(
+    uuid: String,
+    newRowsRead: Long,
+    newStates: Map[RawPattern, Optimizer.S[Segment]]
+  ): Unit = {
+    val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, 0))
+    val newCheckpoint = checkpoint.copy(
+      readRows = checkpoint.readRows + newRowsRead
+    )
+    log.warn(s"Checkpointing $uuid: ${checkpoint.readRows + newRowsRead} rows read")
+    checkpoints(uuid) = newCheckpoint
+    checkpointStates(uuid) = CheckpointState(newStates)
+  }
+
+  override def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit = {
+    val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, 0))
+    val newCheckpoint = checkpoint.copy(
+      writtenRows = checkpoint.writtenRows + newRowsWritten
+    )
+    checkpoints(uuid) = newCheckpoint
+  }
+
+  override def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) =
+    (checkpoints.get(uuid), checkpointStates.get(uuid))
+
+  override def getCheckpoint(uuid: String): Option[Checkpoint] = checkpoints.get(uuid)
+
+  override def removeCheckpointAndState(uuid: String): Unit = {
+    checkpoints.remove(uuid)
+    checkpointStates.remove(uuid)
+  }
+
+}
+
 object CheckpointingService {
   private var service: Option[CheckpointingService] = None
 
-  def getOrCreate(redisUri: String): CheckpointingService = service match {
+  def getOrCreate(redisUri: Option[String]): CheckpointingService = service match {
     case Some(value) =>
       value
     case None =>
-      val srv = CheckpointingService(redisUri)
+      val srv = redisUri match {
+        case Some(uri) => RedisCheckpointingService(uri)
+        case None      => MemoryCheckpointingService()
+      }
       service = Some(srv)
       srv
   }
 
-  def updateCheckpointRead(uuid: String,
-                           newRowsRead: Long,
-                           newStates: Map[RawPattern, State[Segment]]): Unit =
+  def updateCheckpointRead(uuid: String, newRowsRead: Long, newStates: Map[RawPattern, State[Segment]]): Unit =
     service.map(_.updateCheckpointRead(uuid, newRowsRead, newStates)).getOrElse(())
 
-  def updateCheckpointWritten(uuid: String,
-                              newRowsWritten: Long): Unit =
+  def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit =
     service.map(_.updateCheckpointWritten(uuid, newRowsWritten)).getOrElse(())
 
   def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) =
