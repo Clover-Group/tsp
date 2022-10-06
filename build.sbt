@@ -7,18 +7,22 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-scalaVersion in ThisBuild := "2.13.8"
+scalaVersion in ThisBuild := "2.13.9"
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 resolvers in ThisBuild ++= Seq(
   "Apache Development Snapshot Repository" at "https://repository.apache.org/content/repositories/snapshots/",
   Resolver.mavenLocal,
   "jitpack" at "https://jitpack.io"
 )
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 //javaOptions in ThisBuild += "--add-modules=java.xml.bind"
 lazy val launcher = "ru.itclover.tsp.http.Launcher"
  
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
-  wartremoverWarnings ++= Warts.unsafe.filter(_ != Wart.DefaultArguments),
+  // Remove StringPlusAny wart because of false alarming on s-strings
+  wartremoverWarnings ++= Warts.unsafe.filter(w => w != Wart.DefaultArguments & w != Wart.StringPlusAny),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
@@ -29,6 +33,7 @@ lazy val commonSettings = Seq(
   ),
   scalacOptions ++= Seq(
     "-Yrangepos",
+    "-Wunused",
   ),
   // don't release subprojects
   githubRelease := null,
@@ -83,7 +88,7 @@ dockerCommands := Seq()
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
   //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
-  Cmd("FROM", "openjdk:11-jre-slim"),
+  Cmd("FROM", "openjdk:17-slim"),
   //Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
@@ -227,9 +232,9 @@ git.useGitDescribe := true
 git.baseVersion := IO.read(file("./VERSION")) // if no tags are present
 val VersionRegex = "v([0-9]+.[0-9]+.[0-9]+)-?(.*)?".r
 
-def nextMinorVersion(v: String): String =  Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+def nextMinorVersion(v: String): String =  Bump.Minor.bump(ReleaseVersion(v).getOrElse(versionFormatError(v))).string
 
-def nextMajorVersion(v: String): String =  Bump.Major.bump(ReleaseVersion(v).getOrElse(versionFormatError)).string
+def nextMajorVersion(v: String): String =  Bump.Major.bump(ReleaseVersion(v).getOrElse(versionFormatError(v))).string
 
 git.gitTagToVersionNumber := { (tag: String) =>
   val nextVersion = git.gitCurrentBranch.value match {

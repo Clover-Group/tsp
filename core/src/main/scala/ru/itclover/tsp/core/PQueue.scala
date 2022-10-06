@@ -96,9 +96,9 @@ object PQueue {
         case None =>
           val _ = queue.append(idxValue)
         case Some(IdxValue(start, end, value)) if value == idxValue.value => { val _ = queue.removeLast() }
-          val _ = queue.append(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
-        case _ =>
-          val _ = queue.append(idxValue)  
+        val _ = queue.append(IdxValue(Math.min(start, idxValue.start), Math.max(end, idxValue.end), value))
+      case _ =>
+          val _ = queue.append(idxValue)
       }
     }
   }

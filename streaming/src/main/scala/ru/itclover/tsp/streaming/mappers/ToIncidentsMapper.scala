@@ -7,13 +7,13 @@ import java.util.UUID
 import scala.util.Try
 
 final case class ToIncidentsMapper[E, EKey, EItem](
-                                                    patternId: Int,
-                                                    unitIdField: EKey,
-                                                    subunit: Int,
-                                                    patternMetadata: Map[String, String],
-                                                    sessionWindowMs: Long,
-                                                    partitionFields: Seq[EKey]
-                                                  )(implicit extractor: Extractor[E, EKey, EItem], decoder: Decoder[EItem, Any]) {
+  patternId: Int,
+  unitIdField: EKey,
+  subunit: Int,
+  patternMetadata: Map[String, String],
+  sessionWindowMs: Long,
+  partitionFields: Seq[EKey]
+)(implicit extractor: Extractor[E, EKey, EItem], decoder: Decoder[EItem, Any]) {
 
   def apply(event: E): Segment => Incident = {
     val incidentId = s"P#$patternId;" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString

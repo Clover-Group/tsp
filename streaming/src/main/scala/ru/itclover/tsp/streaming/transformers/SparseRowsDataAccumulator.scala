@@ -1,6 +1,5 @@
 package ru.itclover.tsp.streaming.transformers
 
-import cats.effect.IO
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.StreamSource
 import ru.itclover.tsp.core.Time
@@ -16,7 +15,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
-  defaultTimeout: Option[Long],
+  defaultTimeout: Option[Long]
   /*streamMode: Boolean*/
 )(
   implicit extractTime: TimeExtractor[InEvent],
@@ -32,7 +31,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   val extraFieldsIndexesMap: Map[InKey, Int] = extraFieldNames
     .zip(
       targetKeySet.size until
-        targetKeySet.size + extraFieldNames.size
+      targetKeySet.size + extraFieldNames.size
     )
     .toMap
   val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
@@ -43,7 +42,6 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   // TODO: Timer
 
   val log = Logger("SparseDataAccumulator")
-
 
   def map(item: InEvent): Option[OutEvent] = {
     val time = extractTime(item)
@@ -109,8 +107,8 @@ object SparseRowsDataAccumulator {
           val sparseRowsConf = ndu
           val fim = streamSource.fieldsIdxMap
           val timeouts = patternFields
-            .map(k => (k, ndu.defaultTimeout.getOrElse(0L)))
-            .toMap[InKey, Long] ++
+              .map(k => (k, ndu.defaultTimeout.getOrElse(0L)))
+              .toMap[InKey, Long] ++
             ndu.fieldsTimeoutsMs
           val extraFields = fim
             .filterNot {
@@ -135,8 +133,8 @@ object SparseRowsDataAccumulator {
           val fim = streamSource.fieldsIdxMap
           val toKey = streamSource.fieldToEKey
           val timeouts = patternFields
-            .map(k => (k, wdf.defaultTimeout.getOrElse(0L)))
-            .toMap[InKey, Long] ++
+              .map(k => (k, wdf.defaultTimeout.getOrElse(0L)))
+              .toMap[InKey, Long] ++
             wdf.fieldsTimeoutsMs
           val extraFields =
             fim

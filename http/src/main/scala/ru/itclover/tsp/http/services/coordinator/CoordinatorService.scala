@@ -10,10 +10,10 @@ import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class CoordinatorService (coordUri: String)
-                              (implicit as: ActorSystem, execCtx: ExecutionContext) {
+case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
   val log = Logger("CoordinatorService")
+
   def notifyRegister(): Unit = {
     val uri = s"$coordUri/api/tspinteraction/register"
     log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
@@ -61,7 +61,7 @@ case class CoordinatorService (coordUri: String)
     log.warn(s"Job $jobId completed: notifying coordinator to $uri...")
 
     val success = exception.isEmpty
-    val error = exception.map(_.getMessage).getOrElse("")
+    exception.map(_.getMessage).getOrElse("")
 
     val metrics = CheckpointingService.getCheckpoint(jobId)
     val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.writtenRows)).getOrElse((0, 0))
@@ -70,7 +70,8 @@ case class CoordinatorService (coordUri: String)
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity = HttpEntity(ContentTypes.`application/json`,
+        entity = HttpEntity(
+          ContentTypes.`application/json`,
           s"""
              |{"jobId": "$jobId",
              |"success": $success,
@@ -78,7 +79,8 @@ case class CoordinatorService (coordUri: String)
              |"rowsRead": $rowsRead,
              |"rowsWritten": $rowsWritten
              |}
-             |""".stripMargin)
+             |""".stripMargin
+        )
       )
     )
 
@@ -95,18 +97,20 @@ case class CoordinatorService (coordUri: String)
 object CoordinatorService {
   private var service: Option[CoordinatorService] = None
 
-  def getOrCreate(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext): CoordinatorService = service match {
-    case Some(value) =>
-      value
-    case None =>
-      val srv = CoordinatorService(coordUri)
-      service = Some(srv)
-      srv
-  }
+  def getOrCreate(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext): CoordinatorService =
+    service match {
+      case Some(value) =>
+        value
+      case None =>
+        val srv = CoordinatorService(coordUri)
+        service = Some(srv)
+        srv
+    }
 
   def notifyRegister(): Unit = service.map(_.notifyRegister()).getOrElse(())
 
   def notifyJobStarted(jobId: String): Unit = service.map(_.notifyJobStarted(jobId)).getOrElse(())
+
   def notifyJobCompleted(jobId: String, exception: Option[Throwable]): Unit =
     service.map(_.notifyJobCompleted(jobId, exception)).getOrElse(())
 }

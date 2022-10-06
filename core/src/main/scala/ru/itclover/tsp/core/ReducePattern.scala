@@ -6,7 +6,6 @@ import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.QI
 
 import scala.annotation.tailrec
-import scala.language.higherKinds
 
 /** Reduce Pattern.
   * Complex pattern combining Seq of inner patterns (all of them have to have the same type).

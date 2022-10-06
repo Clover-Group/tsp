@@ -4,8 +4,6 @@ import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
 
-import scala.language.higherKinds
-
 // TODO Rename to FunctionP(attern)?
 /** Simple Pattern */
 trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {

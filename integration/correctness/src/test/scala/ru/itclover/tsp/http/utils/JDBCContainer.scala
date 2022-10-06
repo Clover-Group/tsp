@@ -7,7 +7,6 @@ import org.testcontainers.containers.wait.strategy.WaitStrategy
 import org.testcontainers.containers.{BindMode, GenericContainer => OTCGenericContainer}
 
 import scala.collection.JavaConverters._
-import scala.language.existentials
 
 // Default arguments for constructing a container are useful
 @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))

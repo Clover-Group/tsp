@@ -8,7 +8,6 @@ import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.aggregators.{WaitPattern, TimerPattern, WindowStatistic, WindowStatisticResult}
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
-import scala.language.implicitConversions
 import scala.reflect.ClassTag
 trait AnyState[T]
 

@@ -4,7 +4,6 @@ import java.math.BigInteger
 import java.time.format.DateTimeFormatter
 import java.time.{Duration, Instant, ZoneId}
 
-import scala.language.implicitConversions
 import scala.math.Ordering.Long
 
 case class Time(toMillis: Long) extends Serializable {

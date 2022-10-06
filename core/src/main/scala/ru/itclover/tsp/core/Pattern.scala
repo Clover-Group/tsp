@@ -4,8 +4,6 @@ import cats.{Foldable, Functor, Monad, Order}
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.core.Pattern.Idx
 
-import scala.language.higherKinds
-
 trait Pat[Event, +T]
 
 object Pat {

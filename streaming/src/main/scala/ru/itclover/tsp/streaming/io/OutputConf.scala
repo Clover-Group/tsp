@@ -5,7 +5,7 @@ import cats.implicits._
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import doobie.WeakAsync.doobieWeakAsyncForAsync
-import doobie.{ConnectionIO, FC, Transactor, Update0}
+import doobie.{ConnectionIO, Transactor}
 import doobie.implicits._
 import doobie.util.fragment.Fragment
 import fs2.Pipe
@@ -14,9 +14,6 @@ import ru.itclover.tsp.StreamSource.Row
 
 import java.sql.{Connection, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
-import scala.util.control.NonFatal
 
 trait OutputConf[Event] {
 
@@ -28,25 +25,25 @@ trait OutputConf[Event] {
 }
 
 /**
- * Sink for anything that support JDBC connection
- * @param rowSchema schema of writing rows
- * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
- * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
- * @param userName for JDBC auth
- * @param password for JDBC auth
- * @param batchInterval batch size for writing found incidents
- * @param parallelism num of parallel task to write data
- */
+  * Sink for anything that support JDBC connection
+  * @param rowSchema schema of writing rows
+  * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
+  * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
+  * @param userName for JDBC auth
+  * @param password for JDBC auth
+  * @param batchInterval batch size for writing found incidents
+  * @param parallelism num of parallel task to write data
+  */
 case class JDBCOutputConf(
-                           tableName: String,
-                           rowSchema: EventSchema,
-                           jdbcUrl: String,
-                           driverName: String,
-                           password: Option[String] = None,
-                           batchInterval: Option[Int] = None,
-                           userName: Option[String] = None,
-                           parallelism: Option[Int] = Some(1)
-                         ) extends OutputConf[Row] {
+  tableName: String,
+  rowSchema: EventSchema,
+  jdbcUrl: String,
+  driverName: String,
+  password: Option[String] = None,
+  batchInterval: Option[Int] = None,
+  userName: Option[String] = None,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
   override def getSink: Pipe[IO, Row, Unit] =
     source => fuseMap(source, insertQuery)(transactor).drain
 
@@ -69,22 +66,22 @@ case class JDBCOutputConf(
   }
 
   def fuseMap[A, B](
-                           source: fs2.Stream[IO, A],
-                           sink:   A => ConnectionIO[B]
-                         )(
-                           sinkXA:   Transactor[IO]
-                         ): fs2.Stream[IO, B] =
+    source: fs2.Stream[IO, A],
+    sink: A => ConnectionIO[B]
+  )(
+    sinkXA: Transactor[IO]
+  ): fs2.Stream[IO, B] =
     fuseMapGeneric(source, identity[A], sink)(sinkXA)
 
   def fuseMapGeneric[F[_], A, B, C](
-                                     source:       fs2.Stream[IO, A],
-                                     sourceToSink: A => B,
-                                     sink:         B => ConnectionIO[C]
-                                   )(
-                                     sinkTransactor:   Transactor[F]
-                                   )(
-                                     implicit ev: MonadCancelThrow[F]
-                                   ): fs2.Stream[F, C] = {
+    source: fs2.Stream[IO, A],
+    sourceToSink: A => B,
+    sink: B => ConnectionIO[C]
+  )(
+    sinkTransactor: Transactor[F]
+  )(
+    implicit ev: MonadCancelThrow[F]
+  ): fs2.Stream[F, C] = {
 
     // Interpret a ConnectionIO into a Kleisli arrow for F via the sink interpreter.
     def interpS[T](f: ConnectionIO[T]): Connection => F[T] =
@@ -102,10 +99,9 @@ case class JDBCOutputConf(
         fs2.Stream.eval(interpS(f)(c)).drain
 
       // And can thus lift all the sink operations into Stream of F
-      val sinkEval: A => fs2.Stream[F, C]  = (a: A) => evalS(sink(sourceToSink(a)))
+      val sinkEval: A => fs2.Stream[F, C] = (a: A) => evalS(sink(sourceToSink(a)))
       //val before = evalS(sinkXA.strategy.before)
       //val after  = evalS(sinkXA.strategy.after )
-      def oops(t: Throwable) = evalS(sinkTransactor.strategy.oops <* FC.raiseError(t))
 
       // And construct our final stream.
       //before ++ source.flatMap(sinkEval) ++ after
@@ -128,21 +124,22 @@ case class JDBCOutputConf(
 //}
 
 /**
- * Sink for kafka connection
- * @param broker host and port for kafka broker
- * @param topic where is data located
- * @param serializer format of data in kafka
- * @param rowSchema schema of writing rows
- * @param parallelism num of parallel task to write data
- * @author trolley813
- */
+  * Sink for kafka connection
+  * @param broker host and port for kafka broker
+  * @param topic where is data located
+  * @param serializer format of data in kafka
+  * @param rowSchema schema of writing rows
+  * @param parallelism num of parallel task to write data
+  * @author trolley813
+  */
 case class KafkaOutputConf(
-                            broker: String,
-                            topic: String,
-                            serializer: Option[String] = Some("json"),
-                            rowSchema: EventSchema,
-                            parallelism: Option[Int] = Some(1)
-                          ) extends OutputConf[Row] {
+  broker: String,
+  topic: String,
+  serializer: Option[String] = Some("json"),
+  rowSchema: EventSchema,
+  parallelism: Option[Int] = Some(1)
+) extends OutputConf[Row] {
+
   val producerSettings = ProducerSettings(
     keySerializer = Serializer[IO, String],
     valueSerializer = Serializer[IO, String]
@@ -169,24 +166,22 @@ case class KafkaOutputConf(
 
     eventSchema match {
       case newRowSchema: NewRowSchema =>
-        newRowSchema.data.foreach { case (k, v) =>
-          putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(Symbol(k))))
+        newRowSchema.data.foreach {
+          case (k, v) =>
+            putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(Symbol(k))))
         }
     }
 
-    def putValueToObjectNode(k: String,
-                             v: EventSchemaValue,
-                             root: ObjectNode,
-                             value: Object): Unit = {
+    def putValueToObjectNode(k: String, v: EventSchemaValue, root: ObjectNode, value: Object): Unit = {
       v.`type` match {
-        case "int8" => root.put(k, value.asInstanceOf[Byte])
-        case "int16" => root.put(k, value.asInstanceOf[Short])
-        case "int32" => root.put(k, value.asInstanceOf[Int])
-        case "int64" => root.put(k, value.asInstanceOf[Long])
-        case "float32" => root.put(k, value.asInstanceOf[Float])
-        case "float64" => root.put(k, value.asInstanceOf[Double])
-        case "boolean" => root.put(k, value.asInstanceOf[Boolean])
-        case "string" => root.put(k, value.asInstanceOf[String])
+        case "int8"      => root.put(k, value.asInstanceOf[Byte])
+        case "int16"     => root.put(k, value.asInstanceOf[Short])
+        case "int32"     => root.put(k, value.asInstanceOf[Int])
+        case "int64"     => root.put(k, value.asInstanceOf[Long])
+        case "float32"   => root.put(k, value.asInstanceOf[Float])
+        case "float64"   => root.put(k, value.asInstanceOf[Double])
+        case "boolean"   => root.put(k, value.asInstanceOf[Boolean])
+        case "string"    => root.put(k, value.asInstanceOf[String])
         case "timestamp" => root.put(k, value.asInstanceOf[Timestamp].toString)
         case "object" =>
           val data = value.toString

@@ -1,9 +1,7 @@
 package ru.itclover.tsp.services
 
-import java.util.Properties
 import scala.util.Try
 //import org.apache.kafka.clients.consumer.ConsumerRecord
-import ru.itclover.tsp.StreamSource.Row
 import ru.itclover.tsp.streaming.io.KafkaInputConf
 
 class StreamEndException(message: String) extends Exception(message)
@@ -45,5 +43,3 @@ object KafkaService {
     new FlinkKafkaConsumer(conf.topic, deserializer, props)
   }*/
 }
-
-

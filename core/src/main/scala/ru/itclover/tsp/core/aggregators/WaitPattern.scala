@@ -4,7 +4,7 @@ import cats.instances.option._
 import cats.Apply
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 import ru.itclover.tsp.core.QueueUtils.takeWhileFromQueue
-import ru.itclover.tsp.core.{IdxValue, PQueue, Pattern, Result, Time, Window}
+import ru.itclover.tsp.core.{IdxValue, PQueue, Pattern, Time, Window}
 import ru.itclover.tsp.core.io.TimeExtractor
 
 import scala.Ordering.Implicits._
@@ -25,7 +25,7 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
 }
 
 // Here, head and last are guaranteed to work, so suppress warnings for them
-@SuppressWarnings(Array("org.wartremover.warts.TraversableOps"))
+@SuppressWarnings(Array("org.wartremover.warts.IterableOps"))
 case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: Boolean, lastTime: (Idx, Time))
     extends AccumState[T, T, WaitAccumState[T]] {
 
@@ -71,10 +71,12 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
         }
       val waitEnd = outputs.lastOption
 
-      val newOptResult = Apply[Option].map2(waitStart, waitEnd) { (s, e) =>
-        if (s._1 <= e._1) Some(IdxValue(s._1, e._1, idxValue.value)) else None
-      }.flatten
-      
+      val newOptResult = Apply[Option]
+        .map2(waitStart, waitEnd) { (s, e) =>
+          if (s._1 <= e._1) Some(IdxValue(s._1, e._1, idxValue.value)) else None
+        }
+        .flatten
+
       (
         WaitAccumState(updatedWindowQueue, idxValue.value.isFail, times.last),
         newOptResult.map(PQueue.apply).getOrElse(PQueue.empty)
@@ -84,10 +86,4 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
     }
   }
 
-  private def createIdxValue(
-    optStart: Option[(Idx, Time)],
-    optEnd: Option[(Idx, Time)],
-    result: Result[T]
-  ): Option[IdxValue[T]] =
-    Apply[Option].map2(optStart, optEnd)((start, end) => IdxValue(start._1, end._1, result))
 }

@@ -9,7 +9,9 @@ object QueueUtils {
 
   private val trueFunction = (_: Any) => true
 
-  def takeWhileFromQueue[A](queue: m.ArrayDeque[A])(predicate: A => Boolean = trueFunction): (m.ArrayDeque[A], m.ArrayDeque[A]) =
+  def takeWhileFromQueue[A](
+    queue: m.ArrayDeque[A]
+  )(predicate: A => Boolean = trueFunction): (m.ArrayDeque[A], m.ArrayDeque[A]) =
     if (predicate.eq(trueFunction)) (queue, m.ArrayDeque.empty)
     else {
 

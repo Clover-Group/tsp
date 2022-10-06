@@ -4,9 +4,6 @@ import com.typesafe.scalalogging.Logger
 import org.scalactic.Equality
 import org.scalatest.{Assertion, Matchers}
 
-import scala.collection.JavaConverters._
-import scala.util.Try
-
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Here we also use `asInstanceOf` methods for type conversion.
 // We suppress Any for `shouldBe empty` statements.

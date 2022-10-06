@@ -6,7 +6,6 @@ import cats.{Foldable, Functor, Monad, Order}
 import ru.itclover.tsp.core.Pattern.{Idx, IdxExtractor, QI}
 
 import scala.annotation.tailrec
-import scala.language.higherKinds
 
 /** Couple Pattern */
 case class CouplePattern[Event: IdxExtractor, State1, State2, T1, T2, T3](

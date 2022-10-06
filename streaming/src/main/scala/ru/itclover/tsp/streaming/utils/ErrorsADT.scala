@@ -8,8 +8,8 @@ object ErrorsADT {
   }
 
   /**
-   * Represents errors on configuration stage. It is guaranteed that no events is written in sink if error occurs.
-   */
+    * Represents errors on configuration stage. It is guaranteed that no events is written in sink if error occurs.
+    */
   sealed trait ConfigErr extends Err
 
   case class InvalidRequest(error: String, errorCode: Int = 4010) extends ConfigErr
@@ -27,8 +27,8 @@ object ErrorsADT {
   }
 
   /**
-   * Represents errors on run-time stage. Some data could be already written in the sink.
-   */
+    * Represents errors on run-time stage. Some data could be already written in the sink.
+    */
   sealed trait RuntimeErr extends Err
 
   case class GenericRuntimeErr(ex: Throwable, errorCode: Int = 5000) extends RuntimeErr {

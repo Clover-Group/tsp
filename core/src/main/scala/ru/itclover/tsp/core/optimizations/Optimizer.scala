@@ -13,8 +13,6 @@ import ru.itclover.tsp.core.{Pat, _}
 import ru.itclover.tsp.core.io.TimeExtractor
 import ru.itclover.tsp.core.optimizations.Optimizer.S
 
-import scala.language.{existentials, higherKinds}
-
 // Deals haevily with Any, so disable the wart warning.
 // However, a better way can probably be found.
 @SuppressWarnings(Array("org.wartremover.warts.Any"))

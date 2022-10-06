@@ -5,15 +5,13 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import ru.itclover.tsp.StreamSource.Row
 
 import java.sql.Timestamp
-import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime}
+import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 import ru.itclover.tsp.core.{Incident, Time}
 import ru.itclover.tsp.streaming.io._
 
-import scala.util.Try
-
 /**
- * Packer of found incident into [[Row]]
- */
+  * Packer of found incident into [[Row]]
+  */
 case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
 
   def map(incident: Incident) = schema match {
@@ -23,11 +21,11 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
         case (k, v) =>
           val pos = newRowSchema.fieldsIndices(Symbol(k))
           v match {
-            case value: IntESValue => resultRow(pos) = convertFromInt(value.value, value.`type`).asInstanceOf[AnyRef]
+            case value: IntESValue   => resultRow(pos) = convertFromInt(value.value, value.`type`).asInstanceOf[AnyRef]
             case value: FloatESValue => resultRow(pos) = convertFromFloat(value.value, value.`type`).asInstanceOf[AnyRef]
-            case value: StringESValue => resultRow(pos) =
-              convertFromString(interpolateString(value.value, incident),
-                value.`type`).asInstanceOf[AnyRef]
+            case value: StringESValue =>
+              resultRow(pos) =
+                convertFromString(interpolateString(value.value, incident), value.`type`).asInstanceOf[AnyRef]
             case value: ObjectESValue => resultRow(pos) = mapToJson(convertFromObject(value.value, incident))
           }
       }
@@ -52,7 +50,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
   }
 
   def toJsonString(ctx: Map[Symbol, String]): String = {
-    ctx.map { case (k, v) => s"""${escape(k.name)}: ${escape(v)}""" }
+    ctx
+      .map { case (k, v) => s"""${escape(k.name)}: ${escape(v)}""" }
       .mkString("{", ", ", "}")
   }
 
@@ -76,49 +75,49 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
 
   def convertFromInt(value: Long, toType: String): Any = {
     toType match {
-      case "int8" => value.toByte
-      case "int16" => value.toShort
-      case "int32" => value.toInt
-      case "int64" => value
-      case "boolean" => value != 0
-      case "string" => value.toString
-      case "float32" => value.toFloat
-      case "float64" => value.toDouble
+      case "int8"      => value.toByte
+      case "int16"     => value.toShort
+      case "int32"     => value.toInt
+      case "int64"     => value
+      case "boolean"   => value != 0
+      case "string"    => value.toString
+      case "float32"   => value.toFloat
+      case "float64"   => value.toDouble
       case "timestamp" => Timestamp.from(Instant.ofEpochSecond(value))
-      case "object" => value
-      case _       =>
+      case "object"    => value
+      case _           =>
     }
   }
 
   def convertFromFloat(value: Double, toType: String): Any = {
     toType match {
-      case "int8" => value.toByte
-      case "int16" => value.toShort
-      case "int32" => value.toInt
-      case "int64" => value.toLong
-      case "boolean" => value != 0
-      case "string" => value.toString
-      case "float32" => value.toFloat
-      case "float64" => value
+      case "int8"      => value.toByte
+      case "int16"     => value.toShort
+      case "int32"     => value.toInt
+      case "int64"     => value.toLong
+      case "boolean"   => value != 0
+      case "string"    => value.toString
+      case "float32"   => value.toFloat
+      case "float64"   => value
       case "timestamp" => Timestamp.from(Instant.ofEpochSecond(value.toLong, ((value - value.toLong) * 1e9).toInt))
-      case "object" => value
-      case _       =>
+      case "object"    => value
+      case _           =>
     }
   }
 
   def convertFromString(value: String, toType: String): Any = {
     toType match {
-      case "int8" => value.toByte
-      case "int16" => value.toShort
-      case "int32" => value.toInt
-      case "int64" => value.toLong
-      case "boolean" => value != "0" && value != "false" && value != "off"
-      case "string" => value
-      case "float32" => value.toFloat
-      case "float64" => value.toDouble
+      case "int8"      => value.toByte
+      case "int16"     => value.toShort
+      case "int32"     => value.toInt
+      case "int64"     => value.toLong
+      case "boolean"   => value != "0" && value != "false" && value != "off"
+      case "string"    => value
+      case "float32"   => value.toFloat
+      case "float64"   => value.toDouble
       case "timestamp" => Timestamp.valueOf(value)
-      case "object" => value
-      case _       =>
+      case "object"    => value
+      case _           =>
     }
   }
 
@@ -126,8 +125,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
     value.map {
       case (k, v) =>
         val s = v match {
-          case value: IntESValue => convertFromInt(value.value, value.`type`)
-          case value: FloatESValue => convertFromFloat(value.value, value.`type`)
+          case value: IntESValue    => convertFromInt(value.value, value.`type`)
+          case value: FloatESValue  => convertFromFloat(value.value, value.`type`)
           case value: StringESValue => convertFromString(interpolateString(value.value, incident), value.`type`)
           case value: ObjectESValue => convertFromObject(value.value, incident)
         }

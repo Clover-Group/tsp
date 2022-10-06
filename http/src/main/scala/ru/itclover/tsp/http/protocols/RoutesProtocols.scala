@@ -111,39 +111,36 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timestampMultiplier"
   )
 
-
   implicit val kafkaInpConfFmt = jsonFormat15(
     KafkaInputConf.apply
   )
 
-
   implicit def inpConfFmt[Event, EKey: JsonFormat, EValue: JsonFormat] =
-  new RootJsonFormat[InputConf[Event, EKey, EValue]] {
-    override def read(json: JsValue): InputConf[Event, EKey, EValue] = json match {
-      case obj: JsObject =>
-        val tp = obj.fields.getOrElse("type", sys.error("Input (source) config: missing type"))
-        val cfg = obj.fields.getOrElse("config", sys.error("Input (source) config: missing config"))
-        tp match {
-          case JsString("kafka") => kafkaInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
-          case JsString("jdbc")  => jdbcInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
-          case _                               => deserializationError(s"Input (source) config: unknown type $tp")
-        }
-      case _ =>
-        deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
-    }
-    override def write(obj: InputConf[Event, EKey, EValue]): JsValue = {
-      val (t, c) = obj match {
-        case kafkain: KafkaInputConf => ("kafka", kafkaInpConfFmt.write(kafkain))
-        case jdbcin: JDBCInputConf   => ("jdbc", jdbcInpConfFmt.write(jdbcin))
-        case _  => deserializationError("Unknown input (source) config")
+    new RootJsonFormat[InputConf[Event, EKey, EValue]] {
+      override def read(json: JsValue): InputConf[Event, EKey, EValue] = json match {
+        case obj: JsObject =>
+          val tp = obj.fields.getOrElse("type", sys.error("Input (source) config: missing type"))
+          val cfg = obj.fields.getOrElse("config", sys.error("Input (source) config: missing config"))
+          tp match {
+            case JsString("kafka") => kafkaInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+            case JsString("jdbc")  => jdbcInpConfFmt.read(cfg).asInstanceOf[InputConf[Event, EKey, EValue]]
+            case _                 => deserializationError(s"Input (source) config: unknown type $tp")
+          }
+        case _ =>
+          deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
       }
-      JsObject(
-        "type"   -> t.toJson,
-        "config" -> c
-      )
+      override def write(obj: InputConf[Event, EKey, EValue]): JsValue = {
+        val (t, c) = obj match {
+          case kafkain: KafkaInputConf => ("kafka", kafkaInpConfFmt.write(kafkain))
+          case jdbcin: JDBCInputConf   => ("jdbc", jdbcInpConfFmt.write(jdbcin))
+          case _                       => deserializationError("Unknown input (source) config")
+        }
+        JsObject(
+          "type"   -> t.toJson,
+          "config" -> c
+        )
+      }
     }
-  }
-
 
   implicit val newRowSchemaFmt = jsonFormat1(NewRowSchema.apply)
 
@@ -159,7 +156,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
         val v = obj.fields.getOrElse("value", deserializationError("Event schema field: missing value"))
         val typeName = t match {
           case JsString(value) => value
-          case _ => deserializationError(s"Type name must be string, but got `${t.compactPrint}` instead")
+          case _               => deserializationError(s"Type name must be string, but got `${t.compactPrint}` instead")
         }
         v match {
           case JsObject(fields) =>
@@ -167,21 +164,22 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
               deserializationError("Type name for nested structure must be `object`")
             else
               ObjectESValue(typeName, fields.map { case (k, v) => (k, read(v)) })
-          case JsArray(elements) => deserializationError("Array values not yet supported")
+          case JsArray(_)      => deserializationError("Array values not yet supported")
           case JsString(value) => StringESValue(typeName, value)
           case JsNumber(value) => FloatESValue(typeName, value.floatValue)
-          case boolean: JsBoolean => deserializationError("Boolean values not yet supported")
-          case JsNull => deserializationError("Null values not supported")
+          case _: JsBoolean    => deserializationError("Boolean values not yet supported")
+          case JsNull          => deserializationError("Null values not supported")
         }
       case _ =>
         deserializationError(s"Event schema field must be an object, but got ${json.compactPrint} instead")
     }
 
     override def write(obj: EventSchemaValue): JsValue = obj match {
-      case IntESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
-      case FloatESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
+      case IntESValue(t, v)    => JsObject("type" -> t.toJson, "value" -> v.toJson)
+      case FloatESValue(t, v)  => JsObject("type" -> t.toJson, "value" -> v.toJson)
       case StringESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson)
-      case ObjectESValue(t, v) => JsObject("type" -> t.toJson, "value" -> v.toJson(mapFormat(StringJsonFormat, eventSchemaValueFormat)))
+      case ObjectESValue(t, v) =>
+        JsObject("type" -> t.toJson, "value" -> v.toJson(mapFormat(StringJsonFormat, eventSchemaValueFormat)))
     }
   }
 
@@ -216,7 +214,6 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism"
   )
 
-
   implicit def outConfFmt[Event] =
     new RootJsonFormat[OutputConf[Event]] {
       override def read(json: JsValue): OutputConf[Event] = json match {
@@ -226,7 +223,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
           tp match {
             case JsString("kafka") => kafkaOutConfFmt.read(cfg).asInstanceOf[OutputConf[Event]]
             case JsString("jdbc")  => jdbcOutConfFmt.read(cfg).asInstanceOf[OutputConf[Event]]
-            case _                               => deserializationError(s"Output (sink) config: unknown type $tp")
+            case _                 => deserializationError(s"Output (sink) config: unknown type $tp")
           }
         case _ =>
           deserializationError(s"Source data transformation must be an object, but got ${json.compactPrint} instead")
@@ -235,7 +232,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
         val (t, c) = obj match {
           case kafkaout: KafkaOutputConf => ("kafka", kafkaOutConfFmt.write(kafkaout))
           case jdbcout: JDBCOutputConf   => ("jdbc", jdbcOutConfFmt.write(jdbcout))
-          case _  => deserializationError("Unknown output (sink) config")
+          case _                         => deserializationError("Unknown output (sink) config")
         }
         JsObject(
           "type"   -> t.toJson,
@@ -246,9 +243,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
 
   implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
 
-  implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent]
-  (implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]) =
-    jsonFormat(FindPatternsRequest.apply[Event, EKey, EValue, OutEvent],
+  implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent](
+    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]
+  ) =
+    jsonFormat(
+      FindPatternsRequest.apply[Event, EKey, EValue, OutEvent],
       "uuid",
       "source",
       "sinks",
@@ -256,19 +255,23 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       "patterns"
     )
 
-  class QueueableRequestFmt[Event, EKey, EValue, OutEvent](implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
-                                                 outFormat: JsonFormat[OutputConf[OutEvent]]) extends JsonFormat[QueueableRequest] {
+  class QueueableRequestFmt[Event, EKey, EValue, OutEvent](
+    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
+    outFormat: JsonFormat[OutputConf[OutEvent]]
+  ) extends JsonFormat[QueueableRequest] {
 
     override def read(json: JsValue): QueueableRequest = patternsRequestFmt[Event, EKey, EValue, OutEvent].read(json)
 
     override def write(obj: QueueableRequest): JsValue = obj match {
-      case x @ FindPatternsRequest(_, _, _, _, _) => patternsRequestFmt[Event, EKey, EValue, OutEvent]
-        .write(x.asInstanceOf[FindPatternsRequest[Event, EKey, EValue, OutEvent]])
+      case x @ FindPatternsRequest(_, _, _, _, _) =>
+        patternsRequestFmt[Event, EKey, EValue, OutEvent]
+          .write(x.asInstanceOf[FindPatternsRequest[Event, EKey, EValue, OutEvent]])
     }
   }
 
-  implicit def queueableRequestFmt[Event, EKey, EValue, OutEvent](implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]])
-  : JsonFormat[QueueableRequest] = (new QueueableRequestFmt[Event, EKey, EValue, OutEvent])
+  implicit def queueableRequestFmt[Event, EKey, EValue, OutEvent](
+    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]
+  ): JsonFormat[QueueableRequest] = (new QueueableRequestFmt[Event, EKey, EValue, OutEvent])
 
   implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
 

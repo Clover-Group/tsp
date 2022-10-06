@@ -1,7 +1,13 @@
-addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.4.1")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.9")
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.0")
+ThisBuild / libraryDependencySchemes ++= Seq(
+  "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
+  "org.scala-lang.modules" %% "scala-parser-combinators" % VersionScheme.Always,
+)
+
+addSbtPlugin("com.github.sbt" % "sbt-git" % "2.0.0")
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.4")
+addSbtPlugin("com.github.sbt" % "sbt-release" % "1.1.0")
+addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.6.3")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.0.1")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.0.6")
 lazy val root = project.in(file(".")).dependsOn(ghReleasePlugin)
 lazy val ghReleasePlugin = RootProject(uri("https://github.com/hyst329/sbt-github-release.git"))
-addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.0.5")

@@ -5,7 +5,6 @@ import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
-import scala.language.higherKinds
 
 /** AndThen  */
 //We lose T1 and T2 in output for performance reason only. If needed outputs of first and second stages can be returned as well

@@ -21,9 +21,6 @@ import ru.itclover.tsp.streaming.utils.{EventCreator, EventCreatorInstances, Key
 import ru.itclover.tsp.streaming.utils.ErrorsADT._
 import ru.itclover.tsp.streaming.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
@@ -34,23 +31,23 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def fieldsClasses: Seq[(Symbol, Class[_])]
 
   def transformedFieldsClasses: Seq[(Symbol, Class[_])] = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
+    case Some(NarrowDataUnfolding(_, _, _, mapping, _)) =>
       val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
       val r = fieldsClasses ++ m.map {
-        case (col, list) =>
-          list.map(
-            k =>
-              (
-                eKeyToField(k),
-                fieldsClasses
-                  .find {
-                    case (s, _) => fieldToEKey(s) == col
-                  }
-                  .map(_._2)
-                  .getOrElse(defaultClass)
-              )
-          )
-      }.flatten
+          case (col, list) =>
+            list.map(
+              k =>
+                (
+                  eKeyToField(k),
+                  fieldsClasses
+                    .find {
+                      case (s, _) => fieldToEKey(s) == col
+                    }
+                    .map(_._2)
+                    .getOrElse(defaultClass)
+                )
+            )
+        }.flatten
       r
     case _ =>
       fieldsClasses
@@ -164,11 +161,11 @@ object JdbcSource {
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class JdbcSource(
-                       conf: JDBCInputConf,
-                       fieldsClasses: Seq[(Symbol, Class[_])],
-                       nullFieldId: Symbol,
-                       patternFields: Set[Symbol]
-                     ) extends StreamSource[RowWithIdx, Symbol, Any] {
+  conf: JDBCInputConf,
+  fieldsClasses: Seq[(Symbol, Class[_])],
+  nullFieldId: Symbol,
+  patternFields: Set[Symbol]
+) extends StreamSource[RowWithIdx, Symbol, Any] {
 
   import conf._
 
@@ -214,10 +211,11 @@ case class JdbcSource(
     }
 
   def liftProcessGeneric(
-                          chunkSize: Int,
-                          create: ConnectionIO[PreparedStatement],
-                          prep:   PreparedStatementIO[Unit],
-                          exec:   PreparedStatementIO[ResultSet]): fs2.Stream[ConnectionIO, Row] = {
+    chunkSize: Int,
+    create: ConnectionIO[PreparedStatement],
+    prep: PreparedStatementIO[Unit],
+    exec: PreparedStatementIO[ResultSet]
+  ): fs2.Stream[ConnectionIO, Row] = {
 
     def prepared(ps: PreparedStatement): fs2.Stream[ConnectionIO, PreparedStatement] =
       fs2.Stream.eval[ConnectionIO, PreparedStatement] {
@@ -239,18 +237,18 @@ case class JdbcSource(
   }
 
   override def createStream: fs2.Stream[IO, RowWithIdx] =
-    liftProcessGeneric(1000,
+    liftProcessGeneric(
+      1000,
       FC.prepareStatement(conf.query),
       ().pure[PreparedStatementIO](cats.free.Free.catsFreeMonadForFree),
-      FPS.executeQuery)
-      .zipWithIndex
+      FPS.executeQuery
+    ).zipWithIndex
       .map { case (r, i) => RowWithIdx(i + 1, r) }
       .transact(transactor)
 
-
   override def fieldToEKey = { fieldId: Symbol =>
     fieldId
-    // fieldsIdxMap(fieldId)
+  // fieldsIdxMap(fieldId)
   }
 
   override def eKeyToField: Symbol => Symbol = { key: Symbol =>
@@ -332,11 +330,11 @@ object KafkaSource {
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class KafkaSource(
-                        conf: KafkaInputConf,
-                        fieldsClasses: Seq[(Symbol, Class[_])],
-                        nullFieldId: Symbol,
-                        patternFields: Set[Symbol]
-                      ) extends StreamSource[RowWithIdx, Symbol, Any] {
+  conf: KafkaInputConf,
+  fieldsClasses: Seq[(Symbol, Class[_])],
+  nullFieldId: Symbol,
+  patternFields: Set[Symbol]
+) extends StreamSource[RowWithIdx, Symbol, Any] {
 
   val log = Logger[KafkaSource]
 
@@ -364,16 +362,15 @@ case class KafkaSource(
   val consumerSettings = ConsumerSettings(
     keyDeserializer = Deserializer.unit[IO],
     valueDeserializer = Deserializer.instance[IO, Row](
-      (topic, headers, bytes) => {
+      (_, _, bytes) => {
         val deserialized = JsonDeserializer(fieldsClasses).deserialize(bytes)
         deserialized match {
           case Right(value) => IO.pure(value)
-          case Left(throwable) => ??? // TODO: Deserialization error
+          case Left(_)      => ??? // TODO: Deserialization error
         }
       }
     )
-  )
-    .withBootstrapServers(conf.brokers)
+  ).withBootstrapServers(conf.brokers)
     .withGroupId(conf.group)
     .withAutoOffsetReset(AutoOffsetReset.Latest)
 

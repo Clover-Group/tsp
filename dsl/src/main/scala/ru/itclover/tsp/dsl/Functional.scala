@@ -2,8 +2,6 @@ package ru.itclover.tsp.dsl
 
 import cats.arrow.Arrow
 
-import scala.language.higherKinds
-
 // Generic Arrow Mapper
 abstract class ArrMap[F[_, _], A, B] extends Arrow[F] {
   def eval: F[A, B]

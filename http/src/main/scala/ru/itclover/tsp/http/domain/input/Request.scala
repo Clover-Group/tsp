@@ -26,6 +26,7 @@ sealed trait QueueableRequest extends Request with Ordered[QueueableRequest] wit
 }
 
 object QueueableRequest {
+
   def deserialize(data: Array[Byte]): QueueableRequest = {
     val ois = new ObjectInputStream(new ByteArrayInputStream(data))
     ois.readObject().asInstanceOf[QueueableRequest]

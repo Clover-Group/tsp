@@ -6,10 +6,10 @@ import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.core.io.TimeExtractor
 
 case class ProcessorCombinator[In, S, Out](
-                                                   mappers: Seq[PatternProcessor[In, S, Out]],
-                                                   timeExtractor: TimeExtractor[In],
-                                                   statesTransformer: (Seq[S], Int) => Unit
-                                                 ) {
+  mappers: Seq[PatternProcessor[In, S, Out]],
+  timeExtractor: TimeExtractor[In],
+  statesTransformer: (Seq[S], Int) => Unit
+) {
 
   private val counter = new AtomicLong(0)
 
@@ -25,7 +25,7 @@ case class ProcessorCombinator[In, S, Out](
     }
     val states = mappers.map(_.getState)
     statesTransformer(states, elements.size)
-    fs2.Chunk(processed:_*)
+    fs2.Chunk(processed: _*)
   }
 
 }

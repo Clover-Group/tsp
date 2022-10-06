@@ -9,10 +9,10 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 case class PatternProcessor[E: TimeExtractor, State, Out](
-                                                           pattern: Pattern[E, State, Out],
-                                                           eventsMaxGapMs: Long,
-                                                           initialState: State
-                                                         ) {
+  pattern: Pattern[E, State, Out],
+  eventsMaxGapMs: Long,
+  initialState: State
+) {
 
   private val log = Logger("PatternLogger")
   private var lastState: State = _
@@ -21,8 +21,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
   log.debug(s"pattern: $pattern")
 
   def map(
-               elements: Iterable[E],
-             ): Iterable[Out] = {
+    elements: Iterable[E]
+  ): Iterable[Out] = {
     if (elements.isEmpty) {
       log.info("No elements to proccess")
       return List.empty
@@ -66,14 +66,14 @@ object PatternProcessor {
   val currentEventTsMetric = "currentEventTs"
 
   /**
-   * Splits a list into a list of fragments, the boundaries are determined by the given predicate
-   * E.g. `splitByCondition(List(1,2,3,5,8,9,12), (x, y) => (x - y) > 2) == List(List(1,2,3,5),List(8,9),List(12)`
-   *
-   * @param elements initial sequence
-   * @param pred condition between the next and previous elements (in this order)
-   * @tparam T Element type
-   * @return List of chunks
-   */
+    * Splits a list into a list of fragments, the boundaries are determined by the given predicate
+    * E.g. `splitByCondition(List(1,2,3,5,8,9,12), (x, y) => (x - y) > 2) == List(List(1,2,3,5),List(8,9),List(12)`
+    *
+    * @param elements initial sequence
+    * @param pred condition between the next and previous elements (in this order)
+    * @tparam T Element type
+    * @return List of chunks
+    */
   def splitByCondition[T](elements: Seq[T])(pred: (T, T) => Boolean): List[Seq[T]] =
     if (elements.length < 2) {
       List(elements)

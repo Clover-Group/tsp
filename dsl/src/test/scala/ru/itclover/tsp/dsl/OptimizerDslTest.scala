@@ -2,8 +2,6 @@ package ru.itclover.tsp.dsl
 
 import org.scalatest.EitherValues._
 
-import scala.reflect.ClassTag
-import ru.itclover.tsp.core.CouplePattern
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import org.scalatest.{FlatSpec, Matchers}
 import ru.itclover.tsp.core.{CouplePattern, MapPattern, Pat, SimplePattern}

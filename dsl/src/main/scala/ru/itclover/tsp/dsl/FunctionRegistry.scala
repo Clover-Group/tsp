@@ -23,6 +23,7 @@ trait PReducerTransformation extends (Result[Any] => Result[Any]) with Serializa
   * @param functions Multi-argument functions (arguments wrapped into a Seq) and their return types
   * @param reducers Reducer functions, their return types and initial values
   */
+@SuppressWarnings(Array("org.wartremover.warts.Serializable"))
 case class FunctionRegistry(
   @transient functions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)],
   @transient reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)]

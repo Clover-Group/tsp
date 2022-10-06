@@ -1,29 +1,21 @@
 package ru.itclover.tsp.http
 
-import java.net.URLDecoder
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.headers.Origin
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest, HttpResponse}
 import akka.stream.ActorMaterializer
 import cats.implicits._
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
-import ru.itclover.tsp.{BuildInfo, RowWithIdx}
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
-import scala.util.Try
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
@@ -81,26 +73,28 @@ object Launcher extends App with HttpService {
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))
   val coordinator = getCoordinatorHostPort
   coordinator.map {
-    case (enabled, host, port) => if (enabled) {
-      val uri = s"http://$host:$port"
-      log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
-      CoordinatorService.getOrCreate(uri).notifyRegister
+    case (enabled, host, port) =>
+      if (enabled) {
+        val uri = s"http://$host:$port"
+        log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
+        CoordinatorService.getOrCreate(uri).notifyRegister
 
-    } else {
-      log.warn("TSP coordinator connection disabled.")
-    }
+      } else {
+        log.warn("TSP coordinator connection disabled.")
+      }
   }
 
   val checkpointing = getCheckpointingHostPort
   checkpointing.map {
-    case (enabled, host, port) => if (enabled) {
-      val uri = s"redis://$host:$port"
-      log.warn(s"TSP checkpointing enabled: registering service on $uri...")
-      CheckpointingService.getOrCreate(Some(uri))
+    case (enabled, host, port) =>
+      if (enabled) {
+        val uri = s"redis://$host:$port"
+        log.warn(s"TSP checkpointing enabled: registering service on $uri...")
+        CheckpointingService.getOrCreate(Some(uri))
       } else {
-      log.warn("TSP checkpointing disabled.")
-      CheckpointingService.getOrCreate(None)
-    }
+        log.warn("TSP checkpointing disabled.")
+        CheckpointingService.getOrCreate(None)
+      }
   }
 
   if (configs.getBoolean("general.is-follow-input")) {
@@ -152,7 +146,6 @@ object Launcher extends App with HttpService {
     }
     port.map(p => (enabled, host, p))
   }
-
 
   implicit val queueManagerService = QueueManagerService.getOrCreate("mgr", blockingExecutorContext)
 }

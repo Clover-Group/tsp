@@ -4,8 +4,6 @@ import cats.{Monad, Traverse}
 import cats.syntax.flatMap._
 import com.typesafe.scalalogging.Logger
 
-import scala.language.higherKinds
-
 class StateMachine[F[_]: Monad: Traverse] {
   private val log = Logger("StateMachineV2")
 

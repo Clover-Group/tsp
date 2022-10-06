@@ -11,7 +11,6 @@ import ru.itclover.tsp.core.{Time, Window, _}
 
 import scala.annotation.tailrec
 import scala.collection.{mutable => m}
-import scala.language.higherKinds
 
 trait AggregatorPatterns[Event, S, T] extends Pattern[Event, S, T]
 

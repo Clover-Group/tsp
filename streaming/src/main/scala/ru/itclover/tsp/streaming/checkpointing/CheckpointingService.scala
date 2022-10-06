@@ -2,14 +2,11 @@ package ru.itclover.tsp.streaming.checkpointing
 
 import com.typesafe.scalalogging.Logger
 import org.redisson.Redisson
-import org.redisson.codec.Kryo5Codec
 import org.redisson.config.Config
-import ru.itclover.tsp.StreamSource.Row
-import ru.itclover.tsp.core.{Pattern, RawPattern, Segment}
+import ru.itclover.tsp.core.{RawPattern, Segment}
 import ru.itclover.tsp.core.optimizations.Optimizer.{S => State}
 
 import scala.collection.mutable
-import scala.util.Try
 import ru.itclover.tsp.core.optimizations.Optimizer
 
 trait CheckpointingService {

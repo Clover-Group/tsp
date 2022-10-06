@@ -62,8 +62,9 @@ object Utils {
       sys.error("Aborting release due to adding changelogs failed.")
     }
     val sign = Project.extract(st).get(releaseVcsSign)
+    val signOff = Project.extract(st).get(releaseVcsSignOff)
     val ver = Project.extract(st).get(version)
-    if (vcs(st).commit(s"updated CHANGELOGS for $ver", sign).! > 0) {
+    if (vcs(st).commit(s"updated CHANGELOGS for $ver", sign, signOff).! > 0) {
       sys.error("Aborting release due to committing changelogs failed.")
     }
     st

@@ -50,10 +50,10 @@ object CollectionOps {
   implicit class MutableQueueOps[A](private val queue: mutable.Queue[A]) extends AnyVal {
 
     /** Hot-spot!
-     * Dequeue first elements while predicate succeeding and don't bother with rest of queue
-     * once predicate become `false` (in opposite to [[mutable.Queue.dequeueAll]]).
-     * @return seq of dropped elements
-     */
+      * Dequeue first elements while predicate succeeding and don't bother with rest of queue
+      * once predicate become `false` (in opposite to [[mutable.Queue.dequeueAll]]).
+      * @return seq of dropped elements
+      */
     def dequeueWhile(predicate: A => Boolean): Seq[A] = {
       val deqList = mutable.ArrayBuffer.empty[A]
       while (queue.nonEmpty && predicate(queue.head)) {

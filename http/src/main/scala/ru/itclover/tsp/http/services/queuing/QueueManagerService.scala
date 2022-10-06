@@ -1,13 +1,10 @@
 package ru.itclover.tsp.http.services.queuing
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{HttpRequest, Uri}
-import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.model.Uri
 import akka.stream.ActorMaterializer
-import cats.effect.{Deferred, IO}
-import cats.effect.syntax.async
+import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.Logger
@@ -18,10 +15,9 @@ import ru.itclover.tsp.{JdbcSource, KafkaSource, RowWithIdx, StreamSource}
 import ru.itclover.tsp.core.io.{AnyDecodersInstances, BasicDecoders}
 import ru.itclover.tsp.dsl.PatternFieldExtractor
 import ru.itclover.tsp.http.domain.input.{FindPatternsRequest, QueueableRequest}
-import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
 import ru.itclover.tsp.streaming.io.{InputConf, JDBCInputConf, KafkaInputConf}
-import ru.itclover.tsp.streaming.io.{JDBCOutputConf, KafkaOutputConf, OutputConf}
+import ru.itclover.tsp.streaming.io.OutputConf
 import ru.itclover.tsp.streaming.mappers.PatternsToRowMapper
 import ru.itclover.tsp.streaming.PatternsSearchJob
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
@@ -29,16 +25,11 @@ import ru.itclover.tsp.streaming.utils.ErrorsADT
 import ru.itclover.tsp.streaming.utils.ErrorsADT.RuntimeErr
 import spray.json._
 
-import java.nio.file.Paths
-import java.time.LocalDateTime
 import java.util.concurrent.{ScheduledFuture, ScheduledThreadPoolExecutor, TimeUnit}
 import scala.collection.mutable
-import scala.concurrent.duration.{Duration, MILLISECONDS, SECONDS}
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success, Try}
-import collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
+import scala.util.{Failure, Success}
 
 class QueueManagerService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
@@ -47,7 +38,6 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   decoders: BasicDecoders[Any] = AnyDecodersInstances
 ) extends SprayJsonSupport
     with DefaultJsonProtocol {
-  import ru.itclover.tsp.http.services.AkkaHttpUtils._
 
   type TypedRequest = (QueueableRequest, String)
   type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
@@ -106,7 +96,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
       case Left(error) =>
         log.error(s"Cannot run request. Reason: $error")
         CoordinatorService.notifyJobCompleted(uuid, Some(new Exception(error.toString)))
-      case Right(_)    => log.info(s"Stream successfully started!")
+      case Right(_) => log.info(s"Stream successfully started!")
     }
   }
 
@@ -147,7 +137,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   def removeFromQueue(uuid: String): Option[Unit] = {
     val job = jobQueue.find(_._1.uuid == uuid)
     job match {
-      case Some(value) => {
+      case Some(_) => {
         //jobQueue.remove(value)
         Some(())
       }
@@ -207,28 +197,27 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     CoordinatorService.notifyJobStarted(uuid)
 
     // Run the streams (multiple sinks)
-      SignallingRef[IO, Boolean](false)
-        .flatMap { signal =>
-          runningStreams(uuid) = signal
-          streams
-            .sequence
-            .interruptWhen(signal)
-            .compile
-            .drain
-        }
-        .unsafeRunAsync {
-          case Left(throwable) =>
-            log.error(s"Job $uuid failed: $throwable")
-            CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
-            CheckpointingService.removeCheckpointAndState(uuid)
-            runningStreams.remove(uuid)
-          case Right(_) =>
-            // success
-            log.info(s"Job $uuid finished")
-            CoordinatorService.notifyJobCompleted(uuid, None)
-            CheckpointingService.removeCheckpointAndState(uuid)
-            runningStreams.remove(uuid)
-        }
+    SignallingRef[IO, Boolean](false)
+      .flatMap { signal =>
+        runningStreams(uuid) = signal
+        streams.sequence
+          .interruptWhen(signal)
+          .compile
+          .drain
+      }
+      .unsafeRunAsync {
+        case Left(throwable) =>
+          log.error(s"Job $uuid failed: $throwable")
+          CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
+          CheckpointingService.removeCheckpointAndState(uuid)
+          runningStreams.remove(uuid)
+        case Right(_) =>
+          // success
+          log.info(s"Job $uuid finished")
+          CoordinatorService.notifyJobCompleted(uuid, None)
+          CheckpointingService.removeCheckpointAndState(uuid)
+          runningStreams.remove(uuid)
+      }
 
     log.debug("runStream finished")
     Right(None)

@@ -14,7 +14,7 @@ import scala.concurrent.duration.FiniteDuration
 
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
-import java.util.{Properties, UUID}
+import java.util.UUID
 import org.scalatest.{Assertion, FlatSpec}
 
 import scala.util.Failure
@@ -173,7 +173,6 @@ class SimpleCasesTest
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
-
   val wideInputConf = JDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
@@ -224,12 +223,12 @@ class SimpleCasesTest
   val wideRowSchema = NewRowSchema(
     Map(
       "series_storage" -> StringESValue("int32", "$Unit"),
-      "from" -> StringESValue("timestamp", "$IncidentStart"),
-      "to" -> StringESValue("timestamp", "$IncidentEnd"),
-      "app" -> IntESValue("int32", 1),
-      "id" ->StringESValue("int32", "$PatternID"),
-      "subunit" ->StringESValue("int32", "$Subunit"),
-      "uuid" -> StringESValue("string", "$UUID")
+      "from"           -> StringESValue("timestamp", "$IncidentStart"),
+      "to"             -> StringESValue("timestamp", "$IncidentEnd"),
+      "app"            -> IntESValue("int32", 1),
+      "id"             -> StringESValue("int32", "$PatternID"),
+      "subunit"        -> StringESValue("int32", "$Subunit"),
+      "uuid"           -> StringESValue("string", "$UUID")
     )
   )
   lazy val wideKafkaInputConf = KafkaInputConf(
@@ -274,7 +273,7 @@ class SimpleCasesTest
     rowSchema = wideRowSchema,
     jdbcUrl = chConnection,
     driverName = chDriver,
-    userName = Some("default"),
+    userName = Some("default")
     //password = Some("")
   )
 
@@ -351,7 +350,6 @@ class SimpleCasesTest
       .withAcks(Acks.All)
       .withProperty("auto.create.topics.enable", "true")
 
-
     insertInfo.foreach(elem => {
 
       val insertData = Files
@@ -366,30 +364,32 @@ class SimpleCasesTest
       val numberIndices =
         List("dt", "ts", "POilDieselOut", "SpeedThrustMin", "PowerPolling", "value_float").map(headers.indexOf(_))
 
-      fs2.Stream.emits(data).map {
-        row =>
-          val convertedRow: Seq[Any] = row.indices.map(
-            idx =>
-              if (numberIndices.contains(idx)) {
-                if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
-              } else row(idx)
-          )
-          val msgKey = UUID.randomUUID().toString
-          val msgMap = headers.zip(convertedRow).toMap[String, Any]
-          val json = "{" + msgMap
-              .map {
-                case (k, v) =>
-                  v match {
-                    case _: String => s""""$k": "$v""""
-                    case _         => s""""$k": $v"""
-                  }
-              }
-              .mkString(", ") + "}"
-          val topic = elem._1.filter(_ != '`')
-          println(s"Sending to $topic $msgKey --- $json")
-          val rec = ProducerRecord(topic, msgKey, json)
-          ProducerRecords.one(rec)
-      }
+      fs2.Stream
+        .emits(data)
+        .map {
+          row =>
+            val convertedRow: Seq[Any] = row.indices.map(
+              idx =>
+                if (numberIndices.contains(idx)) {
+                  if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
+                } else row(idx)
+            )
+            val msgKey = UUID.randomUUID().toString
+            val msgMap = headers.zip(convertedRow).toMap[String, Any]
+            val json = "{" + msgMap
+                .map {
+                  case (k, v) =>
+                    v match {
+                      case _: String => s""""$k": "$v""""
+                      case _         => s""""$k": $v"""
+                    }
+                }
+                .mkString(", ") + "}"
+            val topic = elem._1.filter(_ != '`')
+            println(s"Sending to $topic $msgKey --- $json")
+            val rec = ProducerRecord(topic, msgKey, json)
+            ProducerRecords.one(rec)
+        }
         .through(KafkaProducer.pipe(producerSettings))
         .compile
         .drain
@@ -490,7 +490,13 @@ class SimpleCasesTest
     casesPatternsIvolga.keys.foreach { id =>
       Post(
         "/job/submit/",
-        FindPatternsRequest(s"17wide_$id", wideInputIvolgaConf, Seq(wideOutputIvolgaConf), 50, List(casesPatternsIvolga(id)))
+        FindPatternsRequest(
+          s"17wide_$id",
+          wideInputIvolgaConf,
+          Seq(wideOutputIvolgaConf),
+          50,
+          List(casesPatternsIvolga(id))
+        )
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
@@ -563,7 +569,13 @@ class SimpleCasesTest
     casesPatterns.keys.foreach { id =>
       Post(
         "/job/submit/",
-        FindPatternsRequest(s"17kafkawide_$id", wideKafkaInputConf, Seq(wideKafkaOutputConf), 50, List(casesPatterns(id)))
+        FindPatternsRequest(
+          s"17kafkawide_$id",
+          wideKafkaInputConf,
+          Seq(wideKafkaOutputConf),
+          50,
+          List(casesPatterns(id))
+        )
       ) ~>
       route ~> check {
         withClue(s"Pattern ID: $id") {
