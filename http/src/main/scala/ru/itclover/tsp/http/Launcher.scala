@@ -3,7 +3,7 @@ package ru.itclover.tsp.http
 import java.util.concurrent.{SynchronousQueue, ThreadPoolExecutor, TimeUnit}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import cats.implicits._
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
@@ -16,6 +16,7 @@ import com.typesafe.scalalogging.Logger
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 import scala.io.StdIn
+import akka.stream.ActorMaterializer
 
 object Launcher extends App with HttpService {
   private val configs = ConfigFactory.load()
@@ -50,7 +51,7 @@ object Launcher extends App with HttpService {
           """.stripMargin)
   )
 
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val materializer: Materializer = ActorMaterializer()
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   // to run blocking tasks.

@@ -4,7 +4,8 @@ import akka.http.scaladsl.model.StatusCodes
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
 import org.apache.flink.types.Row
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec._
+
 import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
@@ -25,7 +26,7 @@ import scala.util.Success
   "org.wartremover.warts.NonUnitStatements",
   "org.wartremover.warts.Any"
 ))
-class DebugRealDataTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
+class DebugRealDataTest extends AnyFlatSpec with HttpServiceMatchers with ForAllTestContainer {
 
   override val log = Logger("RealDataPerfTest")
 

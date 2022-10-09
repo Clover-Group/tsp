@@ -1,7 +1,8 @@
 package ru.itclover.tsp.http
 
 import com.dimafeng.testcontainers._
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec._
+
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.routes.JobReporting
 import ru.itclover.tsp.http.utils.{HttpServiceMatchers, JDBCContainer}
@@ -9,7 +10,7 @@ import ru.itclover.tsp.streaming.io.JDBCInputConf
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.streaming.utils.Files
 
-class AggregatorsPerfTest extends FlatSpec with HttpServiceMatchers with ForAllTestContainer {
+class AggregatorsPerfTest extends AnyFlatSpec with HttpServiceMatchers with ForAllTestContainer {
 
   val port = 8136
   implicit override val container = new JDBCContainer(

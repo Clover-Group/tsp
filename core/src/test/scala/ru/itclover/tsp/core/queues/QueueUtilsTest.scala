@@ -1,8 +1,10 @@
 package ru.itclover.tsp.core.queues
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
 
-class QueueUtilsTest extends FlatSpec with Matchers {
+import org.scalatest.matchers.should._
+
+class QueueUtilsTest extends AnyFlatSpec with Matchers {
 
   it should "split queue using predicate" in {
     //todo

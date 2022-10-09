@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.patterns
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.{Incident, IncidentInstances, Segment, Time}
 
 import java.util.UUID
@@ -8,7 +10,7 @@ import java.util.UUID
 /**
   * Test class for founded pattern
   */
-class FoundedPatternTest extends WordSpec with Matchers {
+class FoundedPatternTest extends AnyWordSpec with Matchers {
 
   "retrieve incident" should {
 

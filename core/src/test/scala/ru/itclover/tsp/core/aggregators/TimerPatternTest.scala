@@ -3,7 +3,9 @@ package ru.itclover.tsp.core.aggregators
 import java.time.Instant
 
 import cats.Id
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
@@ -16,7 +18,7 @@ import scala.concurrent.duration._
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class TimerPatternTest extends WordSpec with Matchers {
+class TimerPatternTest extends AnyWordSpec with Matchers {
 
   val pat = Patterns[EInt]
   import pat._

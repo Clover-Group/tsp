@@ -1,7 +1,9 @@
 package ru.itclover.tsp.dsl
 
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Intervals.TimeInterval
 import ru.itclover.tsp.core.Window
 import UtilityTypes.ParseException
@@ -10,7 +12,7 @@ import scala.reflect.ClassTag
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class ASTTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class ASTTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
   implicit val funReg: DefaultFunctionRegistry.type = DefaultFunctionRegistry
 
   //TODO: no refactoring in loop compare in case of class derivation

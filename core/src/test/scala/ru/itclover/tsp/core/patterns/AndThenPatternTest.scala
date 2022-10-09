@@ -4,7 +4,9 @@ import java.time.Instant
 
 import cats.Id
 import cats.implicits._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
 import ru.itclover.tsp.core.utils.TimeSeriesGenerator.Increment
@@ -16,7 +18,7 @@ import scala.concurrent.duration._
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
-class AndThenPatternTest extends FlatSpec with Matchers {
+class AndThenPatternTest extends AnyFlatSpec with Matchers {
 
   val p: Patterns[EInt] = Patterns[EInt]
   import p._

@@ -4,7 +4,9 @@
 package ru.itclover.tsp.core.sm
 
 import cats._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.fixtures.Common._
 
@@ -12,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class StateMachineTest extends FlatSpec with Matchers {
+class StateMachineTest extends AnyFlatSpec with Matchers {
 
   it should "process ConstPattern correctly" in {
 

@@ -2,7 +2,9 @@
 package ru.itclover.tsp
 
 import java.time.Instant
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.aggregators.AggregatorPhases.{Derivation, ToSegments}
 import ru.itclover.tsp.phases.NumericPhases._
 import ru.itclover.tsp.core.{Pattern, PatternResult, Window}
@@ -17,7 +19,7 @@ import scala.util.Random
 
 case class Row(time: Instant, speed: Double, pump: Double, wagonId: Int = 0)
 
-class RulesTest extends WordSpec with Matchers {
+class RulesTest extends AnyWordSpec with Matchers {
 
   import ru.itclover.tsp.core.Time._
   import Predef.{any2stringadd => _, assert => _, _}

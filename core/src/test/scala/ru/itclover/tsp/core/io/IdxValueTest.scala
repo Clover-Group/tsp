@@ -1,12 +1,14 @@
 package ru.itclover.tsp.core.io
 
 import cats.instances.long._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.{IdxValue, Result}
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class IdxValueTest extends FlatSpec with Matchers {
+class IdxValueTest extends AnyFlatSpec with Matchers {
 
   it should "check intersections of IdxValues" in {
     val iv1 = IdxValue(0, 10, Result.fail)

@@ -3,7 +3,9 @@ package ru.itclover.tsp.core.aggregators
 import java.time.Instant
 
 import cats.Id
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
@@ -17,7 +19,7 @@ import scala.util.Random
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class GroupPatternTest extends WordSpec with Matchers {
+class GroupPatternTest extends AnyWordSpec with Matchers {
 
   "GroupPatternTest" should {
     "calculate sum for successes" in {

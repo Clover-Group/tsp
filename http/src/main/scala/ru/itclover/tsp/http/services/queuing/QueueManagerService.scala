@@ -3,7 +3,7 @@ package ru.itclover.tsp.http.services.queuing
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
@@ -34,7 +34,7 @@ import scala.util.{Failure, Success}
 class QueueManagerService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
   actorSystem: ActorSystem,
-  materializer: ActorMaterializer,
+  materializer: Materializer,
   decoders: BasicDecoders[Any] = AnyDecodersInstances
 ) extends SprayJsonSupport
     with DefaultJsonProtocol {
@@ -259,7 +259,7 @@ object QueueManagerService {
   def getOrCreate(id: String, blockingExecutionContext: ExecutionContextExecutor)(
     implicit executionContext: ExecutionContextExecutor,
     actorSystem: ActorSystem,
-    materializer: ActorMaterializer,
+    materializer: Materializer,
     decoders: BasicDecoders[Any] = AnyDecodersInstances
   ): QueueManagerService = {
     if (!services.contains(id)) services(id) = new QueueManagerService(id, blockingExecutionContext)

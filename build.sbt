@@ -39,7 +39,7 @@ lazy val commonSettings = Seq(
   githubRelease := null,
   skip in publish := true,
   maxErrors := 5,
-  dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0",
+  //dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0",
 )
 
 
@@ -172,7 +172,7 @@ lazy val streaming = project.in(file("streaming"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.fs2 ++ Library.fs2Kafka ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
+    //dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
 
@@ -195,7 +195,7 @@ lazy val itValid = project.in(file("integration/correctness"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.dbDrivers ++ Library.testContainers ++ Library.logging,
-    dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
+    //dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.0"
   )
   .dependsOn(core, streaming, http, config)
 

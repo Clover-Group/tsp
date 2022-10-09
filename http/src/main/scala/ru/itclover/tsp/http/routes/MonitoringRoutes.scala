@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.BadRequest
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import cats.data.Reader
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.BuildInfo
@@ -21,7 +21,7 @@ object MonitoringRoutes {
 
   def fromExecutionContext(
     queueManagerService: QueueManagerService
-  )(implicit as: ActorSystem, am: ActorMaterializer): Reader[ExecutionContextExecutor, Route] = {
+  )(implicit as: ActorSystem, am: Materializer): Reader[ExecutionContextExecutor, Route] = {
 
     log.debug("fromExecutionContext started")
 
@@ -43,7 +43,7 @@ trait MonitoringRoutes extends RoutesProtocols {
 
   implicit val executionContext: ExecutionContextExecutor
   implicit val actors: ActorSystem
-  implicit val materializer: ActorMaterializer
+  implicit val materializer: Materializer
 
   val route: Route = path("job" / Segment / "status") { uuid =>
       CheckpointingService.getCheckpoint(uuid) match {

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes.PermanentRedirect
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import cats.data.Reader
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.StreamSource.Row
@@ -20,7 +20,7 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val executionContext: ExecutionContextExecutor
   val blockingExecutionContext: ExecutionContextExecutor
   implicit val actorSystem: ActorSystem
-  implicit val materializer: ActorMaterializer
+  implicit val materializer: Materializer
   implicit val decoders = AnyDecodersInstances
 
   val queueManager: QueueManagerService
@@ -55,7 +55,7 @@ object JobsRoutes {
 
   def fromExecutionContext(blocking: ExecutionContextExecutor)(
     implicit as: ActorSystem,
-    am: ActorMaterializer
+    am: Materializer
   ): Reader[ExecutionContextExecutor, Route] = {
 
     log.debug("fromExecutionContext started")

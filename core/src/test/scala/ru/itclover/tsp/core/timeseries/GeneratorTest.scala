@@ -4,7 +4,9 @@ import java.time.Instant
 import java.util.Random
 
 import cats.Id
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
@@ -14,7 +16,7 @@ import ru.itclover.tsp.core.utils.{Change, Constant, RandomInRange, Timer}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration._
 
-class GeneratorTest extends WordSpec with Matchers {
+class GeneratorTest extends AnyWordSpec with Matchers {
 
   def process(e: EInt): Long = e.row.toLong
 

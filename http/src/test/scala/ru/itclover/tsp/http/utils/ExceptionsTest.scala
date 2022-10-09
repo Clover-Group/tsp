@@ -1,11 +1,13 @@
 package ru.itclover.tsp.http.utils
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 
 /**
   * Class for testing the exceptions viewer in "core" module
   */
-class ExceptionsTest extends FlatSpec with Matchers {
+class ExceptionsTest extends AnyFlatSpec with Matchers {
 
   it should "get string with stacktrace" in {
 

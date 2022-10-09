@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.queues
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.PQueue.{MapPQueue, MutablePQueue}
 import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 
@@ -9,7 +11,7 @@ import scala.collection.mutable
 /**
   * Test class for lazy variant of PQueue
   */
-class MapPQueueTest extends WordSpec with Matchers {
+class MapPQueueTest extends AnyWordSpec with Matchers {
 
   "lazy variant of pattern queue" should {
 

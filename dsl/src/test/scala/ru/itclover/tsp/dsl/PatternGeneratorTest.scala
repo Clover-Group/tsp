@@ -2,13 +2,15 @@ package ru.itclover.tsp.dsl
 
 import org.scalatest.EitherValues._
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 
 import scala.reflect.ClassTag
 
 // This test explicitly uses Any values.
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class PatternGeneratorTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class PatternGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
   import TestEvents._
 
   val fieldsClasses = Map(

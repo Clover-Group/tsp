@@ -1,12 +1,14 @@
 package ru.itclover.tsp.dsl
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.dsl.UtilityTypes.ParseException
 
 /**
   * Class for testing utility types
   */
-class UtilityTypesTest extends WordSpec with Matchers {
+class UtilityTypesTest extends AnyWordSpec with Matchers {
 
   "retrieve errors" should {
 

@@ -1,5 +1,7 @@
 package ru.itclover.tsp.http
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.streaming.io.{NarrowDataUnfolding, WideDataFilling}
 import spray.json.{JsBoolean, JsNumber, JsString, JsValue}
@@ -9,7 +11,7 @@ import spray.json.{JsBoolean, JsNumber, JsString, JsValue}
 @SuppressWarnings(
   Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf")
 )
-class RoutesProtocolsFormatTest extends FlatSpec with Matchers with RoutesProtocols {
+class RoutesProtocolsFormatTest extends AnyFlatSpec with Matchers with RoutesProtocols {
 
   case class TestClass(value: Int)
 

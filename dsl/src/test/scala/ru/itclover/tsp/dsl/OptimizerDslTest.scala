@@ -3,7 +3,9 @@ package ru.itclover.tsp.dsl
 import org.scalatest.EitherValues._
 
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.{CouplePattern, MapPattern, Pat, SimplePattern}
 import ru.itclover.tsp.core.optimizations.Optimizer
 
@@ -11,7 +13,7 @@ import scala.reflect.ClassTag
 
 // This test explicitly uses Any values.
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class OptimizerDslTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+class OptimizerDslTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
   import TestEvents._
 
   val fieldsClasses = Map(

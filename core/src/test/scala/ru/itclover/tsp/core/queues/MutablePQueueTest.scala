@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.queues
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.PQueue.MutablePQueue
 import ru.itclover.tsp.core.{IdxValue, PQueue, Result, Succ}
 
@@ -11,7 +13,7 @@ import scala.collection.mutable
   */
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class MutablePQueueTest extends WordSpec with Matchers {
+class MutablePQueueTest extends AnyWordSpec with Matchers {
 
   "mutable pattern queue" should {
 

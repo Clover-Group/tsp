@@ -1,12 +1,15 @@
 package ru.itclover.tsp.core.io
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
+
 
 /**
   * Test class for decoders
   */
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class DecodersTest extends WordSpec with Matchers {
+class DecodersTest extends AnyWordSpec with Matchers {
 
   "any decoders" should {
 

@@ -3,7 +3,8 @@ package ru.itclover.tsp.http
 
 import com.dimafeng.testcontainers._
 import com.typesafe.scalalogging.Logger
-import org.scalatest.FlatSpec
+import org.scalatest.flatspec._
+
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.utils.{HttpServiceMathers, JDBCContainer}
@@ -11,7 +12,7 @@ import ru.itclover.tsp.io.input.JDBCInputConf
 import ru.itclover.tsp.io.output.{JDBCOutputConf, RowSchema}
 import ru.itclover.tsp.utils.Files
 
-class AccumsPerfTest extends FlatSpec with HttpServiceMathers with ForAllTestContainer {
+class AccumsPerfTest extends AnyFlatSpec with HttpServiceMathers with ForAllTestContainer {
 
 
   override val log = Logger("AccumsPerfTest")

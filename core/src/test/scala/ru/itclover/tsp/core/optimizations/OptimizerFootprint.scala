@@ -1,7 +1,8 @@
 //package ru.itclover.tsp.core.optimizations
 //
 //import cats.Id
-//import org.scalatest.{FlatSpec, Matchers}
+//import org.scalatest.flatspec._
+
 //import ru.itclover.tsp.core.fixtures.Common._
 //import ru.itclover.tsp.core.fixtures.Event
 //import ru.itclover.tsp.core._
@@ -9,7 +10,7 @@
 //import scala.collection.mutable
 //import scala.language.reflectiveCalls
 //
-//class OptimizerFootprint extends FlatSpec with Matchers {
+//class OptimizerFootprint extends AnyFlatSpec with Matchers {
 //
 //  val patterns: Patterns[EInt] = new Patterns[EInt] {}
 //  import patterns._

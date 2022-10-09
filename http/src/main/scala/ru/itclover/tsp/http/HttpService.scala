@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
@@ -22,7 +22,7 @@ import scala.util.Properties
 
 trait HttpService extends RoutesProtocols {
   implicit val system: ActorSystem
-  implicit val materializer: ActorMaterializer
+  implicit val materializer: Materializer
   implicit val executionContext: ExecutionContextExecutor
   implicit val queueManagerService: QueueManagerService
 

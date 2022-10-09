@@ -1,10 +1,12 @@
 package ru.itclover.tsp.core.optimizations
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Patterns
 import ru.itclover.tsp.core.fixtures.Common._
 
-class OptimizerTest extends FlatSpec with Matchers {
+class OptimizerTest extends AnyFlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}
   import cats.instances.int._

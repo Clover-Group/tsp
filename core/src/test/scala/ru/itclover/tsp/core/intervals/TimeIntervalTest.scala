@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.intervals
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Intervals.{Inside, TimeInterval}
 
 /**
@@ -8,7 +10,7 @@ import ru.itclover.tsp.core.Intervals.{Inside, TimeInterval}
   */
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class TimeIntervalTest extends WordSpec with Matchers {
+class TimeIntervalTest extends AnyWordSpec with Matchers {
 
   "time interval" should {
 

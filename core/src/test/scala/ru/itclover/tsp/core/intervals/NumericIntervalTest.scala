@@ -1,6 +1,8 @@
 package ru.itclover.tsp.core.intervals
 
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Intervals.{Inside, NumericInterval}
 
 /**
@@ -8,7 +10,7 @@ import ru.itclover.tsp.core.Intervals.{Inside, NumericInterval}
   */
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class NumericIntervalTest extends WordSpec with Matchers {
+class NumericIntervalTest extends AnyWordSpec with Matchers {
 
   "numeric interval" should {
 

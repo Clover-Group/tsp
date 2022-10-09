@@ -15,7 +15,8 @@ import scala.concurrent.duration.FiniteDuration
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
 import java.util.UUID
-import org.scalatest.{Assertion, FlatSpec}
+import org.scalatest.Assertion
+import org.scalatest.flatspec._
 
 import scala.util.Failure
 // import org.scalatest.concurrent.Waiters._
@@ -41,7 +42,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 // Also, this test seems to be heavily relying on Any. But still TODO: Investigate
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements", "org.wartremover.warts.Any"))
 class SimpleCasesTest
-    extends FlatSpec
+    extends AnyFlatSpec
     with SqlMatchers
     with ScalatestRouteTest
     with HttpService

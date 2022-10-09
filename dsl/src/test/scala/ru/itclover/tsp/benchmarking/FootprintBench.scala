@@ -1,7 +1,9 @@
 package ru.itclover.tsp.benchmarking
 
 import cats._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core._
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, TestEvents}
 
@@ -10,7 +12,7 @@ import scala.reflect.ClassTag
 
 // This test uses Any values.
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
-class FootprintBench extends FlatSpec with Matchers {
+class FootprintBench extends AnyFlatSpec with Matchers {
 
   import TestEvents._
 

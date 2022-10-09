@@ -3,10 +3,11 @@
 //
 //import org.scalactic.{Equality, TolerantNumerics}
 //import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-//import org.scalatest.{FlatSpec, Matchers}
+//import org.scalatest.flatspec._
+
 //import ru.itclover.tsp.core.Result
 //
-//class FunctionRegistryTest extends FlatSpec with Matchers with ScalaCheckPropertyChecks {
+//class FunctionRegistryTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
 //  val funReg: FunctionRegistry = DefaultFunctionRegistry
 //  implicit val doubleEq: Equality[Double] = TolerantNumerics.tolerantDoubleEquality(1e-6)
 //

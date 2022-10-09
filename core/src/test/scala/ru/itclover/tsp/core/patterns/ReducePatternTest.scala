@@ -4,7 +4,9 @@ import java.time.Instant
 
 import cats.instances.int._
 import cats.{Apply, Id, Semigroup}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec._
+
+import org.scalatest.matchers.should._
 import ru.itclover.tsp.core.Time._
 import ru.itclover.tsp.core.fixtures.Common.EInt
 import ru.itclover.tsp.core.fixtures.Event
@@ -18,7 +20,7 @@ import scala.concurrent.duration._
 //todo write tests
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
-class ReducePatternTest extends WordSpec with Matchers {
+class ReducePatternTest extends AnyWordSpec with Matchers {
   val pat = Patterns[EInt]
 
   val events = (for (time <- Timer(from = Instant.now());

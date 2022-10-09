@@ -2,7 +2,8 @@ package ru.itclover.tsp.http.utils
 
 import com.typesafe.scalalogging.Logger
 import org.scalactic.Equality
-import org.scalatest.{Assertion, Matchers}
+import org.scalatest.Assertion
+import org.scalatest.matchers.should._
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Here we also use `asInstanceOf` methods for type conversion.

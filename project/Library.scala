@@ -1,40 +1,40 @@
 import sbt._
 
 object Version {
-  val logback = "1.2.3"
-  val scalaLogging = "3.9.2"
+  val logback = "1.4.3"
+  val scalaLogging = "3.9.5"
   val logbackContrib = "0.1.5"
 
-  val config = "1.3.4"
+  val config = "1.4.2"
 
   val influx = "2.15"
 
   val clickhouse = "0.3.0"
 
-  val akka = "2.5.25"
-  val akkaHttp = "10.1.9"
+  val akka = "2.6.20"
+  val akkaHttp = "10.2.10"
 
-  val cats = "3.3.12"
-  val fs2 = "3.2.14"
+  val cats = "3.3.14"
+  val fs2 = "3.3.0"
   val fs2Kafka = "2.5.0"
   val doobie = "1.0.0-RC2"
 
-  val scalaTest = "3.0.8"
-  val scalaCheck = "1.14.0"
+  val scalaTest = "3.2.14"
+  val scalaCheck = "3.2.14.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.38.8"
-  val testContainersKafka = "1.16.0"
-  val postgres = "42.2.6"
+  val testContainers = "0.40.10"
+  val testContainersKafka = "1.17.5"
+  val postgres = "42.5.0"
 
   val avro = "1.8.2"
 
-  val parboiled = "2.1.8"
+  val parboiled = "2.4.0"
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.10.0"
-  val jaxb = "2.3.0"
+  val jackson = "2.13.4"
+  val jaxb = "4.0.1"
   val activation = "1.2.0"
 
   val kindProjector = "0.9.8"
@@ -50,14 +50,14 @@ object Version {
 
   val twitterUtil = "6.43.0"
 
-  val jolVersion = "0.9"
+  val jolVersion = "0.16"
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.17.3"
+  val redissonVersion = "3.17.7"
   val kryoVersion = "5.3.0"
 
-  val akkaHttpMetrics = "0.6.0"
+  val akkaHttpMetrics = "1.7.1"
 
 }
 
@@ -66,7 +66,7 @@ object Library {
   val jackson: Seq[ModuleID] = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
-    "javax.xml.bind" % "jaxb-api" % Version.jaxb,
+    //"javax.xml.bind" % "jaxb-api" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
     "com.sun.activation" % "javax.activation" % Version.activation
@@ -83,12 +83,9 @@ object Library {
     "com.typesafe" % "config" % Version.config
   )
 
-  val influx: Seq[ModuleID] = Seq(
-    "org.influxdb" % "influxdb-java" % Version.influx
-  )
   val clickhouse: Seq[ModuleID] = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
-  val dbDrivers: Seq[ModuleID] = influx ++ clickhouse ++ postgre
+  val dbDrivers: Seq[ModuleID] = clickhouse ++ postgre
 
   val akka: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
@@ -128,8 +125,8 @@ object Library {
 
   val scalaTest: Seq[ModuleID] = Seq(
     "org.scalactic" %% "scalactic" % Version.scalaTest,
-    "org.scalatest" %% "scalatest" % Version.scalaTest % "test",
-    "org.scalacheck" %% "scalacheck" % Version.scalaCheck % "test"
+    "org.scalatest" %% "scalatest" % Version.scalaTest,
+    "org.scalatestplus" %% "scalacheck-1-17" % Version.scalaCheck
   )
 
   val perf: Seq[ModuleID] = Seq(

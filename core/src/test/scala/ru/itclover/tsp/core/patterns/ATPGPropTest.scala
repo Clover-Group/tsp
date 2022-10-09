@@ -1,8 +1,10 @@
 package ru.itclover.tsp.core.patterns
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec._
+import org.scalatest.matchers.should._
 
-class ATPGPropTest extends FlatSpec with Matchers {
+
+class ATPGPropTest extends AnyFlatSpec with Matchers {
 
   it should "auto generate all patterns" in {
 
