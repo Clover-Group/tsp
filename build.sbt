@@ -7,7 +7,7 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-scalaVersion in ThisBuild := "2.13.9"
+scalaVersion in ThisBuild := "2.13.10"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 resolvers in ThisBuild ++= Seq(

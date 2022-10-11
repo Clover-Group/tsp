@@ -1,7 +1,7 @@
 import sbt._
 
 object Version {
-  val logback = "1.4.3"
+  val logback = "1.4.4"
   val scalaLogging = "3.9.5"
   val logbackContrib = "0.1.5"
 
@@ -23,7 +23,7 @@ object Version {
   val scalaCheck = "3.2.14.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.40.10"
+  val testContainers = "0.40.11"
   val testContainersKafka = "1.17.5"
   val postgres = "42.5.0"
 
