@@ -16,7 +16,7 @@ class AggregatorsPerfTest extends AnyFlatSpec with HttpServiceMatchers with ForA
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
 
@@ -54,7 +54,7 @@ class AggregatorsPerfTest extends AnyFlatSpec with HttpServiceMatchers with ForA
     "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    "com.clickhouse.jdbc.ClickHouseDriver"
   )
 
   val (sumAvgMaxTimeSec, sumAvgPattern) = 50L -> Seq(

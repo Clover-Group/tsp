@@ -8,7 +8,7 @@ import ru.itclover.tsp.RowWithIdx
   * @param sourceId mark to pass to sink
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
   * @param query SQL query for data
-  * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
+  * @param driverName example - "com.clickhouse.jdbc.ClickHouseDriver"
   * @param datetimeField name of datetime field, could be timestamp and regular time (will be parsed by JodaTime)
   * @param eventsMaxGapMs maximum gap by which source data will be split, i.e. result incidents will be split by these gaps
   * @param defaultEventsGapMs "typical" gap between events, used to unite nearby incidents in one (sessionization)

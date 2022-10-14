@@ -32,7 +32,7 @@ class RealDataPerfTest extends AnyFlatSpec with HttpServiceMatchers with ForAllT
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9087 -> 9000 :: Nil,
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
     waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
   )
@@ -55,7 +55,7 @@ class RealDataPerfTest extends AnyFlatSpec with HttpServiceMatchers with ForAllT
     "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver"
+    "com.clickhouse.jdbc.ClickHouseDriver"
   )
 
   val (realDataMaxTimeSec, realDataPatterns) = 30.0 -> Seq(

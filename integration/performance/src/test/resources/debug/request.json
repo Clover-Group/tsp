@@ -22,7 +22,7 @@
     },
     "batchInterval": 50,
     "tableName": "events_ep2k",
-    "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+    "driverName": "com.clickhouse.jdbc.ClickHouseDriver",
     "parallelism": 1
   },
   "uuid": "73df70e5-2d4b-41af-9931-af940f8a4a50_1",
@@ -30,7 +30,7 @@
     "query": "SELECT ts, loco_num AS loco_num, section AS \"Section\", upload_id AS upload_id, k31, psn2ain2_fault, u_k33, k32, u_km111_1, km111_2, km104, out_km58, u_km107_2, k19, km111_1, butp_controlcnt, sa19_1_trains, psn2_vpp_uout, out_km12, sa19_2_trains, k4, in_km52, u_k4, in_km45, pr_v2_ain2, in_km58, u_km105_2, out_k26, km107_1, psn1vpp_work, km105_2, out_k25, k8, in_km39, psn1ain2_not_sim, u_km101_2, psn2vpp_work, p_tc, u_km90_1, psn2ain2_work, out_km41, u_km104, u_km111_2, k5, out_km16, out_km45, in_km41, out_km39, km90_1, s19, u_km90_2, p_ur, out_km52, in_km12, km107_2, current_v, psn2ain2_not_sim, buo_controlcnt, sa20_1, out_km62, uline, in_km16, k10, k33, km101_2, km90_2, k7, in_km62, u_k5, u_km107_1, p_tm, i_op \nFROM ep2k_tmy_20190708_wide_rep \nWHERE upload_id = '322479' ORDER BY ts ASC",
     "jdbcUrl": "jdbc:clickhouse://127.0.0.1:8191/default?user=some_user&password=some_password",
     "sourceId": 121,
-    "driverName": "ru.yandex.clickhouse.ClickHouseDriver",
+    "driverName": "com.clickhouse.jdbc.ClickHouseDriver",
     "parallelism": 1,
     "datetimeField": "ts",
     "eventsMaxGapMs": 60000,

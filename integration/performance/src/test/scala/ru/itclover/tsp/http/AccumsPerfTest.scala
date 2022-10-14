@@ -21,7 +21,7 @@ class AccumsPerfTest extends AnyFlatSpec with HttpServiceMathers with ForAllTest
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9089 -> 9000 :: Nil,
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default"
   )
 
@@ -63,7 +63,7 @@ class AccumsPerfTest extends AnyFlatSpec with HttpServiceMathers with ForAllTest
     "Test.SM_basic_patterns",
     sinkSchema,
     s"jdbc:clickhouse://localhost:$port/default",
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     parallelism = Some(1)
   )
 

@@ -34,7 +34,7 @@ Generic parameters:
 {
   "jdbcUrl": "jdbc:clickhouse://default:@127.0.0.1:8123/mydb",
   "tableName": "engine_events",
-  "driverName": "ru.yandex.clickhouse.ClickHouseDriver"
+  "driverName": "com.clickhouse.jdbc.ClickHouseDriver"
 }
 ```
 

@@ -73,7 +73,7 @@ class SimpleCasesTest
   implicit val clickhouseContainer = new JDBCContainer(
     "yandex/clickhouse-server:21.7.10.4",
     port -> 8123 :: chNativePort -> 9000 :: Nil,
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
     waitStrategy = Some(Wait.forHttp("/"))
   )
@@ -264,7 +264,7 @@ class SimpleCasesTest
   )
 
   val chConnection = s"jdbc:clickhouse://localhost:$port/default"
-  val chDriver = "ru.yandex.clickhouse.ClickHouseDriver"
+  val chDriver = "com.clickhouse.jdbc.ClickHouseDriver"
 
   val wideKafkaRowSchema =
     wideRowSchema

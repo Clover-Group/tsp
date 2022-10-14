@@ -28,7 +28,7 @@ trait OutputConf[Event] {
   * Sink for anything that support JDBC connection
   * @param rowSchema schema of writing rows
   * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
-  * @param driverName example - "ru.yandex.clickhouse.ClickHouseDriver"
+  * @param driverName example - "com.clickhouse.jdbc.ClickHouseDriver"
   * @param userName for JDBC auth
   * @param password for JDBC auth
   * @param batchInterval batch size for writing found incidents

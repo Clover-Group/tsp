@@ -35,7 +35,7 @@ class DebugRealDataTest extends AnyFlatSpec with HttpServiceMatchers with ForAll
   implicit override val container = new JDBCContainer(
     "yandex/clickhouse-server:latest",
     port -> 8123 :: 9101 -> 9000 :: Nil,
-    "ru.yandex.clickhouse.ClickHouseDriver",
+    "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
     // HTTP port returns 200, native port returns 400
     waitStrategy = Some(Wait.forHttp("/").forStatusCode(200).forStatusCode(400))
@@ -88,7 +88,7 @@ class DebugRealDataTest extends AnyFlatSpec with HttpServiceMatchers with ForAll
         inputConf = request.inputConf.asInstanceOf[JDBCInputConf].copy(jdbcUrl = inputConf.jdbcUrl),
         outConf = request.outConf.asInstanceOf[JDBCOutputConf].copy(
           jdbcUrl = s"jdbc:clickhouse://localhost:$port/default",
-          driverName = "ru.yandex.clickhouse.ClickHouseDriver",
+          driverName = "com.clickhouse.jdbc.ClickHouseDriver",
           password = None,
           userName = None
         )
