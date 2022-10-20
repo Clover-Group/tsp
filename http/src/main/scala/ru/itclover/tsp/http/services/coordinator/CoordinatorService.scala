@@ -9,14 +9,24 @@ import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
+
 
 case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
   val log = Logger("CoordinatorService")
 
+  val ex = new ScheduledThreadPoolExecutor(1)
+
+  val task: Runnable = new Runnable {
+    def run(): Unit = notifyRegister()
+  }
+  
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 60, TimeUnit.SECONDS)
+
   def notifyRegister(): Unit = {
     val uri = s"$coordUri/api/tspinteraction/register"
-    log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
+    log.info(s"Notifying coordinator at $uri...")
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(
       HttpRequest(

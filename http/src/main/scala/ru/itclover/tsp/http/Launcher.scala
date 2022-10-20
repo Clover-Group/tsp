@@ -73,12 +73,12 @@ object Launcher extends App with HttpService {
 
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))
   val coordinator = getCoordinatorHostPort
-  coordinator.map {
+  coordinator.foreach {
     case (enabled, host, port) =>
       if (enabled) {
         val uri = s"http://$host:$port"
         log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
-        CoordinatorService.getOrCreate(uri).notifyRegister
+        CoordinatorService.getOrCreate(uri).notifyRegister()
 
       } else {
         log.warn("TSP coordinator connection disabled.")
@@ -86,7 +86,7 @@ object Launcher extends App with HttpService {
   }
 
   val checkpointing = getCheckpointingHostPort
-  checkpointing.map {
+  checkpointing.foreach {
     case (enabled, host, port) =>
       if (enabled) {
         val uri = s"redis://$host:$port"
