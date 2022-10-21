@@ -11,7 +11,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
 
-
 case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
   val log = Logger("CoordinatorService")
@@ -21,7 +20,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   val task: Runnable = new Runnable {
     def run(): Unit = notifyRegister()
   }
-  
+
   val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 60, TimeUnit.SECONDS)
 
   def notifyRegister(): Unit = {

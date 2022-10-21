@@ -4,7 +4,6 @@ import org.scalatest.wordspec._
 
 import org.scalatest.matchers.should._
 
-
 /**
   * Test class for decoders
   */

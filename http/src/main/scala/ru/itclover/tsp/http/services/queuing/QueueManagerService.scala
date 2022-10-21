@@ -54,6 +54,8 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   val runningStreams = mutable.Map[String, SignallingRef[IO, Boolean]]()
 
+  val runningJobsRequests = mutable.Map[String, QueueableRequest]()
+
   val isLocalhost: Boolean = true
 
   val ex = new ScheduledThreadPoolExecutor(1)
@@ -154,8 +156,10 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     inClass match {
       case "from-jdbc" =>
         runJdbc(request)
+        runningJobsRequests(request.uuid) = request
       case "from-kafka" =>
         runKafka(request)
+        runningJobsRequests(request.uuid) = request
       case _ =>
         log.error(s"Unknown job request type: IN: $inClass")
     }
@@ -211,12 +215,13 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
           CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
           CheckpointingService.removeCheckpointAndState(uuid)
           runningStreams.remove(uuid)
-        case Right(_) =>
+          runningJobsRequests.remove(uuid)
           // success
           log.info(s"Job $uuid finished")
           CoordinatorService.notifyJobCompleted(uuid, None)
           CheckpointingService.removeCheckpointAndState(uuid)
           runningStreams.remove(uuid)
+          runningJobsRequests.remove(uuid)
       }
 
     log.debug("runStream finished")

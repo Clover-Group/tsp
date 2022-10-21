@@ -3,7 +3,6 @@ package ru.itclover.tsp.core.patterns
 import org.scalatest.flatspec._
 import org.scalatest.matchers.should._
 
-
 class ATPGPropTest extends AnyFlatSpec with Matchers {
 
   it should "auto generate all patterns" in {

@@ -8,12 +8,15 @@ import akka.stream.Materializer
 import cats.data.Reader
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.BuildInfo
+import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
+import ru.itclover.tsp.StreamSource.Row
 
 import scala.concurrent.ExecutionContextExecutor
+import ru.itclover.tsp.RowWithIdx
 
 object MonitoringRoutes {
 
@@ -51,6 +54,16 @@ trait MonitoringRoutes extends RoutesProtocols {
         case None          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
         //case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
       }
+    } ~ path("job" / Segment / "request") { uuid =>
+      qm.runningJobsRequests.get(uuid) match {
+        case Some(r) =>
+          complete(
+            this
+              .patternsRequestFmt[RowWithIdx, Symbol, Any, Row]
+              .write(r.asInstanceOf[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]])
+          )
+        case None => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      }
     } ~ path("job" / Segment / "stop") { uuid =>
       qm.getRunningJobsIds.find(_ == uuid) match {
         case Some(_) =>
@@ -59,7 +72,6 @@ trait MonitoringRoutes extends RoutesProtocols {
         case None =>
           complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
       }
-
     } ~ path("jobs" / "overview") {
       complete(qm.getRunningJobsIds)
     } ~
