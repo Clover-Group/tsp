@@ -6,12 +6,34 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequ
 import com.typesafe.scalalogging.Logger
 import ru.itclover.tsp.BuildInfo
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
+import spray.json._
+import spray.json.DefaultJsonProtocol._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
 
 case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
+
+  case class VersionMessage(version: String)
+
+  case class JobStartedMessage(jobId: String)
+
+  case class JobCompletedMessage(
+    jobId: String,
+    success: Boolean,
+    error: String,
+    rowsRead: Long,
+    rowsWritten: Long
+  )
+
+  object MessageJsonProtocol extends DefaultJsonProtocol {
+    implicit val versionMessageFormat = jsonFormat1(VersionMessage)
+    implicit val jobStartedMessageFormat = jsonFormat1(JobStartedMessage)
+    implicit val jobCompletedMessageFormat = jsonFormat5(JobCompletedMessage)
+  }
+
+  import MessageJsonProtocol._
 
   val log = Logger("CoordinatorService")
 
@@ -21,9 +43,10 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
     def run(): Unit = notifyRegister()
   }
 
-  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 60, TimeUnit.SECONDS)
+  val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 30, 60, TimeUnit.SECONDS)
 
   def notifyRegister(): Unit = {
+
     val uri = s"$coordUri/api/tspinteraction/register"
     log.info(s"Notifying coordinator at $uri...")
 
@@ -31,7 +54,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity = HttpEntity(ContentTypes.`application/json`, s"""{"version": "${BuildInfo.version}"}""")
+        entity = HttpEntity(ContentTypes.`application/json`, VersionMessage(BuildInfo.version).toJson.compactPrint)
       )
     )
 
@@ -52,7 +75,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity = HttpEntity(ContentTypes.`application/json`, s"""{"jobId": "$jobId"}""")
+        entity = HttpEntity(ContentTypes.`application/json`, JobStartedMessage(jobId).toJson.compactPrint)
       )
     )
 
@@ -66,14 +89,15 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   }
 
   def notifyJobCompleted(jobId: String, exception: Option[Throwable]): Unit = {
+
     val uri = s"$coordUri/api/tspinteraction/jobcompleted"
     log.warn(s"Job $jobId completed: notifying coordinator to $uri...")
 
     val success = exception.isEmpty
-    exception.map(_.getMessage).getOrElse("")
+    val error = exception.map(_.getMessage).getOrElse("")
 
     val metrics = CheckpointingService.getCheckpoint(jobId)
-    val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.writtenRows)).getOrElse((0, 0))
+    val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.writtenRows)).getOrElse((0L, 0L))
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(
       HttpRequest(
@@ -81,14 +105,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
         uri = uri,
         entity = HttpEntity(
           ContentTypes.`application/json`,
-          s"""
-             |{"jobId": "$jobId",
-             |"success": $success,
-             |"error": "Exception occurred",
-             |"rowsRead": $rowsRead,
-             |"rowsWritten": $rowsWritten
-             |}
-             |""".stripMargin
+          JobCompletedMessage(jobId, success, error, rowsRead, rowsWritten).toJson.compactPrint
         )
       )
     )
