@@ -34,13 +34,12 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
       jobName,
       LocalDateTime.now.toString,
       "SUBMITTED",
-      Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
       client match {
         case Some(value) => s"Job submitted with id ${value.getJobID}"
         case None        => s"Job submission failed"
       }
     )
-    log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
+    log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
   }
 
   def unregisterSelf(): Unit = {
@@ -52,7 +51,6 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
       if (jobExecutionResult != null && c.getJobID.toHexString != jobExecutionResult.getJobID.toHexString) {
         return
       }
-      val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val msg = StatusMessage(
         jobName,
         LocalDateTime.now.toString,
@@ -60,7 +58,6 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
           case null => "FINISHED"
           case _    => "FAILED"
         },
-        status,
         throwable match {
           case null =>
             s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"
@@ -70,7 +67,7 @@ case class ConsoleStatusReporter(jobName: String, queueManagerService: QueueMana
       )
       // Unregister
       if (throwable == null) unregisterSelf()
-      log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
+      log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
     }
   }
 }
