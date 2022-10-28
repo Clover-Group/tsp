@@ -20,7 +20,6 @@ case class StatusMessage(
   @BeanProperty uuid: String,
   @BeanProperty timestamp: String,
   @BeanProperty status: String,
-  @BeanProperty flinkStatus: String,
   @BeanProperty text: String
 )
 
@@ -65,7 +64,6 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
           jobName,
           now,
           "SUBMITTED",
-          Try(jobClient.getJobStatus.get().name).toOption.getOrElse("no status"),
           client match {
             case Some(value) => s"Job submitted with id ${value.getJobID}"
             case None        => s"Job submission failed"
@@ -87,7 +85,6 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
         return
       }
       val now = LocalDateTime.now.toString
-      val status = Try(c.getJobStatus.get().name).getOrElse("status unknown")
       val record = new ProducerRecord[String, StatusMessage](
         topic,
         now,
@@ -98,7 +95,6 @@ case class StatusReporter(jobName: String, brokers: String, topic: String, queue
             case null => "FINISHED"
             case _    => "FAILED"
           },
-          status,
           throwable match {
             case null =>
               s"Job executed with no exceptions in ${jobExecutionResult.getNetRuntime} ms"

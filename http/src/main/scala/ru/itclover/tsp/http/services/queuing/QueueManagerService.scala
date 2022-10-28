@@ -324,7 +324,6 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       uuid = uuid,
       timestamp = LocalDateTime.now.toString,
       status = "ENQUEUED",
-      flinkStatus = "(no status)",
       text = s"Job $uuid enqueued to TSP job queue."
     )
     sendStatusMessage(msg)
@@ -335,7 +334,6 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       uuid = uuid,
       timestamp = LocalDateTime.now.toString,
       status = "SENT",
-      flinkStatus = "(no status)",
       text = s"Job $uuid sent to Flink."
     )
     sendStatusMessage(msg)
@@ -346,7 +344,6 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       uuid = uuid,
       timestamp = LocalDateTime.now.toString,
       status = "FAILED",
-      flinkStatus = "(no status)",
       text = s"Job $uuid failed to send to Flink properly."
     )
     sendStatusMessage(msg)
@@ -364,7 +361,7 @@ class QueueManagerService(uri: Uri, blockingExecutionContext: ExecutionContextEx
       messageProducer.send(record)
       messageProducer.flush()
     case None =>
-      log.info(f"Job ${msg.uuid}: status=${msg.status}, Flink status=${msg.flinkStatus}, message=${msg.text}")
+      log.info(f"Job ${msg.uuid}: status=${msg.status}, message=${msg.text}")
   }
 
   def onTimer(): Unit = {
