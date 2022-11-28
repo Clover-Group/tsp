@@ -8,10 +8,10 @@ services:
 variables:
   DOCKER_HOST: "tcp://docker:2375"
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_DRIVER: overlay2
-  SCALA_VERSION: 3.2.2-RC1
-  SBT_VERSION: 1.8.0
-  TESTCONTAINERS_RYUK_DISABLED: true
+  DOCKER_DRIVER: "overlay2"
+  SCALA_VERSION: "3.2.2-RC1"
+  SBT_VERSION: "1.8.0"
+  TESTCONTAINERS_RYUK_DISABLED: "true"
 
 stages:
   - test
