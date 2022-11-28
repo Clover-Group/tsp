@@ -11,7 +11,7 @@ object KeyCreatorInstances {
     override def create(keyName: String): Int = Try(keyName.toInt).getOrElse(0)
   }
 
-  implicit val symbolKeyCreator: KeyCreator[Symbol] = new KeyCreator[Symbol] {
-    override def create(keyName: String): Symbol = Symbol(keyName)
+  implicit val symbolKeyCreator: KeyCreator[String] = new KeyCreator[String] {
+    override def create(keyName: String): String = String(keyName)
   }
 }

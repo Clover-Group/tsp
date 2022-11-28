@@ -1,9 +1,9 @@
 package ru.itclover.tsp.streaming.io
 
 trait InputConf[Event, EKey, EItem] extends Serializable {
-  def datetimeField: Symbol
-  def partitionFields: Seq[Symbol]
-  def unitIdField: Option[Symbol] // Only for new sink, will be ignored for old
+  def datetimeField: String
+  def partitionFields: Seq[String]
+  def unitIdField: Option[String] // Only for new sink, will be ignored for old
 
   def parallelism: Option[Int] // Parallelism per each source
   def numParallelSources: Option[Int] // Number on parallel (separate) sources to be created

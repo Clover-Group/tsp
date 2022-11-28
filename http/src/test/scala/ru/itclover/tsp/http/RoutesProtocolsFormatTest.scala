@@ -21,9 +21,9 @@ class RoutesProtocolsFormatTest extends AnyFlatSpec with Matchers with RoutesPro
     propertyFormat.write(true.asInstanceOf[AnyRef]) shouldBe JsBoolean(true)
     propertyFormat.write("test") shouldBe JsString("test")
     propertyFormat.write(TestClass(42)) shouldBe JsString("TestClass(42)")
-    propertyFormat.read(JsNumber(1.0)) shouldBe 1
+    propertyFormat.read(JsNumber(1.0)) shouldBe 1.asInstanceOf[AnyRef]
     propertyFormat.read(JsString("test")) shouldBe "test"
-    propertyFormat.read(JsBoolean(true)) shouldBe true
+    propertyFormat.read(JsBoolean(true)) shouldBe true.asInstanceOf[AnyRef]
   }
 
   "RoutesProtocols Any format" should "correctly handle JSON" in {
@@ -38,8 +38,8 @@ class RoutesProtocolsFormatTest extends AnyFlatSpec with Matchers with RoutesPro
   }
 
   "SDT formats" should "work" in {
-    sdtFormat[Any, Symbol, Symbol].write(NarrowDataUnfolding('key, 'value, Map.empty[Symbol, Long])) shouldBe a[JsValue]
-    sdtFormat[Any, Symbol, Symbol].write(WideDataFilling[Any, Symbol, Symbol](Map.empty[Symbol, Long], Some(0L))) shouldBe a[
+    sdtFormat[Any, String, String].write(NarrowDataUnfolding("key", "value", Map.empty[String, Long])) shouldBe a[JsValue]
+    sdtFormat[Any, String, String].write(WideDataFilling[Any, String, String](Map.empty[String, Long], Some(0L))) shouldBe a[
       JsValue
     ]
   }

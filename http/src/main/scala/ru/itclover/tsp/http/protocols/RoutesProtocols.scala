@@ -45,11 +45,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     }
   }
 
-  implicit val execTimeFmt = jsonFormat2(ExecInfo.apply)
-  implicit def sResponseFmt[R: JsonFormat] = jsonFormat2(SuccessfulResponse.apply[R])
+  implicit val execTimeFmt: RootJsonFormat[ExecInfo] = jsonFormat2(ExecInfo.apply)
+  implicit def sResponseFmt[R: JsonFormat]: RootJsonFormat[SuccessfulResponse[R]]  = jsonFormat2(SuccessfulResponse.apply[R])
 
-  implicit val fResponseFmt = jsonFormat3(FailureResponse.apply)
-  implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  implicit val fResponseFmt: RootJsonFormat[FailureResponse]  = jsonFormat3(FailureResponse.apply)
+  implicit def nduFormat[Event, EKey: JsonFormat, EValue: JsonFormat]: RootJsonFormat[NarrowDataUnfolding[Event, EKey, EValue]] =
     jsonFormat(
       NarrowDataUnfolding[Event, EKey, EValue],
       "keyColumn",
@@ -58,10 +58,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       "valueColumnMapping",
       "defaultTimeout"
     )
-  implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat]: RootJsonFormat[WideDataFilling[Event, EKey, EValue]] =
     jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
 
-  implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat]: 
+    RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] =
     new RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] {
       override def read(json: JsValue): SourceDataTransformation[Event, EKey, EValue] = json match {
         case obj: JsObject =>
@@ -88,7 +89,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
 
-  implicit val jdbcInpConfFmt = jsonFormat(
+  implicit val jdbcInpConfFmt: RootJsonFormat[JDBCInputConf] = jsonFormat(
     JDBCInputConf.apply,
     "sourceId",
     "jdbcUrl",
@@ -111,11 +112,11 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "timestampMultiplier"
   )
 
-  implicit val kafkaInpConfFmt = jsonFormat15(
+  implicit val kafkaInpConfFmt: RootJsonFormat[KafkaInputConf] = jsonFormat15(
     KafkaInputConf.apply
   )
 
-  implicit def inpConfFmt[Event, EKey: JsonFormat, EValue: JsonFormat] =
+  implicit def inpConfFmt[Event, EKey: JsonFormat, EValue: JsonFormat]: RootJsonFormat[InputConf[Event, EKey, EValue]] =
     new RootJsonFormat[InputConf[Event, EKey, EValue]] {
       override def read(json: JsValue): InputConf[Event, EKey, EValue] = json match {
         case obj: JsObject =>
@@ -142,12 +143,12 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
 
-  implicit val newRowSchemaFmt = jsonFormat1(NewRowSchema.apply)
+  implicit val newRowSchemaFmt: RootJsonFormat[NewRowSchema] = jsonFormat1(NewRowSchema.apply)
 
-  implicit val intESValueFormat = jsonFormat2(IntESValue.apply)
-  implicit val floatESValueFormat = jsonFormat2(FloatESValue.apply)
-  implicit val stringESValueFormat = jsonFormat2(StringESValue.apply)
-  implicit val objectESValueFormat = jsonFormat2(ObjectESValue.apply)
+  implicit val intESValueFormat: RootJsonFormat[IntESValue] = jsonFormat2(IntESValue.apply)
+  implicit val floatESValueFormat: RootJsonFormat[FloatESValue] = jsonFormat2(FloatESValue.apply)
+  implicit val stringESValueFormat: RootJsonFormat[StringESValue] = jsonFormat2(StringESValue.apply)
+  implicit val objectESValueFormat: RootJsonFormat[ObjectESValue] = jsonFormat2(ObjectESValue.apply)
 
   implicit def eventSchemaValueFormat: RootJsonFormat[EventSchemaValue] = new RootJsonFormat[EventSchemaValue] {
     override def read(json: JsValue): EventSchemaValue = json match {
@@ -193,7 +194,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   // implicit val jdbcSinkSchemaFmt = jsonFormat(JDBCSegmentsSink.apply, "tableName", "rowSchema")
-  implicit val jdbcOutConfFmt = jsonFormat(
+  implicit val jdbcOutConfFmt: RootJsonFormat[JDBCOutputConf] = jsonFormat(
     JDBCOutputConf.apply,
     "tableName",
     "rowSchema",
@@ -205,7 +206,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism"
   )
 
-  implicit val kafkaOutConfFmt = jsonFormat(
+  implicit val kafkaOutConfFmt: RootJsonFormat[KafkaOutputConf] = jsonFormat(
     KafkaOutputConf.apply,
     "broker",
     "topic",
@@ -214,7 +215,7 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
     "parallelism"
   )
 
-  implicit def outConfFmt[Event] =
+  implicit def outConfFmt[Event]: RootJsonFormat[OutputConf[Event]] =
     new RootJsonFormat[OutputConf[Event]] {
       override def read(json: JsValue): OutputConf[Event] = json match {
         case obj: JsObject =>
@@ -241,11 +242,12 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       }
     }
 
-  implicit val rawPatternFmt = jsonFormat4(RawPattern.apply)
+  implicit val rawPatternFmt: RootJsonFormat[RawPattern] = jsonFormat4(RawPattern.apply)
 
   implicit def patternsRequestFmt[Event, EKey, EValue, OutEvent](
-    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]
-  ) =
+    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
+    outFormat: JsonFormat[OutputConf[OutEvent]]
+  ): RootJsonFormat[FindPatternsRequest[Event, EKey, EValue, OutEvent]] =
     jsonFormat(
       FindPatternsRequest.apply[Event, EKey, EValue, OutEvent],
       "uuid",
@@ -270,9 +272,10 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
   }
 
   implicit def queueableRequestFmt[Event, EKey, EValue, OutEvent](
-    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]]
+    implicit inFormat: JsonFormat[InputConf[Event, EKey, EValue]],
+    outFormat: JsonFormat[OutputConf[OutEvent]]
   ): JsonFormat[QueueableRequest] = (new QueueableRequestFmt[Event, EKey, EValue, OutEvent])
 
-  implicit val dslPatternFmt = jsonFormat1(DSLPatternRequest.apply)
+  implicit val dslPatternFmt: RootJsonFormat[DSLPatternRequest] = jsonFormat1(DSLPatternRequest.apply)
 
 }

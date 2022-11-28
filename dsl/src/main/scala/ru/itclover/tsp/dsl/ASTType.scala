@@ -1,6 +1,7 @@
 package ru.itclover.tsp.dsl
 
 import scala.reflect.ClassTag
+import com.typesafe.scalalogging.Logger
 
 trait ASTType
 
@@ -13,6 +14,8 @@ case object NullASTType extends ASTType
 case object AnyASTType extends ASTType
 
 object ASTType {
+
+  val log = Logger("ASTType")
 
   def of[T](implicit ct: ClassTag[T]): ASTType = ct.runtimeClass match {
     // Basic check, if T isn't lost
@@ -40,8 +43,7 @@ object ASTType {
     case c if isNamesMatch(c, Seq(classOf[java.lang.String]))                    => StringASTType
 
     case _ => {
-      // TODO: Logger
-      println(s"${ct.runtimeClass.getName()} is not a known class, defaulting to AnyASTType")
+      log.warn(s"${ct.runtimeClass.getName()} is not a known class, defaulting to AnyASTType")
       AnyASTType
     }
   }

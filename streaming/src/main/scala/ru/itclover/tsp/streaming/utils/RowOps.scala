@@ -18,7 +18,7 @@ object RowOps {
     def mkString: String = mkString(", ")
   }
 
-  case class RowTsTimeExtractor(timeIndex: Int, tsMultiplier: Double, fieldId: Symbol) extends TimeExtractor[Row] {
+  case class RowTsTimeExtractor(timeIndex: Int, tsMultiplier: Double, fieldId: String) extends TimeExtractor[Row] {
 
     def apply(r: Row) = {
       val millis = r(timeIndex) match {
@@ -32,7 +32,7 @@ object RowOps {
     }
   }
 
-  case class RowIsoTimeExtractor(timeIndex: Int, fieldId: Symbol) extends TimeExtractor[Row] {
+  case class RowIsoTimeExtractor(timeIndex: Int, fieldId: String) extends TimeExtractor[Row] {
 
     def apply(r: Row) = {
       val isoTime = r(timeIndex).toString
@@ -42,8 +42,8 @@ object RowOps {
     }
   }
 
-  case class RowSymbolExtractor(fieldIdxMap: Map[Symbol, Int]) extends Extractor[Row, Symbol, Any] {
-    def apply[T](r: Row, s: Symbol)(implicit d: Decoder[Any, T]): T = d(r(fieldIdxMap(s)))
+  case class RowSymbolExtractor(fieldIdxMap: Map[String, Int]) extends Extractor[Row, String, Any] {
+    def apply[T](r: Row, s: String)(implicit d: Decoder[Any, T]): T = d(r(fieldIdxMap(s)))
   }
 
   case class RowIdxExtractor() extends Extractor[Row, Int, Any] {

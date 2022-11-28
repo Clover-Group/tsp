@@ -118,7 +118,7 @@ object Launcher extends App with HttpService {
     val enabledStr = getEnvVarOrConfig("COORDINATOR_ENABLED", "coordinator.enabled")
     val host = getEnvVarOrConfig("COORDINATOR_HOST", "coordinator.host")
     val portStr = getEnvVarOrConfig("COORDINATOR_PORT", "coordinator.port")
-    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
+    val port = Either.catchNonFatal(portStr.toInt).left.map { (ex: Throwable) =>
       s"Cannot parse COORDINATOR_PORT ($portStr): ${ex.getMessage}"
     }
     val enabled = Either.catchNonFatal(enabledStr.toBoolean) match {
@@ -135,7 +135,7 @@ object Launcher extends App with HttpService {
     val enabledStr = getEnvVarOrConfig("CHECKPOINTING_ENABLED", "checkpointing.enabled")
     val host = getEnvVarOrConfig("CHECKPOINTING_HOST", "checkpointing.host")
     val portStr = getEnvVarOrConfig("CHECKPOINTING_PORT", "checkpointing.port")
-    val port = Either.catchNonFatal(portStr.toInt).left.map { ex: Throwable =>
+    val port = Either.catchNonFatal(portStr.toInt).left.map { (ex: Throwable) =>
       s"Cannot parse CHECKPOINTING_PORT ($portStr): ${ex.getMessage}"
     }
     val enabled = Either.catchNonFatal(enabledStr.toBoolean) match {

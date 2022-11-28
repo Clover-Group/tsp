@@ -1,9 +1,11 @@
 package ru.itclover.tsp.http
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+
 import akka.stream.Materializer
 import cats.data.Reader
 import com.typesafe.config.ConfigFactory
@@ -98,7 +100,7 @@ trait HttpService extends RoutesProtocols {
     }*/
     .result()
 
-  implicit def exceptionsHandler = ExceptionHandler {
+  implicit def exceptionsHandler: ExceptionHandler = ExceptionHandler {
     case ex: ClickHouseException => // TODO Extract from jobs (ADT?)
       val stackTrace = Exceptions.getStackTrace(ex)
       val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage

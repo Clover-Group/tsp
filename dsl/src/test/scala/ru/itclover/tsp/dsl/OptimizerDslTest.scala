@@ -17,14 +17,16 @@ class OptimizerDslTest extends AnyFlatSpec with Matchers with ScalaCheckProperty
   import TestEvents._
 
   val fieldsClasses = Map(
-    'intSensor     -> ClassTag.Int,
-    'longSensor    -> ClassTag.Long,
-    'boolSensor    -> ClassTag.Boolean,
-    'doubleSensor1 -> ClassTag.Double,
-    'doubleSensor2 -> ClassTag.Double
+    "intSensor"     -> ClassTag.Int,
+    "longSensor"    -> ClassTag.Long,
+    "boolSensor"    -> ClassTag.Boolean,
+    "doubleSensor1" -> ClassTag.Double,
+    "doubleSensor2" -> ClassTag.Double
   )
 
-  val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
+  given Conversion[String, String] = _.toString
+
+  val gen = new ASTPatternGenerator[TestEvent, String, Any]
 
   "Optimizer" should "optimize pattern build from string" in {
 

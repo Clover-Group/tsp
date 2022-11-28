@@ -40,11 +40,11 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     with DefaultJsonProtocol {
 
   type TypedRequest = (QueueableRequest, String)
-  type Request = FindPatternsRequest[RowWithIdx, Symbol, Any, Row]
+  type Request = FindPatternsRequest[RowWithIdx, String, Any, Row]
 
   case class Metric(id: String, value: String)
 
-  implicit val metricFmt = jsonFormat2(Metric.apply)
+  implicit val metricFmt: RootJsonFormat[Metric] = jsonFormat2(Metric.apply)
 
   private val log = Logger[QueueManagerService]
 
@@ -84,7 +84,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
   def runJdbc(request: Request): Unit = {
     log.info("JDBC-to-JDBC: query started")
     import request._
-    val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
+    val fields: Set[String] = PatternFieldExtractor.extract(patterns)
     log.info("JDBC-to-JDBC: extracted fields from patterns. Creating source...")
     val resultOrErr = for {
       source <- JdbcSource.create(inputConf.asInstanceOf[JDBCInputConf], fields)
@@ -104,7 +104,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   def runKafka(request: Request): Unit = {
     import request._
-    val fields: Set[Symbol] = PatternFieldExtractor.extract(patterns)
+    val fields: Set[String] = PatternFieldExtractor.extract(patterns)
 
     val resultOrErr = for {
       source <- KafkaSource.create(inputConf.asInstanceOf[KafkaInputConf], fields)
@@ -165,7 +165,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
     }
   }
 
-  type EKey = Symbol
+  type EKey = String
 
   def createStream[E, EItem](
     uuid: String,
@@ -216,6 +216,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
           CheckpointingService.removeCheckpointAndState(uuid)
           runningStreams.remove(uuid)
           runningJobsRequests.remove(uuid)
+        case Right(_) => 
           // success
           log.info(s"Job $uuid finished")
           CoordinatorService.notifyJobCompleted(uuid, None)

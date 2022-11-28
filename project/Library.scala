@@ -1,7 +1,7 @@
 import sbt._
 
 object Version {
-  val logback = "1.4.4"
+  val logback = "1.4.5"
   val scalaLogging = "3.9.5"
   val logbackContrib = "0.1.5"
 
@@ -9,13 +9,14 @@ object Version {
 
   val influx = "2.15"
 
-  val clickhouse = "0.3.2-patch11"
+  val clickhouse = "0.3.2"
 
-  val akka = "2.6.20"
-  val akkaHttp = "10.2.10"
+  val akka = "2.7.0"
+  val akkaHttp = "10.4.0"
+  val sprayJson = "1.3.6"
 
-  val cats = "3.3.14"
-  val fs2 = "3.3.0"
+  val cats = "3.4.1"
+  val fs2 = "3.4.0"
   val fs2Kafka = "2.5.0"
   val doobie = "1.0.0-RC2"
 
@@ -24,16 +25,16 @@ object Version {
   val jmh = "0.3.7"
 
   val testContainers = "0.40.11"
-  val testContainersKafka = "1.17.5"
+  val testContainersKafka = "1.17.6"
   val postgres = "42.5.0"
 
   val avro = "1.8.2"
 
-  val parboiled = "2.4.0"
+  val parboiled = "2.4.1"
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.13.4"
+  val jackson = "2.14.1"
   val jaxb = "4.0.1"
   val activation = "1.2.0"
 
@@ -54,7 +55,7 @@ object Version {
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.17.7"
+  val redissonVersion = "3.18.0"
   val kryoVersion = "5.3.0"
 
   val akkaHttpMetrics = "1.7.1"
@@ -91,14 +92,18 @@ object Library {
     "com.typesafe.akka" %% "akka-slf4j" % Version.akka,
     "com.typesafe.akka" %% "akka-stream" % Version.akka,
     "com.typesafe.akka" %% "akka-testkit" % Version.akka
-  )
+  ).map(_.cross(CrossVersion.for3Use2_13))
 
   val akkaHttp: Seq[ModuleID] = Seq(
     "com.typesafe.akka" %% "akka-http" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-spray-json" % Version.akkaHttp,
     "com.typesafe.akka" %% "akka-http-testkit" % Version.akkaHttp,
     "fr.davit" %% "akka-http-metrics-prometheus" % Version.akkaHttpMetrics
-  )
+  ).map(_.cross(CrossVersion.for3Use2_13))
+
+  val sprayJson: Seq[ModuleID] = Seq(
+    "io.spray" %%  "spray-json" % Version.sprayJson
+  ).map(_.cross(CrossVersion.for3Use2_13))
 
   val cats: Seq[ModuleID] = Seq(
     "org.typelevel" %% "cats-effect-kernel" % Version.cats,
@@ -135,6 +140,7 @@ object Library {
 
   val testContainers: Seq[ModuleID] = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
+    "com.dimafeng" %% "testcontainers-scala-clickhouse" % Version.testContainers % "test",
     "org.testcontainers" % "kafka" % Version.testContainersKafka % "test"
   )
 

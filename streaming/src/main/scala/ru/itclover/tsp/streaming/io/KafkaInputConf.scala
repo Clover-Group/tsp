@@ -9,17 +9,17 @@ case class KafkaInputConf(
   topic: String,
   group: String = UUID.randomUUID().toString,
   serializer: Option[String] = Some("json"),
-  datetimeField: Symbol,
-  partitionFields: Seq[Symbol],
-  unitIdField: Option[Symbol] = None,
-  dataTransformation: Option[SourceDataTransformation[RowWithIdx, Symbol, Any]] = None,
+  datetimeField: String,
+  partitionFields: Seq[String],
+  unitIdField: Option[String] = None,
+  dataTransformation: Option[SourceDataTransformation[RowWithIdx, String, Any]] = None,
   timestampMultiplier: Option[Double] = Some(1000.0),
   eventsMaxGapMs: Option[Long] = Some(90000),
   chunkSizeMs: Option[Long] = Some(10L),
   processingBatchSize: Option[Int],
   numParallelSources: Option[Int] = Some(1),
   fieldsTypes: Map[String, String]
-) extends InputConf[RowWithIdx, Symbol, Any] {
+) extends InputConf[RowWithIdx, String, Any] {
 
   def defaultEventsGapMs: Option[Long] = Some(0L)
   def defaultToleranceFraction: Option[Double] = None

@@ -9,6 +9,9 @@ import java.time.{Instant, LocalDateTime, ZoneId, ZonedDateTime}
 import ru.itclover.tsp.core.{Incident, Time}
 import ru.itclover.tsp.streaming.io._
 
+import spray.json._
+import DefaultJsonProtocol._
+
 /**
   * Packer of found incident into [[Row]]
   */
@@ -19,7 +22,7 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
       val resultRow = new Row(newRowSchema.fieldsCount)
       newRowSchema.data.foreach {
         case (k, v) =>
-          val pos = newRowSchema.fieldsIndices(Symbol(k))
+          val pos = newRowSchema.fieldsIndices(String(k))
           v match {
             case value: IntESValue   => resultRow(pos) = convertFromInt(value.value, value.`type`).asInstanceOf[AnyRef]
             case value: FloatESValue => resultRow(pos) = convertFromFloat(value.value, value.`type`).asInstanceOf[AnyRef]
@@ -44,15 +47,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
     Timestamp.valueOf(utc.toLocalDateTime).getTime
   }
 
-  def escape(raw: String): String = {
-    import scala.reflect.runtime.universe._
-    Literal(Constant(raw)).toString
-  }
-
-  def toJsonString(ctx: Map[Symbol, String]): String = {
-    ctx
-      .map { case (k, v) => s"""${escape(k.name)}: ${escape(v)}""" }
-      .mkString("{", ", ", "}")
+  def toJsonString(ctx: Map[String, String]): String = {
+    ctx.toJson.toString()
   }
 
   def interpolateString(value: String, incident: Incident): String = {

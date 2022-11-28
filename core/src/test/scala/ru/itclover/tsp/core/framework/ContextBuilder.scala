@@ -15,9 +15,9 @@ abstract class TestContext
   */
 abstract class AbstractContextBuilder[Type, State] {
 
-  var patterns: Seq[Pattern[Event[Type], State, Type]]
-  var events: Seq[Event[Type]]
-  var finalState: State
+  var patterns: Seq[Pattern[Event[Type], State, Type]] = _
+  var events: Seq[Event[Type]] = _
+  var finalState: State = _
 
   def withPatterns(patterns: Seq[Pattern[Event[Type], State, Type]]): AbstractContextBuilder[Type, State]
   def withEvents(events: Seq[Event[Type]]): AbstractContextBuilder[Type, State]
@@ -64,9 +64,9 @@ class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, Stat
   */
 @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
 class ResultContextBuilder[Type, State] extends AbstractContextBuilder[Type, State] {
-  override var patterns: Seq[Pattern[Event[Type], State, Type]] = _
-  override var events: Seq[Event[Type]] = _
-  override var finalState: State = _
+  //override var patterns: Seq[Pattern[Event[Type], State, Type]] = _
+  //override var events: Seq[Event[Type]] = _
+  //override var finalState: State = _
 
   override def withPatterns(patterns: Seq[Pattern[Event[Type], State, Type]]): AbstractContextBuilder[Type, State] = {
     this.patterns = patterns

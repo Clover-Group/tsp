@@ -21,18 +21,19 @@ class JDBCContainer(
   waitStrategy: Option[WaitStrategy] = None
 ) extends SingleContainer[OTCGenericContainer[_]] {
 
-  type OTCContainer = OTCGenericContainer[T] forSome { type T <: OTCGenericContainer[T] }
-  implicit override val container: OTCContainer = new OTCGenericContainer(imageName)
+  implicit override val container = new OTCGenericContainer(imageName)
 
   if (portsBindings.nonEmpty) {
     val bindings = portsBindings.map { case (out, in) => s"${out.toString}:${in.toString}" }
+    val exposedPorts = portsBindings.map(_._2)
     container.setPortBindings(bindings.asJava)
+    container.addExposedPorts(exposedPorts: _*)
   }
-  env.foreach(Function.tupled(container.withEnv))
+  env.foreach(container.withEnv(_, _))
   if (command.nonEmpty) {
     val _ = container.withCommand(command: _*)
   }
-  classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
+  classpathResourceMapping.foreach(container.withClasspathResourceMapping(_, _, _))
   waitStrategy.foreach(container.waitingFor)
 
   // We cannot initialise `connection` here yet

@@ -36,9 +36,9 @@
 //
 //  implicit val timeExtractor: TimeExtractor[Row] = TimeExtractor.of[Row](_.ts)
 //
-//  case object RowSymbolExtractor extends Extractor[Row, Symbol, Any] {
+//  case object RowSymbolExtractor extends Extractor[Row, String, Any] {
 //
-//    def apply[T](r: Row, s: Symbol)(implicit d: Decoder[Any, T]): T =
+//    def apply[T](r: Row, s: String)(implicit d: Decoder[Any, T]): T =
 //      d(s match {
 //        case 'PosKM       => r.posKM
 //        case 'SpeedEngine => r.speedEngine

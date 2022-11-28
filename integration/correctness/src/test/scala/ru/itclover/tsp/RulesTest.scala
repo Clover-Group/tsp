@@ -27,7 +27,7 @@ class RulesTest extends AnyWordSpec with Matchers {
   implicit val random: Random = new java.util.Random(345l)
 
   implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
-    override def extract(event: Row, symbol: Symbol) = {
+    override def extract(event: Row, symbol: String) = {
       symbol match {
         case 'speed => event.speed
         case 'pump => event.pump
@@ -126,7 +126,7 @@ class RulesTest extends AnyWordSpec with Matchers {
     implicit val random: Random = new java.util.Random(345l)
 
     implicit val symbolNumberExtractorEvent = new SymbolNumberExtractor[Row] {
-      override def extract(event: Row, symbol: Symbol) = {
+      override def extract(event: Row, symbol: String) = {
         symbol match {
           case 'speed => event.speed
           case 'pump => event.pump

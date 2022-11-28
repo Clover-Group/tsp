@@ -95,11 +95,11 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
         forceState(optimizePat(right))
       )(x.func)
     case x: TimestampsAdderPattern[E, _, _] if optimizable(x.inner) =>
-      new TimestampsAdderPattern(forceState(optimizePat(x.inner)))
-    case x: ReducePattern[E, _, _, _] if x.patterns.exists(optimizable) => {
+      new TimestampsAdderPattern(forceState(optimizePat(x.inner))).asInstanceOf[Pat[E, T]]
+    case x: ReducePattern[E, _, _, T] if x.patterns.exists(optimizable) => {
       def cast[St, Ty](
         pats: Seq[Pat[E, Ty]]
-      ): Seq[Pattern[E, St, Ty]] forSome { type St } =
+      ): Seq[Pattern[E, St, Ty]] =
         pats.asInstanceOf[Seq[Pattern[E, St, Ty]]]
       new ReducePattern(cast(x.patterns.map(t => optimizePat(t))))(x.func, x.transform, x.filterCond, x.initial)
     }

@@ -37,9 +37,9 @@ object Time {
 
   implicit def longWindow(d: Long): Window = Window(toMillis = d)
 
-  object MinWindow extends Window(toMillis = 0L)
+  val MinWindow = Window(toMillis = 0L)
 
-  object MaxWindow extends Window(toMillis = java.lang.Long.MAX_VALUE)
+  val MaxWindow = Window(toMillis = java.lang.Long.MAX_VALUE)
 
   def less(w: Window) = Intervals.TimeInterval(max = w)
 
