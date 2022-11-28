@@ -20,10 +20,10 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
   implicit idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
-  @transient fieldToEKey: Symbol => EKey
+  @transient fieldToEKey: Conversion[String, EKey]
 ) {
 
-  val registry: FunctionRegistry = DefaultFunctionRegistry
+  val registry: FunctionRegistry = DefaultFunctionRegistry.registry
   @transient val richPatterns = new Patterns[Event] {}
 
   private val log = Logger("ASTPGenLogger")
@@ -37,7 +37,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
     sourceCode: String,
     toleranceFraction: Double,
     eventsMaxGapMs: Long,
-    fieldsTags: Map[Symbol, ClassTag[_]]
+    fieldsTags: Map[String, ClassTag[_]]
   ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
     val ast = new ASTBuilder(sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags).start.run()
     ast.toEither.map(a => (generatePattern(a), a.metadata))
@@ -90,7 +90,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
                   ._1(Seq(x))
             )
           case 2 =>
-            log.debug(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
+            //log.warn(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             val fun: PFunction = registry
               .findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType))
@@ -163,7 +163,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case s: Wait =>
         WaitPattern(generatePattern(s.cond), s.window)
       case fwi: ForWithInterval =>
-        MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ stats: WindowStatisticResult =>
+        MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ (stats: WindowStatisticResult) =>
           // should wait till the end of the window?
           val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
               case TimeInterval(_, max)    => max < fwi.window.toMillis

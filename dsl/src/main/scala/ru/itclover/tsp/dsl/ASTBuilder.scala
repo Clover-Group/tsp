@@ -16,11 +16,11 @@ class ASTBuilder(
   val input: ParserInput,
   toleranceFraction: Double,
   eventsMaxGapMs: Long,
-  fieldsTags: Map[Symbol, ClassTag[_]]
+  fieldsTags: Map[String, ClassTag[_]]
 ) extends Parser {
 
   // TODO: Move to params
-  @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry
+  @transient implicit val funReg: FunctionRegistry = DefaultFunctionRegistry.registry
 
   def start: Rule1[AST] = rule {
     trileanExpr ~ EOI
@@ -31,9 +31,9 @@ class ASTBuilder(
       ignoreCase("andthen") ~ ws ~ trileanTerm ~>
       ((e: AST, f: AST) => AndThen(e, f))
       | ignoreCase("and") ~ ws ~ trileanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
+      ((e: AST, f: AST) => FunctionCall("and", Seq(e, f)))
       | ignoreCase("or") ~ ws ~ trileanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
+      ((e: AST, f: AST) => FunctionCall("or", Seq(e, f)))
     )
   }
 
@@ -49,10 +49,10 @@ class ASTBuilder(
     // ((c: AST, b: AST, r: Option[Any]) => {
     ((c: AST, b: AST, _) => {
 
-      val until = Assert(FunctionCall('not, Seq(b)))
+      val until = Assert(FunctionCall("not", Seq(b)))
       //val window = Window(86400000) // 24 hours
       val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), eventsMaxGapMs, Some(MinWindow))
-      FunctionCall('and, Seq(timedCondition, until))
+      FunctionCall("and", Seq(timedCondition, until))
     })
     | trileanFactor)
   }
@@ -68,51 +68,51 @@ class ASTBuilder(
   }
 
   def trileanFactor: Rule1[AST] = rule {
-    booleanExpr ~> { b: AST => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws | waitRule
+    booleanExpr ~> { (b: AST) => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws | waitRule
   }
 
   def booleanExpr: Rule1[AST] = rule {
     booleanTerm ~ zeroOrMore(
       ignoreCase("or") ~ ws ~ booleanTerm ~>
-      ((e: AST, f: AST) => FunctionCall('or, Seq(e, f)))
+      ((e: AST, f: AST) => FunctionCall("or", Seq(e, f)))
       | ignoreCase("xor") ~ ws ~ booleanTerm ~>
-        ((e: AST, f: AST) => FunctionCall('xor, Seq(e, f)))
+        ((e: AST, f: AST) => FunctionCall("xor", Seq(e, f)))
     )
   }
 
   def booleanTerm: Rule1[AST] = rule {
     booleanFactor ~ zeroOrMore(
       ignoreCase("and") ~ !ignoreCase("then") ~ ws ~ booleanFactor ~>
-      ((e: AST, f: AST) => FunctionCall('and, Seq(e, f)))
+      ((e: AST, f: AST) => FunctionCall("and", Seq(e, f)))
     )
   }
 
   def booleanFactor: Rule1[AST] = rule {
     comparison |
       boolean |
-      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST) => FunctionCall('not, Seq(b)))
+      "(" ~ booleanExpr ~ ")" ~ ws | "not" ~ booleanExpr ~> ((b: AST) => FunctionCall("not", Seq(b)))
   }
 
   def comparison: Rule1[AST] = rule {
     (
       expr ~ "<" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('lt, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("lt", Seq(e1, e2))
       )
       | expr ~ "<=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('le, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("le", Seq(e1, e2))
       )
       | expr ~ ">" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('gt, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("gt", Seq(e1, e2))
       )
       | expr ~ ">=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('ge, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("ge", Seq(e1, e2))
       )
       | expr ~ "=" ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('eq, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("eq", Seq(e1, e2))
       )
       |
       expr ~ ("!=" | "<>") ~ ws ~ expr ~> (
-        (e1: AST, e2: AST) => FunctionCall('ne, Seq(e1, e2))
+        (e1: AST, e2: AST) => FunctionCall("ne", Seq(e1, e2))
       )
     )
   }
@@ -124,13 +124,13 @@ class ASTBuilder(
         (
           e: AST,
           f: AST
-        ) => FunctionCall('add, Seq(e, f))
+        ) => FunctionCall("add", Seq(e, f))
       )
       | '-' ~ ws ~ term ~> (
         (
           e: AST,
           f: AST
-        ) => FunctionCall('sub, Seq(e, f))
+        ) => FunctionCall("sub", Seq(e, f))
       )
     )
   }
@@ -142,13 +142,13 @@ class ASTBuilder(
         (
           e: AST,
           f: AST
-        ) => FunctionCall('mul, Seq(e, f))
+        ) => FunctionCall("mul", Seq(e, f))
       )
       | '/' ~ ws ~ factor ~> (
         (
           e: AST,
           f: AST
-        ) => FunctionCall('div, Seq(e, f))
+        ) => FunctionCall("div", Seq(e, f))
       )
     )
   }
@@ -379,14 +379,14 @@ class ASTBuilder(
         normalisedFunction match {
           case x if x.endsWith("of") =>
             ReducerFunctionCall(
-              Symbol(normalisedFunction),
+              normalisedFunction,
               (x: Result[Any]) => c(x.getOrElse(Double.NaN).asInstanceOf[Double]),
               arguments
             )
           case "lag" =>
             if (arguments.length > 1) throw ParseException("Lag should use only 1 argument when called without window")
             AggregateCall(Lag, arguments.head, Window(1), Some(Window(0)))
-          case _ => FunctionCall(Symbol(normalisedFunction), arguments)
+          case _ => FunctionCall(normalisedFunction, arguments)
         }
       })
       | anyWord ~ ws ~ "(" ~ ws ~ expr ~ ws ~ "," ~ ws ~ time ~ ws ~ ")" ~ ws ~>
@@ -396,7 +396,7 @@ class ASTBuilder(
           arg: AST,
           win: Window
         ) => {
-          AggregateCall(AggregateFn.fromSymbol(Symbol(function)), arg, win)
+          AggregateCall(AggregateFn.fromSymbol(function), arg, win)
         }
       )
     )
@@ -418,9 +418,9 @@ class ASTBuilder(
 
   def fieldValue: Rule1[Identifier] = rule {
     anyWord ~> ((id: String) => {
-      fieldsTags.get(Symbol(id)) match {
-        case Some(tag) => Identifier(Symbol(id), tag)
-        case None      => Identifier(Symbol(id), ClassTag.Double)
+      fieldsTags.get(id) match {
+        case Some(tag) => Identifier(id, tag)
+        case None      => Identifier(id, ClassTag.Double)
         // case None      => throw ParseException(s"Unknown identifier (field) $id")
       }
     })

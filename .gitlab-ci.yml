@@ -1,68 +1,49 @@
-stages:
-  - build
-  - dev
-  - deploy
+image: docker:20.10
+
+services:
+  - name: docker:20.10-dind
+    command: ["--tls=false"]
+
 
 variables:
-  CONTAINER_TEST_IMAGE: registry.itclover.ru/clover/streammachine:$CI_COMMIT_REF_SLUG
-  CONTAINER_DEV_IMAGE: registry.itclover.ru/clover/streammachine:dev
-  CONTAINER_RELEASE_IMAGE: registry.itclover.ru/clover/streammachine:latest
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  SCALA_VERSION: 3.2.2-RC1
+  SBT_VERSION: 1.8.0
+  TESTCONTAINERS_RYUK_DISABLED: true
 
-build_image:
-  stage: build
-  tags:
-    - shell-runner
-  script:
-    - docker pull registry.itclover.ru/clover/streammachine:core
-    - docker build -t $CONTAINER_TEST_IMAGE .
-    - docker push $CONTAINER_TEST_IMAGE
-  only:
-    - master
-
-dev-image:
-  stage: dev
-  tags:
-    - shell-runner
-  script:
-    - docker pull $CONTAINER_TEST_IMAGE
-    - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_DEV_IMAGE
-    - docker push $CONTAINER_DEV_IMAGE
-  only:
-    - master
-
-deploy_to_dev:
-  stage: deploy
-  tags:
-    - ssh-runner-to-112
-  script:
-    - cd /opt/clover/projects/streamMachine
-    - docker-compose pull streammachine
-    - docker-compose up -d
-  only:
-    - master
-  when: manual
-
-deploy_to_platform_demo:
-  stage: deploy
-  tags:
-    - ssh-runner-to-demo
-  script:
-    - cd /opt/clover/projects/streammachine
-    - docker-compose pull streammachine
-    - docker-compose up -d
-  only:
-    - master
-  when: manual
+stages:
+  - test
+  - publish
   
-deploy_to_y_prod:
-  stage: deploy
-  tags:
-    - ssh-runner-to-x-y
+before_script:
+
+  - export PATH="/usr/local/sbt/bin:$PATH"
+  - apk update 
+  - apk add ca-certificates wget tar bash openjdk17-jdk git
+  - mkdir -p "/usr/local/sbt" 
+  - wget -qO - --no-check-certificate "https://github.com/sbt/sbt/releases/download/v$SBT_VERSION/sbt-$SBT_VERSION.tgz" | tar xz -C /usr/local/sbt --strip-components=1 
+  - sbt sbtVersion
+  #- docker info
+  
+test-coverage:
+  stage: test
   script:
-    - cd /opt/clover/projects/streammachine
-    - docker-compose pull streammachine
-    - docker-compose up -d
+    - sbt cov
+  artifacts:
+    when: always
+    reports:
+      cobertura: target/scala-$SCALA_VERSION/coverage-report/cobertura.xml
   only:
     - master
-  when: manual
-  
+    - tags
+    - merge_requests
+      
+publish-docker:
+  stage: publish
+  script:
+    - sbt docker:publishLocal
+  only:
+    - master
+    - tags

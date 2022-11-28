@@ -28,9 +28,9 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   )
 
   object MessageJsonProtocol extends DefaultJsonProtocol {
-    implicit val versionMessageFormat = jsonFormat1(VersionMessage)
-    implicit val jobStartedMessageFormat = jsonFormat1(JobStartedMessage)
-    implicit val jobCompletedMessageFormat = jsonFormat5(JobCompletedMessage)
+    implicit val versionMessageFormat: RootJsonFormat[VersionMessage] = jsonFormat1(VersionMessage)
+    implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage)
+    implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat5(JobCompletedMessage)
   }
 
   import MessageJsonProtocol._

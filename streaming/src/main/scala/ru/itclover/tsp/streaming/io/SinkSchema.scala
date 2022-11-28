@@ -18,11 +18,11 @@ trait SinkSchema extends Serializable {
 trait EventSchema { // TODO fieldsTypesInfo to PatternsSearchJob
   def fieldsTypes: List[Int]
 
-  def fieldsNames: List[Symbol]
+  def fieldsNames: List[String]
 
   def fieldsCount: Int
 
-  def fieldsIndices: Map[Symbol, Int]
+  def fieldsIndices: Map[String, Int]
 }
 
 sealed trait EventSchemaValue {
@@ -52,11 +52,11 @@ case class NewRowSchema(data: Map[String, EventSchemaValue]) extends EventSchema
       }
   }.toList
 
-  override def fieldsNames: List[Symbol] = data.map {
-    case (k, _) => Symbol(k)
+  override def fieldsNames: List[String] = data.map {
+    case (k, _) => String(k)
   }.toList
 
   override def fieldsCount: Int = data.size
 
-  override def fieldsIndices: Map[Symbol, Int] = fieldsNames.zipWithIndex.toMap
+  override def fieldsIndices: Map[String, Int] = fieldsNames.zipWithIndex.toMap
 }

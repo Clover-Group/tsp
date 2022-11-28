@@ -8,8 +8,8 @@ trait EventCreator[Event, Key] extends Serializable {
 }
 
 object EventCreatorInstances {
-  implicit val rowSymbolEventCreator: EventCreator[Row, Symbol] = new EventCreator[Row, Symbol] {
-    override def create(kv: Seq[(Symbol, AnyRef)]): Row = {
+  implicit val rowSymbolEventCreator: EventCreator[Row, String] = new EventCreator[Row, String] {
+    override def create(kv: Seq[(String, AnyRef)]): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>
         row(kvWithIndex._2) = kvWithIndex._1._2
@@ -29,7 +29,7 @@ object EventCreatorInstances {
   }
 
   //todo change it to not have effects here
-  implicit val rowWithIdxSymbolEventCreator: EventCreator[RowWithIdx, Symbol] = new EventCreator[RowWithIdx, Symbol] {
-    override def create(kv: Seq[(Symbol, AnyRef)]): RowWithIdx = RowWithIdx(0, rowSymbolEventCreator.create(kv))
+  implicit val rowWithIdxSymbolEventCreator: EventCreator[RowWithIdx, String] = new EventCreator[RowWithIdx, String] {
+    override def create(kv: Seq[(String, AnyRef)]): RowWithIdx = RowWithIdx(0, rowSymbolEventCreator.create(kv))
   }
 }

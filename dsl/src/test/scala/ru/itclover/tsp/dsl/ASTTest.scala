@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class ASTTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
-  implicit val funReg: DefaultFunctionRegistry.type = DefaultFunctionRegistry
+  implicit val funReg: FunctionRegistry = DefaultFunctionRegistry.registry
 
   //TODO: no refactoring in loop compare in case of class derivation
   "AST types" should "correctly construct from Scala types" in {
@@ -39,29 +39,29 @@ class ASTTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
 
   //TODO: no refactoring in loop compare in case of class derivation
   "Identifiers" should "have correct types" in {
-    Identifier('intVar, ClassTag.Int).valueType shouldBe IntASTType
-    Identifier('longVar, ClassTag.Long).valueType shouldBe LongASTType
-    Identifier('boolVar, ClassTag.Boolean).valueType shouldBe BooleanASTType
-    Identifier('doubleVar, ClassTag.Double).valueType shouldBe DoubleASTType
-    Identifier('stringVar, ClassTag(classOf[String])).valueType shouldBe StringASTType
+    Identifier("intVar", ClassTag.Int).valueType shouldBe IntASTType
+    Identifier("longVar", ClassTag.Long).valueType shouldBe LongASTType
+    Identifier("boolVar", ClassTag.Boolean).valueType shouldBe BooleanASTType
+    Identifier("doubleVar", ClassTag.Double).valueType shouldBe DoubleASTType
+    Identifier("stringVar", ClassTag(classOf[String])).valueType shouldBe StringASTType
   }
 
   //TODO: no refactoring in loop compare in case of class derivation
   "AST operations" should "require types" in {
-    FunctionCall('and, Seq(Constant(true), Constant(false))).valueType shouldBe BooleanASTType
-    a[ParseException] should be thrownBy FunctionCall('and, Seq(Constant(true))) // only 1 argument
-    a[ParseException] should be thrownBy FunctionCall('and, Seq(Constant(true), Constant("false"))) // invalid types
+    FunctionCall("and", Seq(Constant(true), Constant(false))).valueType shouldBe BooleanASTType
+    a[ParseException] should be thrownBy FunctionCall("and", Seq(Constant(true))) // only 1 argument
+    a[ParseException] should be thrownBy FunctionCall("and", Seq(Constant(true), Constant("false"))) // invalid types
   }
 
   "Windowed operators" should "construct correctly" in {
     val winOp = ForWithInterval(
-      FunctionCall('gt, Seq(Identifier('sensor, ClassTag.Double), Constant(0))),
+      FunctionCall("gt", Seq(Identifier("sensor", ClassTag.Double), Constant(0))),
       Some(false),
       Window(60000),
       TimeInterval(0, 10000)
     )
     winOp.valueType shouldBe BooleanASTType
-    winOp.metadata shouldBe PatternMetadata(Set('sensor), 60000)
+    winOp.metadata shouldBe PatternMetadata(Set("sensor"), 60000)
   }
 
   "Type requirements" should "be met" in {
@@ -70,11 +70,11 @@ class ASTTest extends AnyFlatSpec with Matchers with ScalaCheckPropertyChecks {
   }
 
   "Aggregate functions" should "be correctly created from symbols" in {
-    AggregateFn.fromSymbol('sum) shouldBe Sum
-    AggregateFn.fromSymbol('avg) shouldBe Avg
-    AggregateFn.fromSymbol('count) shouldBe Count
-    AggregateFn.fromSymbol('lag) shouldBe Lag
-    a[ParseException] should be thrownBy AggregateFn.fromSymbol('invalid)
+    AggregateFn.fromSymbol("sum") shouldBe Sum
+    AggregateFn.fromSymbol("avg") shouldBe Avg
+    AggregateFn.fromSymbol("count") shouldBe Count
+    AggregateFn.fromSymbol("lag") shouldBe Lag
+    a[ParseException] should be thrownBy AggregateFn.fromSymbol("invalid")
   }
 
   "Range" should "be correctly constructed" in {

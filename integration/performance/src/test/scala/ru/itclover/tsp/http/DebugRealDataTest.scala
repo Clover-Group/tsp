@@ -79,8 +79,8 @@ class DebugRealDataTest extends AnyFlatSpec with HttpServiceMatchers with ForAll
     val requestString = Files.readResource("/debug/request.json").mkString
 
     val input = JsonParser(new StringBasedParserInput(requestString))
-    val request: FindPatternsRequest[RowWithIdx, Symbol, Any, Row] =
-      spray.json.jsonReader[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]].read(input)
+    val request: FindPatternsRequest[RowWithIdx, String, Any, Row] =
+      spray.json.jsonReader[FindPatternsRequest[RowWithIdx, String, Any, Row]].read(input)
 
     // todo add checkpointing! https://tech.signavio.com/2017/postgres-flink-sink
     val finalRequest =

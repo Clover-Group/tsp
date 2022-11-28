@@ -69,7 +69,7 @@ case class PatternsSearchJob[In, InKey, InItem](
   def incidentsFromPatterns[T](
     stream: fs2.Stream[IO, In],
     patterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-    forwardedFields: Seq[(Symbol, InKey)],
+    forwardedFields: Seq[(String, InKey)],
     useWindowing: Boolean
   ): fs2.Stream[IO, Incident] = {
 
@@ -141,7 +141,7 @@ case class PatternsSearchJob[In, InKey, InItem](
 
   def cleanIncidentsFromPatterns(
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
-    forwardedFields: Seq[(Symbol, InKey)],
+    forwardedFields: Seq[(String, InKey)],
     useWindowing: Boolean
   ): fs2.Stream[IO, Incident] = {
     val stream = source.createStream
@@ -187,16 +187,18 @@ object PatternsSearchJob {
 
   def preparePatterns[E, S, EKey, EItem](
     rawPatterns: Seq[RawPattern],
-    fieldsIdxMap: Symbol => EKey,
+    fieldsIdxMap: String => EKey,
     toleranceFraction: Double,
     eventsMaxGapMs: Long,
-    fieldsTags: Map[Symbol, ClassTag[_]],
+    fieldsTags: Map[String, ClassTag[_]],
     patternFields: Set[EKey]
   )(
     implicit extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
     idxExtractor: IdxExtractor[E]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
+
+    given Conversion[String, EKey] = fieldsIdxMap(_)
 
     log.debug("preparePatterns started")
 
@@ -208,7 +210,7 @@ object PatternsSearchJob {
       idxExtractor,
       getTime,
       extractor,
-      fieldsIdxMap
+      implicitly[Conversion[String, EKey]]
     )
     val res = Traverse[List]
       .traverse(filteredPatterns.toList)(

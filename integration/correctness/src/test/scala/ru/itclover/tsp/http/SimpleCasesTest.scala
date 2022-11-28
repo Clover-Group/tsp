@@ -11,6 +11,7 @@ import ru.itclover.tsp.http.services.queuing.QueueManagerService
 import ru.itclover.tsp.streaming.io.{IntESValue, StringESValue}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.DurationConverters._
 
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
 
@@ -25,7 +26,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
+import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers, ClickHouseContainerWithNewDriver}
 import ru.itclover.tsp.streaming.io.{JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.streaming.utils.Files
@@ -65,18 +66,28 @@ class SimpleCasesTest
       )
     )
 
-  implicit def defaultTimeout = RouteTestTimeout(300.seconds)
+  implicit def defaultTimeout: RouteTestTimeout = RouteTestTimeout(300.seconds)
 
   val port = 8161
   val influxPort = 8144
   val chNativePort = 9098
-  implicit val clickhouseContainer = new JDBCContainer(
+  /*implicit val clickhouseContainer: JDBCContainer = new JDBCContainer(
     "yandex/clickhouse-server:21.7.10.4",
     port -> 8123 :: chNativePort -> 9000 :: Nil,
     "com.clickhouse.jdbc.ClickHouseDriver",
     s"jdbc:clickhouse://localhost:$port/default",
-    waitStrategy = Some(Wait.forHttp("/"))
-  )
+    waitStrategy = Some(
+      Wait
+        .forLogMessage("Saved preprocessed configuration to .+", 1)
+        //.forHttp("/")
+        //.forStatusCode(200)
+        //.forResponsePredicate(_ == "Ok.")
+        .withStartupTimeout(1.minutes.toJava)
+    )
+  )*/
+  
+  implicit val clickhouseContainer: ClickHouseContainerWithNewDriver 
+    = ClickHouseContainerWithNewDriver("yandex/clickhouse-server:21.7.10.4")
 
   val kafkaContainer = KafkaContainer()
 
@@ -174,50 +185,50 @@ class SimpleCasesTest
 
   val incidentsIvolgaTimestamps: List[List[Double]] = ivolgaIncidentsTimestamps.toList
 
-  val wideInputConf = JDBCInputConf(
+  lazy val wideInputConf = JDBCInputConf(
     sourceId = 100,
     jdbcUrl = clickhouseContainer.jdbcUrl,
     query = "SELECT * FROM `2te116u_tmy_test_simple_rules` ORDER BY ts",
-    driverName = clickhouseContainer.driverName,
-    datetimeField = 'ts,
+    driverName = clickhouseContainer.driverClassName,
+    datetimeField = "ts",
     eventsMaxGapMs = Some(60000L),
     defaultEventsGapMs = Some(1000L),
     chunkSizeMs = Some(900000L),
     processingBatchSize = Some(10000),
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    unitIdField = Some("loco_num"),
+    partitionFields = Seq("loco_num", "section", "upload_id"),
     userName = Some("default")
   )
 
-  val narrowInputConf = wideInputConf.copy(
+  lazy val narrowInputConf = wideInputConf.copy(
     sourceId = 200,
     query = "SELECT * FROM math_test ORDER BY dt",
-    datetimeField = 'dt,
-    dataTransformation = Some(NarrowDataUnfolding('sensor_id, 'value_float, Map.empty, Some(Map.empty), Some(1000)))
+    datetimeField = "dt",
+    dataTransformation = Some(NarrowDataUnfolding("sensor_id", "value_float", Map.empty, Some(Map.empty), Some(1000)))
   )
 
-  val narrowInputIvolgaConf = wideInputConf.copy(
+  lazy val narrowInputIvolgaConf = wideInputConf.copy(
     sourceId = 400,
     query = "SELECT * FROM ivolga_test_narrow ORDER BY dt",
-    datetimeField = 'dt,
-    unitIdField = Some('stock_num),
-    partitionFields = Seq('stock_num, 'upload_id),
+    datetimeField = "dt",
+    unitIdField = Some("stock_num"),
+    partitionFields = Seq("stock_num", "upload_id"),
     dataTransformation = Some(
       NarrowDataUnfolding(
-        'sensor_id,
-        'value_float,
+        "sensor_id",
+        "value_float",
         Map.empty,
-        Some(Map('value_str -> List('SOC_2_UKV1_UOVS))),
+        Some(Map("value_str" -> List("SOC_2_UKV1_UOVS"))),
         Some(15000L)
       )
     )
   )
 
-  val wideInputIvolgaConf = wideInputConf.copy(
+  lazy val wideInputIvolgaConf = wideInputConf.copy(
     sourceId = 500,
     query = "SELECT * FROM `ivolga_test_wide` ORDER BY ts",
-    unitIdField = Some('stock_num),
-    partitionFields = Seq('stock_num, 'upload_id),
+    unitIdField = Some("stock_num"),
+    partitionFields = Seq("stock_num", "upload_id"),
     dataTransformation = Some(WideDataFilling(Map.empty, defaultTimeout = Some(15000L)))
   )
 
@@ -236,9 +247,9 @@ class SimpleCasesTest
     sourceId = 600,
     brokers = kafkaBrokerUrl,
     topic = "2te116u_tmy_test_simple_rules",
-    datetimeField = 'dt,
-    unitIdField = Some('loco_num),
-    partitionFields = Seq('loco_num, 'section, 'upload_id),
+    datetimeField = "dt",
+    unitIdField = Some("loco_num"),
+    partitionFields = Seq("loco_num", "section", "upload_id"),
     processingBatchSize = Some(10000),
     fieldsTypes = Map(
       "dt"             -> "float64",
@@ -263,41 +274,38 @@ class SimpleCasesTest
     data = wideRowSchema.data.updated("app", IntESValue("int32", 4))
   )
 
-  val chConnection = s"jdbc:clickhouse://localhost:$port/default"
-  val chDriver = "com.clickhouse.jdbc.ClickHouseDriver"
-
   val wideKafkaRowSchema =
     wideRowSchema
 
-  val wideOutputConf = JDBCOutputConf(
+  lazy val wideOutputConf = JDBCOutputConf(
     tableName = "events_wide_test",
     rowSchema = wideRowSchema,
-    jdbcUrl = chConnection,
-    driverName = chDriver,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    driverName = clickhouseContainer.driverClassName,
     userName = Some("default")
     //password = Some("")
   )
 
-  val narrowOutputConf = wideOutputConf.copy(
+  lazy val narrowOutputConf = wideOutputConf.copy(
     tableName = "events_narrow_test",
     rowSchema = narrowRowSchema
   )
 
-  val narrowOutputIvolgaConf = wideOutputConf.copy(
+  lazy val narrowOutputIvolgaConf = wideOutputConf.copy(
     tableName = "events_narrow_ivolga_test",
     rowSchema = narrowIvolgaRowSchema
   )
 
-  val wideOutputIvolgaConf = wideOutputConf.copy(
+  lazy val wideOutputIvolgaConf = wideOutputConf.copy(
     tableName = "events_wide_ivolga_test",
     rowSchema = wideIvolgaRowSchema
   )
 
-  val wideKafkaOutputConf = JDBCOutputConf(
+  lazy val wideKafkaOutputConf = JDBCOutputConf(
     tableName = "events_wide_kafka_test",
     rowSchema = wideKafkaRowSchema,
-    jdbcUrl = chConnection,
-    driverName = chDriver,
+    jdbcUrl = clickhouseContainer.jdbcUrl,
+    driverName = clickhouseContainer.driverClassName,
     userName = Some("default")
   )
 
@@ -318,7 +326,10 @@ class SimpleCasesTest
         .readResource(elem)
         .mkString
         .split(";")
-        .foreach(clickhouseContainer.executeUpdate)
+        .foreach(q => {
+          val con = clickhouseContainer.container.createConnection("")
+          con.prepareStatement(q).executeUpdate()
+        })
 
     })
 
@@ -358,7 +369,9 @@ class SimpleCasesTest
         .drop(1)
         .mkString("\n")
 
-      clickhouseContainer.executeUpdate(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
+      clickhouseContainer.container.createConnection("")
+        .prepareStatement(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
+        .executeUpdate()
 
       val headers = Files.readResource(elem._2).take(1).toList.headOption.getOrElse("").split(",")
       val data = Files.readResource(elem._2).drop(1).map(_.split(",")).toArray
@@ -394,7 +407,7 @@ class SimpleCasesTest
         .through(KafkaProducer.pipe(producerSettings))
         .compile
         .drain
-        .unsafeRunSync
+        .unsafeRunSync()
 
     })
   }

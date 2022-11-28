@@ -7,7 +7,7 @@ dockerUsername in Docker := Some("clovergrp")
 dockerUpdateLatest := true
 dockerAlias in Docker := dockerAlias.value.withTag(dockerAlias.value.tag.map(_.replace("+", "_")))
 
-scalaVersion in ThisBuild := "2.13.10"
+scalaVersion in ThisBuild := "3.2.2-RC1"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 resolvers in ThisBuild ++= Seq(
@@ -22,7 +22,7 @@ lazy val launcher = "ru.itclover.tsp.http.Launcher"
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   // Remove StringPlusAny wart because of false alarming on s-strings
-  wartremoverWarnings ++= Warts.unsafe.filter(w => w != Wart.DefaultArguments & w != Wart.StringPlusAny),
+  // wartremoverWarnings ++= Warts.unsafe.filter(w => w != Wart.DefaultArguments & w != Wart.StringPlusAny),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",
@@ -31,10 +31,9 @@ lazy val commonSettings = Seq(
   scalacOptions --= Seq(
     "-Xfatal-warnings"
   ),
-  scalacOptions ++= Seq(
-    "-Yrangepos",
-    "-Wunused",
-  ),
+  //scalacOptions ++= Seq(
+  //
+  //),
   // don't release subprojects
   githubRelease := null,
   skip in publish := true,
@@ -88,7 +87,7 @@ dockerCommands := Seq()
 import com.typesafe.sbt.packager.docker._
 dockerCommands := Seq(
   //Cmd("FROM", "openjdk:12.0.1-jdk-oracle"),
-  Cmd("FROM", "openjdk:17-slim"),
+  Cmd("FROM", "openjdk:18-slim"),
   //Cmd("FROM", "openjdk:8-jre-slim"),
   Cmd("LABEL", s"""MAINTAINER="${(maintainer in Docker).value}""""),
   Cmd("ADD", s"lib/${(assembly in mainRunner).value.getName}", "/opt/tsp.jar"),
@@ -171,7 +170,7 @@ lazy val config = project.in(file("config"))
 lazy val streaming = project.in(file("streaming"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.fs2 ++ Library.fs2Kafka ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson,
+    libraryDependencies ++= Library.fs2 ++ Library.fs2Kafka ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson ++ Library.sprayJson,
     //dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)
@@ -271,7 +270,7 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges                             // pushes into upstream, also checks that an upstream branch is properly configured
 )
 
-ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-2.12/TSP_v${version.value}.jar"))
+ghreleaseAssets := Seq(file(s"./mainRunner/target/scala-3/TSP_v${version.value}.jar"))
 
 githubRelease := githubRelease.dependsOn(assembly in mainRunner).evaluated
 

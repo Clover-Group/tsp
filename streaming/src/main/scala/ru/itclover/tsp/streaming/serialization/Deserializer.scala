@@ -10,7 +10,7 @@ trait Deserializer {
   def deserialize(data: Array[Byte]): Either[Throwable, Row]
 }
 
-case class JsonDeserializer(fields: Seq[(Symbol, Class[_])]) extends Deserializer {
+case class JsonDeserializer(fields: Seq[(String, Class[_])]) extends Deserializer {
   override def deserialize(data: Array[Byte]): Either[Throwable, Row] = {
     val mapper = new ObjectMapper
     Try(mapper.readTree(data)).toEither.flatMap {
@@ -18,7 +18,7 @@ case class JsonDeserializer(fields: Seq[(Symbol, Class[_])]) extends Deserialize
         val row = new Row(fields.length)
         fields.zipWithIndex.foreach {
           case (field, idx) =>
-            val node = objectNode.get(field._1.name)
+            val node = objectNode.get(field._1)
             val value: Any = field._2 match {
               case c if c.isAssignableFrom(classOf[Byte])   => node.shortValue
               case c if c.isAssignableFrom(classOf[Short])  => node.shortValue

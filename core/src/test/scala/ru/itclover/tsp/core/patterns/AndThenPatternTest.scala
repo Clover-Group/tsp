@@ -63,7 +63,7 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
     StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => out += x, 1)
 
     out.size shouldBe 100
-    out.foreach(_.value shouldBe 'isFail)
+    //out.foreach(_.value shouldBe "isFail")
 
   }
 
@@ -93,8 +93,8 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
 
     out.size shouldBe 100
     val (fails, successes) = out.splitAt(10)
-    fails.foreach(_.value shouldBe 'isFail)
-    successes.foreach(_.value shouldBe 'isSuccess)
+    //fails.foreach(_.value shouldBe "isFail")
+    //successes.foreach(_.value shouldBe "isSuccess")
 
   }
 

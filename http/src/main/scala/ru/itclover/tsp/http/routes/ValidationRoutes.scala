@@ -1,10 +1,12 @@
 package ru.itclover.tsp.http.routes
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import cats.data.Reader
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.dsl.{PatternsValidator, PatternsValidatorConf}
 import ru.itclover.tsp.http.protocols.{PatternsValidatorProtocols, RoutesProtocols, ValidationResult}
+import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -20,7 +22,7 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
     entity(as[PatternsValidatorConf]) { request =>
       val patterns: Seq[RawPattern] = request.patterns
       val fields: Map[String, String] = request.fields
-      val res = PatternsValidator.validate[Nothing](patterns, fields)
+      val res = PatternsValidator.validate[Nothing](patterns, fields)()
       val result = res.map { x =>
         x._2 match {
           case Right(success) =>
@@ -29,7 +31,7 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
             ValidationResult(pattern = x._1, success = false, context = error.toString)
         }
       }
-      complete(result)
+      complete(result.toJson)
     }
   }
 }

@@ -17,11 +17,11 @@ class FootprintBench extends AnyFlatSpec with Matchers {
   import TestEvents._
 
   val fieldsClasses = Map(
-    'intSensor     -> ClassTag.Int,
-    'longSensor    -> ClassTag.Long,
-    'boolSensor    -> ClassTag.Boolean,
-    'doubleSensor1 -> ClassTag.Double,
-    'doubleSensor2 -> ClassTag.Double
+    "intSensor"     -> ClassTag.Int,
+    "longSensor"    -> ClassTag.Long,
+    "boolSensor"    -> ClassTag.Boolean,
+    "doubleSensor1" -> ClassTag.Double,
+    "doubleSensor2" -> ClassTag.Double
   )
 
   def process[T, S](pattern: Pattern[TestEvent, S, T], events: Seq[TestEvent]): Long = {
@@ -42,8 +42,9 @@ class FootprintBench extends AnyFlatSpec with Matchers {
   }
 
   it should "benchmark" in {
+    given Conversion[String, String] = _.toString
 
-    val gen = new ASTPatternGenerator[TestEvent, Symbol, Any]
+    val gen = new ASTPatternGenerator[TestEvent, String, Any]
 
     val patternString = gen
       .build(

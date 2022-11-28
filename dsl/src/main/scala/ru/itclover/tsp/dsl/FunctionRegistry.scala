@@ -7,14 +7,11 @@ import ru.itclover.tsp.core.{Fail, Result, Succ}
 import scala.reflect.ClassTag
 import scala.util.Try
 
-@SerialVersionUID(81001L)
-trait PFunction extends (Seq[Result[Any]] => Result[Any]) with Serializable
+type PFunction = (Seq[Result[Any]] => Result[Any]) 
 
-@SerialVersionUID(81002L)
-trait PReducer extends ((Result[Any], Any) => Result[Any]) with Serializable
+type PReducer = ((Result[Any], Any) => Result[Any])
 
-@SerialVersionUID(81003L)
-trait PReducerTransformation extends (Result[Any] => Result[Any]) with Serializable
+type PReducerTransformation = (Result[Any] => Result[Any])
 
 /**
   * Registry for runtime functions
@@ -24,14 +21,14 @@ trait PReducerTransformation extends (Result[Any] => Result[Any]) with Serializa
   * @param reducers Reducer functions, their return types and initial values
   */
 @SuppressWarnings(Array("org.wartremover.warts.Serializable"))
-case class FunctionRegistry(
-  @transient functions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)],
-  @transient reducers: Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)]
+class FunctionRegistry(
+  @transient val functions: Map[(String, Seq[ASTType]), (PFunction, ASTType)],
+  @transient val reducers: Map[(String, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)]
 ) {
 
   def ++(other: FunctionRegistry) = FunctionRegistry(functions ++ other.functions, reducers ++ other.reducers)
 
-  def findBestFunctionMatch(name: Symbol, types: Seq[ASTType]): Option[((PFunction, ASTType), Long)] =
+  def findBestFunctionMatch(name: String, types: Seq[ASTType]): Option[((PFunction, ASTType), Long)] =
     functions
       .filterKeys {
         case (n, t) => n == name && t.length == types.length
@@ -116,8 +113,8 @@ object DefaultFunctions extends LazyLogging {
 
   def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
     implicit f: Fractional[T1],
-    conv: T2 => T1
-  ): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+    conv: Conversion[T2, T1]
+  ): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType1: ASTType = ASTType.of[T1]
     val astType2: ASTType = ASTType.of[T2]
     def func(f: (T1, T2) => T1): (PFunction, ASTType) = (
@@ -129,9 +126,9 @@ object DefaultFunctions extends LazyLogging {
       astType1
     )
     Map(
-      ('add, Seq(astType1, astType2)) -> func(f.plus(_, _)),
-      ('sub, Seq(astType1, astType2)) -> func(f.minus(_, _)),
-      ('mul, Seq(astType1, astType2)) -> (
+      ("add", Seq(astType1, astType2)) -> func(f.plus(_, _)),
+      ("sub", Seq(astType1, astType2)) -> func(f.minus(_, _)),
+      ("mul", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -141,7 +138,7 @@ object DefaultFunctions extends LazyLogging {
           astType1
         )
       ),
-      ('div, Seq(astType1, astType2)) -> (
+      ("div", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -151,7 +148,7 @@ object DefaultFunctions extends LazyLogging {
           astType1
         )
       ),
-      ('add, Seq(astType2, astType1)) -> (
+      ("add", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -161,7 +158,7 @@ object DefaultFunctions extends LazyLogging {
           astType1
         )
       ),
-      ('sub, Seq(astType2, astType1)) -> (
+      ("sub", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -171,7 +168,7 @@ object DefaultFunctions extends LazyLogging {
           astType1
         )
       ),
-      ('mul, Seq(astType2, astType1)) -> (
+      ("mul", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -181,7 +178,7 @@ object DefaultFunctions extends LazyLogging {
           astType1
         )
       ),
-      ('div, Seq(astType2, astType1)) -> (
+      ("div", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -194,82 +191,82 @@ object DefaultFunctions extends LazyLogging {
     )
   }
 
-  def mathFunctions[T: ClassTag](implicit conv: T => Double): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+  def mathFunctions[T: ClassTag](implicit conv: Conversion[T, Double]): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType = ASTType.of[T]
     Map(
-      ('abs, Seq(astType)) -> (
+      ("abs", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.abs(_)),
           astType
         )
       ),
-      ('sin, Seq(astType)) -> (
+      ("sin", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.sin(_)),
           astType
         )
       ),
-      ('cos, Seq(astType)) -> (
+      ("cos", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.cos(_)),
           astType
         )
       ),
-      ('tan, Seq(astType)) -> (
+      ("tan", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
           astType
         )
       ),
-      ('tg, Seq(astType)) -> (
+      ("tg", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(Math.tan(_)),
           astType
         )
       ),
-      ('cot, Seq(astType)) -> (
+      ("cot", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
           astType
         )
       ),
-      ('ctg, Seq(astType)) -> (
+      ("ctg", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(1.0 / Math.tan(_)),
           astType
         )
       ),
-      ('sind, Seq(astType)) -> (
+      ("sind", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.sin(Math.toRadians(x))),
           astType
         )
       ),
-      ('cosd, Seq(astType)) -> (
+      ("cosd", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.cos(Math.toRadians(x))),
           astType
         )
       ),
-      ('tand, Seq(astType)) -> (
+      ("tand", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
-      ('tgd, Seq(astType)) -> (
+      ("tgd", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => Math.tan(Math.toRadians(x))),
           astType
         )
       ),
-      ('cotd, Seq(astType)) -> (
+      ("cotd", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
         )
       ),
-      ('ctgd, Seq(astType)) -> (
+      ("ctgd", Seq(astType)) -> (
         (
           (xs: Seq[Any]) => toResult[T](xs(0)).map(x => 1.0 / Math.tan(Math.toRadians(x))),
           astType
@@ -278,12 +275,12 @@ object DefaultFunctions extends LazyLogging {
     )
   }
 
-  def logicalFunctions: Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+  def logicalFunctions: Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     // TSP-182 - Workaround for correct type inference
 
     val btype = BooleanASTType
 
-    def func(sym: Symbol, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] = {
+    def func(sym: String, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] = {
 
       //log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
       //log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
@@ -292,23 +289,23 @@ object DefaultFunctions extends LazyLogging {
         case (Succ(x0), Succ(x1)) =>
           sym match {
 
-            case 'and => Result.succ(l.and(x0, x1))
-            case 'or  => Result.succ(l.or(x0, x1))
-            case 'xor => Result.succ(l.xor(x0, x1))
-            case 'eq  => Result.succ(l.eq(x0, x1))
-            case 'neq => Result.succ(l.neq(x0, x1))
-            case _    => Result.fail
+            case "and" => Result.succ(l.and(x0, x1))
+            case "or"  => Result.succ(l.or(x0, x1))
+            case "xor" => Result.succ(l.xor(x0, x1))
+            case "eq"  => Result.succ(l.eq(x0, x1))
+            case "neq" => Result.succ(l.neq(x0, x1))
+            case _     => Result.fail
           }
         case (Succ(x0), Fail) =>
           sym match {
-            case 'not => Result.succ(l.not(x0))
-            case 'or  => Result.succ(x0)
-            case _    => Result.fail
+            case "not" => Result.succ(l.not(x0))
+            case "or"  => Result.succ(x0)
+            case _     => Result.fail
           }
         case (Fail, Succ(x1)) =>
           sym match {
-            case 'or => Result.succ(x1)
-            case _   => Result.fail
+            case "or" => Result.succ(x1)
+            case _    => Result.fail
           }
         case _ => Result.fail
       }
@@ -317,23 +314,23 @@ object DefaultFunctions extends LazyLogging {
     Map(
       //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
       //('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] || _.asInstanceOf[Boolean]}, btype)),
-      ('and, Seq(btype, btype)) -> (((xs: Seq[Any]) => func('and, xs), btype)),
-      ('or, Seq(btype, btype))  -> (((xs: Seq[Any]) => func('or, xs), btype)),
-      ('xor, Seq(btype, btype)) -> (((xs: Seq[Any]) => func('xor, xs), btype)),
-      ('eq, Seq(btype, btype))  -> (((xs: Seq[Any]) => func('eq, xs), btype)),
-      ('neq, Seq(btype, btype)) -> (((xs: Seq[Any]) => func('neq, xs), btype)),
-      ('not, Seq(btype))        -> (((xs: Seq[Any]) => func('not, xs), btype))
+      ("and", Seq(btype, btype)) -> (((xs: Seq[Any]) => func("and", xs), btype)),
+      ("or", Seq(btype, btype))  -> (((xs: Seq[Any]) => func("or", xs), btype)),
+      ("xor", Seq(btype, btype)) -> (((xs: Seq[Any]) => func("xor", xs), btype)),
+      ("eq", Seq(btype, btype))  -> (((xs: Seq[Any]) => func("eq", xs), btype)),
+      ("neq", Seq(btype, btype)) -> (((xs: Seq[Any]) => func("neq", xs), btype)),
+      ("not", Seq(btype))        -> (((xs: Seq[Any]) => func("not", xs), btype))
     )
   }
 
   def comparingFunctions[T1: ClassTag, T2: ClassTag](
     implicit ord: Ordering[T1],
-    conv: T2 => T1
-  ): Map[(Symbol, Seq[ASTType]), (PFunction, ASTType)] = {
+    conv: Conversion[T2, T1]
+  ): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType1: ASTType = ASTType.of[T1]
     val astType2: ASTType = ASTType.of[T2]
     Map(
-      ('lt, Seq(astType1, astType2)) -> (
+      ("lt", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -343,7 +340,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('le, Seq(astType1, astType2)) -> (
+      ("le", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -353,7 +350,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('gt, Seq(astType1, astType2)) -> (
+      ("gt", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -363,7 +360,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('ge, Seq(astType1, astType2)) -> (
+      ("ge", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -373,7 +370,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('eq, Seq(astType1, astType2)) -> (
+      ("eq", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -383,7 +380,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('ne, Seq(astType1, astType2)) -> (
+      ("ne", Seq(astType1, astType2)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T1](xs(0)), toResult[T2](xs(1))) match {
@@ -393,7 +390,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('lt, Seq(astType2, astType1)) -> (
+      ("lt", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -403,7 +400,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('le, Seq(astType2, astType1)) -> (
+      ("le", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -413,7 +410,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('gt, Seq(astType2, astType1)) -> (
+      ("gt", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -423,7 +420,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('ge, Seq(astType2, astType1)) -> (
+      ("ge", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -433,7 +430,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('eq, Seq(astType2, astType1)) -> (
+      ("eq", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -443,7 +440,7 @@ object DefaultFunctions extends LazyLogging {
           BooleanASTType
         )
       ),
-      ('ne, Seq(astType2, astType1)) -> (
+      ("ne", Seq(astType2, astType1)) -> (
         (
           (xs: Seq[Any]) =>
             (toResult[T2](xs(0)), toResult[T1](xs(1))) match {
@@ -457,9 +454,9 @@ object DefaultFunctions extends LazyLogging {
   }
 
   def reducers[T: ClassTag](
-    // implicit conv: T => Double
-  ): Map[(Symbol, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
-    ('sumof, DoubleASTType) -> (
+    implicit conv: Conversion[T, Double]
+  ): Map[(String, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
+    ("sumof", DoubleASTType) -> (
       (
         { (acc: Result[Any], x: Any) =>
           (toResult[Double](acc), toResult[Double](x)) match {
@@ -473,7 +470,7 @@ object DefaultFunctions extends LazyLogging {
         java.lang.Double.valueOf(0)
       )
     ),
-    ('minof, DoubleASTType) -> (
+    ("minof", DoubleASTType) -> (
       (
         { (acc: Result[Any], x: Any) =>
           (toResult[Double](acc), toResult[Double](x)) match {
@@ -487,7 +484,7 @@ object DefaultFunctions extends LazyLogging {
         java.lang.Double.valueOf(Double.MaxValue)
       )
     ),
-    ('maxof, DoubleASTType) -> (
+    ("maxof", DoubleASTType) -> (
       (
         { (acc: Result[Any], x: Any) =>
           (toResult[Double](acc), toResult[Double](x)) match {
@@ -501,7 +498,7 @@ object DefaultFunctions extends LazyLogging {
         java.lang.Double.valueOf(Double.MinValue)
       )
     ),
-    ('countof, DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
+    ("countof", DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
       (toResult[Double](acc), toResult[Double](x)) match {
         case (Succ(da), Succ(_)) => Result.succ(da + 1)
         case _                   => Result.fail
@@ -509,7 +506,7 @@ object DefaultFunctions extends LazyLogging {
     }, DoubleASTType, {
       identity(_)
     }, java.lang.Double.valueOf(0))),
-    ('avgof, DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
+    ("avgof", DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
       (toResult[(Double, Double)](acc), toResult[Double](x)) match {
         case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))
         case _                              => Result.fail
@@ -558,9 +555,18 @@ object DefaultFunctions extends LazyLogging {
 
 import ru.itclover.tsp.dsl.DefaultFunctions._
 
-object DefaultFunctionRegistry
-    extends FunctionRegistry(
-      functions = arithmeticFunctions[Int, Int] ++
+
+
+object DefaultFunctionRegistry {
+  given Conversion[Int, Int] = _.toInt
+  given Conversion[Int, Long] = _.toLong
+  given Conversion[Long, Long] = _.toLong
+  given Conversion[Int, Double] = _.toDouble
+  given Conversion[Long, Double] = _.toDouble
+  given Conversion[Double, Double] = _.toDouble
+  given Conversion[String, String] = _.toString
+
+  val defaultFunctions = arithmeticFunctions[Int, Int] ++
         arithmeticFunctions[Long, Long] ++
         arithmeticFunctions[Long, Int] ++
         arithmeticFunctions[Double, Double] ++
@@ -575,6 +581,10 @@ object DefaultFunctionRegistry
         comparingFunctions[Double, Double] ++
         comparingFunctions[Double, Long] ++
         comparingFunctions[Double, Int] ++
-        comparingFunctions[String, String],
-      reducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
-    )
+        comparingFunctions[String, String]
+
+  val defaultReducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
+
+  val registry = FunctionRegistry(functions = defaultFunctions, reducers = defaultReducers)
+}
+

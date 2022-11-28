@@ -55,7 +55,7 @@ case class JDBCOutputConf(
   )
 
   def insertQuery(data: Row): ConnectionIO[Int] = {
-    val fields = rowSchema.fieldsNames.map(_.name).mkString(", ")
+    val fields = rowSchema.fieldsNames.mkString(", ")
     (
       fr"""insert into """
       ++ Fragment.const(s"$tableName ($fields)")
@@ -118,7 +118,7 @@ case class JDBCOutputConf(
 //  * "Empty" sink (for example, used if one need only to report timings)
 //  */
 //case class EmptyOutputConf() extends OutputConf[Row] {
-//  override def forwardedFieldsIds: Seq[Symbol] = Seq()
+//  override def forwardedFieldsIds: Seq[String] = Seq()
 //  override def getOutputFormat: OutputFormat[Row] = ???
 //  override def parallelism: Option[Int] = Some(1)
 //}
@@ -168,7 +168,7 @@ case class KafkaOutputConf(
       case newRowSchema: NewRowSchema =>
         newRowSchema.data.foreach {
           case (k, v) =>
-            putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(Symbol(k))))
+            putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(String(k))))
         }
     }
 

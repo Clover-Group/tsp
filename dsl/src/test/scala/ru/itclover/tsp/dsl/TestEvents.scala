@@ -22,16 +22,16 @@ object TestEvents {
 
   // Can extract null.
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  implicit val extractor: Extractor[TestEvent, Symbol, Any] = new Extractor[TestEvent, Symbol, Any] {
-    override def apply[T](e: TestEvent, k: Symbol)(
+  implicit val extractor: Extractor[TestEvent, String, Any] = new Extractor[TestEvent, String, Any] {
+    override def apply[T](e: TestEvent, k: String)(
       implicit d: Decoder[Any, T]
     ): T = d(k match {
-      case 'intSensor     => e.intSensor
-      case 'longSensor    => e.longSensor
-      case 'boolSensor    => e.boolSensor
-      case 'doubleSensor1 => e.doubleSensor1
-      case 'doubleSensor2 => e.doubleSensor2
-      case _              => null
+      case "intSensor"     => e.intSensor
+      case "longSensor"    => e.longSensor
+      case "boolSensor"    => e.boolSensor
+      case "doubleSensor1" => e.doubleSensor1
+      case "doubleSensor2" => e.doubleSensor2
+      case _               => null
     })
   }
 }

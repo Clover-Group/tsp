@@ -1,6 +1,7 @@
 package ru.itclover.tsp.http.routes
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes.PermanentRedirect
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -13,6 +14,7 @@ import ru.itclover.tsp.core.io.AnyDecodersInstances
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -21,7 +23,7 @@ trait JobsRoutes extends RoutesProtocols {
   val blockingExecutionContext: ExecutionContextExecutor
   implicit val actorSystem: ActorSystem
   implicit val materializer: Materializer
-  implicit val decoders = AnyDecodersInstances
+  implicit val decoders: AnyDecodersInstances.type = AnyDecodersInstances
 
   val queueManager: QueueManagerService
 
@@ -29,21 +31,22 @@ trait JobsRoutes extends RoutesProtocols {
 
   val route: Route =
     path("job" / "submit"./) {
-      entity(as[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]]) { request =>
+      entity(as[FindPatternsRequest[RowWithIdx, String, Any, Row]]) { request =>
         queueManager.enqueue(request)
-        complete(Map("status" -> s"Job ${request.uuid} enqueued."))
+        complete(Map("status" -> s"Job ${request.uuid} enqueued.").toJson(propertyFormat))
       }
     } ~
     path("queue" / "show") {
       complete(
         queueManager.queueAsScalaSeq
-          .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, Symbol, Any, Row]])
+          .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
           .toList
+          .toJson
       )
     } ~
     path("queue" / Segment / "remove") { uuid =>
       queueManager.removeFromQueue(uuid) match {
-        case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue."))
+        case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue.").toJson(propertyFormat))
         case None     => redirect(s"/job/$uuid/stop", PermanentRedirect)
       }
     }

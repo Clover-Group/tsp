@@ -68,11 +68,11 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
     }
   }
 
-  implicit val decodeToString: Decoder[Any, String] = Decoder { x: Any =>
+  implicit val decodeToString: Decoder[Any, String] = Decoder { (x: Any) =>
     if (x != null) x.toString else "[NULL]"
   }
 
-  implicit val decodeToAny: Decoder[Any, Any] = Decoder { x: Any =>
+  implicit val decodeToAny: Decoder[Any, Any] = Decoder { (x: Any) =>
     x
   }
 
@@ -83,16 +83,16 @@ object AnyDecodersInstances extends BasicDecoders[Any] with Serializable {
 
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 object DoubleDecoderInstances extends BasicDecoders[Double] {
-  implicit override def decodeToDouble: Decoder[Double, Double] = Decoder { d: Double =>
+  implicit override def decodeToDouble: Decoder[Double, Double] = Decoder { (d: Double) =>
     d
   }
-  implicit override def decodeToInt: Decoder[Double, Int] = Decoder { d: Double =>
+  implicit override def decodeToInt: Decoder[Double, Int] = Decoder { (d: Double) =>
     d.toInt
   }
-  implicit override def decodeToString: Decoder[Double, String] = Decoder { d: Double =>
+  implicit override def decodeToString: Decoder[Double, String] = Decoder { (d: Double) =>
     d.toString
   }
-  implicit override def decodeToAny: Decoder[Double, Any] = Decoder { d: Double =>
+  implicit override def decodeToAny: Decoder[Double, Any] = Decoder { (d: Double) =>
     d
   }
 }

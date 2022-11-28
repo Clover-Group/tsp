@@ -28,7 +28,7 @@ case class Constant[T](value: T)(implicit ct: ClassTag[T]) extends AST {
   override val valueType: ASTType = ASTType.of[T]
 }
 
-case class Identifier(value: Symbol, tag: ClassTag[_]) extends AST {
+case class Identifier(value: String, tag: ClassTag[_]) extends AST {
   override def metadata = PatternMetadata(Set(value), 0L)
 
   override val valueType: ASTType = ASTType.of(tag)
@@ -42,7 +42,7 @@ case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
 
 // Can throw ParseException upon validation. Maybe should return Either instead.
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: FunctionRegistry) extends AST {
+case class FunctionCall(functionName: String, arguments: Seq[AST])(implicit fr: FunctionRegistry) extends AST {
   override def metadata = arguments.map(_.metadata).reduceOption(_ |+| _).getOrElse(PatternMetadata(Set.empty, 0L))
   override val valueType: ASTType = fr.functions.get((functionName, arguments.map(_.valueType))) match {
     case Some((_, t)) => t
@@ -67,7 +67,7 @@ case class FunctionCall(functionName: Symbol, arguments: Seq[AST])(implicit fr: 
 // Can throw ParseException upon validation. Maybe should return Either instead.
 // Result in cond may be Any.
 @SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.Any"))
-case class ReducerFunctionCall(functionName: Symbol, @transient cond: Result[Any] => Boolean, arguments: Seq[AST])(
+case class ReducerFunctionCall(functionName: String, @transient cond: Result[Any] => Boolean, arguments: Seq[AST])(
   implicit fr: FunctionRegistry
 ) extends AST {
   // require the same type for all arguments
@@ -157,11 +157,11 @@ case object Lag extends AggregateFn
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
 object AggregateFn {
 
-  def fromSymbol(name: Symbol): AggregateFn = name match {
-    case 'sum   => Sum
-    case 'count => Count
-    case 'avg   => Avg
-    case 'lag   => Lag
+  def fromSymbol(name: String): AggregateFn = name match {
+    case "sum"   => Sum
+    case "count" => Count
+    case "avg"   => Avg
+    case "lag"   => Lag
     case _      => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
   }
 }

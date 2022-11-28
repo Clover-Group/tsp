@@ -10,8 +10,10 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 object PatternFieldExtractor {
 
   def extract[E, EKey, EItem](patterns: Seq[RawPattern])(
-    implicit fieldToEKey: Symbol => EKey
+    implicit fieldToEKey: String => EKey
   ): Set[EKey] = {
+    given Conversion[String, EKey] = fieldToEKey(_)
+
     val dummyTimeExtractor = new TimeExtractor[E] {
       override def apply(e: E): Time = Time(0)
     }
@@ -31,7 +33,7 @@ object PatternFieldExtractor {
       dummyIdxExtractor,
       dummyTimeExtractor,
       dummyExtractor,
-      fieldToEKey
+      implicitly[Conversion[String, EKey]]
     )
     patterns
       .map { p =>

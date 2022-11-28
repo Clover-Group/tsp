@@ -9,7 +9,7 @@ trait Pat[Event, +T]
 object Pat {
   val logger = Logger("Pat")
 
-  def unapply[E, _, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
+  def unapply[E, T](arg: Pat[E, T]): Option[Pattern[E, _, T]] = arg match {
     case x: Pattern[E, _, T] => Some(x)
     case _ =>
       sys.error(s"$arg is not a pattern")

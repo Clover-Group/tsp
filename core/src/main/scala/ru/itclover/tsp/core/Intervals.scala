@@ -15,9 +15,9 @@ object Intervals {
   /** ADT for checking position of item relative to interval */
   sealed trait IntervalPosition extends Product with Serializable
 
-  final case object LessThanBegin extends IntervalPosition
-  final case object GreaterThanEnd extends IntervalPosition
-  final case object Inside extends IntervalPosition
+  case object LessThanBegin extends IntervalPosition
+  case object GreaterThanEnd extends IntervalPosition
+  case object Inside extends IntervalPosition
 
   /** Inclusive-exclusive interval of time */
   case class TimeInterval(min: Long, max: Long) extends Interval[Long] {

@@ -19,9 +19,10 @@ trait SqlMatchers extends Matchers {
   // Here, default argument for `epsilon` is useful.
   @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def checkByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(
-    implicit container: JDBCContainer
+    implicit container: ClickHouseContainerWithNewDriver
   ): Assertion = {
-    val resultSet = container.executeQuery(query)
+    val con = container.container.createConnection("")
+    val resultSet = con.prepareStatement(query).executeQuery()
     val columnCount = resultSet.getMetaData.getColumnCount
     val results = new Iterator[List[Double]] {
       override def hasNext: Boolean = resultSet.next

@@ -21,9 +21,9 @@ object PatternsValidator {
 
   // This method may use Any values.
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
-  def toClassTags(fields: Map[String, String]): Map[Symbol, ClassTag[_]] = fields.map {
+  def toClassTags(fields: Map[String, String]): Map[String, ClassTag[_]] = fields.map {
     case (name, dataType) =>
-      Symbol(name) -> (dataType match {
+      name -> (dataType match {
         case "float64" => ClassTag.Double
         case "float32" => ClassTag.Float
         case "int64"   => ClassTag.Long

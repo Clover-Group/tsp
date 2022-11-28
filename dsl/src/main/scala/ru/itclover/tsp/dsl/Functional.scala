@@ -8,11 +8,11 @@ abstract class ArrMap[F[_, _], A, B] extends Arrow[F] {
 }
 
 // Logical Functions Typeclass
-abstract class TLogical extends ArrMap[Map, (Symbol, Seq[ASTType]), (PFunction, ASTType)]
+abstract class TLogical extends ArrMap[Map, (String, Seq[ASTType]), (PFunction, ASTType)]
 
 final object TLogical {
 
-  type A = (Symbol, Seq[ASTType])
+  type A = (String, Seq[ASTType])
   type B = (PFunction, ASTType)
 
   def eval(a: A, b: B): Map[A, B] = Map(a -> b)

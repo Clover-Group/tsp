@@ -28,9 +28,9 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 
   def conf: InputConf[Event, EKey, EItem]
 
-  def fieldsClasses: Seq[(Symbol, Class[_])]
+  def fieldsClasses: Seq[(String, Class[_])]
 
-  def transformedFieldsClasses: Seq[(Symbol, Class[_])] = conf.dataTransformation match {
+  def transformedFieldsClasses: Seq[(String, Class[_])] = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(_, _, _, mapping, _)) =>
       val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
       val r = fieldsClasses ++ m.map {
@@ -60,13 +60,13 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
       classOf[Double]
   }
 
-  def fieldToEKey: Symbol => EKey
+  def fieldToEKey: String => EKey
 
-  def eKeyToField: EKey => Symbol
+  def eKeyToField: EKey => String
 
-  def fieldsIdxMap: Map[Symbol, Int]
+  def fieldsIdxMap: Map[String, Int]
 
-  def transformedFieldsIdxMap: Map[Symbol, Int]
+  def transformedFieldsIdxMap: Map[String, Int]
 
   def partitioner: Event => String
 
@@ -120,7 +120,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
 object StreamSource {
   type Row = Array[AnyRef]
 
-  def findNullField(allFields: Seq[Symbol], excludedFields: Seq[Symbol]) =
+  def findNullField(allFields: Seq[String], excludedFields: Seq[String]) =
     allFields.find { field =>
       !excludedFields.contains(field)
     }
@@ -132,7 +132,7 @@ case class RowWithIdx(idx: Idx, row: Row)
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 object JdbcSource {
 
-  def create(conf: JDBCInputConf, fields: Set[Symbol]): Either[Err, JdbcSource] =
+  def create(conf: JDBCInputConf, fields: Set[String]): Either[Err, JdbcSource] =
     for {
       types <- JdbcService
         .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
@@ -145,7 +145,7 @@ object JdbcSource {
       }
     } yield source
 
-  def checkKeysExistence(conf: JDBCInputConf, keys: Set[Symbol]): Either[GenericRuntimeErr, Set[Symbol]] =
+  def checkKeysExistence(conf: JDBCInputConf, keys: Set[String]): Either[GenericRuntimeErr, Set[String]] =
     conf.dataTransformation match {
       case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
         JdbcService
@@ -162,12 +162,14 @@ object JdbcSource {
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class JdbcSource(
   conf: JDBCInputConf,
-  fieldsClasses: Seq[(Symbol, Class[_])],
-  nullFieldId: Symbol,
-  patternFields: Set[Symbol]
-) extends StreamSource[RowWithIdx, Symbol, Any] {
+  fieldsClasses: Seq[(String, Class[_])],
+  nullFieldId: String,
+  patternFields: Set[String]
+) extends StreamSource[RowWithIdx, String, Any] {
 
   import conf._
+
+  println(s"*** JDBC DRIVER NAME: ${conf.driverName} ***")
 
   val stageName = "JDBC input processing stage"
   val log = Logger[JdbcSource]
@@ -183,7 +185,7 @@ case class JdbcSource(
     .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
     .flatten
     .map(p => fieldsClasses(p)._1)
-  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse('unknown)}), index overflow.")
+  require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse("unknown")}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
   val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
@@ -246,23 +248,23 @@ case class JdbcSource(
       .map { case (r, i) => RowWithIdx(i + 1, r) }
       .transact(transactor)
 
-  override def fieldToEKey = { fieldId: Symbol =>
+  override def fieldToEKey = { (fieldId: String) =>
     fieldId
   // fieldsIdxMap(fieldId)
   }
 
-  override def eKeyToField: Symbol => Symbol = { key: Symbol =>
+  override def eKeyToField: String => String = { (key: String) =>
     key
   }
 
   override def partitioner: RowWithIdx => String = {
     val serializablePI = partitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.apply).mkString
+    (event: RowWithIdx) => serializablePI.map(event.row.apply).mkString
   }
 
   override def transformedPartitioner: RowWithIdx => String = {
     val serializablePI = transformedPartitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.apply).mkString
+    (event: RowWithIdx) => serializablePI.map(event.row.apply).mkString
   }
 
   def tsMultiplier = timestampMultiplier.getOrElse {
@@ -278,16 +280,16 @@ case class JdbcSource(
 
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
-  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+  implicit override def eventCreator: EventCreator[RowWithIdx, String] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
-  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+  implicit override def keyCreator: KeyCreator[String] = KeyCreatorInstances.symbolKeyCreator
 
-  implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+  implicit override def itemToKeyDecoder: Decoder[Any, String] = (x: Any) => x.toString
 
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+  override def transformedFieldsIdxMap: Map[String, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+      val acc = SparseRowsDataAccumulator[RowWithIdx, String, Any, RowWithIdx](this, patternFields)(
         timeExtractor,
         kvExtractor,
         extractor,
@@ -312,7 +314,7 @@ object KafkaSource {
 
   val log = Logger[KafkaSource]
 
-  def create(conf: KafkaInputConf, fields: Set[Symbol]): Either[ConfigErr, KafkaSource] =
+  def create(conf: KafkaInputConf, fields: Set[String]): Either[ConfigErr, KafkaSource] =
     for {
       types <- KafkaService
         .fetchFieldsTypesInfo(conf)
@@ -331,19 +333,19 @@ object KafkaSource {
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 case class KafkaSource(
   conf: KafkaInputConf,
-  fieldsClasses: Seq[(Symbol, Class[_])],
-  nullFieldId: Symbol,
-  patternFields: Set[Symbol]
-) extends StreamSource[RowWithIdx, Symbol, Any] {
+  fieldsClasses: Seq[(String, Class[_])],
+  nullFieldId: String,
+  patternFields: Set[String]
+) extends StreamSource[RowWithIdx, String, Any] {
 
   val log = Logger[KafkaSource]
 
   def fieldsIdx = fieldsClasses.map(_._1).zipWithIndex
   def fieldsIdxMap = fieldsIdx.toMap
 
-  override def fieldToEKey: Symbol => Symbol = (x => x)
+  override def fieldToEKey: String => String = (x => x)
 
-  override def eKeyToField: Symbol => Symbol = (key: Symbol) => key
+  override def eKeyToField: String => String = (key: String) => key
 
   def timeIndex = fieldsIdxMap(conf.datetimeField)
 
@@ -352,7 +354,7 @@ case class KafkaSource(
     1000.0
   }
 
-  implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, Symbol, Any] =
+  implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, String, Any] =
     RowSymbolExtractor(fieldsIdxMap).comap(_.row)
   implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[RowWithIdx] =
     RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
@@ -390,17 +392,17 @@ case class KafkaSource(
 
   def partitioner = {
     val serializablePI = partitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.apply).mkString
+    (event: RowWithIdx) => serializablePI.map(event.row.apply).mkString
   }
 
   def transformedPartitioner = {
     val serializablePI = transformedPartitionsIdx
-    event: RowWithIdx => serializablePI.map(event.row.apply).mkString
+    (event: RowWithIdx) => serializablePI.map(event.row.apply).mkString
   }
 
-  override def transformedFieldsIdxMap: Map[Symbol, Int] = conf.dataTransformation match {
+  override def transformedFieldsIdxMap: Map[String, Int] = conf.dataTransformation match {
     case Some(_) =>
-      val acc = SparseRowsDataAccumulator[RowWithIdx, Symbol, Any, RowWithIdx](this, patternFields)(
+      val acc = SparseRowsDataAccumulator[RowWithIdx, String, Any, RowWithIdx](this, patternFields)(
         timeExtractor,
         kvExtractor,
         extractor,
@@ -417,15 +419,15 @@ case class KafkaSource(
   implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
     RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
 
-  implicit override def transformedExtractor: Extractor[RowWithIdx, Symbol, Any] =
+  implicit override def transformedExtractor: Extractor[RowWithIdx, String, Any] =
     RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
 
-  implicit override def itemToKeyDecoder: Decoder[Any, Symbol] = (x: Any) => Symbol(x.toString)
+  implicit override def itemToKeyDecoder: Decoder[Any, String] = (x: Any) => String(x.toString)
 
-  implicit override def eventCreator: EventCreator[RowWithIdx, Symbol] =
+  implicit override def eventCreator: EventCreator[RowWithIdx, String] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
-  implicit override def keyCreator: KeyCreator[Symbol] = KeyCreatorInstances.symbolKeyCreator
+  implicit override def keyCreator: KeyCreator[String] = KeyCreatorInstances.symbolKeyCreator
   //todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 
