@@ -21,7 +21,7 @@ before_script:
 
   - export PATH="/usr/local/sbt/bin:$PATH"
   - apk update 
-  - apk add ca-certificates wget tar bash openjdk17-jdk git
+  - apk add ca-certificates wget tar bash openjdk17-jdk git bc
   - mkdir -p "/usr/local/sbt" 
   - wget -qO - --no-check-certificate "https://github.com/sbt/sbt/releases/download/v$SBT_VERSION/sbt-$SBT_VERSION.tgz" | tar xz -C /usr/local/sbt --strip-components=1 
   - sbt sbtVersion
@@ -31,6 +31,9 @@ test-coverage:
   stage: test
   script:
     - sbt cov
+    - chmod +x print-coverage.sh
+    - ./print-coverage.sh target/scala-$SCALA_VERSION/coverage-report
+  coverage: /TOTAL_COVERAGE=(\d+.\d+)/
   artifacts:
     when: always
     reports:
