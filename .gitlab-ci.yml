@@ -6,7 +6,7 @@ services:
 
 
 variables:
-  DOCKER_HOST: "tcp://docker:2375"
+  #DOCKER_HOST: "tcp://localhost:2375"
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: "overlay2"
   SCALA_VERSION: "3.2.2-RC1"
