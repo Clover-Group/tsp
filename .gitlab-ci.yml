@@ -1,15 +1,14 @@
 image: docker:20.10
 
-#services:
-#  - name: docker:20.10-dind
-#    command: ["--tls=false"]
+services:
+  - name: docker:20.10-dind
+    command: ["--tls=false"]
 
 
 variables:
   #DOCKER_HOST: "tcp://localhost:2375"
-  #DOCKER_TLS_CERTDIR: ""
-  #DOCKER_DRIVER: "overlay2"
-  TESTCONTAINERS_HOST_OVERRIDE: "host.docker.internal"
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: "overlay2"
   SCALA_VERSION: "3.2.2-RC1"
   SBT_VERSION: "1.8.0"
   TESTCONTAINERS_RYUK_DISABLED: "true"
