@@ -9,7 +9,7 @@ object Version {
 
   val influx = "2.15"
 
-  val clickhouse = "0.3.2"
+  val clickhouse = "0.3.0"
 
   val akka = "2.7.0"
   val akkaHttp = "10.4.0"
@@ -84,7 +84,7 @@ object Library {
     "com.typesafe" % "config" % Version.config
   )
 
-  val clickhouse: Seq[ModuleID] = Seq("com.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
+  val clickhouse: Seq[ModuleID] = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = clickhouse ++ postgre
 

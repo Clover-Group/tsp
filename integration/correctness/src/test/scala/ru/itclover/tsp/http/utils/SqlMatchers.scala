@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.Logger
 import org.scalactic.Equality
 import org.scalatest.Assertion
 import org.scalatest.matchers.should._
+import com.dimafeng.testcontainers.ClickHouseContainer
 
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 // Here we also use `asInstanceOf` methods for type conversion.
@@ -19,7 +20,7 @@ trait SqlMatchers extends Matchers {
   // Here, default argument for `epsilon` is useful.
   @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def checkByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(
-    implicit container: ClickHouseContainerWithNewDriver
+    implicit container: ClickHouseContainer
   ): Assertion = {
     val con = container.container.createConnection("")
     val resultSet = con.prepareStatement(query).executeQuery()

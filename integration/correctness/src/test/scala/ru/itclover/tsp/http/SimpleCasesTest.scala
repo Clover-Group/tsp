@@ -26,7 +26,7 @@ import org.testcontainers.containers.wait.strategy.Wait
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers, ClickHouseContainerWithNewDriver}
+import ru.itclover.tsp.http.utils.{JDBCContainer, SqlMatchers}
 import ru.itclover.tsp.streaming.io.{JDBCInputConf, KafkaInputConf, NarrowDataUnfolding, WideDataFilling}
 import ru.itclover.tsp.streaming.io.{JDBCOutputConf, NewRowSchema}
 import ru.itclover.tsp.streaming.utils.Files
@@ -86,8 +86,8 @@ class SimpleCasesTest
     )
   )*/
   
-  implicit val clickhouseContainer: ClickHouseContainerWithNewDriver 
-    = ClickHouseContainerWithNewDriver("yandex/clickhouse-server:21.7.10.4")
+  implicit val clickhouseContainer: ClickHouseContainer 
+    = ClickHouseContainer("yandex/clickhouse-server:21.7.10.4")
 
   val kafkaContainer = KafkaContainer()
 
