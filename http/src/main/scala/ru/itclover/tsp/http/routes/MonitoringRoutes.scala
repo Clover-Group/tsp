@@ -52,7 +52,7 @@ trait MonitoringRoutes extends RoutesProtocols {
 
   val route: Route = path("job" / Segment / "status") { uuid =>
       CheckpointingService.getCheckpoint(uuid) match {
-        case Some(details) => complete(Map("rowsRead" -> details.readRows, "rowsWritten" -> details.writtenRows).toJson(propertyFormat))
+        case Some(details) => complete(Map("rowsRead" -> details.readRows, "rowsWritten" -> details.writtenRows).toJson(implicitly[JsonWriter[Map[String, Any]]]))
         case None          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
         //case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
       }
