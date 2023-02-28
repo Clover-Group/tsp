@@ -566,6 +566,9 @@ object DefaultFunctionRegistry {
   given Conversion[Double, Double] = _.toDouble
   given Conversion[String, String] = _.toString
 
+  given Ordering[Float] = scala.math.Ordering.Float.IeeeOrdering
+  given Ordering[Double] = scala.math.Ordering.Double.IeeeOrdering
+
   val defaultFunctions = arithmeticFunctions[Int, Int] ++
         arithmeticFunctions[Long, Long] ++
         arithmeticFunctions[Long, Int] ++

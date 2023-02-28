@@ -17,9 +17,10 @@ import ru.itclover.tsp.streaming.io._
 import ru.itclover.tsp.streaming.serialization.JsonDeserializer
 import ru.itclover.tsp.streaming.services.JdbcService
 import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.streaming.utils.{EventCreator, EventCreatorInstances, KeyCreator, KeyCreatorInstances}
+import ru.itclover.tsp.streaming.utils.{EventCreator, EventCreatorInstances, KeyCreator, KeyCreatorInstances, EventPrinter, EventPrinterInstances}
 import ru.itclover.tsp.streaming.utils.ErrorsADT._
 import ru.itclover.tsp.streaming.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
+import ru.itclover.tsp.streaming.utils.EventPrinterInstances
 
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
@@ -113,6 +114,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def eventCreator: EventCreator[Event, EKey]
 
   implicit def keyCreator: KeyCreator[EKey]
+
+  implicit def eventPrinter: EventPrinter[Event]
 
   def patternFields: Set[EKey]
 }
@@ -283,6 +286,8 @@ case class JdbcSource(
   implicit override def eventCreator: EventCreator[RowWithIdx, String] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
 
+  implicit override def eventPrinter: EventPrinter[RowWithIdx] = EventPrinterInstances.rowWithIdxEventPrinter
+
   implicit override def keyCreator: KeyCreator[String] = KeyCreatorInstances.symbolKeyCreator
 
   implicit override def itemToKeyDecoder: Decoder[Any, String] = (x: Any) => x.toString
@@ -294,6 +299,7 @@ case class JdbcSource(
         kvExtractor,
         extractor,
         eventCreator,
+        eventPrinter,
         keyCreator
       )
       acc.allFieldsIndexesMap
@@ -407,6 +413,7 @@ case class KafkaSource(
         kvExtractor,
         extractor,
         eventCreator,
+        eventPrinter,
         keyCreator
       )
       acc.allFieldsIndexesMap
@@ -426,6 +433,8 @@ case class KafkaSource(
 
   implicit override def eventCreator: EventCreator[RowWithIdx, String] =
     EventCreatorInstances.rowWithIdxSymbolEventCreator
+
+  implicit override def eventPrinter: EventPrinter[RowWithIdx] = EventPrinterInstances.rowWithIdxEventPrinter
 
   implicit override def keyCreator: KeyCreator[String] = KeyCreatorInstances.symbolKeyCreator
   //todo refactor everything related to idxExtractor

@@ -87,7 +87,7 @@ class SimpleCasesTest
   )*/
   
   implicit val clickhouseContainer: ClickHouseContainer 
-    = ClickHouseContainer("yandex/clickhouse-server:21.7.10.4")
+    = ClickHouseContainer("clickhouse/clickhouse-server:23.2")
 
   val kafkaContainer = KafkaContainer()
 

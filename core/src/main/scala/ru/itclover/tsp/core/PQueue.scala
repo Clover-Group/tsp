@@ -17,6 +17,8 @@ trait PQueue[T] {
   @inline def clean(): PQueue[T]
 
   def toSeq: Seq[IdxValue[T]]
+
+  override def toString(): String = s"PQueue[${toSeq}]"
 }
 
 object PQueue {

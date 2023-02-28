@@ -6,10 +6,11 @@ import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 import ru.itclover.tsp.streaming.io.{NarrowDataUnfolding, WideDataFilling}
-import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator}
+import ru.itclover.tsp.streaming.utils.{EventCreator, KeyCreator, EventPrinter}
 
 import scala.collection.mutable
 import scala.util.{Success, Try}
+import java.util.concurrent.atomic.AtomicLong
 
 class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
@@ -22,6 +23,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   extractKeyAndVal: InEvent => (InKey, Value),
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
+  eventPrinter: EventPrinter[OutEvent],
   keyCreator: KeyCreator[InKey]
 ) {
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
@@ -39,9 +41,12 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   var lastTimestamp = Time(Long.MinValue)
   var lastEvent: OutEvent = _
+  val counter: AtomicLong = AtomicLong(1)
   // TODO: Timer
 
-  val log = Logger("SparseDataAccumulator")
+  val log = Logger[SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent]]
+
+  log.info(s"Created accumulator with fields map: ${allFieldsIndexesMap}")
 
   def map(item: InEvent): Option[OutEvent] = {
     val time = extractTime(item)
@@ -68,8 +73,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       val value = extractValue(item, name)
       if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
     }
-    val outEvent = eventCreator.create(list.toSeq)
+    val outEvent = eventCreator.create(list.toSeq, counter.get())
     val returnEvent = if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
+      log.debug(s"Returning event: ${eventPrinter.prettyPrint(lastEvent)}")
+      counter.incrementAndGet()
       Some(lastEvent)
     } else {
       None
@@ -99,6 +106,7 @@ object SparseRowsDataAccumulator {
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
     eventCreator: EventCreator[OutEvent, InKey],
+    eventPrinter: EventPrinter[OutEvent],
     keyCreator: KeyCreator[InKey]
   ): SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent] = {
     streamSource.conf.dataTransformation
@@ -126,6 +134,7 @@ object SparseRowsDataAccumulator {
             extractKeyVal,
             extractAny,
             eventCreator,
+            eventPrinter,
             keyCreator
           )
         case wdf: WideDataFilling[InEvent, InKey, _] =>
@@ -153,6 +162,7 @@ object SparseRowsDataAccumulator {
             extractKeyVal,
             extractAny,
             eventCreator,
+            eventPrinter,
             keyCreator
           )
         case _ =>

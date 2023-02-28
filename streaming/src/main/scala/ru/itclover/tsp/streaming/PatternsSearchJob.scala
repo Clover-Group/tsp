@@ -156,7 +156,7 @@ case class PatternsSearchJob[In, InKey, InItem](
 
   def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
     case Some(_) =>
-      import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator}
+      import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator, eventPrinter}
 
       dataStream
         .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))

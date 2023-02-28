@@ -1,4 +1,6 @@
 <configuration>
+    <variable name="ROOT_LOG_LEVEL_TEST" value="${ROOT_LOG_LEVEL_TEST:-info}" />
+    <variable name="TSP_LOG_LEVEL_TEST" value="${ROOT_LOG_LEVEL_TEST:-debug}" />
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <!-- encoders are assigned the type
@@ -10,9 +12,9 @@
 
     <Logger name="org.testcontainers" level="info"/>
     <Logger name="com.github.dockerjava" level="error"/>
-    <Logger name="ru.itclover.tsp" level="info"/>
+    <Logger name="ru.itclover.tsp" level="${TSP_LOG_LEVEL_TEST}"/>
 
-    <root level="warn">
+    <root level="${ROOT_LOG_LEVEL_TEST}">
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

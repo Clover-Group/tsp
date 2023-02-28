@@ -3,12 +3,15 @@ import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.Pattern.IdxExtractor._
+import com.typesafe.scalalogging.Logger
 
 // TODO Rename to FunctionP(attern)?
 /** Simple Pattern */
 trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
   def idxExtractor: IdxExtractor[Event]
   val f: Event => Result[T]
+
+  val log = Logger[SimplePatternLike[Event, T]]
 
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: SimplePState.type,
@@ -35,7 +38,7 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
     }
     // Add last element if exist
     val finalQueue = lastElement.map(t => newQueue.enqueue(t)).getOrElse(newQueue)
-
+    log.debug(s"Received events: ${events}, Emitting: ${finalQueue}")
     Monad[F].pure(SimplePState -> finalQueue)
   }
 
