@@ -86,7 +86,7 @@ case class PatternsSearchJob[In, InKey, InItem](
           source.fieldToEKey(source.conf.unitIdField.get),
           rawP.subunit.getOrElse(0),
           rawP.metadata.getOrElse(Map.empty),
-          if (meta.sumWindowsMs > 0L) meta.sumWindowsMs else source.conf.defaultEventsGapMs.getOrElse(2000L),
+          source.conf.defaultEventsGapMs.getOrElse(2000L),
           source.conf.partitionFields.map(source.fieldToEKey)
         )
 
@@ -182,7 +182,7 @@ object PatternsSearchJob {
   type RichSegmentedP[E] = RichPattern[E, Segment, AnyState[Segment]]
   type RichPattern[E, T, S] = ((Pattern[E, S, T], PatternMetadata), RawPattern)
 
-  val log = Logger("PatternsSearchJob")
+  val log = Logger("ru.itclover.tsp.streaming.PatternsSearchJob")
   def maxPartitionsParallelism = 8192
 
   def preparePatterns[E, S, EKey, EItem](
@@ -253,12 +253,20 @@ object PatternsSearchJob {
                   case Some(p) =>
                     val start = c.segment.from.toMillis - p.segment.to.toMillis > c.maxWindowMs
                     val chunk = if (start) {
+                      log.debug(f"Starting new event series from ${c.segment.from} --- ${c.segment.to}")
                       Chunk((Some(c), true), (None, false))
                     } else {
+                      log.debug(
+                        f"Continuing event series with ${c.segment.from} --- ${c.segment.to}, " +
+                        f"since ${c.segment.from} minus ${p.segment.to} was less than ${c.maxWindowMs} ms"
+                        )
                       Chunk((Some(c), false))
                     }
                     fs2.Stream.chunk(chunk)
-                  case None => fs2.Stream.chunk(Chunk((Some(c), true), (None, false)))
+                  case None => {
+                    log.debug(f"Starting initial event series from ${c.segment.from} --- ${c.segment.to}")
+                    fs2.Stream.chunk(Chunk((Some(c), true), (None, false)))
+                  }
                 }
             }
             .groupAdjacentBy(_._2)
