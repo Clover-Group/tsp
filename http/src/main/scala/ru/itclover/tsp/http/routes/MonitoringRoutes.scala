@@ -12,7 +12,7 @@ import ru.itclover.tsp.BuildInfo
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.domain.output.{FailureResponse, SuccessfulResponse}
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import ru.itclover.tsp.http.services.queuing.JobRunService
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 import ru.itclover.tsp.StreamSource.Row
 import spray.json._
@@ -25,7 +25,7 @@ object MonitoringRoutes {
   private val log = Logger[MonitoringRoutes]
 
   def fromExecutionContext(
-    queueManagerService: QueueManagerService
+    jobRunService: JobRunService
   )(implicit as: ActorSystem, am: Materializer): Reader[ExecutionContextExecutor, Route] = {
 
     log.debug("fromExecutionContext started")
@@ -35,7 +35,7 @@ object MonitoringRoutes {
         implicit override val executionContext = execContext
         implicit override val actors = as
         implicit override val materializer = am
-        implicit override val qm = queueManagerService
+        implicit override val jrs = jobRunService
       }.route
     }
 
@@ -44,7 +44,7 @@ object MonitoringRoutes {
 }
 
 trait MonitoringRoutes extends RoutesProtocols {
-  implicit val qm: QueueManagerService
+  implicit val jrs: JobRunService
 
   implicit val executionContext: ExecutionContextExecutor
   implicit val actors: ActorSystem
@@ -57,7 +57,7 @@ trait MonitoringRoutes extends RoutesProtocols {
         //case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
       }
     } ~ path("job" / Segment / "request") { uuid =>
-      qm.runningJobsRequests.get(uuid) match {
+      jrs.runningJobsRequests.get(uuid) match {
         case Some(r) =>
           complete(
             this
@@ -67,15 +67,15 @@ trait MonitoringRoutes extends RoutesProtocols {
         case None => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
       }
     } ~ path("job" / Segment / "stop") { uuid =>
-      qm.getRunningJobsIds.find(_ == uuid) match {
+      jrs.getRunningJobsIds.find(_ == uuid) match {
         case Some(_) =>
-          qm.stopStream(uuid)
+          jrs.stopStream(uuid)
           complete(Map("message" -> s"Job $uuid stopped.").toJson(propertyFormat))
         case None =>
           complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
       }
     } ~ path("jobs" / "overview") {
-      complete(qm.getRunningJobsIds.toJson)
+      complete(jrs.getRunningJobsIds.toJson)
     } ~
     path("metainfo" / "getVersion") {
       complete(

@@ -1,7 +1,7 @@
 import sbt._
 
 object Version {
-  val logback = "1.4.5"
+  val logback = "1.4.7"
   val scalaLogging = "3.9.5"
   val logbackContrib = "0.1.5"
 
@@ -9,24 +9,24 @@ object Version {
 
   val influx = "2.15"
 
-  val clickhouse = "0.3.0"
+  val clickhouse = "0.4.5"
 
-  val akka = "2.7.0"
-  val akkaHttp = "10.4.0"
+  val akka = "2.8.0"
+  val akkaHttp = "10.5.1"
   val sprayJson = "1.3.6"
 
-  val cats = "3.4.1"
-  val fs2 = "3.4.0"
-  val fs2Kafka = "2.5.0"
+  val cats = "3.4.9"
+  val fs2 = "3.6.1"
+  val fs2Kafka = "3.0.0"
   val doobie = "1.0.0-RC2"
 
-  val scalaTest = "3.2.14"
-  val scalaCheck = "3.2.14.0"
+  val scalaTest = "3.2.15"
+  val scalaCheck = "3.2.15.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.40.11"
-  val testContainersKafka = "1.17.6"
-  val postgres = "42.5.0"
+  val testContainers = "0.40.15"
+  val testContainersKafka = "1.18.0"
+  val postgres = "42.6.0"
 
   val avro = "1.8.2"
 
@@ -34,8 +34,8 @@ object Version {
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.14.1"
-  val jaxb = "4.0.1"
+  val jackson = "2.15.0"
+  val jaxb = "4.0.2"
   val activation = "1.2.0"
 
   val kindProjector = "0.9.8"
@@ -51,12 +51,12 @@ object Version {
 
   val twitterUtil = "6.43.0"
 
-  val jolVersion = "0.16"
+  val jolVersion = "0.17"
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.18.0"
-  val kryoVersion = "5.3.0"
+  val redissonVersion = "3.20.1"
+  val kryoVersion = "5.5.0"
 
   val akkaHttpMetrics = "1.7.1"
 
@@ -84,7 +84,7 @@ object Library {
     "com.typesafe" % "config" % Version.config
   )
 
-  val clickhouse: Seq[ModuleID] = Seq("ru.yandex.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
+  val clickhouse: Seq[ModuleID] = Seq("com.clickhouse" % "clickhouse-jdbc" % Version.clickhouse)
   val postgre: Seq[ModuleID] = Seq("org.postgresql" % "postgresql" % Version.postgres)
   val dbDrivers: Seq[ModuleID] = clickhouse ++ postgre
 
@@ -141,6 +141,8 @@ object Library {
   val testContainers: Seq[ModuleID] = Seq(
     "com.dimafeng" %% "testcontainers-scala" % Version.testContainers % "test",
     "com.dimafeng" %% "testcontainers-scala-clickhouse" % Version.testContainers % "test",
+    "org.testcontainers" % "testcontainers" % Version.testContainersKafka % "test",
+    "org.testcontainers" % "clickhouse" % Version.testContainersKafka % "test",
     "org.testcontainers" % "kafka" % Version.testContainersKafka % "test"
   )
 

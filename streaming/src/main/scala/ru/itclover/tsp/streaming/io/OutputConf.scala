@@ -44,11 +44,16 @@ case class JDBCOutputConf(
   userName: Option[String] = None,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
+  def fixedDriverName: String = driverName match {
+    case "ru.yandex.clickhouse.ClickHouseDriver" => "com.clickhouse.jdbc.ClickHouseDriver"
+    case _ => driverName
+  }  
+
   override def getSink: Pipe[IO, Row, Unit] =
     source => fuseMap(source, insertQuery)(transactor).drain
 
   lazy val transactor = Transactor.fromDriverManager[IO](
-    driverName,
+    fixedDriverName,
     jdbcUrl,
     userName.getOrElse(""),
     password.getOrElse("")

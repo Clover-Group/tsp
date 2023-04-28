@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
 
-class QueueManagerService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
+class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
   actorSystem: ActorSystem,
   materializer: Materializer,
@@ -46,7 +46,7 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   implicit val metricFmt: RootJsonFormat[Metric] = jsonFormat2(Metric.apply)
 
-  private val log = Logger[QueueManagerService]
+  private val log = Logger[JobRunService]
 
   //val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
   //log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
@@ -236,39 +236,21 @@ class QueueManagerService(id: String, blockingExecutionContext: ExecutionContext
 
   def getRunningJobsIds: Seq[String] = runningStreams.keys.toSeq
 
-  def availableSlots: Future[Int] = Future(32)
-
   def onTimer(): Unit = {
-    availableSlots.onComplete {
-      case Success(slots) =>
-        if (slots > 0 && jobQueue.nonEmpty) {
-          log.info(s"$slots slots available")
-          dequeueAndRunSingleJob()
-        } else {
-          if (jobQueue.nonEmpty)
-            log.info(
-              s"Waiting for free slot ($slots available), cannot run jobs right now"
-            )
-        }
-      case Failure(exception) =>
-        log.warn(s"An exception occurred when checking available slots: $exception --- ${exception.getMessage}")
-        log.warn("Trying to send job anyway (assuming 1 available slot)...")
-        dequeueAndRunSingleJob()
-    }
-
+    dequeueAndRunSingleJob()
   }
 }
 
-object QueueManagerService {
-  val services: mutable.Map[Uri, QueueManagerService] = mutable.Map.empty
+object JobRunService {
+  val services: mutable.Map[Uri, JobRunService] = mutable.Map.empty
 
   def getOrCreate(id: String, blockingExecutionContext: ExecutionContextExecutor)(
     implicit executionContext: ExecutionContextExecutor,
     actorSystem: ActorSystem,
     materializer: Materializer,
     decoders: BasicDecoders[Any] = AnyDecodersInstances
-  ): QueueManagerService = {
-    if (!services.contains(id)) services(id) = new QueueManagerService(id, blockingExecutionContext)
+  ): JobRunService = {
+    if (!services.contains(id)) services(id) = new JobRunService(id, blockingExecutionContext)
     services(id)
   }
 }

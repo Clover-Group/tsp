@@ -14,10 +14,9 @@ import ru.itclover.tsp.http.UtilsDirectives.{logRequest, logResponse}
 import ru.itclover.tsp.http.domain.output.FailureResponse
 import ru.itclover.tsp.http.protocols.RoutesProtocols
 import ru.itclover.tsp.http.routes._
-import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import ru.itclover.tsp.http.services.queuing.JobRunService
 import ru.itclover.tsp.http.utils.Exceptions
 import ru.itclover.tsp.http.utils.Exceptions.InvalidRequest
-import ru.yandex.clickhouse.except.ClickHouseException
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.Properties
@@ -26,7 +25,7 @@ trait HttpService extends RoutesProtocols {
   implicit val system: ActorSystem
   implicit val materializer: Materializer
   implicit val executionContext: ExecutionContextExecutor
-  implicit val queueManagerService: QueueManagerService
+  implicit val jobRunService: JobRunService
 
   val blockingExecutorContext: ExecutionContextExecutor
 
@@ -41,7 +40,7 @@ trait HttpService extends RoutesProtocols {
 
     val res = for {
       jobs       <- JobsRoutes.fromExecutionContext(blockingExecutorContext)
-      monitoring <- MonitoringRoutes.fromExecutionContext(queueManagerService)
+      monitoring <- MonitoringRoutes.fromExecutionContext(jobRunService)
       validation <- ValidationRoutes.fromExecutionContext()
     } yield jobs ~ monitoring ~ validation
 
@@ -101,7 +100,7 @@ trait HttpService extends RoutesProtocols {
     .result()
 
   implicit def exceptionsHandler: ExceptionHandler = ExceptionHandler {
-    case ex: ClickHouseException => // TODO Extract from jobs (ADT?)
+    case ex: Exception => // TODO Extract from jobs (ADT?)
       val stackTrace = Exceptions.getStackTrace(ex)
       val msg = if (ex.getCause != null) ex.getCause.getLocalizedMessage else ex.getMessage
       val error = s"Uncaught error during connection to Clickhouse, cause - `${msg}`, \n\nstacktrace: `$stackTrace`"

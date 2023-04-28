@@ -138,7 +138,7 @@ object JdbcSource {
   def create(conf: JDBCInputConf, fields: Set[String]): Either[Err, JdbcSource] =
     for {
       types <- JdbcService
-        .fetchFieldsTypesInfo(conf.driverName, conf.jdbcUrl, conf.query)
+        .fetchFieldsTypesInfo(conf.fixedDriverName, conf.jdbcUrl, conf.query)
         .toEither
         .leftMap[ConfigErr](e => SourceUnavailable(Option(e.getMessage).getOrElse(e.toString)))
       newFields <- checkKeysExistence(conf, fields)
@@ -152,7 +152,7 @@ object JdbcSource {
     conf.dataTransformation match {
       case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
         JdbcService
-          .fetchAvailableKeys(conf.driverName, conf.jdbcUrl, conf.query, keyColumn)
+          .fetchAvailableKeys(conf.fixedDriverName, conf.jdbcUrl, conf.query, keyColumn)
           .toEither
           .map(_.intersect(keys))
           .leftMap[GenericRuntimeErr](e => GenericRuntimeErr(e, 5099))
@@ -172,7 +172,7 @@ case class JdbcSource(
 
   import conf._
 
-  println(s"*** JDBC DRIVER NAME: ${conf.driverName} ***")
+  println(s"*** JDBC DRIVER NAME: ${conf.fixedDriverName} ***")
 
   val stageName = "JDBC input processing stage"
   val log = Logger[JdbcSource]
@@ -194,7 +194,7 @@ case class JdbcSource(
   val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
 
   lazy val transactor = Transactor.fromDriverManager[IO](
-    conf.driverName,
+    conf.fixedDriverName,
     conf.jdbcUrl,
     conf.userName.getOrElse(""),
     conf.password.getOrElse("")

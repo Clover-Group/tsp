@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.stream.Materializer
 import cats.implicits._
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
-import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import ru.itclover.tsp.http.services.queuing.JobRunService
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 
 //import com.google.common.util.concurrent.ThreadFactoryBuilder
@@ -148,5 +148,5 @@ object Launcher extends App with HttpService {
     port.map(p => (enabled, host, p))
   }
 
-  implicit val queueManagerService = QueueManagerService.getOrCreate("mgr", blockingExecutorContext)
+  implicit val jobRunService = JobRunService.getOrCreate("mgr", blockingExecutorContext)
 }

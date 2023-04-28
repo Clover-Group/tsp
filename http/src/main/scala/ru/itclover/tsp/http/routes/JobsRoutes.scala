@@ -13,7 +13,7 @@ import ru.itclover.tsp._
 import ru.itclover.tsp.core.io.AnyDecodersInstances
 import ru.itclover.tsp.http.domain.input.FindPatternsRequest
 import ru.itclover.tsp.http.protocols.RoutesProtocols
-import ru.itclover.tsp.http.services.queuing.QueueManagerService
+import ru.itclover.tsp.http.services.queuing.JobRunService
 import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
@@ -25,27 +25,27 @@ trait JobsRoutes extends RoutesProtocols {
   implicit val materializer: Materializer
   implicit val decoders: AnyDecodersInstances.type = AnyDecodersInstances
 
-  val queueManager: QueueManagerService
+  val jobRunService: JobRunService
 
   Logger[JobsRoutes]
 
   val route: Route =
     path("job" / "submit"./) {
       entity(as[FindPatternsRequest[RowWithIdx, String, Any, Row]]) { request =>
-        queueManager.enqueue(request)
+        jobRunService.enqueue(request)
         complete(Map("status" -> s"Job ${request.uuid} enqueued.").toJson(propertyFormat))
       }
     } ~
     path("queue" / "show") {
       complete(
-        queueManager.queueAsScalaSeq
+        jobRunService.queueAsScalaSeq
           .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
           .toList
           .toJson
       )
     } ~
     path("queue" / Segment / "remove") { uuid =>
-      queueManager.removeFromQueue(uuid) match {
+      jobRunService.removeFromQueue(uuid) match {
         case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue.").toJson(propertyFormat))
         case None     => redirect(s"/job/$uuid/stop", PermanentRedirect)
       }
@@ -69,7 +69,7 @@ object JobsRoutes {
         implicit val executionContext: ExecutionContextExecutor = execContext
         implicit val actorSystem = as
         implicit val materializer = am
-        override val queueManager = QueueManagerService.getOrCreate("mgr", blocking)(
+        override val jobRunService = JobRunService.getOrCreate("mgr", blocking)(
           execContext,
           as,
           am,
