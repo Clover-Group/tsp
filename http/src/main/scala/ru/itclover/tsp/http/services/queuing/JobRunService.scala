@@ -131,6 +131,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
   }*/
 
   def dequeueAndRunSingleJob(): Unit = {
+    log.info(s"Running job ${jobQueue.head._1.uuid}")
     val request = jobQueue.head
     jobQueue.dequeue()
     run(request)
@@ -237,7 +238,9 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
   def getRunningJobsIds: Seq[String] = runningStreams.keys.toSeq
 
   def onTimer(): Unit = {
-    dequeueAndRunSingleJob()
+    if (jobQueue.nonEmpty) { 
+      dequeueAndRunSingleJob()
+    }
   }
 }
 
