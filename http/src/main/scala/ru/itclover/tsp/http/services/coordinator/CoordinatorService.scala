@@ -97,7 +97,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
     val error = exception.map(_.getMessage).getOrElse("")
 
     val metrics = CheckpointingService.getCheckpoint(jobId)
-    val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.writtenRows)).getOrElse((0L, 0L))
+    val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.totalWrittenRows)).getOrElse((0L, 0L))
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(
       HttpRequest(

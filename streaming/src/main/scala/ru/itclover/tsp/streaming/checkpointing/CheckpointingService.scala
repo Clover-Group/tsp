@@ -12,7 +12,7 @@ import ru.itclover.tsp.core.optimizations.Optimizer
 trait CheckpointingService {
   def updateCheckpointRead(uuid: String, newRowsRead: Long, newStates: Map[RawPattern, State[Segment]]): Unit
 
-  def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit
+  def updateCheckpointWritten(uuid: String, sinkIdx: Int, newRowsWritten: Long): Unit
 
   def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState])
 
@@ -40,8 +40,10 @@ case class RedisCheckpointingService(redisUri: String) extends CheckpointingServ
     newRowsRead: Long,
     newStates: Map[RawPattern, State[Segment]]
   ): Unit = {
+    val lock = redissonClient.getLock(uuid)
+    lock.lock()
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
-    val checkpoint = Option(checkpointBucket.get).getOrElse(Checkpoint(0, 0))
+    val checkpoint = Option(checkpointBucket.get).getOrElse(Checkpoint(0, List.empty))
     val newCheckpoint = checkpoint.copy(
       readRows = checkpoint.readRows + newRowsRead
     )
@@ -49,15 +51,22 @@ case class RedisCheckpointingService(redisUri: String) extends CheckpointingServ
     log.warn(s"Checkpointing $uuid: ${checkpoint.readRows + newRowsRead} rows read")
     checkpointBucket.set(newCheckpoint)
     checkpointStateBucket.set(CheckpointState(newStates))
+    lock.unlock()
   }
 
-  override def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit = {
+  override def updateCheckpointWritten(uuid: String, sinkIdx: Int, newRowsWritten: Long): Unit = {
+    val lock = redissonClient.getLock(uuid)
+    lock.lock()
     val checkpointBucket = redissonClient.getBucket[Checkpoint](s"tsp-cp-$uuid")
     val checkpoint = checkpointBucket.get()
+
+    val writtenRows = checkpoint.writtenRows.padTo(sinkIdx + 1, 0L)
+    val updatedWrittenRows = writtenRows.updated(sinkIdx, writtenRows(sinkIdx) + newRowsWritten)
     val newCheckpoint = checkpoint.copy(
-      writtenRows = checkpoint.writtenRows + newRowsWritten
+      writtenRows = updatedWrittenRows
     )
     checkpointBucket.set(newCheckpoint)
+    lock.unlock()
   }
 
   override def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) = {
@@ -91,21 +100,28 @@ case class MemoryCheckpointingService() extends CheckpointingService {
     newRowsRead: Long,
     newStates: Map[RawPattern, Optimizer.S[Segment]]
   ): Unit = {
-    val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, 0))
-    val newCheckpoint = checkpoint.copy(
-      readRows = checkpoint.readRows + newRowsRead
-    )
-    log.warn(s"Checkpointing $uuid: ${checkpoint.readRows + newRowsRead} rows read")
-    checkpoints(uuid) = newCheckpoint
-    checkpointStates(uuid) = CheckpointState(newStates)
+    checkpoints.synchronized {
+      val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, List.empty))
+      val newCheckpoint = checkpoint.copy(
+        readRows = checkpoint.readRows + newRowsRead
+      )
+      log.warn(s"Checkpointing $uuid: ${checkpoint.readRows + newRowsRead} rows read")
+      checkpoints(uuid) = newCheckpoint
+      checkpointStates(uuid) = CheckpointState(newStates)
+    }
   }
 
-  override def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit = {
-    val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, 0))
-    val newCheckpoint = checkpoint.copy(
-      writtenRows = checkpoint.writtenRows + newRowsWritten
-    )
-    checkpoints(uuid) = newCheckpoint
+  override def updateCheckpointWritten(uuid: String, sinkIdx: Int, newRowsWritten: Long): Unit = {
+    checkpoints.synchronized {
+      val checkpoint = checkpoints.getOrElse(uuid, Checkpoint(0, List.empty))
+
+      val writtenRows = checkpoint.writtenRows.padTo(sinkIdx + 1, 0L)
+      val updatedWrittenRows = writtenRows.updated(sinkIdx, writtenRows(sinkIdx) + newRowsWritten)
+      val newCheckpoint = checkpoint.copy(
+        writtenRows = updatedWrittenRows
+      )
+      checkpoints(uuid) = newCheckpoint
+    }
   }
 
   override def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) =
@@ -138,8 +154,8 @@ object CheckpointingService {
   def updateCheckpointRead(uuid: String, newRowsRead: Long, newStates: Map[RawPattern, State[Segment]]): Unit =
     service.map(_.updateCheckpointRead(uuid, newRowsRead, newStates)).getOrElse(())
 
-  def updateCheckpointWritten(uuid: String, newRowsWritten: Long): Unit =
-    service.map(_.updateCheckpointWritten(uuid, newRowsWritten)).getOrElse(())
+  def updateCheckpointWritten(uuid: String, sinkIdx: Int, newRowsWritten: Long): Unit =
+    service.map(_.updateCheckpointWritten(uuid, sinkIdx, newRowsWritten)).getOrElse(())
 
   def getCheckpointAndState(uuid: String): (Option[Checkpoint], Option[CheckpointState]) =
     service.map(_.getCheckpointAndState(uuid)).getOrElse((None, None))

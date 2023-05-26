@@ -14,7 +14,7 @@ import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Segment, Segmentizer
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
 import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternFieldExtractor, PatternMetadata}
-import ru.itclover.tsp.streaming.PatternsSearchJob.{RichPattern, preparePatterns, reduceIncidents, saveStream}
+import ru.itclover.tsp.streaming.PatternsSearchJob.{RichPattern, preparePatterns, reduceIncidents}
 import ru.itclover.tsp.streaming.checkpointing.CheckpointingService
 import ru.itclover.tsp.streaming.io.{KafkaInputConf, OutputConf}
 import ru.itclover.tsp.streaming.mappers.{
@@ -55,16 +55,36 @@ case class PatternsSearchJob[In, InKey, InItem](
       val forwardFields = Seq.empty
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
       val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
-      val mapped = resultMappers.map(
-        resultMapper =>
-          incidents
-            .chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
-            .map(_.map(resultMapper.map(_).asInstanceOf[OutE]))
-            .flatMap(c => fs2.Stream.chunk(c))
-      )
-      (patterns, saveStream[OutE](jobId, mapped, outputConf))
+      // val mapped = resultMappers.map(
+      //   resultMapper =>
+      //     incidents
+      //       .chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
+      //       .map(_.map(resultMapper.map(_).asInstanceOf[OutE]))
+      //       .flatMap(c => fs2.Stream.chunk(c))
+      // )
+      val saved = incidents
+        .chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
+        .broadcastThrough(
+          resultMappers
+          .zip(outputConf)
+          .zipWithIndex
+          .map {
+            case ((m, c), idx) => saveStream(jobId, c, idx).compose(applyResultMapper(m))
+          }: _*)
+      (patterns, Seq(saved))
     }
   }
+
+  def applyResultMapper[E](mapper: PatternsToRowMapper[Incident, E]): fs2.Pipe[IO, Chunk[Incident], E] =
+    _.map(_.map(mapper.map(_).asInstanceOf[E])).flatMap(c => fs2.Stream.chunk(c))
+
+  def saveStream[E](uuid: String, outputConf: OutputConf[E], sinkIdx: Int): fs2.Pipe[IO, E, Unit] = _
+    .chunkLimit(100)
+    .flatMap { c =>
+      CheckpointingService.updateCheckpointWritten(uuid, sinkIdx, c.size)
+      fs2.Stream.chunk(c)
+    }
+    .through(outputConf.getSink)
 
   def incidentsFromPatterns[T](
     stream: fs2.Stream[IO, In],
@@ -284,21 +304,21 @@ object PatternsSearchJob {
     res
   }
 
-  def saveStream[E](
-    uuid: String,
-    streams: Seq[fs2.Stream[IO, E]],
-    outputConfs: Seq[OutputConf[E]]
-  ): Seq[fs2.Stream[IO, Unit]] = {
-    log.debug("saveStream started")
-    streams.zip(outputConfs).map {
-      case (stream, outputConf) =>
-        stream
-          .chunkLimit(100)
-          .flatMap { c =>
-            CheckpointingService.updateCheckpointWritten(uuid, c.size)
-            fs2.Stream.chunk(c)
-          }
-          .through(outputConf.getSink)
-    }
-  }
+  // def saveStream[E](
+  //   uuid: String,
+  //   streams: Seq[fs2.Stream[IO, E]],
+  //   outputConfs: Seq[OutputConf[E]]
+  // ): Seq[fs2.Stream[IO, Unit]] = {
+  //   log.debug("saveStream started")
+  //   streams.zip(outputConfs).map {
+  //     case (stream, outputConf) =>
+  //       stream
+  //         .chunkLimit(100)
+  //         .flatMap { c =>
+  //           CheckpointingService.updateCheckpointWritten(uuid, c.size)
+  //           fs2.Stream.chunk(c)
+  //         }
+  //         .through(outputConf.getSink)
+  //   }
+  // }
 }
