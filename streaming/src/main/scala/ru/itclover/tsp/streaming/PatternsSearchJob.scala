@@ -103,7 +103,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       case ((pattern, meta), rawP) =>
         val toIncidents = ToIncidentsMapper(
           rawP.id,
-          source.fieldToEKey(source.conf.unitIdField.get),
+          source.fieldToEKey(source.conf.unitIdField.getOrElse("")),
           rawP.subunit.getOrElse(0),
           rawP.metadata.getOrElse(Map.empty),
           source.conf.defaultEventsGapMs.getOrElse(2000L),
