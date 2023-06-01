@@ -193,12 +193,35 @@ case class JdbcSource(
   val timeIndex = fieldsIdxMap(datetimeField)
   val transformedTimeIndex = transformedFieldsIdxMap(datetimeField)
 
+  lazy val (userName, password) = getCreds
+
   lazy val transactor = Transactor.fromDriverManager[IO](
     conf.fixedDriverName,
     conf.jdbcUrl,
-    conf.userName.getOrElse(""),
-    conf.password.getOrElse("")
+    conf.userName.getOrElse(userName),
+    conf.password.getOrElse(password)
   )
+
+  def getCreds: (String, String) = {
+    try {
+      val query = conf.jdbcUrl.split("\\?", 2).lift(1).getOrElse("")
+      val params = query
+        .split("&")
+        .map(kv => kv.split("=", 2))
+        .map{ 
+          case Array(k) => (k, "")
+          case Array(k, v) => (k, v)
+          case Array(k, v, _*) => (k, v)
+        }
+        .toMap
+      (params.getOrElse("user", ""), params.getOrElse("password", ""))
+    }
+    catch {
+      case e: Exception => 
+        log.error(s"EXC: ${e.getMessage()}")
+        ("", "")
+    }
+  }
 
   def getNextChunk(chunkSize: Int): ResultSetIO[Seq[Row]] =
     FRS.raw { rs =>

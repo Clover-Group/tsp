@@ -52,12 +52,35 @@ case class JDBCOutputConf(
   override def getSink: Pipe[IO, Row, Unit] =
     source => fuseMap(source, insertQuery)(transactor).drain
 
+  lazy val (queryUserName, queryPassword) = getCreds
+
   lazy val transactor = Transactor.fromDriverManager[IO](
     fixedDriverName,
     jdbcUrl,
-    userName.getOrElse(""),
-    password.getOrElse("")
+    userName.getOrElse(queryUserName),
+    password.getOrElse(queryPassword)
   )
+
+  def getCreds: (String, String) = {
+    try {
+      val query = jdbcUrl.split("\\?", 2).lift(1).getOrElse("")
+      val params = query
+        .split("&")
+        .map(kv => kv.split("=", 2))
+        .map{ 
+          case Array(k) => (k, "")
+          case Array(k, v) => (k, v)
+          case Array(k, v, _*) => (k, v)
+        }
+        .toMap
+      (params.getOrElse("user", ""), params.getOrElse("password", ""))
+    }
+    catch {
+      case e: Exception => 
+        ("", "")
+    }
+  }
+
 
   def insertQuery(data: Row): ConnectionIO[Int] = {
     val fields = rowSchema.fieldsNames.mkString(", ")
