@@ -14,6 +14,7 @@ import ru.itclover.tsp.StreamSource.Row
 
 import java.sql.{Connection, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
+import java.sql.Types
 
 trait OutputConf[Event] {
 
@@ -88,9 +89,18 @@ case class JDBCOutputConf(
       fr"""insert into """
       ++ Fragment.const(s"$tableName ($fields)")
       ++ fr"values ("
-      ++ data.toList.map(x => fr"${x.toString}").intercalate(fr",")
+      ++ data.toList.zip(rowSchema.fieldsTypes).map((x, t) => fragmentForDataValue(x, t)).intercalate(fr",")
       ++ fr")"
     ).update.run
+  }
+
+  def fragmentForDataValue(x: Object, t: Int): Fragment = {
+    t match {
+      case Types.INTEGER => fr"${x.toString.toInt}"
+      case Types.FLOAT => fr"${x.toString.toFloat}"
+      case Types.DOUBLE => fr"${x.toString.toDouble}"
+      case _ => fr"${x.toString}"
+    }
   }
 
   def fuseMap[A, B](

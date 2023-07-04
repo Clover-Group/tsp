@@ -11,6 +11,7 @@ import ru.itclover.tsp.streaming.io._
 
 import spray.json._
 import DefaultJsonProtocol._
+import scala.util.Try
 
 /**
   * Packer of found incident into [[Row]]
@@ -58,6 +59,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
       .replace("$PatternID", incident.patternId.toString)
       .replace("$Unit", incident.patternUnit.toString)
       .replace("$Subunit", incident.patternSubunit.toString)
+      .replace("$IncidentUnixMsStart", incident.segment.from.toMillis.toString)
+      .replace("$IncidentUnixMsEnd", incident.segment.to.toMillis.toString)
       .replace("$IncidentStart", incident.segment.from.toString)
       .replace("$IncidentEnd", incident.segment.to.toString)
       .replace("$ProcessingDate", Time(nowInUtcMillis).toString)
@@ -109,8 +112,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
       case "int64"     => value.toLong
       case "boolean"   => value != "0" && value != "false" && value != "off"
       case "string"    => value
-      case "float32"   => value.toFloat
-      case "float64"   => value.toDouble
+      case "float32"   => Try(value.toFloat).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0f)).getOrElse(Float.NaN)
+      case "float64"   => Try(value.toDouble).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0)).getOrElse(Double.NaN)
       case "timestamp" => Timestamp.valueOf(value)
       case "object"    => value
       case _           =>
