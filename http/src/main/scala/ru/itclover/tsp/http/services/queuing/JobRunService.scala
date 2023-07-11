@@ -30,6 +30,9 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success}
+import cats.effect.kernel.Deferred
+import scala.concurrent.duration.FiniteDuration
+import java.util.concurrent.atomic.AtomicBoolean
 
 class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
   implicit executionContext: ExecutionContextExecutor,
@@ -52,7 +55,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
   //log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
   val jobQueue = mutable.Queue[TypedRequest]()
 
-  val runningStreams = mutable.Map[String, SignallingRef[IO, Boolean]]()
+  val runningStreams = mutable.Map[String, AtomicBoolean]()
 
   val runningJobsRequests = mutable.Map[String, QueueableRequest]()
 
@@ -174,7 +177,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     inputConf: InputConf[E, EKey, EItem],
     outConf: Seq[OutputConf[Row]],
     source: StreamSource[E, EKey, EItem]
-  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.ConfigErr, Seq[fs2.Stream[IO, Unit]]] = {
+  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.ConfigErr, fs2.Stream[IO, Unit]] = {
 
     log.debug("createStream started")
 
@@ -197,42 +200,57 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     }
   }
 
-  def runStream(uuid: String, streams: Seq[fs2.Stream[IO, Unit]]): Either[RuntimeErr, Option[String]] = {
+  def runStream(uuid: String, stream: fs2.Stream[IO, Unit]): Either[RuntimeErr, Option[String]] = {
     log.debug("runStream started")
     CoordinatorService.notifyJobStarted(uuid)
 
-    // Run the streams (multiple sinks)
-    SignallingRef[IO, Boolean](false)
-      .flatMap { signal =>
-        runningStreams(uuid) = signal
-        streams.sequence
-          .interruptWhen(signal)
-          .compile
-          .drain
-      }
-      .unsafeRunAsync {
-        case Left(throwable) =>
-          log.error(s"Job $uuid failed: $throwable")
-          CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
-          CheckpointingService.removeCheckpointAndState(uuid)
-          runningStreams.remove(uuid)
-          runningJobsRequests.remove(uuid)
-        case Right(_) => 
-          // success
-          log.info(s"Job $uuid finished")
-          CoordinatorService.notifyJobCompleted(uuid, None)
-          CheckpointingService.removeCheckpointAndState(uuid)
-          runningStreams.remove(uuid)
-          runningJobsRequests.remove(uuid)
+    // Run the stream
+    Deferred[IO, Either[Throwable, Unit]].flatMap { cancelToken =>
+      runningStreams(uuid) = new AtomicBoolean(true)
+
+      val f = Future {
+        while (runningStreams.get(uuid).map(_.get).getOrElse(false)) {
+            //log.error(s"Stream $uuid running")
+            Thread.sleep(5000)
+        }
       }
 
-    log.debug("runStream finished")
+      val cancel = IO.async_ { cb => 
+          f.onComplete(t => cb(t.toEither))
+        }
+         >> cancelToken.complete(Right(()))
+
+      val program = stream
+        .interruptWhen(cancelToken)
+        .compile
+        .drain
+        
+      log.debug("runStream finished")
+
+      cancel.background.surround(program)
+      
+      }.unsafeRunAsync {
+          case Left(throwable) =>
+            log.error(s"Job $uuid failed: $throwable")
+            CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
+            CheckpointingService.removeCheckpointAndState(uuid)
+            runningStreams.remove(uuid)
+            runningJobsRequests.remove(uuid)
+          case Right(_) => 
+            // success
+            log.info(s"Job $uuid finished")
+            CoordinatorService.notifyJobCompleted(uuid, None)
+            CheckpointingService.removeCheckpointAndState(uuid)
+            runningStreams.remove(uuid)
+            runningJobsRequests.remove(uuid)
+        }
+    
     Right(None)
   }
 
-  def stopStream(uuid: String): Unit = runningStreams.get(uuid).map { signal =>
+  def stopStream(uuid: String): Unit = runningStreams.get(uuid).map { _ =>
     log.info(s"Job $uuid stopped")
-    signal.set(true)
+    runningStreams(uuid).set(false)
   }
 
   def getRunningJobsIds: Seq[String] = runningStreams.keys.toSeq

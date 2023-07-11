@@ -42,7 +42,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     rawPatterns: Seq[RawPattern],
     outputConf: Seq[OutputConf[OutE]],
     resultMappers: Seq[PatternsToRowMapper[Incident, OutE]]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Seq[fs2.Stream[IO, Unit]])] = {
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], fs2.Stream[IO, Unit])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
@@ -71,7 +71,7 @@ case class PatternsSearchJob[In, InKey, InItem](
           .map {
             case ((m, c), idx) => saveStream(jobId, c, idx).compose(applyResultMapper(m))
           }: _*)
-      (patterns, Seq(saved))
+      (patterns, saved)
     }
   }
 
