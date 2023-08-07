@@ -15,7 +15,7 @@ import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeU
 
 case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
-  case class VersionMessage(version: String)
+  case class VersionMessage(version: String, uuid: String)
 
   case class JobStartedMessage(jobId: String)
 
@@ -28,9 +28,9 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   )
 
   object MessageJsonProtocol extends DefaultJsonProtocol {
-    implicit val versionMessageFormat: RootJsonFormat[VersionMessage] = jsonFormat1(VersionMessage)
-    implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage)
-    implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat5(JobCompletedMessage)
+    implicit val versionMessageFormat: RootJsonFormat[VersionMessage] = jsonFormat2(VersionMessage.apply)
+    implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage.apply)
+    implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat5(JobCompletedMessage.apply)
   }
 
   import MessageJsonProtocol._
@@ -38,6 +38,8 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   val log = Logger("CoordinatorService")
 
   val ex = new ScheduledThreadPoolExecutor(1)
+
+  val uuid = java.util.UUID.randomUUID.toString
 
   val task: Runnable = new Runnable {
     def run(): Unit = notifyRegister()
@@ -54,7 +56,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity = HttpEntity(ContentTypes.`application/json`, VersionMessage(BuildInfo.version).toJson.compactPrint)
+        entity = HttpEntity(ContentTypes.`application/json`, VersionMessage(BuildInfo.version, uuid).toJson.compactPrint)
       )
     )
 
@@ -132,6 +134,8 @@ object CoordinatorService {
         service = Some(srv)
         srv
     }
+
+  def getTspId: String = service.map(_.uuid).getOrElse("")
 
   def notifyRegister(): Unit = service.map(_.notifyRegister()).getOrElse(())
 

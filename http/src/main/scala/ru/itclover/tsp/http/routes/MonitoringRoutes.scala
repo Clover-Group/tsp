@@ -19,6 +19,7 @@ import spray.json._
 
 import scala.concurrent.ExecutionContextExecutor
 import ru.itclover.tsp.RowWithIdx
+import ru.itclover.tsp.http.services.coordinator.CoordinatorService
 
 object MonitoringRoutes {
 
@@ -81,6 +82,7 @@ trait MonitoringRoutes extends RoutesProtocols {
       complete(
         SuccessfulResponse(
           Map(
+            "id"    -> CoordinatorService.getTspId,
             "tsp"   -> BuildInfo.version,
             "scala" -> BuildInfo.scalaVersion
           )
