@@ -31,6 +31,7 @@ import ru.itclover.tsp.streaming.utils.StreamPartitionOps
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
+import scala.util.chaining._
 
 case class PatternsSearchJob[In, InKey, InItem](
   jobId: String,
@@ -152,7 +153,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     )
     val processed = windowed
       .map(_.map(c => combinator.process(c)))
-      .parJoinUnbounded
+      .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
       .flatMap(c => fs2.Stream.chunk(c))
 
     //log.debug("incidentsFromPatterns finished")
@@ -171,7 +172,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents) else singleIncidents
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents, source.conf.parallelism) else singleIncidents
   }
 
   def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
@@ -191,7 +192,7 @@ case class PatternsSearchJob[In, InKey, InItem](
             }) ++ fs2.Stream(Some(acc.getLastEvent))
           }.unNone
         }
-        .parJoinUnbounded
+        .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
     //.setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }
@@ -256,7 +257,7 @@ object PatternsSearchJob {
     res
   }
 
-  def reduceIncidents(incidents: fs2.Stream[IO, Incident]): fs2.Stream[IO, Incident] = {
+  def reduceIncidents(incidents: fs2.Stream[IO, Incident], maxParallelism: Option[Int]): fs2.Stream[IO, Incident] = {
     log.debug("reduceIncidents started")
 
     val res = incidents
@@ -296,7 +297,7 @@ object PatternsSearchJob {
             .unNone
         //.reduce { _ |+| _ }
       }
-      .parJoinUnbounded
+      .pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
 
     //.name("Uniting adjacent incidents")
 

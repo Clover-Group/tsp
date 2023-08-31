@@ -565,6 +565,9 @@ object DefaultFunctionRegistry {
   given Conversion[Long, Double] = _.toDouble
   given Conversion[Double, Double] = _.toDouble
   given Conversion[String, String] = _.toString
+  given Conversion[Int, String] = _.toString
+  given Conversion[Long, String] = _.toString
+  given Conversion[Double, String] = _.toString
 
   given Ordering[Float] = scala.math.Ordering.Float.IeeeOrdering
   given Ordering[Double] = scala.math.Ordering.Double.IeeeOrdering
@@ -584,6 +587,9 @@ object DefaultFunctionRegistry {
         comparingFunctions[Double, Double] ++
         comparingFunctions[Double, Long] ++
         comparingFunctions[Double, Int] ++
+        comparingFunctions[String, Int] ++
+        comparingFunctions[String, Long] ++
+        comparingFunctions[String, Double] ++
         comparingFunctions[String, String]
 
   val defaultReducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
