@@ -62,7 +62,7 @@ case class TimerAccumState[T](
         )
       // in case of Success we need to return Success for all events in window older than window size.
       case Succ(_) =>
-        val start: Time = times.head._2.plus(window)
+        val start: Time = times.head._2
         val end: Time = times.last._2 // time corresponding to the idxValue.end
 
         // don't use ++ here, slow!
