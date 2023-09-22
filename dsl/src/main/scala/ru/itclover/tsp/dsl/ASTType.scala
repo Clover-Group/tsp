@@ -27,6 +27,7 @@ object ASTType {
     case c if c.isAssignableFrom(classOf[Boolean]) => BooleanASTType
     case c if c.isAssignableFrom(classOf[String])  => StringASTType
     case c if c.isAssignableFrom(classOf[Nothing]) => NullASTType
+    case c if classOf[java.lang.Number].isAssignableFrom(c) => DoubleASTType
 
     // Extra check, in case type T is lost
     case c

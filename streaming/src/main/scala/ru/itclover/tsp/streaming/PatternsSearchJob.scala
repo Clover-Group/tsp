@@ -153,7 +153,8 @@ case class PatternsSearchJob[In, InKey, InItem](
     )
     val processed = windowed
       .map(_.map(c => combinator.process(c)))
-      .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
+      //.pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
+      .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
 
     //log.debug("incidentsFromPatterns finished")
@@ -192,7 +193,8 @@ case class PatternsSearchJob[In, InKey, InItem](
             }) ++ fs2.Stream(Some(acc.getLastEvent))
           }.unNone
         }
-        .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
+        .parJoinUnbounded
+        //.pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
     //.setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }
@@ -297,7 +299,8 @@ object PatternsSearchJob {
             .unNone
         //.reduce { _ |+| _ }
       }
-      .pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
+      .parJoinUnbounded
+      //.pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
 
     //.name("Uniting adjacent incidents")
 
