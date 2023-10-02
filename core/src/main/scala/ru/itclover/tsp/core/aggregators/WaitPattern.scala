@@ -53,9 +53,14 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
       val windowQueueWithNewPoints = times.foldLeft(windowQueue) { case (a, b) => a.append(b); a }
 
       val cleanedWindowQueue = {
-        while (windowQueueWithNewPoints.length > 1 && windowQueueWithNewPoints.toArray.apply(1)._2 < start) {
+        /*while (windowQueueWithNewPoints.length > 1 && windowQueueWithNewPoints.toArray.apply(1)._2 < start) {
           windowQueueWithNewPoints.removeHeadOption()
+        }*/
+        var s: Option[(Idx, Time)] = None
+        while (windowQueueWithNewPoints.headOption.map(_._2 < start).getOrElse(false)) {
+          s = windowQueueWithNewPoints.removeHeadOption()
         }
+        s.foreach(windowQueueWithNewPoints.prepend(_))
         windowQueueWithNewPoints
       }
 

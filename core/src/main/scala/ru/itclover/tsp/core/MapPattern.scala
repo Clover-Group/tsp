@@ -3,7 +3,7 @@ import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
 
-case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerState, T1])(val func: T1 => Result[T2])
+case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerState, T1])(@transient val func: T1 => Result[T2])
     extends Pattern[Event, InnerState, T2] {
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: InnerState,

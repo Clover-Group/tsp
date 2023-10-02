@@ -38,7 +38,7 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
     }
     // Add last element if exist
     val finalQueue = lastElement.map(t => newQueue.enqueue(t)).getOrElse(newQueue)
-    log.debug(s"Received events: ${events}, Emitting: ${finalQueue}")
+    //log.debug(s"Received events: ${events}, Emitting: ${finalQueue}")
     Monad[F].pure(SimplePState -> finalQueue)
   }
 

@@ -117,7 +117,7 @@ object PQueue {
   }
 
   // Lazy variant of PQueue with func
-  case class MapPQueue[A, T](queue: PQueue[A], func: IdxValue[A] => Result[T]) extends PQueue[T] {
+  case class MapPQueue[A, T](queue: PQueue[A], @transient func: IdxValue[A] => Result[T]) extends PQueue[T] {
     override def size: Int = queue.size
     override def headOption: Option[IdxValue[T]] = queue.headOption.map(x => x.map(_ => func(x)))
     override def dequeue(): (IdxValue[T], PQueue[T]) = {
