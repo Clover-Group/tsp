@@ -10,6 +10,7 @@ import ru.itclover.tsp.core.Time.MaxWindow
 
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
+import com.typesafe.scalalogging.Logger
 
 /* Timer */
 case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
@@ -32,6 +33,8 @@ case class TimerAccumState[T](
   eventsMaxGapMs: Long
 ) extends AccumState[T, Boolean, TimerAccumState[T]] {
 
+  val log = Logger(classOf[TimerAccumState[T]])
+
   @inline
   override def updated(
     window: Window,
@@ -39,6 +42,7 @@ case class TimerAccumState[T](
     idxValue: IdxValue[T]
   ): (TimerAccumState[T], QI[Boolean]) = {
 
+    log.debug(s"Received event: $idxValue")
     idxValue.value match {
       // clean queue in case of fail. Return fails for all events in queue
       // (unless the failing event occurs late enough to form the success window)
@@ -46,7 +50,8 @@ case class TimerAccumState[T](
       case Fail =>
         val updatedWindowQueue = m.Queue.empty[(Idx, Time)]
         val newOptResult = createIdxValue(
-          windowQueue.dropWhile { case (i, _) => i <= lastEnd._1 }.headOption.orElse(times.headOption),
+          //windowQueue.dropWhile { case (i, _) => i <= lastEnd._1 }.headOption.orElse(times.headOption),
+          windowQueue.headOption.orElse(times.headOption),
           times.lastOption,
           if (lastValue.isFail || (times.headOption
                 .map(_._2.toMillis)
@@ -56,6 +61,8 @@ case class TimerAccumState[T](
             Succ(true)
           }
         )
+        log.debug(s"Returning single result: $newOptResult")
+        log.debug(s"New state: ${TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs)}")
         (
           TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs),
           newOptResult.map(PQueue.apply).getOrElse(PQueue.empty)
@@ -76,17 +83,19 @@ case class TimerAccumState[T](
         }
 
         val (failOutputs, cleanedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) {
-          case (_, t) => t < start & canOutput(t)
+          case (_, t) => t.minus(window) < end & canOutput(t)
         }
 
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
-          case (_, t) => t.plus(window) <= end & canOutput(t)
+          case (_, t) => t <= end & canOutput(t)
         }
 
         // if event chunk is shorter than the window, and the next window is sufficiently close,
         // then save it in the queue, and return empty state (since the later events can continue the window)
         if (cleanedWindowQueue.isEmpty && times.head._2.toMillis - lastEnd._2.toMillis < eventsMaxGapMs) {
           updatedWindowQueue.appendAll(failOutputs)
+          log.debug("Returning empty queue")
+          log.debug(s"New state: ${TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs)}")
           (
             TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs),
             PQueue.empty[Boolean]
@@ -102,6 +111,8 @@ case class TimerAccumState[T](
           val newResults = newOptResultSucc
             .map(newOptResultFail.map(PQueue.apply).getOrElse(PQueue.empty).enqueue(_))
             .getOrElse(PQueue.empty)
+          log.debug(s"Returning queue: ${newResults.toSeq.mkString(",")}")
+          log.debug(s"New state: ${TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs)}")
           (
             TimerAccumState(updatedWindowQueue, times.last, idxValue.value, eventsMaxGapMs),
             newResults
