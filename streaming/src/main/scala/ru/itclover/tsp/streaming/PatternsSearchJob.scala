@@ -121,10 +121,12 @@ case class PatternsSearchJob[In, InKey, InItem](
           stateOption.flatMap(_.states.get(rawP)).getOrElse(incidentPattern.initialState())
         )
     }
-    val keyedStream = stream
+    // TODO: Partitioning does not work due to non-laziness of the operator (all data kept in memory)
+    val _keyedStream = stream
       .drop(checkpointOption.map(_.readRows).getOrElse(0L))
       //.assignAscendingTimestamps(timeExtractor(_).toMillis)
-      .through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
+    val keyedStream = fs2.Stream(("", _keyedStream))
+      //.through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
     val windowed: fs2.Stream[IO, fs2.Stream[IO, Chunk[In]]] =
       if (useWindowing) {
         keyedStream
@@ -180,8 +182,8 @@ case class PatternsSearchJob[In, InKey, InItem](
     case Some(_) =>
       import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator, eventPrinter}
 
-      dataStream
-        .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
+      fs2.Stream(("", dataStream))
+        //.through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
         .map {
           case (_, str) => {
             val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
@@ -262,8 +264,8 @@ object PatternsSearchJob {
   def reduceIncidents(incidents: fs2.Stream[IO, Incident], maxParallelism: Option[Int]): fs2.Stream[IO, Incident] = {
     log.debug("reduceIncidents started")
 
-    val res = incidents
-      .through(StreamPartitionOps.groupBy(p => IO { (p.id, p.patternUnit, p.patternSubunit) }))
+    val res = fs2.Stream(("", incidents))
+      //.through(StreamPartitionOps.groupBy(p => IO { (p.id, p.patternUnit, p.patternSubunit) }))
       //.window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
       //  override def extract(element: Incident): Long = element.maxWindowMs
       //}))
