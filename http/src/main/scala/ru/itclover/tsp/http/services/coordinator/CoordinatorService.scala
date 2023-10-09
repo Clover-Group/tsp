@@ -13,9 +13,16 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
 
-case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext) {
+case class CoordinatorService(
+  coordUri: String, advHost: Option[String], advPort: Option[Int]
+  )(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
-  case class VersionMessage(version: String, uuid: String)
+  case class RegisterMessage(
+    version: String, 
+    uuid: String, 
+    advertisedIP: Option[String], 
+    advertisedPort: Option[Int]
+  )
 
   case class JobStartedMessage(jobId: String)
 
@@ -28,7 +35,7 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
   )
 
   object MessageJsonProtocol extends DefaultJsonProtocol {
-    implicit val versionMessageFormat: RootJsonFormat[VersionMessage] = jsonFormat2(VersionMessage.apply)
+    implicit val versionMessageFormat: RootJsonFormat[RegisterMessage] = jsonFormat4(RegisterMessage.apply)
     implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage.apply)
     implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat5(JobCompletedMessage.apply)
   }
@@ -56,7 +63,15 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
       HttpRequest(
         method = HttpMethods.POST,
         uri = uri,
-        entity = HttpEntity(ContentTypes.`application/json`, VersionMessage(BuildInfo.version, uuid).toJson.compactPrint)
+        entity = HttpEntity(
+          ContentTypes.`application/json`, 
+          RegisterMessage(
+            BuildInfo.version, 
+            uuid,
+            advHost,
+            advPort
+            ).toJson.compactPrint
+          )
       )
     )
 
@@ -125,12 +140,12 @@ case class CoordinatorService(coordUri: String)(implicit as: ActorSystem, execCt
 object CoordinatorService {
   private var service: Option[CoordinatorService] = None
 
-  def getOrCreate(coordUri: String)(implicit as: ActorSystem, execCtx: ExecutionContext): CoordinatorService =
+  def getOrCreate(coordUri: String, advHost: Option[String], advPort: Option[Int])(implicit as: ActorSystem, execCtx: ExecutionContext): CoordinatorService =
     service match {
       case Some(value) =>
         value
       case None =>
-        val srv = CoordinatorService(coordUri)
+        val srv = CoordinatorService(coordUri, advHost, advPort)
         service = Some(srv)
         srv
     }

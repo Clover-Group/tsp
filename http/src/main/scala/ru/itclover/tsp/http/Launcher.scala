@@ -78,7 +78,9 @@ object Launcher extends App with HttpService {
       if (enabled) {
         val uri = s"http://$host:$port"
         log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
-        CoordinatorService.getOrCreate(uri).notifyRegister()
+        val advHost = getEnvVarOrNone("TSP_ADVERTISED_HOST")
+        val advPort = getEnvVarOrNone("TSP_ADVERTISED_PORT")
+        CoordinatorService.getOrCreate(uri, advHost, advPort.flatMap(_.toIntOption)).notifyRegister()
 
       } else {
         log.warn("TSP coordinator connection disabled.")
