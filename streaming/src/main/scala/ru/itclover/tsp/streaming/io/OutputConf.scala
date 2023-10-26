@@ -15,6 +15,7 @@ import ru.itclover.tsp.StreamSource.Row
 import java.sql.{Connection, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
 import java.sql.Types
+import java.time.format.DateTimeFormatter
 
 trait OutputConf[Event] {
 
@@ -220,7 +221,7 @@ case class KafkaOutputConf(
         case "float64"   => root.put(k, value.asInstanceOf[Double])
         case "boolean"   => root.put(k, value.asInstanceOf[Boolean])
         case "string"    => root.put(k, value.asInstanceOf[String])
-        case "timestamp" => root.put(k, value.asInstanceOf[Timestamp].toString)
+        case "timestamp" => root.put(k, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.of("UTC")).format(value.asInstanceOf[Timestamp].toInstant()))
         case "object" =>
           val data = value.toString
           val parsedJson = mapper.readTree(data)

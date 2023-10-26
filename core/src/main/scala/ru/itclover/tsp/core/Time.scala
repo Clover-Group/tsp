@@ -23,7 +23,7 @@ object Time {
   }
 
   val DATE_TIME_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.of("UTC"))
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
 
   implicit def durationWindow(duration: Duration): Window = Window(toMillis = duration.toMillis)
 
