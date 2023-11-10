@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import cats.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators._
@@ -45,7 +46,7 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
     def min[S2](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, T] =
       CouplePattern(pattern, second)((t1, t2) => for (x <- t1; y <- t2) yield implicitly[Ordering[T]].min(x, y))
 
-    //aliases
+    // aliases
     def >=[S2](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = gteq(second)
     def >[S2](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = gt(second)
     def <[S2](second: Pat[S2, T]): CouplePattern[E, S, S2, T, T, Boolean] = lt(second)
@@ -135,10 +136,11 @@ abstract class Patterns[E: IdxExtractor: TimeExtractor] {
     GroupPattern(inner, w).map(_.count)
 
   // TODO: Can the count be > Int.MaxValue (i.e. 2^31)?
-  def avg[T: Group, S](inner: Pattern[E, S, T], w: Window)(
-    implicit f: Fractional[T]
+  def avg[T: Group, S](inner: Pattern[E, S, T], w: Window)(implicit
+    f: Fractional[T]
   ): MapPattern[E, GroupAccumResult[T], T, AggregatorPState[S, T, GroupAccumState[T]]] =
     GroupPattern(inner, w).map(x => f.div(x.sum, f.fromInt(x.count.toInt)))
+
 }
 
 object Patterns {

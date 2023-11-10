@@ -21,19 +21,20 @@ case class PreviousValue[Event: IdxExtractor: TimeExtractor, State, Out](
       PreviousValueAccumState(PQueue.empty),
       m.Queue.empty
     )
+
 }
 
 // todo simplify
 case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T, T, PreviousValueAccumState[T]] {
+
   override def updated(
     window: Window,
     times: m.ArrayDeque[(Idx, Time)],
     idxValue: IdxValue[T]
   ): (PreviousValueAccumState[T], QI[T]) = {
     val (newQueue, newOutputQueue) =
-      times.foldLeft(queue -> PQueue.empty[T]) {
-        case ((q, output), (idx, time)) =>
-          addOnePoint(time, idx, window, idxValue.value, q, output)
+      times.foldLeft(queue -> PQueue.empty[T]) { case ((q, output), (idx, time)) =>
+        addOnePoint(time, idx, window, idxValue.value, q, output)
       }
 
     PreviousValueAccumState(newQueue) -> newOutputQueue
@@ -71,4 +72,5 @@ case class PreviousValueAccumState[T](queue: QI[(Time, T)]) extends AccumState[T
     updatedQueue ->
     head.map(x => IdxValue(idx, idx, Succ(x))).foldLeft(output) { case (q, x) => q.enqueue(x) }
   }
+
 }

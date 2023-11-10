@@ -18,4 +18,5 @@ object UtilityTypes {
   object ParseException {
     def apply(info: String): ParseException = ParseException(Seq(info))
   }
+
 }

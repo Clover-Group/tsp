@@ -23,9 +23,11 @@ import scala.concurrent.duration._
 class ReducePatternTest extends AnyWordSpec with Matchers {
   val pat = Patterns[EInt]
 
-  val events = (for (time <- Timer(from = Instant.now());
-                     idx  <- Increment;
-                     row  <- Constant(0).timed(40.seconds).after(Constant(1)))
+  val events = (for (
+    time <- Timer(from = Instant.now());
+    idx  <- Increment;
+    row  <- Constant(0).timed(40.seconds).after(Constant(1))
+  )
     yield Event[Int](time.toEpochMilli, idx.toLong, row, -row)).run(seconds = 100)
 
   implicit val applicativeResult: Apply[Result] = new Apply[Result] {
@@ -33,6 +35,7 @@ class ReducePatternTest extends AnyWordSpec with Matchers {
 
     override def map[A, B](fa: Result[A])(f: A => B): Result[B] = fa.map(f)
   }
+
   implicit val semigroup: Semigroup[Result[Int]] = Apply.semigroup[Result, Int]
 
   "ReducePattern" should {
@@ -70,12 +73,12 @@ class ReducePatternTest extends AnyWordSpec with Matchers {
       val collect = new ArrayBuffer[IdxValue[Int]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Int]) => collect += x)
 
-      //returns 2 intervals
+      // returns 2 intervals
       collect.nonEmpty shouldBe true
       collect(0).start shouldBe 10
     }
 
-    //todo more tests!
+    // todo more tests!
   }
 
 }

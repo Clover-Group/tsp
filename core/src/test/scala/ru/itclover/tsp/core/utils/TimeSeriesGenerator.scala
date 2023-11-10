@@ -5,10 +5,10 @@ import java.time.Instant
 import scala.concurrent.duration.{Duration, _}
 import scala.util.Random
 
-/**
-  *  Common trait for Time Series Generator
+/** Common trait for Time Series Generator
   *
-  * @tparam T Generic type for generator
+  * @tparam T
+  *   Generic type for generator
   */
 trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
 
@@ -29,11 +29,12 @@ trait TimeSeriesGenerator[T] extends PartialFunction[Duration, T] {
   def howLong: Duration
 }
 
-/**
-  * Case class for map of time series
+/** Case class for map of time series
   *
-  * @param f method for convert
-  * @tparam T type for time series
+  * @param f
+  *   method for convert
+  * @tparam T
+  *   type for time series
   */
 case class MapTimeSeriesGenerator[T](f: Duration => T) extends TimeSeriesGenerator[T] {
 
@@ -42,12 +43,14 @@ case class MapTimeSeriesGenerator[T](f: Duration => T) extends TimeSeriesGenerat
   override def howLong: Duration.Infinite = Duration.Inf
 }
 
-/**
-  *
-  * @param parent - Parent TimeSeriesGenerator for flat map
-  * @param f function for convert
-  * @tparam R1 type for input function
-  * @tparam R2 type for output function
+/** @param parent
+  *   \- Parent TimeSeriesGenerator for flat map
+  * @param f
+  *   function for convert
+  * @tparam R1
+  *   type for input function
+  * @tparam R2
+  *   type for output function
   */
 case class FlatMapTimeSeriesGenerator[R1, R2](parent: TimeSeriesGenerator[R1], f: R1 => TimeSeriesGenerator[R2])
     extends TimeSeriesGenerator[R2] {
@@ -57,11 +60,12 @@ case class FlatMapTimeSeriesGenerator[R1, R2](parent: TimeSeriesGenerator[R1], f
   override def howLong: Duration = parent.howLong
 }
 
-/**
-  * Case class with constant for TimeSeries
+/** Case class with constant for TimeSeries
   *
-  * @param v value for constant
-  * @tparam T Generic type for generator
+  * @param v
+  *   value for constant
+  * @tparam T
+  *   Generic type for generator
   */
 case class Constant[T](v: T) extends TimeSeriesGenerator[T] {
   override def apply(v1: Duration): T = v
@@ -69,24 +73,28 @@ case class Constant[T](v: T) extends TimeSeriesGenerator[T] {
   override def howLong: Duration.Infinite = Duration.Inf
 }
 
-/**
-  * Case class for changing Time Series
+/** Case class for changing Time Series
   *
-  * @param from start date
-  * @param to end date
-  * @param howLong duration of change
+  * @param from
+  *   start date
+  * @param to
+  *   end date
+  * @param howLong
+  *   duration of change
   */
 case class Change(from: Double, to: Double, howLong: Duration) extends TimeSeriesGenerator[Double] {
 
   override def apply(v1: Duration): Double = (to - from) / (howLong.toMillis) * v1.toMillis
 }
 
-/**
-  * Pattern for continuing time series
+/** Pattern for continuing time series
   *
-  * @param first first generator
-  * @param next second generator
-  * @tparam A input type for generators
+  * @param first
+  *   first generator
+  * @param next
+  *   second generator
+  * @tparam A
+  *   input type for generators
   */
 case class AndThen[A](first: TimeSeriesGenerator[A], next: TimeSeriesGenerator[A]) extends TimeSeriesGenerator[A] {
   override def howLong: Duration = first.howLong + next.howLong
@@ -98,14 +106,17 @@ case class AndThen[A](first: TimeSeriesGenerator[A], next: TimeSeriesGenerator[A
       (next(v1))
     }
   }
+
 }
 
-/**
-  * Case Class for timing the generator
+/** Case Class for timing the generator
   *
-  * @param inner inner generator
-  * @param dur duration of timing
-  * @tparam T Generic type for generator
+  * @param inner
+  *   inner generator
+  * @param dur
+  *   duration of timing
+  * @tparam T
+  *   Generic type for generator
   */
 case class Timed[T](inner: TimeSeriesGenerator[T], dur: Duration) extends TimeSeriesGenerator[T] {
 
@@ -121,10 +132,10 @@ case class Repeated[T](inner: TimeSeriesGenerator[T], times: Int) extends TimeSe
   override def apply(v1: Duration): T = inner.apply(Duration.fromNanos(v1.toNanos % inner.howLong.toNanos))
 }
 
-/**
-  * Case class for timing(start date)
+/** Case class for timing(start date)
   *
-  * @param from start date
+  * @param from
+  *   start date
   */
 case class Timer(from: Instant) extends TimeSeriesGenerator[Instant] {
 
@@ -133,12 +144,14 @@ case class Timer(from: Instant) extends TimeSeriesGenerator[Instant] {
   override def howLong: Duration.Infinite = Duration.Inf
 }
 
-/**
-  * Case class for generating random values in range
+/** Case class for generating random values in range
   *
-  * @param from start
-  * @param to end
-  * @param random instance of java.util.Random
+  * @param from
+  *   start
+  * @param to
+  *   end
+  * @param random
+  *   instance of java.util.Random
   */
 case class RandomInRange(from: Int, to: Int)(implicit random: Random) extends TimeSeriesGenerator[Int] {
   override def apply(v1: Duration): Int = random.nextInt(to - from + 1) + from
@@ -150,4 +163,5 @@ object TimeSeriesGenerator {
 
   val Increment: TimeSeriesGenerator[Int] =
     Change(0, 1000000000 - 1, howLong = 1000000000.seconds).map((x: Double) => x.toInt)
+
 }

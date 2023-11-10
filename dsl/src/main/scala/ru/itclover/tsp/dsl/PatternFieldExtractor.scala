@@ -9,8 +9,8 @@ import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 object PatternFieldExtractor {
 
-  def extract[E, EKey, EItem](patterns: Seq[RawPattern])(
-    implicit fieldToEKey: String => EKey
+  def extract[E, EKey, EItem](patterns: Seq[RawPattern])(implicit
+    fieldToEKey: String => EKey
   ): Set[EKey] = {
     given Conversion[String, EKey] = fieldToEKey(_)
 
@@ -44,4 +44,5 @@ object PatternFieldExtractor {
       }
       .foldLeft(Set.empty[EKey])(_ ++ _)
   }
+
 }

@@ -30,14 +30,16 @@ class TimerPatternTest extends AnyWordSpec with Matchers {
 
     "match-for-valid-1" in {
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- Constant(0).timed(40.seconds).after(Constant(1)))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- Constant(0).timed(40.seconds).after(Constant(1))
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[Boolean]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Boolean]) => collect += x)
 
-      //returns 2 intervals
+      // returns 2 intervals
       collect.size shouldBe 3
       collect(0) shouldBe IdxValue(0, 9, Fail)
       collect(1) shouldBe IdxValue(10, 39, Succ(true))
@@ -46,14 +48,16 @@ class TimerPatternTest extends AnyWordSpec with Matchers {
 
     "match-for-valid-2" in {
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- Constant(1).timed(40.seconds).after(Constant(0)))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- Constant(1).timed(40.seconds).after(Constant(0))
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[Boolean]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[Boolean]) => collect += x)
 
-      //returns 2 intervals
+      // returns 2 intervals
 //      collect.size shouldBe 2
       collect(0) shouldBe IdxValue(0, 49, Fail)
       collect(1) shouldBe IdxValue(50, 99, Succ(true))

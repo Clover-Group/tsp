@@ -9,7 +9,9 @@ trait EventCreator[Event, Key] extends Serializable {
 }
 
 object EventCreatorInstances {
+
   implicit val rowSymbolEventCreator: EventCreator[Row, String] = new EventCreator[Row, String] {
+
     override def create(kv: Seq[(String, AnyRef)], idx: Idx): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>
@@ -17,9 +19,11 @@ object EventCreatorInstances {
       }
       row
     }
+
   }
 
   implicit val rowIntEventCreator: EventCreator[Row, Int] = new EventCreator[Row, Int] {
+
     override def create(kv: Seq[(Int, AnyRef)], idx: Idx): Row = {
       val row = new Row(kv.length)
       kv.zipWithIndex.foreach { kvWithIndex =>
@@ -27,10 +31,15 @@ object EventCreatorInstances {
       }
       row
     }
+
   }
 
-  //todo change it to not have effects here
+  // todo change it to not have effects here
   implicit val rowWithIdxSymbolEventCreator: EventCreator[RowWithIdx, String] = new EventCreator[RowWithIdx, String] {
-    override def create(kv: Seq[(String, AnyRef)], idx: Idx): RowWithIdx = RowWithIdx(idx, rowSymbolEventCreator.create(kv, idx))
+
+    override def create(kv: Seq[(String, AnyRef)], idx: Idx): RowWithIdx =
+      RowWithIdx(idx, rowSymbolEventCreator.create(kv, idx))
+
   }
+
 }

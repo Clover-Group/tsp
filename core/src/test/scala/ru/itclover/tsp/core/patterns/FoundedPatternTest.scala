@@ -7,8 +7,7 @@ import ru.itclover.tsp.core.{Incident, IncidentInstances, Segment, Time}
 
 import java.util.UUID
 
-/**
-  * Test class for founded pattern
+/** Test class for founded pattern
   */
 class FoundedPatternTest extends AnyWordSpec with Matchers {
 

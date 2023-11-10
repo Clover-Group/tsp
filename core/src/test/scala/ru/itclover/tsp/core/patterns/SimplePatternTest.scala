@@ -32,9 +32,11 @@ class SimplePatternTest extends AnyFlatSpec with Matchers {
 
   it should "return correct results for changing values" in {
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 100)
 
     val out = runAndCollectOutput(events)
@@ -44,9 +46,11 @@ class SimplePatternTest extends AnyFlatSpec with Matchers {
 
   it should "collect points to segments for same values" in {
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Constant(0).timed(10.seconds).after(Constant(1)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Constant(0).timed(10.seconds).after(Constant(1))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 100)
 
     val out = runAndCollectOutput(events)

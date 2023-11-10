@@ -4,8 +4,7 @@ import org.scalatest.flatspec._
 
 import org.scalatest.matchers.should._
 
-/**
-  * Class for testing the exceptions viewer in "core" module
+/** Class for testing the exceptions viewer in "core" module
   */
 class ExceptionsTest extends AnyFlatSpec with Matchers {
 

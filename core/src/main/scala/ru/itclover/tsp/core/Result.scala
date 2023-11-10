@@ -1,6 +1,7 @@
 package ru.itclover.tsp.core
 
 sealed trait Result[+A] extends Serializable {
+
   private def get: A = this match {
     case Fail    => throw new RuntimeException("Illegal get on Fail")
     case Succ(t) => t
@@ -29,12 +30,14 @@ sealed trait Result[+A] extends Serializable {
 }
 
 object Result {
+
   implicit class OptionToResult[T](private val opt: Option[T]) extends AnyVal {
 
     def toResult: Result[T] = opt match {
       case None    => Fail
       case Some(t) => Succ(t)
     }
+
   }
 
   def fail[T]: Result[T] = Fail

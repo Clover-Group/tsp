@@ -29,10 +29,13 @@ class JDBCContainer(
     container.setPortBindings(bindings.asJava)
     container.addExposedPorts(exposedPorts: _*)
   }
+
   env.foreach(container.withEnv(_, _))
+
   if (command.nonEmpty) {
     val _ = container.withCommand(command: _*)
   }
+
   classpathResourceMapping.foreach(container.withClasspathResourceMapping(_, _, _))
   waitStrategy.foreach(container.waitingFor)
 

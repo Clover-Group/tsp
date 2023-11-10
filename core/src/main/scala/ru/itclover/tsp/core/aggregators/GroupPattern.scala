@@ -10,10 +10,9 @@ import ru.itclover.tsp.core.{Pattern, Time, Window, _}
 import scala.Ordering.Implicits._
 import scala.collection.{mutable => m}
 
-/**
-  * Group pattern is an AccumPattern calculating result on window for objects having an instance of cats.Group.
-  * Complexity does not depend on window size, since for each new added element we can produce new output
-  * using previous result.
+/** Group pattern is an AccumPattern calculating result on window for objects having an instance of cats.Group.
+  * Complexity does not depend on window size, since for each new added element we can produce new output using previous
+  * result.
   */
 //todo tests
 //todo simplify?
@@ -31,6 +30,7 @@ case class GroupPattern[Event: IdxExtractor: TimeExtractor, S, T: Group](
       astate = GroupAccumState(None, m.Queue.empty),
       indexTimeMap = m.Queue.empty
     )
+
 }
 
 case class GroupAccumState[T: Group](
@@ -68,14 +68,11 @@ case class GroupAccumState[T: Group](
           .map(cmr => GroupAccumResult(sum = Group[T].combine(cmr.sum, t), count = cmr.count + 1))
           .orElse(Option(GroupAccumResult(sum = t, count = 1)))
 
-        //remove outdated elements from queue
+        // remove outdated elements from queue
         val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) <= time)
 
-        val finalNewLastValue = outputs.foldLeft(newLastValue) {
-          case (cmr, elem) =>
-            cmr.map(
-              lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1)
-            )
+        val finalNewLastValue = outputs.foldLeft(newLastValue) { case (cmr, elem) =>
+          cmr.map(lastSum => GroupAccumResult(sum = Group[T].remove(lastSum.sum, elem.value), count = lastSum.count - 1))
         }
 
         // add new element to queue

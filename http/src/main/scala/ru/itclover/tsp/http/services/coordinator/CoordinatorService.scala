@@ -14,13 +14,15 @@ import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
 
 case class CoordinatorService(
-  coordUri: String, advHost: Option[String], advPort: Option[Int]
-  )(implicit as: ActorSystem, execCtx: ExecutionContext) {
+  coordUri: String,
+  advHost: Option[String],
+  advPort: Option[Int]
+)(implicit as: ActorSystem, execCtx: ExecutionContext) {
 
   case class RegisterMessage(
-    version: String, 
-    uuid: String, 
-    advertisedIP: Option[String], 
+    version: String,
+    uuid: String,
+    advertisedIP: Option[String],
     advertisedPort: Option[Int]
   )
 
@@ -64,14 +66,14 @@ case class CoordinatorService(
         method = HttpMethods.POST,
         uri = uri,
         entity = HttpEntity(
-          ContentTypes.`application/json`, 
+          ContentTypes.`application/json`,
           RegisterMessage(
-            BuildInfo.version, 
+            BuildInfo.version,
             uuid,
             advHost,
             advPort
-            ).toJson.compactPrint
-          )
+          ).toJson.compactPrint
+        )
       )
     )
 
@@ -135,12 +137,16 @@ case class CoordinatorService(
         case Failure(ex) => log.error(s"Cannot connect to $uri: $ex")
       }
   }
+
 }
 
 object CoordinatorService {
   private var service: Option[CoordinatorService] = None
 
-  def getOrCreate(coordUri: String, advHost: Option[String], advPort: Option[Int])(implicit as: ActorSystem, execCtx: ExecutionContext): CoordinatorService =
+  def getOrCreate(coordUri: String, advHost: Option[String], advPort: Option[Int])(implicit
+    as: ActorSystem,
+    execCtx: ExecutionContext
+  ): CoordinatorService =
     service match {
       case Some(value) =>
         value
@@ -158,4 +164,5 @@ object CoordinatorService {
 
   def notifyJobCompleted(jobId: String, exception: Option[Throwable]): Unit =
     service.map(_.notifyJobCompleted(jobId, exception)).getOrElse(())
+
 }

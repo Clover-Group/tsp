@@ -9,8 +9,8 @@ class StreamEndException(message: String) extends Exception(message)
 object KafkaService {
 
   // Stub
-  def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(String, Class[_])]] = Try(conf.fieldsTypes.map {
-    case (fieldName, fieldType) =>
+  def fetchFieldsTypesInfo(conf: KafkaInputConf): Try[Seq[(String, Class[_])]] = Try(
+    conf.fieldsTypes.map { case (fieldName, fieldType) =>
       val fieldClass = fieldType match {
         case "int8"    => classOf[Byte]
         case "int16"   => classOf[Short]
@@ -23,7 +23,8 @@ object KafkaService {
         case _         => classOf[Any]
       }
       (String(fieldName), fieldClass)
-  }.toSeq)
+    }.toSeq
+  )
 
   // Stub
   /*def consumer(conf: KafkaInputConf, fieldsIdxMap: Map[String, Int]) = {

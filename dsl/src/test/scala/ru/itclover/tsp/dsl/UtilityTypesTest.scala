@@ -5,8 +5,7 @@ import org.scalatest.wordspec._
 import org.scalatest.matchers.should._
 import ru.itclover.tsp.dsl.UtilityTypes.ParseException
 
-/**
-  * Class for testing utility types
+/** Class for testing utility types
   */
 class UtilityTypesTest extends AnyWordSpec with Matchers {
 

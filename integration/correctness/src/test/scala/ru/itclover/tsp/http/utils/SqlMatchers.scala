@@ -19,8 +19,8 @@ trait SqlMatchers extends Matchers {
   /** Util for checking segments count and size in seconds */
   // Here, default argument for `epsilon` is useful.
   @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
-  def checkByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(
-    implicit container: ClickHouseContainer
+  def checkByQuery(expectedValues: Seq[Seq[Double]], query: String, epsilon: Double = 0.0001)(implicit
+    container: ClickHouseContainer
   ): Assertion = {
     val con = container.container.createConnection("")
     val resultSet = con.prepareStatement(query).executeQuery()
@@ -32,11 +32,11 @@ trait SqlMatchers extends Matchers {
     // misleading, but unfortunately lower levels don't work
     logger.info(
       s"Expected Values: [${toStringRepresentation(expectedValues)}], " +
-      s"actual values: [${toStringRepresentation(results)}]"
+        s"actual values: [${toStringRepresentation(results)}]"
     )
     implicit val customEqualityList: Equality[List[Double]] = (a: scala.List[Double], b: Any) => {
-      a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall {
-        case (x, y) => Math.abs(x - y) < epsilon
+      a.size == b.asInstanceOf[Iterable[Double]].size && a.zip(b.asInstanceOf[Iterable[Double]]).forall { case (x, y) =>
+        Math.abs(x - y) < epsilon
       }
     }
 

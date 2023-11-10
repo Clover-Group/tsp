@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import cats.instances.list._
 import cats.syntax.functor._
 import cats.syntax.traverse._
@@ -7,11 +8,10 @@ import ru.itclover.tsp.core.Pattern.QI
 
 import scala.annotation.tailrec
 
-/** Reduce Pattern.
-  * Complex pattern combining Seq of inner patterns (all of them have to have the same type).
-  * Each inner can be transformed using `transform` function, filtered using `filterCond`.
-  * Final result is left-folded of `initial` and Seq of inner results with function `func`.
-  * */
+/** Reduce Pattern. Complex pattern combining Seq of inner patterns (all of them have to have the same type). Each inner
+  * can be transformed using `transform` function, filtered using `filterCond`. Final result is left-folded of `initial`
+  * and Seq of inner results with function `func`.
+  */
 class ReducePattern[Event, S, T1, T2](
   val patterns: Seq[Pattern[Event, S, T1]]
 )(
@@ -73,6 +73,7 @@ class ReducePattern[Event, S, T1, T2](
   override def initialState(): ReducePState[S, T1] = ReducePState(
     patterns.map(p => p.initialState() -> PQueue.empty[T1])
   )
+
 }
 
 case class ReducePState[State, T1](stateAndQueues: Seq[(State, PQueue[T1])])

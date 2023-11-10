@@ -7,7 +7,7 @@ import org.scalatest.matchers.should._
 class QueueUtilsTest extends AnyFlatSpec with Matchers {
 
   it should "split queue using predicate" in {
-    //todo
+    // todo
 
   }
 

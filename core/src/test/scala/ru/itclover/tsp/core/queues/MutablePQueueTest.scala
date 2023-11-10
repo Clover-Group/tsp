@@ -8,8 +8,7 @@ import ru.itclover.tsp.core.{IdxValue, PQueue, Result, Succ}
 
 import scala.collection.mutable
 
-/**
-  * Test class for mutable pattern queue
+/** Test class for mutable pattern queue
   */
 // In test cases, 'should' expressions are non-unit. Suppressing wartremover warnings about it
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))

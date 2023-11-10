@@ -41,6 +41,7 @@ object MonitoringRoutes {
     }
 
   }
+
   log.debug("fromExecutionContext finished")
 }
 
@@ -52,32 +53,36 @@ trait MonitoringRoutes extends RoutesProtocols {
   implicit val materializer: Materializer
 
   val route: Route = path("job" / Segment / "status") { uuid =>
-      CheckpointingService.getCheckpoint(uuid) match {
-        case Some(details) => complete(Map("rowsRead" -> details.readRows, "rowsWritten" -> details.totalWrittenRows).toJson(implicitly[JsonWriter[Map[String, Any]]]))
-        case None          => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-        //case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
-      }
-    } ~ path("job" / Segment / "request") { uuid =>
-      jrs.runningJobsRequests.get(uuid) match {
-        case Some(r) =>
-          complete(
-            this
-              .patternsRequestFmt[RowWithIdx, String, Any, Row]
-              .write(r.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
-          )
-        case None => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-      }
-    } ~ path("job" / Segment / "stop") { uuid =>
-      jrs.getRunningJobsIds.find(_ == uuid) match {
-        case Some(_) =>
-          jrs.stopStream(uuid)
-          complete(Map("message" -> s"Job $uuid stopped.").toJson(propertyFormat))
-        case None =>
-          complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
-      }
-    } ~ path("jobs" / "overview") {
-      complete(jrs.getRunningJobsIds.toJson)
-    } ~
+    CheckpointingService.getCheckpoint(uuid) match {
+      case Some(details) =>
+        complete(
+          Map("rowsRead" -> details.readRows, "rowsWritten" -> details.totalWrittenRows)
+            .toJson(implicitly[JsonWriter[Map[String, Any]]])
+        )
+      case None => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+      // case Failure(err)           => complete((InternalServerError, FailureResponse(5005, err)))
+    }
+  } ~ path("job" / Segment / "request") { uuid =>
+    jrs.runningJobsRequests.get(uuid) match {
+      case Some(r) =>
+        complete(
+          this
+            .patternsRequestFmt[RowWithIdx, String, Any, Row]
+            .write(r.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
+        )
+      case None => complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+    }
+  } ~ path("job" / Segment / "stop") { uuid =>
+    jrs.getRunningJobsIds.find(_ == uuid) match {
+      case Some(_) =>
+        jrs.stopStream(uuid)
+        complete(Map("message" -> s"Job $uuid stopped.").toJson(propertyFormat))
+      case None =>
+        complete((BadRequest, FailureResponse(4006, "No such job.", Seq.empty)))
+    }
+  } ~ path("jobs" / "overview") {
+    complete(jrs.getRunningJobsIds.toJson)
+  } ~
     path("metainfo" / "getVersion") {
       complete(
         SuccessfulResponse(

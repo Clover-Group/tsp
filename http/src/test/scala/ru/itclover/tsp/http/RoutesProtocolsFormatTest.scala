@@ -1,4 +1,5 @@
 package ru.itclover.tsp.http
+
 import org.scalatest.flatspec._
 
 import org.scalatest.matchers.should._
@@ -38,9 +39,13 @@ class RoutesProtocolsFormatTest extends AnyFlatSpec with Matchers with RoutesPro
   }
 
   "SDT formats" should "work" in {
-    sdtFormat[Any, String, String].write(NarrowDataUnfolding("key", "value", Map.empty[String, Long])) shouldBe a[JsValue]
-    sdtFormat[Any, String, String].write(WideDataFilling[Any, String, String](Map.empty[String, Long], Some(0L))) shouldBe a[
+    sdtFormat[Any, String, String]
+      .write(NarrowDataUnfolding("key", "value", Map.empty[String, Long])) shouldBe a[JsValue]
+    sdtFormat[Any, String, String].write(
+      WideDataFilling[Any, String, String](Map.empty[String, Long], Some(0L))
+    ) shouldBe a[
       JsValue
     ]
   }
+
 }

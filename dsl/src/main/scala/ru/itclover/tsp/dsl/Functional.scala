@@ -44,4 +44,5 @@ object Logical {
     def not(a: Any): Boolean = !a.asInstanceOf[Boolean]
 
   }
+
 }

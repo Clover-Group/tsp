@@ -17,7 +17,14 @@ import ru.itclover.tsp.streaming.io._
 import ru.itclover.tsp.streaming.serialization.JsonDeserializer
 import ru.itclover.tsp.streaming.services.JdbcService
 import ru.itclover.tsp.streaming.transformers.SparseRowsDataAccumulator
-import ru.itclover.tsp.streaming.utils.{EventCreator, EventCreatorInstances, KeyCreator, KeyCreatorInstances, EventPrinter, EventPrinterInstances}
+import ru.itclover.tsp.streaming.utils.{
+  EventCreator,
+  EventCreatorInstances,
+  KeyCreator,
+  KeyCreatorInstances,
+  EventPrinter,
+  EventPrinterInstances
+}
 import ru.itclover.tsp.streaming.utils.ErrorsADT._
 import ru.itclover.tsp.streaming.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.streaming.utils.EventPrinterInstances
@@ -34,21 +41,19 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def transformedFieldsClasses: Seq[(String, Class[_])] = conf.dataTransformation match {
     case Some(NarrowDataUnfolding(_, _, _, mapping, _)) =>
       val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
-      val r = fieldsClasses ++ m.map {
-          case (col, list) =>
-            list.map(
-              k =>
-                (
-                  eKeyToField(k),
-                  fieldsClasses
-                    .find {
-                      case (s, _) => fieldToEKey(s) == col
-                    }
-                    .map(_._2)
-                    .getOrElse(defaultClass)
-                )
-            )
-        }.flatten
+      val r = fieldsClasses ++ m.map { case (col, list) =>
+        list.map(k =>
+          (
+            eKeyToField(k),
+            fieldsClasses
+              .find { case (s, _) =>
+                fieldToEKey(s) == col
+              }
+              .map(_._2)
+              .getOrElse(defaultClass)
+          )
+        )
+      }.flatten
       r
     case _ =>
       fieldsClasses
@@ -95,9 +100,8 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
         val valueColumn = mapping
           .getOrElse(Map.empty[EKey, List[EKey]])
           .toSeq
-          .find {
-            case (_, list) =>
-              list.contains(extractedKey)
+          .find { case (_, list) =>
+            list.contains(extractedKey)
           }
           .map(_._1)
           .getOrElse(value)
@@ -127,6 +131,7 @@ object StreamSource {
     allFields.find { field =>
       !excludedFields.contains(field)
     }
+
 }
 
 case class RowWithIdx(idx: Idx, row: Row)
@@ -144,7 +149,7 @@ object JdbcSource {
       newFields <- checkKeysExistence(conf, fields)
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => JdbcSource(conf, types, nullField, newFields).asRight
-        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 
@@ -158,6 +163,7 @@ object JdbcSource {
           .leftMap[GenericRuntimeErr](e => GenericRuntimeErr(e, 5099))
       case _ => Right(keys)
     }
+
 }
 
 // todo rm nullField and trailing nulls in queries at platform (uniting now done on Flink) after states fix
@@ -183,11 +189,13 @@ case class JdbcSource(
 
   require(fieldsIdxMap.get(datetimeField).isDefined, "Cannot find datetime field, index overflow.")
   require(fieldsIdxMap(datetimeField) < fieldsIdxMap.size, "Cannot find datetime field, index overflow.")
+
   private val badPartitions = partitionFields
     .map(fieldsIdxMap.get)
     .find(idx => idx.getOrElse(Int.MaxValue) >= fieldsIdxMap.size)
     .flatten
     .map(p => fieldsClasses(p)._1)
+
   require(badPartitions.isEmpty, s"Cannot find partition field (${badPartitions.getOrElse("unknown")}), index overflow.")
 
   val timeIndex = fieldsIdxMap(datetimeField)
@@ -208,16 +216,15 @@ case class JdbcSource(
       val params = query
         .split("&")
         .map(kv => kv.split("=", 2))
-        .map{ 
-          case Array(k) => (k, "")
-          case Array(k, v) => (k, v)
+        .map {
+          case Array(k)        => (k, "")
+          case Array(k, v)     => (k, v)
           case Array(k, v, _*) => (k, v)
         }
         .toMap
       (params.getOrElse("user", ""), params.getOrElse("password", ""))
-    }
-    catch {
-      case e: Exception => 
+    } catch {
+      case e: Exception =>
         log.error(s"EXC: ${e.getMessage()}")
         ("", "")
     }
@@ -302,6 +309,7 @@ case class JdbcSource(
     val rowExtractor = RowTsTimeExtractor(timeIndex, tsMultiplier, datetimeField)
     TimeExtractor.of(r => rowExtractor(r.row))
   }
+
   override def extractor = RowSymbolExtractor(fieldsIdxMap).comap(_.row)
 
   override def transformedExtractor = RowSymbolExtractor(transformedFieldsIdxMap).comap(_.row)
@@ -333,7 +341,7 @@ case class JdbcSource(
   implicit override def transformedTimeExtractor: TimeExtractor[RowWithIdx] =
     RowTsTimeExtractor(transformedTimeIndex, tsMultiplier, datetimeField).comap(_.row)
 
-  //todo refactor everything related to idxExtractor
+  // todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 }
 
@@ -352,7 +360,7 @@ object KafkaSource {
       _ = log.info(s"Kafka types found: $types")
       source <- StreamSource.findNullField(types.map(_._1), conf.datetimeField +: conf.partitionFields) match {
         case Some(nullField) => KafkaSource(conf, types, nullField, fields).asRight
-        case None            => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
+        case None => InvalidRequest("Source should contain at least one non partition and datatime field.").asLeft
       }
     } yield source
 
@@ -385,6 +393,7 @@ case class KafkaSource(
 
   implicit def extractor: ru.itclover.tsp.core.io.Extractor[RowWithIdx, String, Any] =
     RowSymbolExtractor(fieldsIdxMap).comap(_.row)
+
   implicit def timeExtractor: ru.itclover.tsp.core.io.TimeExtractor[RowWithIdx] =
     RowTsTimeExtractor(timeIndex, tsMultiplier, conf.datetimeField).comap(_.row)
 
@@ -392,15 +401,13 @@ case class KafkaSource(
 
   val consumerSettings = ConsumerSettings(
     keyDeserializer = Deserializer.unit[IO],
-    valueDeserializer = Deserializer.instance[IO, Row](
-      (_, _, bytes) => {
-        val deserialized = JsonDeserializer(fieldsClasses).deserialize(bytes)
-        deserialized match {
-          case Right(value) => IO.pure(value)
-          case Left(_)      => ??? // TODO: Deserialization error
-        }
+    valueDeserializer = Deserializer.instance[IO, Row]((_, _, bytes) => {
+      val deserialized = JsonDeserializer(fieldsClasses).deserialize(bytes)
+      deserialized match {
+        case Right(value) => IO.pure(value)
+        case Left(_)      => ??? // TODO: Deserialization error
       }
-    )
+    })
   ).withBootstrapServers(conf.brokers)
     .withGroupId(conf.group)
     .withAutoOffsetReset(AutoOffsetReset.Latest)
@@ -460,7 +467,7 @@ case class KafkaSource(
   implicit override def eventPrinter: EventPrinter[RowWithIdx] = EventPrinterInstances.rowWithIdxEventPrinter
 
   implicit override def keyCreator: KeyCreator[String] = KeyCreatorInstances.symbolKeyCreator
-  //todo refactor everything related to idxExtractor
+  // todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 
 }

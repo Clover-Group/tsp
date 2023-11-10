@@ -9,6 +9,8 @@ import ru.itclover.tsp.core.aggregators.{WaitPattern, TimerPattern, WindowStatis
 import ru.itclover.tsp.core.io.{Extractor, TimeExtractor}
 
 import scala.reflect.ClassTag
+import org.parboiled2.ParseError
+
 trait AnyState[T]
 
 // We heavily deal with Any values here. But still TODO: investigate
@@ -16,8 +18,8 @@ trait AnyState[T]
 @SuppressWarnings(
   Array("org.wartremover.warts.Any", "org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.IsInstanceOf")
 )
-case class ASTPatternGenerator[Event, EKey, EItem]()(
-  implicit idxExtractor: IdxExtractor[Event],
+case class ASTPatternGenerator[Event, EKey, EItem]()(implicit
+  idxExtractor: IdxExtractor[Event],
   timeExtractor: TimeExtractor[Event],
   extractor: Extractor[Event, EKey, EItem],
   @transient fieldToEKey: Conversion[String, EKey]
@@ -39,9 +41,12 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
     eventsMaxGapMs: Long,
     fieldsTags: Map[String, ClassTag[_]]
   ): Either[Throwable, (Pattern[Event, AnyState[Any], Any], PatternMetadata)] = {
-    val ast = new ASTBuilder(sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags).start.run()
-    ast.toEither.map(a => (generatePattern(a), a.metadata))
-
+    val builder = new ASTBuilder(sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags)
+    val ast = builder.start.run()
+    ast.toEither.map(a => (generatePattern(a), a.metadata)).left.map {
+      case p: ParseError => Exception(builder.formatError(p))
+      case x: Throwable  => x
+    }
   }
 
   def generatePattern(ast: AST): Pattern[Event, AnyState[Any], Any] = {
@@ -77,20 +82,19 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         fc.arguments.length match {
           case 1 =>
             val p1 = generatePattern(fc.arguments(0))
-            MapPattern(p1)(
-              (x: Any) =>
-                registry.functions
-                  .getOrElse(
-                    (fc.functionName, fc.arguments.map(_.valueType)),
-                    sys.error(
-                      s"Function ${fc.functionName} with argument types " +
+            MapPattern(p1)((x: Any) =>
+              registry.functions
+                .getOrElse(
+                  (fc.functionName, fc.arguments.map(_.valueType)),
+                  sys.error(
+                    s"Function ${fc.functionName} with argument types " +
                       s"(${fc.arguments.map(_.valueType).mkString(",")})  not found"
-                    )
                   )
-                  ._1(Seq(x))
+                )
+                ._1(Seq(x))
             )
           case 2 =>
-            //log.warn(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
+            // log.warn(s"Case 2 called: Arg0 = ${fc.arguments(0)}, Arg1 = ${fc.arguments(1)}")
             val (p1, p2) = (generatePattern(fc.arguments(0)), generatePattern(fc.arguments(1)))
             val fun: PFunction = registry
               .findBestFunctionMatch(fc.functionName, fc.arguments.map(_.valueType))
@@ -98,7 +102,7 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
               .getOrElse(
                 sys.error(
                   s"Function ${fc.functionName} with argument types " +
-                  s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
+                    s"(${fc.arguments.map(_.valueType).mkString(",")}) or the best match not found"
                 )
               )
               ._1
@@ -154,38 +158,49 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
         }
       case at: AndThen =>
         // Pair of indices indicates success, so we convert it to true
-        MapPattern(AndThenPattern(generatePattern(at.first), generatePattern(at.second)))(
-          v => if (v.isInstanceOf[(Idx, Idx)]) true else v
+        MapPattern(AndThenPattern(generatePattern(at.first), generatePattern(at.second)))(v =>
+          if (v.isInstanceOf[(Idx, Idx)]) true else v
         )
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer =>
         TimerPattern(generatePattern(t.cond), Window(t.interval.max), t.maxGapMs)
       case s: Wait =>
         WaitPattern(generatePattern(s.cond), s.window)
-      case fwi: ForWithInterval =>
-        MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({ (stats: WindowStatisticResult) =>
-          // should wait till the end of the window?
-          val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
+      case fwi: ForWithInterval => {
+        val innerPat = MapPattern(WindowStatistic(generatePattern(fwi.inner), fwi.window))({
+          (stats: WindowStatisticResult) =>
+            // should wait till the end of the window?
+            val exactly = fwi.exactly.getOrElse(false) || (fwi.interval match {
               case TimeInterval(_, max)    => max < fwi.window.toMillis
               case NumericInterval(_, end) => end.getOrElse(Long.MaxValue) < Long.MaxValue
               case _                       => true
             })
-          val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
-          fwi.interval match {
-            case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)
-            case ni: NumericInterval[Long] if ni.contains(stats.successCount) && isWindowEnded => Result.succ(true)
-            case _                                                                             => Result.fail
-          }
+            val isWindowEnded = !exactly || stats.totalMillis >= fwi.window.toMillis
+            fwi.interval match {
+              case ti: TimeInterval if ti.contains(stats.successMillis) && isWindowEnded         => Result.succ(true)
+              case ni: NumericInterval[Long] if ni.contains(stats.successCount) && isWindowEnded => Result.succ(true)
+              case _                                                                             => Result.fail
+            }
         })
+        if (fwi.fromStart.getOrElse(false)) {
+          WaitPattern(innerPat, fwi.window)
+        } else {
+          innerPat
+        }
+      }
 
       case c: Cast =>
-        c.to match {
-          case IntASTType     => MapPattern(generatePattern(c.inner))(decodeToInt(_))
-          case LongASTType    => MapPattern(generatePattern(c.inner))(decodeToLong(_))
-          case BooleanASTType => MapPattern(generatePattern(c.inner))(decodeToBoolean(_))
-          case StringASTType  => MapPattern(generatePattern(c.inner))(decodeToString(_))
-          case DoubleASTType  => MapPattern(generatePattern(c.inner))(decodeToDouble(_))
-          case AnyASTType     => MapPattern(generatePattern(c.inner))(decodeToAny(_))
+        if (c.inner.valueType == c.to) {
+          generatePattern(c.inner) // no additional "idle" casting if the types match
+        } else {
+          c.to match {
+            case IntASTType     => MapPattern(generatePattern(c.inner))(decodeToInt(_))
+            case LongASTType    => MapPattern(generatePattern(c.inner))(decodeToLong(_))
+            case BooleanASTType => MapPattern(generatePattern(c.inner))(decodeToBoolean(_))
+            case StringASTType  => MapPattern(generatePattern(c.inner))(decodeToString(_))
+            case DoubleASTType  => MapPattern(generatePattern(c.inner))(decodeToDouble(_))
+            case AnyASTType     => MapPattern(generatePattern(c.inner))(decodeToAny(_))
+          }
         }
 
       case Assert(inner) if inner.valueType == BooleanASTType =>
@@ -198,4 +213,5 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(
       case notImplemented => sys.error(s"AST $notImplemented is not implemented yet.")
     }
   }
+
 }

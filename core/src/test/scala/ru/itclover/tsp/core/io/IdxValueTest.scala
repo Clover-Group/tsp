@@ -26,4 +26,5 @@ class IdxValueTest extends AnyFlatSpec with Matchers {
     iv4.intersects(iv1) shouldBe false
 
   }
+
 }

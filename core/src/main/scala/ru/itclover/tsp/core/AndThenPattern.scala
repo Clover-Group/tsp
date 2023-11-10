@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
@@ -6,7 +7,7 @@ import ru.itclover.tsp.core.Pattern.{Idx, QI}
 
 import scala.annotation.tailrec
 
-/** AndThen  */
+/** AndThen */
 //We lose T1 and T2 in output for performance reason only. If needed outputs of first and second stages can be returned as well
 case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], second: Pattern[Event, S2, T2])
     extends Pattern[Event, AndThenPState[T1, T2, S1, S2], (Idx, Idx)] {
@@ -20,8 +21,10 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
     val firstF = first.apply[F, Cont](oldState.firstState, oldState.firstQueue, event)
     val secondF = second.apply[F, Cont](oldState.secondState, oldState.secondQueue, event)
 
-    for (newFirstOutput  <- firstF;
-         newSecondOutput <- secondF)
+    for (
+      newFirstOutput  <- firstF;
+      newSecondOutput <- secondF
+    )
       yield {
         // process queues
         val (updatedFirstQueue, updatedSecondQueue, finalQueue) =
@@ -82,7 +85,11 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
             else {
               val end = Math.max(end1 + 1, end2)
               val start = Math.min(start1, start2)
-              val newResult = IdxValue(start, end, Succ((start, end))) // todo nobody uses the output of AndThen pattern. Let's drop it later.
+              val newResult = IdxValue(
+                start,
+                end,
+                Succ((start, end))
+              ) // todo nobody uses the output of AndThen pattern. Let's drop it later.
               inner(first.rewindTo(end + 1), second.rewindTo(end + 1), total.enqueue(newResult))
             }
           }
@@ -92,6 +99,7 @@ case class AndThenPattern[Event, T1, T2, S1, S2](first: Pattern[Event, S1, T1], 
 
     inner(firstQ, secondQ, totalQ)
   }
+
 }
 
 case class AndThenPState[T1, T2, State1, State2](

@@ -8,8 +8,7 @@ import ru.itclover.tsp.core.{IdxValue, Result, Succ}
 
 import scala.collection.mutable
 
-/**
-  * Test class for lazy variant of PQueue
+/** Test class for lazy variant of PQueue
   */
 class MapPQueueTest extends AnyWordSpec with Matchers {
 

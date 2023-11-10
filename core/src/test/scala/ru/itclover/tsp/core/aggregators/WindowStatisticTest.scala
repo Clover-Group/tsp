@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class WindowStatisticTest extends AnyWordSpec with Matchers {
 
-  //todo tests for WindowStatistic
+  // todo tests for WindowStatistic
   val pat = Patterns[EInt]
   import pat._
 
@@ -30,9 +30,11 @@ class WindowStatisticTest extends AnyWordSpec with Matchers {
 
       val pattern = truthMillis(pat.assert(field(_.row) === const(0)), 10.seconds)
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- Constant(0).timed(40.seconds).after(Constant(1)))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- Constant(0).timed(40.seconds).after(Constant(1))
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
       val collect = new ArrayBuffer[IdxValue[_]]()
       StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => collect += x)
@@ -104,6 +106,6 @@ class WindowStatisticTest extends AnyWordSpec with Matchers {
 
   }
 
-  //todo more tests
+  // todo more tests
 
 }

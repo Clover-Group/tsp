@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import cats.syntax.foldable._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.Pattern.IdxExtractor
@@ -38,7 +39,7 @@ trait SimplePatternLike[Event, T] extends Pattern[Event, SimplePState.type, T] {
     }
     // Add last element if exist
     val finalQueue = lastElement.map(t => newQueue.enqueue(t)).getOrElse(newQueue)
-    //log.debug(s"Received events: ${events}, Emitting: ${finalQueue}")
+    // log.debug(s"Received events: ${events}, Emitting: ${finalQueue}")
     Monad[F].pure(SimplePState -> finalQueue)
   }
 

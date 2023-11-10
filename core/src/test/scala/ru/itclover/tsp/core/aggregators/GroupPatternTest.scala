@@ -28,9 +28,11 @@ class GroupPatternTest extends AnyWordSpec with Matchers {
 
       val innerPattern = const(1) // returns Success(1) for any sequence of events
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- Constant(0))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- Constant(0)
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row, 0)).run(seconds = 100)
 
       import cats.instances.int.catsKernelStdGroupForInt
@@ -56,9 +58,11 @@ class GroupPatternTest extends AnyWordSpec with Matchers {
 
       val pattern = p.assert(p.truthCount(p.assert(p.field(_.row) > p.const(5)), Window(10)) > const(0))
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- RandomInRange(0, 10)(new Random()).timed(5.seconds))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- RandomInRange(0, 10)(new Random()).timed(5.seconds)
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 5)
 
       val collect = new ArrayBuffer[IdxValue[_]]()
@@ -83,9 +87,11 @@ class GroupPatternTest extends AnyWordSpec with Matchers {
 
       val pattern = p.assert(p.field(_.row) > const(10))
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- RandomInRange(0, 5)(new Random()).timed(5.seconds))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- RandomInRange(0, 5)(new Random()).timed(5.seconds)
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 5)
 
       val collect = new ArrayBuffer[IdxValue[_]]()

@@ -60,10 +60,10 @@ object Launcher extends App with HttpService {
       new ThreadPoolExecutor(
         0, // corePoolSize
         Int.MaxValue, // maxPoolSize
-        1000L, //keepAliveTime
-        TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable]() //workQueue
-        //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        1000L, // keepAliveTime
+        TimeUnit.MILLISECONDS, // timeUnit
+        new SynchronousQueue[Runnable]() // workQueue
+        // new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
 
@@ -73,31 +73,31 @@ object Launcher extends App with HttpService {
 
   log.info(s"Service online at http://$host:$port/" + (if (isDebug) " in debug mode." else ""))
   val coordinator = getCoordinatorHostPort
-  coordinator.foreach {
-    case (enabled, host, port) =>
-      if (enabled) {
-        val uri = s"http://$host:$port"
-        log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
-        val advHost = getEnvVarOrNone("TSP_ADVERTISED_HOST")
-        val advPort = getEnvVarOrNone("TSP_ADVERTISED_PORT")
-        CoordinatorService.getOrCreate(uri, advHost, advPort.flatMap(_.toIntOption)).notifyRegister()
 
-      } else {
-        log.warn("TSP coordinator connection disabled.")
-      }
+  coordinator.foreach { case (enabled, host, port) =>
+    if (enabled) {
+      val uri = s"http://$host:$port"
+      log.warn(s"TSP coordinator connection enabled: connecting to $uri...")
+      val advHost = getEnvVarOrNone("TSP_ADVERTISED_HOST")
+      val advPort = getEnvVarOrNone("TSP_ADVERTISED_PORT")
+      CoordinatorService.getOrCreate(uri, advHost, advPort.flatMap(_.toIntOption)).notifyRegister()
+
+    } else {
+      log.warn("TSP coordinator connection disabled.")
+    }
   }
 
   val checkpointing = getCheckpointingHostPort
-  checkpointing.foreach {
-    case (enabled, host, port) =>
-      if (enabled) {
-        val uri = s"redis://$host:$port"
-        log.warn(s"TSP checkpointing enabled: registering service on $uri...")
-        CheckpointingService.getOrCreate(Some(uri))
-      } else {
-        log.warn("TSP checkpointing disabled.")
-        CheckpointingService.getOrCreate(None)
-      }
+
+  checkpointing.foreach { case (enabled, host, port) =>
+    if (enabled) {
+      val uri = s"redis://$host:$port"
+      log.warn(s"TSP checkpointing enabled: registering service on $uri...")
+      CheckpointingService.getOrCreate(Some(uri))
+    } else {
+      log.warn("TSP checkpointing disabled.")
+      CheckpointingService.getOrCreate(None)
+    }
   }
 
   if (configs.getBoolean("general.is-follow-input")) {

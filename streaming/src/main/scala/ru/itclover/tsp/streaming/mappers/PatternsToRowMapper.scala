@@ -13,25 +13,23 @@ import spray.json._
 import DefaultJsonProtocol._
 import scala.util.Try
 
-/**
-  * Packer of found incident into [[Row]]
+/** Packer of found incident into [[Row]]
   */
 case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
 
   def map(incident: Incident) = schema match {
     case newRowSchema: NewRowSchema =>
       val resultRow = new Row(newRowSchema.fieldsCount)
-      newRowSchema.data.foreach {
-        case (k, v) =>
-          val pos = newRowSchema.fieldsIndices(String(k))
-          v match {
-            case value: IntESValue   => resultRow(pos) = convertFromInt(value.value, value.`type`).asInstanceOf[AnyRef]
-            case value: FloatESValue => resultRow(pos) = convertFromFloat(value.value, value.`type`).asInstanceOf[AnyRef]
-            case value: StringESValue =>
-              resultRow(pos) =
-                convertFromString(interpolateString(value.value, incident), value.`type`).asInstanceOf[AnyRef]
-            case value: ObjectESValue => resultRow(pos) = mapToJson(convertFromObject(value.value, incident))
-          }
+      newRowSchema.data.foreach { case (k, v) =>
+        val pos = newRowSchema.fieldsIndices(String(k))
+        v match {
+          case value: IntESValue   => resultRow(pos) = convertFromInt(value.value, value.`type`).asInstanceOf[AnyRef]
+          case value: FloatESValue => resultRow(pos) = convertFromFloat(value.value, value.`type`).asInstanceOf[AnyRef]
+          case value: StringESValue =>
+            resultRow(pos) =
+              convertFromString(interpolateString(value.value, incident), value.`type`).asInstanceOf[AnyRef]
+          case value: ObjectESValue => resultRow(pos) = mapToJson(convertFromObject(value.value, incident))
+        }
       }
       resultRow
   }
@@ -67,8 +65,8 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
       .replace("$$", "$")
 
     // Replace pattern metadata
-    incident.patternMetadata.foldLeft(replaced) {
-      case (r, (k, v)) => r.replace(s"$$PatternMetadata@$k", v)
+    incident.patternMetadata.foldLeft(replaced) { case (r, (k, v)) =>
+      r.replace(s"$$PatternMetadata@$k", v)
     }
   }
 
@@ -106,14 +104,15 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
 
   def convertFromString(value: String, toType: String): Any = {
     toType match {
-      case "int8"      => value.toByte
-      case "int16"     => value.toShort
-      case "int32"     => value.toInt
-      case "int64"     => value.toLong
-      case "boolean"   => value != "0" && value != "false" && value != "off"
-      case "string"    => value
-      case "float32"   => Try(value.toFloat).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0f)).getOrElse(Float.NaN)
-      case "float64"   => Try(value.toDouble).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0)).getOrElse(Double.NaN)
+      case "int8"    => value.toByte
+      case "int16"   => value.toShort
+      case "int32"   => value.toInt
+      case "int64"   => value.toLong
+      case "boolean" => value != "0" && value != "false" && value != "off"
+      case "string"  => value
+      case "float32" => Try(value.toFloat).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0f)).getOrElse(Float.NaN)
+      case "float64" =>
+        Try(value.toDouble).orElse(Try(Timestamp.valueOf(value).getTime() / 1000.0)).getOrElse(Double.NaN)
       case "timestamp" => Timestamp.valueOf(value)
       case "object"    => value
       case _           =>
@@ -121,15 +120,15 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
   }
 
   def convertFromObject(value: Map[String, EventSchemaValue], incident: Incident): Map[String, Any] = {
-    value.map {
-      case (k, v) =>
-        val s = v match {
-          case value: IntESValue    => convertFromInt(value.value, value.`type`)
-          case value: FloatESValue  => convertFromFloat(value.value, value.`type`)
-          case value: StringESValue => convertFromString(interpolateString(value.value, incident), value.`type`)
-          case value: ObjectESValue => convertFromObject(value.value, incident)
-        }
-        (k, s)
+    value.map { case (k, v) =>
+      val s = v match {
+        case value: IntESValue    => convertFromInt(value.value, value.`type`)
+        case value: FloatESValue  => convertFromFloat(value.value, value.`type`)
+        case value: StringESValue => convertFromString(interpolateString(value.value, incident), value.`type`)
+        case value: ObjectESValue => convertFromObject(value.value, incident)
+      }
+      (k, s)
     }
   }
+
 }

@@ -8,12 +8,16 @@ trait EventPrinter[Event] {
 }
 
 object EventPrinterInstances {
-    implicit val rowEventPrinter: EventPrinter[Row] = new EventPrinter[Row] {
-        override def prettyPrint(event: Row): String = s"Row[${event.mkString(", ")}]"
-    }
 
-    implicit val rowWithIdxEventPrinter: EventPrinter[RowWithIdx] = new EventPrinter[RowWithIdx] {
-        override def prettyPrint(event: RowWithIdx): String = 
-            s"RowWithIdx[index = ${event.idx}, data = (${event.row.mkString(", ")})]"
-    }
+  implicit val rowEventPrinter: EventPrinter[Row] = new EventPrinter[Row] {
+    override def prettyPrint(event: Row): String = s"Row[${event.mkString(", ")}]"
+  }
+
+  implicit val rowWithIdxEventPrinter: EventPrinter[RowWithIdx] = new EventPrinter[RowWithIdx] {
+
+    override def prettyPrint(event: RowWithIdx): String =
+      s"RowWithIdx[index = ${event.idx}, data = (${event.row.mkString(", ")})]"
+
+  }
+
 }

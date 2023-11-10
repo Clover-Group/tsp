@@ -34,4 +34,5 @@ class PatternsValidatorTest extends AnyFlatSpec with Matchers with ScalaCheckPro
     PatternsValidator
       .validate[TestEvent](patterns.zipWithIndex.map(pi => RawPattern(pi._2, pi._1, None)), fieldsTypes)()
   }
+
 }

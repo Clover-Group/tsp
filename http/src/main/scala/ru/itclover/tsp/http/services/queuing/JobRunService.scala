@@ -34,8 +34,8 @@ import cats.effect.kernel.Deferred
 import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.atomic.AtomicBoolean
 
-class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecutor)(
-  implicit executionContext: ExecutionContextExecutor,
+class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecutor)(implicit
+  executionContext: ExecutionContextExecutor,
   actorSystem: ActorSystem,
   materializer: Materializer,
   decoders: BasicDecoders[Any] = AnyDecodersInstances
@@ -51,8 +51,8 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
 
   private val log = Logger[JobRunService]
 
-  //val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
-  //log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
+  // val jobQueue = PersistentSet[TypedRequest, Nothing, Glass](dir = Paths.get("/tmp/job_queue"))
+  // log.warn(s"Recovering job queue: ${jobQueue.count} entries found")
   val jobQueue = mutable.Queue[TypedRequest]()
 
   val runningStreams = mutable.Map[String, AtomicBoolean]()
@@ -66,8 +66,9 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
   val task: Runnable = new Runnable {
     def run(): Unit = onTimer()
   }
+
   val f: ScheduledFuture[_] = ex.scheduleAtFixedRate(task, 0, 1, TimeUnit.SECONDS)
-  //f.cancel(false)
+  // f.cancel(false)
 
   def enqueue(r: Request): Unit = {
     jobQueue.enqueue(
@@ -144,7 +145,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     val job = jobQueue.find(_._1.uuid == uuid)
     job match {
       case Some(_) => {
-        //jobQueue.remove(value)
+        // jobQueue.remove(value)
         Some(())
       }
       case None => None
@@ -187,16 +188,14 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
       outConf,
       outConf.map(conf => PatternsToRowMapper[Incident, Row](conf.rowSchema))
     )
-    strOrErr.map {
-      case (parsedPatterns, stream) =>
-        // .. patternV2.format
-        val strPatterns = parsedPatterns.map {
-          case ((_, meta), _) =>
-            /*p.format(source.emptyEvent) +*/
-            s" ;; Meta=$meta"
-        }
-        log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
-        stream
+    strOrErr.map { case (parsedPatterns, stream) =>
+      // .. patternV2.format
+      val strPatterns = parsedPatterns.map { case ((_, meta), _) =>
+        /*p.format(source.emptyEvent) +*/
+        s" ;; Meta=$meta"
+      }
+      log.debug(s"Parsed patterns:\n${strPatterns.mkString(";\n")}")
+      stream
     }
   }
 
@@ -205,46 +204,48 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     CoordinatorService.notifyJobStarted(uuid)
 
     // Run the stream
-    Deferred[IO, Either[Throwable, Unit]].flatMap { cancelToken =>
-      runningStreams(uuid) = new AtomicBoolean(true)
+    Deferred[IO, Either[Throwable, Unit]]
+      .flatMap { cancelToken =>
+        runningStreams(uuid) = new AtomicBoolean(true)
 
-      val f = Future {
-        while (runningStreams.get(uuid).map(_.get).getOrElse(false)) {
-            //log.error(s"Stream $uuid running")
+        val f = Future {
+          while (runningStreams.get(uuid).map(_.get).getOrElse(false)) {
+            // log.error(s"Stream $uuid running")
             Thread.sleep(5000)
+          }
         }
-      }
 
-      val cancel = IO.async_ { cb => 
+        val cancel = IO.async_ { cb =>
           f.onComplete(t => cb(t.toEither))
         }
-         >> cancelToken.complete(Right(()))
+          >> cancelToken.complete(Right(()))
 
-      val program = stream
-        .interruptWhen(cancelToken)
-        .compile
-        .drain
-        
-      log.debug("runStream finished")
+        val program = stream
+          .interruptWhen(cancelToken)
+          .compile
+          .drain
 
-      cancel.background.surround(program)
-      
-      }.unsafeRunAsync {
-          case Left(throwable) =>
-            log.error(s"Job $uuid failed: $throwable")
-            CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
-            CheckpointingService.removeCheckpointAndState(uuid)
-            runningStreams.remove(uuid)
-            runningJobsRequests.remove(uuid)
-          case Right(_) => 
-            // success
-            log.info(s"Job $uuid finished")
-            CoordinatorService.notifyJobCompleted(uuid, None)
-            CheckpointingService.removeCheckpointAndState(uuid)
-            runningStreams.remove(uuid)
-            runningJobsRequests.remove(uuid)
-        }
-    
+        log.debug("runStream finished")
+
+        cancel.background.surround(program)
+
+      }
+      .unsafeRunAsync {
+        case Left(throwable) =>
+          log.error(s"Job $uuid failed: $throwable")
+          CoordinatorService.notifyJobCompleted(uuid, Some(throwable))
+          CheckpointingService.removeCheckpointAndState(uuid)
+          runningStreams.remove(uuid)
+          runningJobsRequests.remove(uuid)
+        case Right(_) =>
+          // success
+          log.info(s"Job $uuid finished")
+          CoordinatorService.notifyJobCompleted(uuid, None)
+          CheckpointingService.removeCheckpointAndState(uuid)
+          runningStreams.remove(uuid)
+          runningJobsRequests.remove(uuid)
+      }
+
     Right(None)
   }
 
@@ -256,17 +257,18 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
   def getRunningJobsIds: Seq[String] = runningStreams.keys.toSeq
 
   def onTimer(): Unit = {
-    if (jobQueue.nonEmpty) { 
+    if (jobQueue.nonEmpty) {
       dequeueAndRunSingleJob()
     }
   }
+
 }
 
 object JobRunService {
   val services: mutable.Map[Uri, JobRunService] = mutable.Map.empty
 
-  def getOrCreate(id: String, blockingExecutionContext: ExecutionContextExecutor)(
-    implicit executionContext: ExecutionContextExecutor,
+  def getOrCreate(id: String, blockingExecutionContext: ExecutionContextExecutor)(implicit
+    executionContext: ExecutionContextExecutor,
     actorSystem: ActorSystem,
     materializer: Materializer,
     decoders: BasicDecoders[Any] = AnyDecodersInstances
@@ -274,4 +276,5 @@ object JobRunService {
     if (!services.contains(id)) services(id) = new JobRunService(id, blockingExecutionContext)
     services(id)
   }
+
 }

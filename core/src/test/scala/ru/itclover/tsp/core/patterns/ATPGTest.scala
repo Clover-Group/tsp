@@ -22,4 +22,5 @@ class ATPGTest extends AnyFlatSpec with Matchers {
     StateMachine[Id].run(pat, Seq(ev), pat.initialState())
 // todo check something
   }
+
 }

@@ -28,4 +28,5 @@ class ATPGPropTest extends AnyFlatSpec with Matchers {
 
     true shouldBe true
   }
+
 }

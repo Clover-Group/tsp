@@ -7,6 +7,7 @@ trait KeyCreator[Key] extends Serializable {
 }
 
 object KeyCreatorInstances {
+
   implicit val intKeyCreator: KeyCreator[Int] = new KeyCreator[Int] {
     override def create(keyName: String): Int = Try(keyName.toInt).getOrElse(0)
   }
@@ -14,4 +15,5 @@ object KeyCreatorInstances {
   implicit val symbolKeyCreator: KeyCreator[String] = new KeyCreator[String] {
     override def create(keyName: String): String = String(keyName)
   }
+
 }

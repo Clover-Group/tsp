@@ -158,4 +158,5 @@ trait HttpService extends RoutesProtocols {
 
   def getEnvVarOrNone(envVarName: String): Option[String] =
     Properties.envOrNone(envVarName)
+
 }

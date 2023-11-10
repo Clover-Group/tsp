@@ -5,6 +5,7 @@ import ru.itclover.tsp.core.Time
 import ru.itclover.tsp.core.io.{Decoder, Extractor, TimeExtractor}
 
 object TestEvents {
+
   case class TestEvent(
     time: Long,
     intSensor: Int,
@@ -15,6 +16,7 @@ object TestEvents {
   )
 
   implicit val timeExtractor: TimeExtractor[TestEvent] = (e: TestEvent) => Time(e.time)
+
   implicit val idxExtractor: IdxExtractor[TestEvent] = new IdxExtractor[TestEvent] {
     override def apply(e: TestEvent): Idx = e.time
     override def compare(x: Idx, y: Idx): Int = x.compare(y)
@@ -23,8 +25,9 @@ object TestEvents {
   // Can extract null.
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit val extractor: Extractor[TestEvent, String, Any] = new Extractor[TestEvent, String, Any] {
-    override def apply[T](e: TestEvent, k: String)(
-      implicit d: Decoder[Any, T]
+
+    override def apply[T](e: TestEvent, k: String)(implicit
+      d: Decoder[Any, T]
     ): T = d(k match {
       case "intSensor"     => e.intSensor
       case "longSensor"    => e.longSensor
@@ -33,5 +36,7 @@ object TestEvents {
       case "doubleSensor2" => e.doubleSensor2
       case _               => null
     })
+
   }
+
 }

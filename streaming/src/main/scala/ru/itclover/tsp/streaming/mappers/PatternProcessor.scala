@@ -35,8 +35,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
     }
 
     // Split the different time sequences if they occurred in the same time window
-    val sequences = PatternProcessor.splitByCondition(elements.toSeq)(
-      (next, prev) => timeExtractor(next).toMillis - timeExtractor(prev).toMillis > eventsMaxGapMs
+    val sequences = PatternProcessor.splitByCondition(elements.toSeq)((next, prev) =>
+      timeExtractor(next).toMillis - timeExtractor(prev).toMillis > eventsMaxGapMs
     )
 
     val machine = StateMachine[Id]
@@ -49,8 +49,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
 
     // this step has side-effect = it calls `consume` for each output event. We need to process
     // events sequentually, that's why I use foldLeft here
-    lastState = sequences.zip(seedStates).foldLeft(initialState) {
-      case (_, (events, seedState)) => machine.run(pattern, events, seedState, consume)
+    lastState = sequences.zip(seedStates).foldLeft(initialState) { case (_, (events, seedState)) =>
+      machine.run(pattern, events, seedState, consume)
     }
 
     lastTime = elements.lastOption.map(timeExtractor(_)).getOrElse(Time(0))
@@ -65,14 +65,17 @@ object PatternProcessor {
 
   val currentEventTsMetric = "currentEventTs"
 
-  /**
-    * Splits a list into a list of fragments, the boundaries are determined by the given predicate
-    * E.g. `splitByCondition(List(1,2,3,5,8,9,12), (x, y) => (x - y) > 2) == List(List(1,2,3,5),List(8,9),List(12)`
+  /** Splits a list into a list of fragments, the boundaries are determined by the given predicate E.g.
+    * `splitByCondition(List(1,2,3,5,8,9,12), (x, y) => (x - y) > 2) == List(List(1,2,3,5),List(8,9),List(12)`
     *
-    * @param elements initial sequence
-    * @param pred condition between the next and previous elements (in this order)
-    * @tparam T Element type
-    * @return List of chunks
+    * @param elements
+    *   initial sequence
+    * @param pred
+    *   condition between the next and previous elements (in this order)
+    * @tparam T
+    *   Element type
+    * @return
+    *   List of chunks
     */
   def splitByCondition[T](elements: Seq[T])(pred: (T, T) => Boolean): List[Seq[T]] =
     if (elements.length < 2) {
@@ -90,4 +93,5 @@ object PatternProcessor {
       }
       results.map(_.toSeq).toList
     }
+
 }

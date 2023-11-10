@@ -9,6 +9,7 @@ import ru.itclover.tsp.core.fixtures.Common._
 class OptimizerTest extends AnyFlatSpec with Matchers {
 
   val patterns: Patterns[EInt] = new Patterns[EInt] {}
+
   import cats.instances.int._
   import patterns._
 

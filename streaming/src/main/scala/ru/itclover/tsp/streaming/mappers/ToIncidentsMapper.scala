@@ -30,4 +30,5 @@ final case class ToIncidentsMapper[E, EKey, EItem](
         patternMetadata
       )
   }
+
 }

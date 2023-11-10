@@ -73,4 +73,5 @@ object Utils {
   def defaultGithubRelease: Def.Initialize[InputTask[GHRelease]] = Def.inputTaskDyn {
     githubRelease(tagNameArg.parsed)
   }
+
 }

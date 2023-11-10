@@ -36,28 +36,29 @@ trait JobsRoutes extends RoutesProtocols {
         complete(Map("status" -> s"Job ${request.uuid} enqueued.").toJson(propertyFormat))
       }
     } ~
-    path("queue" / "show") {
-      complete(
-        jobRunService.queueAsScalaSeq
-          .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
-          .toList
-          .toJson
-      )
-    } ~
-    path("queue" / Segment / "remove") { uuid =>
-      jobRunService.removeFromQueue(uuid) match {
-        case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue.").toJson(propertyFormat))
-        case None     => redirect(s"/job/$uuid/stop", PermanentRedirect)
+      path("queue" / "show") {
+        complete(
+          jobRunService.queueAsScalaSeq
+            .map(_.asInstanceOf[FindPatternsRequest[RowWithIdx, String, Any, Row]])
+            .toList
+            .toJson
+        )
+      } ~
+      path("queue" / Segment / "remove") { uuid =>
+        jobRunService.removeFromQueue(uuid) match {
+          case Some(()) => complete(Map("status" -> s"Job $uuid removed from queue.").toJson(propertyFormat))
+          case None     => redirect(s"/job/$uuid/stop", PermanentRedirect)
+        }
       }
-    }
+
 }
 
 object JobsRoutes {
 
   private val log = Logger[JobsRoutes]
 
-  def fromExecutionContext(blocking: ExecutionContextExecutor)(
-    implicit as: ActorSystem,
+  def fromExecutionContext(blocking: ExecutionContextExecutor)(implicit
+    as: ActorSystem,
     am: Materializer
   ): Reader[ExecutionContextExecutor, Route] = {
 

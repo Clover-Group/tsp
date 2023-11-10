@@ -1,10 +1,13 @@
 package ru.itclover.tsp.core
+
 import cats.syntax.functor._
 import cats.{Foldable, Functor, Monad}
 import ru.itclover.tsp.core.PQueue.MapPQueue
 
-case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerState, T1])(@transient val func: T1 => Result[T2])
-    extends Pattern[Event, InnerState, T2] {
+case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerState, T1])(
+  @transient val func: T1 => Result[T2]
+) extends Pattern[Event, InnerState, T2] {
+
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: InnerState,
     oldQueue: PQueue[T2],
@@ -13,8 +16,8 @@ case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerStat
 
     // we need to trim inner queue here to avoid memory leaks
     val innerQueue = getInnerQueue(oldQueue)
-    inner(oldState, innerQueue, event).map {
-      case (innerResult, innerQueue) => innerResult -> MapPQueue[T1, T2](innerQueue, _.value.flatMap(func))
+    inner(oldState, innerQueue, event).map { case (innerResult, innerQueue) =>
+      innerResult -> MapPQueue[T1, T2](innerQueue, _.value.flatMap(func))
     }
   }
 
@@ -23,7 +26,7 @@ case class MapPattern[Event, T1, T2, InnerState](inner: Pattern[Event, InnerStat
   private def getInnerQueue(queue: PQueue[T2]): PQueue[T1] = {
     queue match {
       case MapPQueue(innerQueue, _) if innerQueue.isInstanceOf[PQueue[T1]] => innerQueue.asInstanceOf[PQueue[T1]]
-      //this is for first call
+      // this is for first call
       case x if x.size == 0 => x.asInstanceOf[PQueue[T1]]
       // TODO: Dangerous
       case x =>

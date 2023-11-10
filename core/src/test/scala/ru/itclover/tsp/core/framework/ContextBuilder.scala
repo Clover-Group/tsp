@@ -3,15 +3,15 @@ package ru.itclover.tsp.core.framework
 import ru.itclover.tsp.core.Pattern
 import ru.itclover.tsp.core.fixtures.Event
 
-/**
-  * An abstract class for test context
+/** An abstract class for test context
   */
 abstract class TestContext
 
-/**
-  * Abstract builder for test context
-  * @tparam Type type parameter for events value and state type
-  * @tparam State type parameter for state value in patterns. Must be one type for event and pattern!
+/** Abstract builder for test context
+  * @tparam Type
+  *   type parameter for events value and state type
+  * @tparam State
+  *   type parameter for state value in patterns. Must be one type for event and pattern!
   */
 abstract class AbstractContextBuilder[Type, State] {
 
@@ -27,12 +27,13 @@ abstract class AbstractContextBuilder[Type, State] {
 
 }
 
-/**
-  * Builder, which will be used in context construction
-  * Deals with vars
-  * @param builder abstract builder for setting context values
-  * @tparam Type type parameter for events value and state type
-  * @tparam State type parameter for state value in patterns. Must be one type for event and pattern!
+/** Builder, which will be used in context construction Deals with vars
+  * @param builder
+  *   abstract builder for setting context values
+  * @tparam Type
+  *   type parameter for events value and state type
+  * @tparam State
+  *   type parameter for state value in patterns. Must be one type for event and pattern!
   */
 @SuppressWarnings(Array("org.wartremover.warts.Var"))
 class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, State]) extends TestContext {
@@ -46,9 +47,7 @@ class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, Stat
 
 }
 
-/**
-  * Result context builder, which will be used in tests
-  * Deals with nulls and vars
+/** Result context builder, which will be used in tests Deals with nulls and vars
   *
   * Usage example:
   *
@@ -59,14 +58,16 @@ class TestContextBuilder[Type, State](builder: AbstractContextBuilder[Type, Stat
   *   val testContext = testContextBuilder.build
   * }}}
   *
-  * @tparam Type type parameter for events value and state type
-  * @tparam State type parameter for state value in patterns. Must be one type for event and pattern!
+  * @tparam Type
+  *   type parameter for events value and state type
+  * @tparam State
+  *   type parameter for state value in patterns. Must be one type for event and pattern!
   */
 @SuppressWarnings(Array("org.wartremover.warts.Null", "org.wartremover.warts.Var"))
 class ResultContextBuilder[Type, State] extends AbstractContextBuilder[Type, State] {
-  //override var patterns: Seq[Pattern[Event[Type], State, Type]] = _
-  //override var events: Seq[Event[Type]] = _
-  //override var finalState: State = _
+  // override var patterns: Seq[Pattern[Event[Type], State, Type]] = _
+  // override var events: Seq[Event[Type]] = _
+  // override var finalState: State = _
 
   override def withPatterns(patterns: Seq[Pattern[Event[Type], State, Type]]): AbstractContextBuilder[Type, State] = {
     this.patterns = patterns

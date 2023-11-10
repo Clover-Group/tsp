@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import ru.itclover.tsp.core.Time.{MaxWindow, MinWindow}
 
 object Intervals {
@@ -21,6 +22,7 @@ object Intervals {
 
   /** Inclusive-exclusive interval of time */
   case class TimeInterval(min: Long, max: Long) extends Interval[Long] {
+
     assert(
       min >= 0 && max >= 0 && max >= min,
       s"Incorrect Timer configuration (min: $min, max: $max)"
@@ -68,10 +70,12 @@ object Intervals {
       case (_, Some(e)) if numeric.gteq(item, e) => GreaterThanEnd
       case _                                     => Inside
     }
+
   }
 
   object NumericInterval {
     def more[T: Numeric](start: T) = NumericInterval(start, None)
     def less[T: Numeric](end: T) = NumericInterval(implicitly[Numeric[T]].zero, Some(end))
   }
+
 }

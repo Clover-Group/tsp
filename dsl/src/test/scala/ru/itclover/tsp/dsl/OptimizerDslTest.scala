@@ -42,4 +42,5 @@ class OptimizerDslTest extends AnyFlatSpec with Matchers with ScalaCheckProperty
     optimizedPattern shouldBe a[SimplePattern[_, _]]
 
   }
+
 }

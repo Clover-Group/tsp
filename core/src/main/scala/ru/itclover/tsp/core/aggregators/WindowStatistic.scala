@@ -14,6 +14,7 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, WindowStatisticResult, WindowStatisticAccumState[T]] {
+
   override def initialState(): AggregatorPState[S, T, WindowStatisticAccumState[T]] =
     AggregatorPState(
       innerState = inner.initialState(),
@@ -21,12 +22,14 @@ case class WindowStatistic[Event: IdxExtractor: TimeExtractor, S, T](
       astate = WindowStatisticAccumState(None, m.ArrayDeque.empty),
       indexTimeMap = m.ArrayDeque.empty
     )
+
 }
 
 case class WindowStatisticAccumState[T](
   lastValue: Option[WindowStatisticResult],
   windowQueue: m.ArrayDeque[WindowStatisticQueueInstance]
 ) extends AccumState[T, WindowStatisticResult, WindowStatisticAccumState[T]] {
+
   override def updated(
     window: Window,
     times: m.ArrayDeque[(Idx, Time)],
@@ -74,10 +77,10 @@ case class WindowStatisticAccumState[T](
         }
         .getOrElse(
           WindowStatisticResult(idx, time, isSuccess, if (isSuccess) 1 else 0, 0, if (!isSuccess) 1 else 0, 0)
-          -> WindowStatisticQueueInstance(idx, time, isSuccess = isSuccess)
+            -> WindowStatisticQueueInstance(idx, time, isSuccess = isSuccess)
         )
 
-    //remove outdated elements from queue
+    // remove outdated elements from queue
     val (outputs, updatedWindowQueue) = takeWhileFromQueue(windowQueue)(_.time.plus(window) < time)
 
     val finalNewLastValue = outputs.foldLeft(newLastValue) { case (cmr, elem) => cmr.minusChange(elem, window) }

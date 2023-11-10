@@ -59,10 +59,10 @@ class SimpleCasesTest
       new ThreadPoolExecutor(
         0, // corePoolSize
         Int.MaxValue, // maxPoolSize
-        1000L, //keepAliveTime
-        TimeUnit.MILLISECONDS, //timeUnit
-        new SynchronousQueue[Runnable]() //workQueue
-        //new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
+        1000L, // keepAliveTime
+        TimeUnit.MILLISECONDS, // timeUnit
+        new SynchronousQueue[Runnable]() // workQueue
+        // new ThreadFactoryBuilder().setNameFormat("blocking-thread").setDaemon(true).build()
       )
     )
 
@@ -85,9 +85,8 @@ class SimpleCasesTest
         .withStartupTimeout(1.minutes.toJava)
     )
   )*/
-  
-  implicit val clickhouseContainer: ClickHouseContainer 
-    = ClickHouseContainer("clickhouse/clickhouse-server:23.2")
+
+  implicit val clickhouseContainer: ClickHouseContainer = ClickHouseContainer("clickhouse/clickhouse-server:23.2")
 
   val kafkaContainer = KafkaContainer()
 
@@ -243,6 +242,7 @@ class SimpleCasesTest
       "uuid"           -> StringESValue("string", "$UUID")
     )
   )
+
   lazy val wideKafkaInputConf = KafkaInputConf(
     sourceId = 600,
     brokers = kafkaBrokerUrl,
@@ -283,7 +283,7 @@ class SimpleCasesTest
     jdbcUrl = clickhouseContainer.jdbcUrl,
     driverName = clickhouseContainer.driverClassName,
     userName = Some("default")
-    //password = Some("")
+    // password = Some("")
   )
 
   lazy val narrowOutputConf = wideOutputConf.copy(
@@ -369,7 +369,8 @@ class SimpleCasesTest
         .drop(1)
         .mkString("\n")
 
-      clickhouseContainer.container.createConnection("")
+      clickhouseContainer.container
+        .createConnection("")
         .prepareStatement(s"INSERT INTO ${elem._1} FORMAT CSV\n${insertData}")
         .executeUpdate()
 
@@ -380,29 +381,26 @@ class SimpleCasesTest
 
       fs2.Stream
         .emits(data)
-        .map {
-          row =>
-            val convertedRow: Seq[Any] = row.indices.map(
-              idx =>
-                if (numberIndices.contains(idx)) {
-                  if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
-                } else row(idx)
-            )
-            val msgKey = UUID.randomUUID().toString
-            val msgMap = headers.zip(convertedRow).toMap[String, Any]
-            val json = "{" + msgMap
-                .map {
-                  case (k, v) =>
-                    v match {
-                      case _: String => s""""$k": "$v""""
-                      case _         => s""""$k": $v"""
-                    }
-                }
-                .mkString(", ") + "}"
-            val topic = elem._1.filter(_ != '`')
-            println(s"Sending to $topic $msgKey --- $json")
-            val rec = ProducerRecord(topic, msgKey, json)
-            ProducerRecords.one(rec)
+        .map { row =>
+          val convertedRow: Seq[Any] = row.indices.map(idx =>
+            if (numberIndices.contains(idx)) {
+              if (row(idx) == "\\N") Double.NaN else row(idx).toDouble
+            } else row(idx)
+          )
+          val msgKey = UUID.randomUUID().toString
+          val msgMap = headers.zip(convertedRow).toMap[String, Any]
+          val json = "{" + msgMap
+            .map { case (k, v) =>
+              v match {
+                case _: String => s""""$k": "$v""""
+                case _         => s""""$k": $v"""
+              }
+            }
+            .mkString(", ") + "}"
+          val topic = elem._1.filter(_ != '`')
+          println(s"Sending to $topic $msgKey --- $json")
+          val rec = ProducerRecord(topic, msgKey, json)
+          ProducerRecords.one(rec)
         }
         .through(KafkaProducer.pipe(producerSettings))
         .compile
@@ -465,8 +463,8 @@ class SimpleCasesTest
     Thread.sleep(60000)
     alertByQuery(
       incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
+        .map { case (k, v) =>
+          List(k.toDouble, v.toDouble)
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
@@ -490,8 +488,8 @@ class SimpleCasesTest
     Thread.sleep(60000)
     alertByQuery(
       incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
+        .map { case (k, v) =>
+          List(k.toDouble, v.toDouble)
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
@@ -521,8 +519,8 @@ class SimpleCasesTest
     Thread.sleep(60000)
     alertByQuery(
       incidentsIvolgaCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
+        .map { case (k, v) =>
+          List(k.toDouble, v.toDouble)
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
@@ -555,8 +553,8 @@ class SimpleCasesTest
     Thread.sleep(60000)
     alertByQuery(
       incidentsIvolgaCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
+        .map { case (k, v) =>
+          List(k.toDouble, v.toDouble)
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
@@ -595,14 +593,14 @@ class SimpleCasesTest
         withClue(s"Pattern ID: $id") {
           status shouldEqual StatusCodes.OK
         }
-        //alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+        // alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
       }
     }
     Thread.sleep(60000)
     alertByQuery(
       incidentsCount
-        .map {
-          case (k, v) => List(k.toDouble, v.toDouble)
+        .map { case (k, v) =>
+          List(k.toDouble, v.toDouble)
         }
         .toList
         .sortBy(_.headOption.getOrElse(Double.NaN)),
@@ -610,4 +608,5 @@ class SimpleCasesTest
     )
     alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
   }
+
 }

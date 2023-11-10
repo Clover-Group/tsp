@@ -37,16 +37,15 @@ class PatternGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckProp
       "tan(doubleSensor1) >= 1 for 5 hr andThen avg(doubleSensor2, 3 sec) > 42",
       "count(doubleSensor1, 4 sec) * sum(doubleSensor2, 3 sec) < 9",
       "lag(doubleSensor1, 10 sec) > doubleSensor1"
-      //"boolSensor = true andThen boolSensor != false"
+      // "boolSensor = true andThen boolSensor != false"
     )
 
     patternsList
-      .foreach(
-        pattern =>
-          gen
-            .build(pattern, 0.0, 1000L, fieldsClasses)
-            .right
-            .value shouldBe a[(_, PatternMetadata)]
+      .foreach(pattern =>
+        gen
+          .build(pattern, 0.0, 1000L, fieldsClasses)
+          .right
+          .value shouldBe a[(_, PatternMetadata)]
       )
   }
 
@@ -68,12 +67,49 @@ class PatternGeneratorTest extends AnyFlatSpec with Matchers with ScalaCheckProp
     )
 
     patternsList
-      .foreach(
-        pattern =>
-          gen
-            .build(pattern, 0.0, 1000L, fieldsClasses)
-            .right
-            .value shouldBe a[(_, PatternMetadata)]
+      .foreach(pattern =>
+        gen
+          .build(pattern, 0.0, 1000L, fieldsClasses)
+          .right
+          .value shouldBe a[(_, PatternMetadata)]
       )
   }
+
+  "Syntactic sugar" should "be interpreted" in {
+    val sugaredPatternsList = List(
+      "doubleSensor1 > 0 for 10 seconds fromStart",
+      "doubleSensor1 > 0 for 10 seconds > 3 times fromStart",
+      "increasing(doubleSensor1)",
+      "decreasing(doubleSensor1)",
+      "aligned(doubleSensor1)",
+      "doubleSensor1"
+    )
+
+    val unsugaredPatternsList = List(
+      "wait(10 sec, doubleSensor1 > 0 for 10 sec)",
+      "wait(10 sec, doubleSensor1 > 0 for 10 sec > 3 times)",
+      "doubleSensor1 > lag(doubleSensor1)",
+      "doubleSensor1 < lag(doubleSensor1)",
+      "doubleSensor1 = lag(doubleSensor1)",
+      "doubleSensor1 as boolean"
+    )
+
+    sugaredPatternsList
+      .zip(unsugaredPatternsList)
+      .foreach((sp, usp) => {
+        val sg = gen
+          .build(sp, 0.0, 1000L, fieldsClasses)
+          .right
+          .value
+        val usg = gen
+          .build(usp, 0.0, 1000L, fieldsClasses)
+          .right
+          .value
+        sg shouldBe a[(_, PatternMetadata)]
+        usg shouldBe a[(_, PatternMetadata)]
+        sg._1.toString shouldBe usg._1.toString
+        // sg._2 shouldBe usg._2
+      })
+  }
+
 }

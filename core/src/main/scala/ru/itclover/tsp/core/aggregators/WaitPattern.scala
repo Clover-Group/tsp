@@ -16,12 +16,14 @@ case class WaitPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T],
   override val window: Window
 ) extends AccumPattern[Event, S, T, T, WaitAccumState[T]] {
+
   override def initialState(): AggregatorPState[S, T, WaitAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
     astate = WaitAccumState(m.Queue.empty, lastFail = false, lastTime = (0, Time(0))),
     indexTimeMap = m.Queue.empty
   )
+
 }
 
 // Here, head and last are guaranteed to work, so suppress warnings for them
@@ -31,11 +33,15 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
 
   /** This method is called for each IdxValue produced by inner patterns.
     *
-    * @param window   - defines time window for accumulation.
-    * @param times    - contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end].
-    *                 Guaranteed to be non-empty.
-    * @param idxValue - result from inner pattern.
-    * @return Tuple of updated state and queue of results to be emitted from this pattern.
+    * @param window
+    *   \- defines time window for accumulation.
+    * @param times
+    *   \- contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end]. Guaranteed to be
+    *   non-empty.
+    * @param idxValue
+    *   \- result from inner pattern.
+    * @return
+    *   Tuple of updated state and queue of results to be emitted from this pattern.
     */
   @inline
   override def updated(
@@ -64,8 +70,8 @@ case class WaitAccumState[T](windowQueue: m.ArrayDeque[(Idx, Time)], lastFail: B
         windowQueueWithNewPoints
       }
 
-      val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) {
-        case (_, t) => t <= end
+      val (outputs, updatedWindowQueue) = takeWhileFromQueue(cleanedWindowQueue) { case (_, t) =>
+        t <= end
       }
 
       val waitStart =

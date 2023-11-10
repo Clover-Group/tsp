@@ -1,4 +1,5 @@
 package ru.itclover.tsp.http.routes
+
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -14,6 +15,7 @@ object ValidationRoutes {
 
   def fromExecutionContext(): Reader[ExecutionContextExecutor, Route] =
     Reader(_ => new ValidationRoutes {}.route)
+
 }
 
 trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
@@ -34,4 +36,5 @@ trait ValidationRoutes extends RoutesProtocols with PatternsValidatorProtocols {
       complete(result.toJson)
     }
   }
+
 }

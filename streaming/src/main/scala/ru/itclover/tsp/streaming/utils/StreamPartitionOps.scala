@@ -32,4 +32,5 @@ object StreamPartitionOps {
         .onFinalize(cleanup)
     }
   }
+
 }

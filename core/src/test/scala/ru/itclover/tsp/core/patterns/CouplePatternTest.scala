@@ -31,9 +31,11 @@ class CouplePatternTest extends AnyWordSpec with Matchers {
 
       // val rnd: Random = new Random()
 
-      val events = (for (time <- Timer(from = Instant.now());
-                         idx  <- Increment;
-                         row  <- RandomInRange(0, 10)(new Random()).timed(10.seconds))
+      val events = (for (
+        time <- Timer(from = Instant.now());
+        idx  <- Increment;
+        row  <- RandomInRange(0, 10)(new Random()).timed(10.seconds)
+      )
         yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 10)
 
       val out = new ArrayBuffer[IdxValue[_]]()

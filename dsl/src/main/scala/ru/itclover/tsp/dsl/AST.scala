@@ -44,6 +44,7 @@ case class Range[T](from: T, to: T)(implicit ct: ClassTag[T]) extends AST {
 @SuppressWarnings(Array("org.wartremover.warts.Throw"))
 case class FunctionCall(functionName: String, arguments: Seq[AST])(implicit fr: FunctionRegistry) extends AST {
   override def metadata = arguments.map(_.metadata).reduceOption(_ |+| _).getOrElse(PatternMetadata(Set.empty, 0L))
+
   override val valueType: ASTType = fr.functions.get((functionName, arguments.map(_.valueType))) match {
     case Some((_, t)) => t
     case None =>
@@ -51,17 +52,18 @@ case class FunctionCall(functionName: String, arguments: Seq[AST])(implicit fr: 
         case Some(((f, t), c)) =>
           logger.warn(
             s"No function with exact name $functionName " +
-            s"and types (${arguments.map(_.valueType).mkString(", ")} found," +
-            s"using substitute function $f (with castability factor $c)"
+              s"and types (${arguments.map(_.valueType).mkString(", ")} found," +
+              s"using substitute function $f (with castability factor $c)"
           )
           t
         case None =>
           throw ParseException(
             s"No function with name $functionName " +
-            s"and types (${arguments.map(_.valueType).mkString(", ")}) (the arguments were ${arguments.mkString(", ")})"
+              s"and types (${arguments.map(_.valueType).mkString(", ")}) (the arguments were ${arguments.mkString(", ")})"
           )
       }
   }
+
 }
 
 // Can throw ParseException upon validation. Maybe should return Either instead.
@@ -70,25 +72,27 @@ case class FunctionCall(functionName: String, arguments: Seq[AST])(implicit fr: 
 case class ReducerFunctionCall(functionName: String, @transient cond: Result[Any] => Boolean, arguments: Seq[AST])(
   implicit fr: FunctionRegistry
 ) extends AST {
+
   // require the same type for all arguments
-  arguments.zipWithIndex.foreach {
-    case (a, idx) =>
-      a.requireType(
-        arguments(0).valueType,
-        s"Arguments must have the same type, but arg #1 is ${arguments(0).valueType} " +
+  arguments.zipWithIndex.foreach { case (a, idx) =>
+    a.requireType(
+      arguments(0).valueType,
+      s"Arguments must have the same type, but arg #1 is ${arguments(0).valueType} " +
         s"and arg #${idx + 1} is ${a.valueType}"
-      )
+    )
   }
 
   override def metadata = arguments.map(_.metadata).reduceOption(_ |+| _).getOrElse(PatternMetadata(Set.empty, 0L))
+
   override val valueType: ASTType = fr.reducers.get((functionName, arguments(0).valueType)) match {
     case Some((_, t, _, _)) => t
     case None =>
       throw ParseException(
         s"No reducer with name $functionName " +
-        s"and type ${arguments(0).valueType}"
+          s"and type ${arguments(0).valueType}"
       )
   }
+
 }
 
 case class AndThen(first: AST, second: AST) extends AST {
@@ -123,15 +127,23 @@ case class Assert(cond: AST) extends AST {
   override val valueType: ASTType = BooleanASTType
 }
 
-/**
-  * Term for syntax like `X for [exactly] T TIME > 3 times`, where
-  * @param inner is `X`
-  * @param window is `T TIME`
-  * @param interval is `> 3 times`
-  * @param exactly special term to mark the for-expr as non-sort-circuiting
-  *                (ie run to the end, even if result is obvious).
+/** Term for syntax like `X for [exactly] T TIME > 3 times`, where
+  * @param inner
+  *   is `X`
+  * @param window
+  *   is `T TIME`
+  * @param interval
+  *   is `> 3 times`
+  * @param exactly
+  *   special term to mark the for-expr as non-sort-circuiting (ie run to the end, even if result is obvious).
   */
-case class ForWithInterval(inner: AST, exactly: Option[Boolean], window: Window, interval: Interval[Long]) extends AST {
+case class ForWithInterval(
+  inner: AST,
+  exactly: Option[Boolean],
+  window: Window,
+  interval: Interval[Long],
+  fromStart: Option[Boolean]
+) extends AST {
   override def metadata = inner.metadata |+| PatternMetadata(Set.empty, window.toMillis)
   override val valueType = BooleanASTType
 }
@@ -143,8 +155,9 @@ case class AggregateCall(function: AggregateFn, value: AST, window: Window, gap:
 
   override val valueType: ASTType = function match {
     case Lag => value.valueType // Lag returns the same type as internal function
-    case _   => DoubleASTType //TODO: Customize return type
+    case _   => DoubleASTType // TODO: Customize return type
   }
+
 }
 
 sealed trait AggregateFn extends Product with Serializable
@@ -162,8 +175,9 @@ object AggregateFn {
     case "count" => Count
     case "avg"   => Avg
     case "lag"   => Lag
-    case _      => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
+    case _       => throw new ParseException(Seq(s"Unknown aggregator '$name'"))
   }
+
 }
 
 case class Cast(inner: AST, to: ASTType) extends AST {

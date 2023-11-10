@@ -67,11 +67,12 @@ case class PatternsSearchJob[In, InKey, InItem](
         .chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
         .broadcastThrough(
           resultMappers
-          .zip(outputConf)
-          .zipWithIndex
-          .map {
-            case ((m, c), idx) => saveStream(jobId, c, idx).compose(applyResultMapper(m))
-          }: _*)
+            .zip(outputConf)
+            .zipWithIndex
+            .map { case ((m, c), idx) =>
+              saveStream(jobId, c, idx).compose(applyResultMapper(m))
+            }: _*
+        )
       (patterns, saved)
     }
   }
@@ -79,8 +80,7 @@ case class PatternsSearchJob[In, InKey, InItem](
   def applyResultMapper[E](mapper: PatternsToRowMapper[Incident, E]): fs2.Pipe[IO, Chunk[Incident], E] =
     _.map(_.map(mapper.map(_).asInstanceOf[E])).flatMap(c => fs2.Stream.chunk(c))
 
-  def saveStream[E](uuid: String, outputConf: OutputConf[E], sinkIdx: Int): fs2.Pipe[IO, E, Unit] = _
-    .chunkLimit(100)
+  def saveStream[E](uuid: String, outputConf: OutputConf[E], sinkIdx: Int): fs2.Pipe[IO, E, Unit] = _.chunkLimit(100)
     .flatMap { c =>
       CheckpointingService.updateCheckpointWritten(uuid, sinkIdx, c.size)
       fs2.Stream.chunk(c)
@@ -97,7 +97,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     import source.{transformedExtractor, idxExtractor, transformedTimeExtractor => timeExtractor}
     import decoders.decodeToAny
 
-    //log.debug("incidentsFromPatterns started")
+    // log.debug("incidentsFromPatterns started")
 
     val (checkpointOption, stateOption) = CheckpointingService.getCheckpointAndState(jobId)
     val mappers: Seq[PatternProcessor[In, Optimizer.S[Segment], Incident]] = patterns.map {
@@ -124,24 +124,22 @@ case class PatternsSearchJob[In, InKey, InItem](
     // TODO: Partitioning does not work due to non-laziness of the operator (all data kept in memory)
     val keyedStream = stream
       .drop(checkpointOption.map(_.readRows).getOrElse(0L))
-      //.assignAscendingTimestamps(timeExtractor(_).toMillis)
+      // .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
     val windowed: fs2.Stream[IO, fs2.Stream[IO, Chunk[In]]] =
       if (useWindowing) {
         keyedStream
-          .map {
-            case (_, str) =>
-              str
-                .groupAdjacentBy(e => timeExtractor(e).toMillis / source.conf.chunkSizeMs.getOrElse(900000L))
-                .map { case (_, chunk) => chunk }
+          .map { case (_, str) =>
+            str
+              .groupAdjacentBy(e => timeExtractor(e).toMillis / source.conf.chunkSizeMs.getOrElse(900000L))
+              .map { case (_, chunk) => chunk }
           }
       } else {
         // For Kafka we generate windows by processing time (not event time) every 1 second,
         // so we always get the results without collecting huge window.
-        keyedStream.map {
-          case (_, str) =>
-            str
-              .groupWithin(100000, FiniteDuration(1000, TimeUnit.MILLISECONDS))
+        keyedStream.map { case (_, str) =>
+          str
+            .groupWithin(100000, FiniteDuration(1000, TimeUnit.MILLISECONDS))
         }
       }
     val rawPatterns = patterns.map(_._2)
@@ -154,11 +152,14 @@ case class PatternsSearchJob[In, InKey, InItem](
     )
     val processed = windowed
       .map(_.map(c => combinator.process(c)))
-      .pipe(x => if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get) else x.parJoinUnbounded)
-      //.parJoinUnbounded
+      .pipe(x =>
+        if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get)
+        else x.parJoinUnbounded
+      )
+      // .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
 
-    //log.debug("incidentsFromPatterns finished")
+    // log.debug("incidentsFromPatterns finished")
     processed
   }
 
@@ -174,7 +175,8 @@ case class PatternsSearchJob[In, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents, source.conf.parallelism) else singleIncidents
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents, source.conf.parallelism)
+    else singleIncidents
   }
 
   def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
@@ -183,8 +185,8 @@ case class PatternsSearchJob[In, InKey, InItem](
 
       dataStream
         .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
-        .map {
-          case (_, str) => {
+        .map { case (_, str) =>
+          {
             val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
               source.asInstanceOf[StreamSource[In, InKey, InItem]],
               source.patternFields
@@ -195,8 +197,8 @@ case class PatternsSearchJob[In, InKey, InItem](
           }.unNone
         }
         .parJoinUnbounded
-        //.pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
-    //.setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
+    // .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
+    // .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream
   }
 
@@ -216,8 +218,8 @@ object PatternsSearchJob {
     eventsMaxGapMs: Long,
     fieldsTags: Map[String, ClassTag[_]],
     patternFields: Set[EKey]
-  )(
-    implicit extractor: Extractor[E, EKey, EItem],
+  )(implicit
+    extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
     idxExtractor: IdxExtractor[E]
   ): Either[ConfigErr, List[RichPattern[E, Segment, AnyState[Segment]]]] = {
@@ -226,8 +228,8 @@ object PatternsSearchJob {
 
     log.debug("preparePatterns started")
 
-    val filteredPatterns = rawPatterns.filter(
-      p => PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
+    val filteredPatterns = rawPatterns.filter(p =>
+      PatternFieldExtractor.extract[E, EKey, EItem](List(p))(fieldsIdxMap).subsetOf(patternFields)
     )
 
     val pGenerator = ASTPatternGenerator[E, EKey, EItem]()(
@@ -237,19 +239,17 @@ object PatternsSearchJob {
       implicitly[Conversion[String, EKey]]
     )
     val res = Traverse[List]
-      .traverse(filteredPatterns.toList)(
-        p =>
-          Validated
-            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
-            .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
-            .map(
-              p =>
-                (
-                  new TimestampsAdderPattern(SegmentizerPattern(p._1))
-                    .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
-                  p._2
-                )
+      .traverse(filteredPatterns.toList)(p =>
+        Validated
+          .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
+          .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
+          .map(p =>
+            (
+              new TimestampsAdderPattern(SegmentizerPattern(p._1))
+                .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+              p._2
             )
+          )
       )
       .leftMap[ConfigErr](InvalidPatternsCode(_))
       .map(_.zip(filteredPatterns))
@@ -265,45 +265,43 @@ object PatternsSearchJob {
 
     val res = incidents
       .through(StreamPartitionOps.groupBy(p => IO { (p.id, p.patternUnit, p.patternSubunit) }))
-      //.window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
+      // .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[Incident] {
       //  override def extract(element: Incident): Long = element.maxWindowMs
-      //}))
-      .map {
-        case (_, str) =>
-          str.zipWithPrevious
-            .flatMap {
-              case (pr, c) =>
-                pr match {
-                  case Some(p) =>
-                    val start = c.segment.from.toMillis - p.segment.to.toMillis > c.maxWindowMs
-                    val chunk = if (start) {
-                      log.debug(f"Starting new event series from ${c.segment.from} --- ${c.segment.to}")
-                      Chunk((Some(c), true), (None, false))
-                    } else {
-                      log.debug(
-                        f"Continuing event series with ${c.segment.from} --- ${c.segment.to}, " +
-                        f"since ${c.segment.from} minus ${p.segment.to} was less than ${c.maxWindowMs} ms"
-                        )
-                      Chunk((Some(c), false))
-                    }
-                    fs2.Stream.chunk(chunk)
-                  case None => {
-                    log.debug(f"Starting initial event series from ${c.segment.from} --- ${c.segment.to}")
-                    fs2.Stream.chunk(Chunk((Some(c), true), (None, false)))
-                  }
+      // }))
+      .map { case (_, str) =>
+        str.zipWithPrevious
+          .flatMap { case (pr, c) =>
+            pr match {
+              case Some(p) =>
+                val start = c.segment.from.toMillis - p.segment.to.toMillis > c.maxWindowMs
+                val chunk = if (start) {
+                  log.debug(f"Starting new event series from ${c.segment.from} --- ${c.segment.to}")
+                  Chunk((Some(c), true), (None, false))
+                } else {
+                  log.debug(
+                    f"Continuing event series with ${c.segment.from} --- ${c.segment.to}, " +
+                      f"since ${c.segment.from} minus ${p.segment.to} was less than ${c.maxWindowMs} ms"
+                  )
+                  Chunk((Some(c), false))
                 }
+                fs2.Stream.chunk(chunk)
+              case None => {
+                log.debug(f"Starting initial event series from ${c.segment.from} --- ${c.segment.to}")
+                fs2.Stream.chunk(Chunk((Some(c), true), (None, false)))
+              }
             }
-            .groupAdjacentBy(_._2)
-            .chunkN(2, allowFewer = true)
-            .map(c => c.flatMap(_._2).map(_._1).filter(_.isDefined).map(_.get))
-            .map(c => if (c.nonEmpty) Some(c.foldLeft(c.head.get)(_ |+| _)) else None)
-            .unNone
-        //.reduce { _ |+| _ }
+          }
+          .groupAdjacentBy(_._2)
+          .chunkN(2, allowFewer = true)
+          .map(c => c.flatMap(_._2).map(_._1).filter(_.isDefined).map(_.get))
+          .map(c => if (c.nonEmpty) Some(c.foldLeft(c.head.get)(_ |+| _)) else None)
+          .unNone
+      // .reduce { _ |+| _ }
       }
-      //.parJoinUnbounded
+      // .parJoinUnbounded
       .pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
 
-    //.name("Uniting adjacent incidents")
+    // .name("Uniting adjacent incidents")
 
     log.debug("reduceIncidents finished")
     res

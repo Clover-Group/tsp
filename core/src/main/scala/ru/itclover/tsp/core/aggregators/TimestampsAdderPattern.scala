@@ -10,6 +10,7 @@ import scala.collection.{mutable => m}
 class TimestampsAdderPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override val inner: Pattern[Event, S, T]
 ) extends AccumPattern[Event, S, T, Segment, TimestampAdderAccumState[T]] {
+
   override def initialState(): AggregatorPState[S, T, TimestampAdderAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
@@ -36,4 +37,5 @@ protected case class TimestampAdderAccumState[T]() extends AccumState[T, Segment
       (TimestampAdderAccumState(), PQueue.apply(result))
     }
   }
+
 }

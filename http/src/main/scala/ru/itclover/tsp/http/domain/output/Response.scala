@@ -3,6 +3,7 @@ package ru.itclover.tsp.http.domain.output
 import akka.http.scaladsl.model.StatusCodes.ServerError
 import ru.itclover.tsp.http.utils.Exceptions
 import ru.itclover.tsp.streaming.utils.ErrorsADT.{ConfigErr, RuntimeErr}
+
 sealed trait Response[T] extends Product with Serializable
 
 final case class SuccessfulResponse[T](response: T, messages: Seq[String] = Seq.empty) extends Response[T]

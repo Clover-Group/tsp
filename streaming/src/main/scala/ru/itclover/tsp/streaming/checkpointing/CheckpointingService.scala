@@ -86,6 +86,7 @@ case class RedisCheckpointingService(redisUri: String) extends CheckpointingServ
     checkpointBucket.delete()
     checkpointStateBucket.delete()
   }
+
 }
 
 case class MemoryCheckpointingService() extends CheckpointingService {
@@ -165,4 +166,5 @@ object CheckpointingService {
 
   def removeCheckpointAndState(uuid: String): Unit =
     service.map(_.removeCheckpointAndState(uuid)).getOrElse(())
+
 }

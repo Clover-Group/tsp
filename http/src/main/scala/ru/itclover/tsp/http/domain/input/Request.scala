@@ -1,4 +1,5 @@
 package ru.itclover.tsp.http.domain.input
+
 import ru.itclover.tsp.core.RawPattern
 import ru.itclover.tsp.streaming.io.{InputConf, OutputConf}
 
@@ -23,6 +24,7 @@ sealed trait QueueableRequest extends Request with Ordered[QueueableRequest] wit
     oos.close
     baos.toByteArray
   }
+
 }
 
 object QueueableRequest {
@@ -31,6 +33,7 @@ object QueueableRequest {
     val ois = new ObjectInputStream(new ByteArrayInputStream(data))
     ois.readObject().asInstanceOf[QueueableRequest]
   }
+
 }
 
 final case class FindPatternsRequest[Event, EKey, EItem, OutEvent](
@@ -40,10 +43,12 @@ final case class FindPatternsRequest[Event, EKey, EItem, OutEvent](
   override val priority: Int,
   patterns: Seq[RawPattern]
 ) extends QueueableRequest {
+
   override def requiredSlots: Int =
     (inputConf.parallelism.getOrElse(1)
-    * inputConf.patternsParallelism.getOrElse(1)
-    * inputConf.numParallelSources.getOrElse(1))
+      * inputConf.patternsParallelism.getOrElse(1)
+      * inputConf.numParallelSources.getOrElse(1))
+
 }
 
 final case class DSLPatternRequest(pattern: String) extends Request

@@ -70,7 +70,7 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
         // rewind all old records
         val (_, rewinded) = QueueUtils.splitAtIdx(indexTimeMap, start)
 
-        //idxTimeMapForValue contains info about Idx->Time for all events in range [start, end]
+        // idxTimeMapForValue contains info about Idx->Time for all events in range [start, end]
         val (idxTimeMapForValue, updatedIdxTimeMap) = QueueUtils.splitAtIdx(rewinded, end, marginToFirst = true)
 
         val (newAState, newResults) = accumState.updated(window, idxTimeMapForValue, iv)
@@ -84,11 +84,15 @@ abstract class AccumPattern[Event: IdxExtractor: TimeExtractor, InnerState, Inne
 trait AccumState[In, Out, Self <: AccumState[In, Out, Self]] extends Product with Serializable {
 
   /** This method is called for each IdxValue produced by inner patterns.
-    * @param window - defines time window for accumulation.
-    * @param times - contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end].
-    *              Guaranteed to be non-empty.
-    * @param idxValue - result from inner pattern.
-    * @return Tuple of updated state and queue of results to be emitted from this pattern.
+    * @param window
+    *   \- defines time window for accumulation.
+    * @param times
+    *   \- contains mapping Idx->Time for all events with Idx in [idxValue.start, idxValue.end]. Guaranteed to be
+    *   non-empty.
+    * @param idxValue
+    *   \- result from inner pattern.
+    * @return
+    *   Tuple of updated state and queue of results to be emitted from this pattern.
     */
   def updated(window: Window, times: m.ArrayDeque[(Idx, Time)], idxValue: IdxValue[In]): (Self, QI[Out])
 }

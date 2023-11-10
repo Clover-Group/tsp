@@ -7,18 +7,19 @@ import ru.itclover.tsp.core.{Fail, Result, Succ}
 import scala.reflect.ClassTag
 import scala.util.Try
 
-type PFunction = (Seq[Result[Any]] => Result[Any]) 
+type PFunction = (Seq[Result[Any]] => Result[Any])
 
 type PReducer = ((Result[Any], Any) => Result[Any])
 
 type PReducerTransformation = (Result[Any] => Result[Any])
 
-/**
-  * Registry for runtime functions
-  * Ensure that the result type of the function matches the corresponding ASTType. It's not automatic
+/** Registry for runtime functions Ensure that the result type of the function matches the corresponding ASTType. It's
+  * not automatic
   *
-  * @param functions Multi-argument functions (arguments wrapped into a Seq) and their return types
-  * @param reducers Reducer functions, their return types and initial values
+  * @param functions
+  *   Multi-argument functions (arguments wrapped into a Seq) and their return types
+  * @param reducers
+  *   Reducer functions, their return types and initial values
   */
 @SuppressWarnings(Array("org.wartremover.warts.Serializable"))
 class FunctionRegistry(
@@ -30,25 +31,28 @@ class FunctionRegistry(
 
   def findBestFunctionMatch(name: String, types: Seq[ASTType]): Option[((PFunction, ASTType), Long)] =
     functions
-      .filterKeys {
-        case (n, t) => n == name && t.length == types.length
+      .filterKeys { case (n, t) =>
+        n == name && t.length == types.length
       }
       .toList
-      .map {
-        case x @ ((_, t), _) => (x, t.zip(types).map { case (to, from) => FunctionRegistry.castability(from, to) }.sum)
+      .map { case x @ ((_, t), _) =>
+        (x, t.zip(types).map { case (to, from) => FunctionRegistry.castability(from, to) }.sum)
       }
       .sortBy(-_._2)
       .find(_._2 > 0)
       .map { case ((_, f), c) => (f, c) }
+
 }
 
 object FunctionRegistry {
 
-  /**
-    * How good types can be cast.
-    * @param from Source type
-    * @param to Destination type
-    * @return Measure of castability (1 = worst possible, 9 = best possible, 10 = same types)
+  /** How good types can be cast.
+    * @param from
+    *   Source type
+    * @param to
+    *   Destination type
+    * @return
+    *   Measure of castability (1 = worst possible, 9 = best possible, 10 = same types)
     */
   def castability(from: ASTType, to: ASTType): Long = (from, to) match {
     case (x, y) if x == y                => 10 // Same types
@@ -64,8 +68,9 @@ object FunctionRegistry {
     case (LongASTType, BooleanASTType)   => 7 // Integral types can be cast to Boolean (zero/nonzero), but with caution
     case (DoubleASTType, BooleanASTType) => 2 // Use very cautiously (value even very close to zero is still TRUE)
     case (_, StringASTType)              => 1 // Any type can be cast to string, but with lowest priority
-    case _                               => Int.MinValue // no casting otherwise (not Long.MinValue since we use addition)
+    case _ => Int.MinValue // no casting otherwise (not Long.MinValue since we use addition)
   }
+
 }
 
 // Function registry uses Any
@@ -76,9 +81,9 @@ object DefaultFunctions extends LazyLogging {
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
   private def toResult[T](x: Any)(implicit ct: ClassTag[T]): Result[T] =
     x match {
-      case value: Result[_]                                          => value.asInstanceOf[Result[T]]
-      case value: T                                                  => Result.succ(value)
-      case null                                                      => logger.warn(s"Null value arrived with type $ct"); Result.fail //fromNull[T]
+      case value: Result[_] => value.asInstanceOf[Result[T]]
+      case value: T         => Result.succ(value)
+      case null             => logger.warn(s"Null value arrived with type $ct"); Result.fail // fromNull[T]
       case value if ct.runtimeClass.isAssignableFrom(value.getClass) => Result.succ(value.asInstanceOf[T])
       case v: Long if (ct.runtimeClass eq classOf[Int]) || (ct.runtimeClass eq classOf[java.lang.Integer]) =>
         Result.succ(v.toInt.asInstanceOf[T]) // we know that T == Int
@@ -111,8 +116,8 @@ object DefaultFunctions extends LazyLogging {
 //    case _ => Result.fail
 //  }
 
-  def arithmeticFunctions[T1: ClassTag, T2: ClassTag](
-    implicit f: Fractional[T1],
+  def arithmeticFunctions[T1: ClassTag, T2: ClassTag](implicit
+    f: Fractional[T1],
     conv: Conversion[T2, T1]
   ): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType1: ASTType = ASTType.of[T1]
@@ -191,7 +196,9 @@ object DefaultFunctions extends LazyLogging {
     )
   }
 
-  def mathFunctions[T: ClassTag](implicit conv: Conversion[T, Double]): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
+  def mathFunctions[T: ClassTag](implicit
+    conv: Conversion[T, Double]
+  ): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType = ASTType.of[T]
     Map(
       ("abs", Seq(astType)) -> (
@@ -282,9 +289,9 @@ object DefaultFunctions extends LazyLogging {
 
     def func(sym: String, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] = {
 
-      //log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
-      //log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
-      //log.info(s"Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
+      // log.debug(s"func($sym): Arg0 = $xs.head, Arg1 = $xs(1)")
+      // log.info(s"Args = ${(xs.head, xs.lift(1).getOrElse(Unit))}")
+      // log.info(s"Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(Unit)))}")
       (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(()))) match {
         case (Succ(x0), Succ(x1)) =>
           sym match {
@@ -312,8 +319,8 @@ object DefaultFunctions extends LazyLogging {
     }
 
     Map(
-      //('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
-      //('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] || _.asInstanceOf[Boolean]}, btype)),
+      // ('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),
+      // ('or  , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] || _.asInstanceOf[Boolean]}, btype)),
       ("and", Seq(btype, btype)) -> (((xs: Seq[Any]) => func("and", xs), btype)),
       ("or", Seq(btype, btype))  -> (((xs: Seq[Any]) => func("or", xs), btype)),
       ("xor", Seq(btype, btype)) -> (((xs: Seq[Any]) => func("xor", xs), btype)),
@@ -323,8 +330,8 @@ object DefaultFunctions extends LazyLogging {
     )
   }
 
-  def comparingFunctions[T1: ClassTag, T2: ClassTag](
-    implicit ord: Ordering[T1],
+  def comparingFunctions[T1: ClassTag, T2: ClassTag](implicit
+    ord: Ordering[T1],
     conv: Conversion[T2, T1]
   ): Map[(String, Seq[ASTType]), (PFunction, ASTType)] = {
     val astType1: ASTType = ASTType.of[T1]
@@ -453,8 +460,8 @@ object DefaultFunctions extends LazyLogging {
     )
   }
 
-  def reducers[T: ClassTag](
-    implicit conv: Conversion[T, Double]
+  def reducers[T: ClassTag](implicit
+    conv: Conversion[T, Double]
   ): Map[(String, ASTType), (PReducer, ASTType, PReducerTransformation, Serializable)] = Map(
     ("sumof", DoubleASTType) -> (
       (
@@ -498,23 +505,32 @@ object DefaultFunctions extends LazyLogging {
         java.lang.Double.valueOf(Double.MinValue)
       )
     ),
-    ("countof", DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
-      (toResult[Double](acc), toResult[Double](x)) match {
-        case (Succ(da), Succ(_)) => Result.succ(da + 1)
-        case _                   => Result.fail
-      }
-    }, DoubleASTType, {
-      identity(_)
-    }, java.lang.Double.valueOf(0))),
-    ("avgof", DoubleASTType) -> (({ (acc: Result[Any], x: Any) =>
-      (toResult[(Double, Double)](acc), toResult[Double](x)) match {
-        case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))
-        case _                              => Result.fail
-      }
-    }, DoubleASTType, {
-      case Succ((sum: Double, count: Double)) => Result.succ(sum / count)
-      case _                                  => Result.fail
-    }, (0.0, 0.0)))
+    ("countof", DoubleASTType) -> ((
+      { (acc: Result[Any], x: Any) =>
+        (toResult[Double](acc), toResult[Double](x)) match {
+          case (Succ(da), Succ(_)) => Result.succ(da + 1)
+          case _                   => Result.fail
+        }
+      },
+      DoubleASTType, {
+        identity(_)
+      },
+      java.lang.Double.valueOf(0)
+    )),
+    ("avgof", DoubleASTType) -> ((
+      { (acc: Result[Any], x: Any) =>
+        (toResult[(Double, Double)](acc), toResult[Double](x)) match {
+          case (Succ((sum, count)), Succ(dx)) => Result.succ((sum + dx, count + 1))
+          case _                              => Result.fail
+        }
+      },
+      DoubleASTType,
+      {
+        case Succ((sum: Double, count: Double)) => Result.succ(sum / count)
+        case _                                  => Result.fail
+      },
+      (0.0, 0.0)
+    ))
   )
 
   // Fractional type for Int and Long to allow division
@@ -551,11 +567,10 @@ object DefaultFunctions extends LazyLogging {
     override def parseString(str: String): Option[Long] = Try(str.toLong).toOption
 
   }
+
 }
 
 import ru.itclover.tsp.dsl.DefaultFunctions._
-
-
 
 object DefaultFunctionRegistry {
   given Conversion[Int, Int] = _.toInt
@@ -573,27 +588,26 @@ object DefaultFunctionRegistry {
   given Ordering[Double] = scala.math.Ordering.Double.IeeeOrdering
 
   val defaultFunctions = arithmeticFunctions[Int, Int] ++
-        arithmeticFunctions[Long, Long] ++
-        arithmeticFunctions[Long, Int] ++
-        arithmeticFunctions[Double, Double] ++
-        arithmeticFunctions[Double, Long] ++
-        arithmeticFunctions[Double, Int] ++
-        mathFunctions[Int] ++
-        mathFunctions[Long] ++
-        mathFunctions[Double] ++
-        logicalFunctions ++
-        comparingFunctions[Int, Int] ++
-        comparingFunctions[Long, Long] ++
-        comparingFunctions[Double, Double] ++
-        comparingFunctions[Double, Long] ++
-        comparingFunctions[Double, Int] ++
-        comparingFunctions[String, Int] ++
-        comparingFunctions[String, Long] ++
-        comparingFunctions[String, Double] ++
-        comparingFunctions[String, String]
+    arithmeticFunctions[Long, Long] ++
+    arithmeticFunctions[Long, Int] ++
+    arithmeticFunctions[Double, Double] ++
+    arithmeticFunctions[Double, Long] ++
+    arithmeticFunctions[Double, Int] ++
+    mathFunctions[Int] ++
+    mathFunctions[Long] ++
+    mathFunctions[Double] ++
+    logicalFunctions ++
+    comparingFunctions[Int, Int] ++
+    comparingFunctions[Long, Long] ++
+    comparingFunctions[Double, Double] ++
+    comparingFunctions[Double, Long] ++
+    comparingFunctions[Double, Int] ++
+    comparingFunctions[String, Int] ++
+    comparingFunctions[String, Long] ++
+    comparingFunctions[String, Double] ++
+    comparingFunctions[String, String]
 
   val defaultReducers = reducers[Int] ++ reducers[Long] ++ reducers[Double]
 
   val registry = FunctionRegistry(functions = defaultFunctions, reducers = defaultReducers)
 }
-

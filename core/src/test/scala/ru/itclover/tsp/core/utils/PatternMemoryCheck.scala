@@ -15,9 +15,11 @@ object PatternMemoryCheck {
   }
 
   private def generateSeq(generator: TimeSeriesGenerator[Int], amount: Int) = {
-    (for (time <- Timer(from = Instant.now());
-          idx  <- Increment;
-          row  <- generator)
+    (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- generator
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = amount)
   }
 
@@ -33,8 +35,7 @@ object PatternMemoryCheck {
     layout.totalSize()
   }
 
-  /**
-    * Returns final size (in bytes) of state after running StateMachine with pattern on event.s
+  /** Returns final size (in bytes) of state after running StateMachine with pattern on event.s
     */
   def finalStateSizeGenerator[S <: AnyRef](
     pattern: Pattern[Event[Int], S, _],

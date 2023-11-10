@@ -10,8 +10,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object AkkaHttpUtils {
 
-  def queryToEither[L, R](fullUri: Uri, method: HttpMethod = HttpMethods.GET)(
-    implicit unm: FromEntityUnmarshaller[Either[L, R]],
+  def queryToEither[L, R](fullUri: Uri, method: HttpMethod = HttpMethods.GET)(implicit
+    unm: FromEntityUnmarshaller[Either[L, R]],
     as: ActorSystem,
     am: Materializer,
     ec: ExecutionContext
@@ -21,4 +21,5 @@ object AkkaHttpUtils {
       Unmarshal(rs.entity).to[Either[L, R]]
     }
   }
+
 }

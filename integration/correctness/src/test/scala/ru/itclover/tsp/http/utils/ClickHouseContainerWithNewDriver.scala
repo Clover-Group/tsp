@@ -6,9 +6,10 @@ import com.dimafeng.testcontainers.SingleContainer
 import com.dimafeng.testcontainers.JdbcDatabaseContainer
 import com.dimafeng.testcontainers.ContainerDef
 
-case class ClickHouseContainerWithNewDriver (
+case class ClickHouseContainerWithNewDriver(
   dockerImageName: DockerImageName = DockerImageName.parse(ClickHouseContainerWithNewDriver.defaultDockerImageName)
-) extends SingleContainer[JavaClickHouseContainer] with JdbcDatabaseContainer {
+) extends SingleContainer[JavaClickHouseContainer]
+    with JdbcDatabaseContainer {
 
   override val container: JavaClickHouseContainer = new JavaClickHouseContainer(dockerImageName)
 
@@ -30,5 +31,7 @@ object ClickHouseContainerWithNewDriver {
         dockerImageName = dockerImageName
       )
     }
+
   }
+
 }

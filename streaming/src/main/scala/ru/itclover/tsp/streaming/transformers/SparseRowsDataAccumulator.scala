@@ -18,8 +18,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   useUnfolding: Boolean,
   defaultTimeout: Option[Long]
   /*streamMode: Boolean*/
-)(
-  implicit extractTime: TimeExtractor[InEvent],
+)(implicit
+  extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
   extractValue: Extractor[InEvent, InKey, Value],
   eventCreator: EventCreator[OutEvent, InKey],
@@ -33,9 +33,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   val extraFieldsIndexesMap: Map[InKey, Int] = extraFieldNames
     .zip(
       targetKeySet.size until
-      targetKeySet.size + extraFieldNames.size
+        targetKeySet.size + extraFieldNames.size
     )
     .toMap
+
   val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
 
@@ -89,8 +90,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   def getLastEvent: OutEvent = lastEvent
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
-    event.retain(
-      (k, v) => currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
+    event.retain((k, v) =>
+      currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
     )
   }
 
@@ -101,8 +102,8 @@ object SparseRowsDataAccumulator {
   def apply[InEvent, InKey, Value, OutEvent](
     streamSource: StreamSource[InEvent, InKey, Value],
     patternFields: Set[InKey]
-  )(
-    implicit timeExtractor: TimeExtractor[InEvent],
+  )(implicit
+    timeExtractor: TimeExtractor[InEvent],
     extractKeyVal: InEvent => (InKey, Value),
     extractAny: Extractor[InEvent, InKey, Value],
     eventCreator: EventCreator[OutEvent, InKey],
@@ -115,12 +116,12 @@ object SparseRowsDataAccumulator {
           val sparseRowsConf = ndu
           val fim = streamSource.fieldsIdxMap
           val timeouts = patternFields
-              .map(k => (k, ndu.defaultTimeout.getOrElse(0L)))
-              .toMap[InKey, Long] ++
+            .map(k => (k, ndu.defaultTimeout.getOrElse(0L)))
+            .toMap[InKey, Long] ++
             ndu.fieldsTimeoutsMs
           val extraFields = fim
-            .filterNot {
-              case (name, _) => name == sparseRowsConf.keyColumn || name == sparseRowsConf.defaultValueColumn
+            .filterNot { case (name, _) =>
+              name == sparseRowsConf.keyColumn || name == sparseRowsConf.defaultValueColumn
             }
             .keys
             .toSeq
@@ -142,13 +143,13 @@ object SparseRowsDataAccumulator {
           val fim = streamSource.fieldsIdxMap
           val toKey = streamSource.fieldToEKey
           val timeouts = patternFields
-              .map(k => (k, wdf.defaultTimeout.getOrElse(0L)))
-              .toMap[InKey, Long] ++
+            .map(k => (k, wdf.defaultTimeout.getOrElse(0L)))
+            .toMap[InKey, Long] ++
             wdf.fieldsTimeoutsMs
           val extraFields =
             fim
-              .filterNot {
-                case (name, _) => sparseRowsConf.fieldsTimeoutsMs.contains(toKey(name))
+              .filterNot { case (name, _) =>
+                sparseRowsConf.fieldsTimeoutsMs.contains(toKey(name))
               }
               .keys
               .toSeq
@@ -172,4 +173,5 @@ object SparseRowsDataAccumulator {
       })
       .getOrElse(sys.error("No data transformation config specified"))
   }
+
 }

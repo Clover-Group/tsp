@@ -13,9 +13,10 @@ case class CouplePattern[Event: IdxExtractor, State1, State2, T1, T2, T3](
   right: Pattern[Event, State2, T2]
 )(
   val func: (Result[T1], Result[T2]) => Result[T3]
-)(
-  implicit idxOrd: Order[Idx] // ???
+)(implicit
+  idxOrd: Order[Idx] // ???
 ) extends Pattern[Event, CouplePState[State1, State2, T1, T2], T3] {
+
   override def apply[F[_]: Monad, Cont[_]: Foldable: Functor](
     oldState: CouplePState[State1, State2, T1, T2],
     oldQueue: PQueue[T3],
@@ -23,8 +24,10 @@ case class CouplePattern[Event: IdxExtractor, State1, State2, T1, T2, T3](
   ): F[(CouplePState[State1, State2, T1, T2], PQueue[T3])] = {
     val leftF = left.apply(oldState.leftState, oldState.leftQueue, events)
     val rightF = right.apply(oldState.rightState, oldState.rightQueue, events)
-    for (newLeftOutput  <- leftF;
-         newRightOutput <- rightF) yield {
+    for (
+      newLeftOutput  <- leftF;
+      newRightOutput <- rightF
+    ) yield {
       // Build a new queue from the left and right ones
       val (updatedLeftQueue, updatedRightQueue, newFinalQueue) =
         processQueues(newLeftOutput._2, newRightOutput._2, oldQueue)
@@ -65,6 +68,7 @@ case class CouplePattern[Event: IdxExtractor, State1, State2, T1, T2, T3](
 
   override def initialState(): CouplePState[State1, State2, T1, T2] =
     CouplePState(left.initialState(), PQueue.empty, right.initialState(), PQueue.empty)
+
 }
 
 case class CouplePState[State1, State2, T1, T2](

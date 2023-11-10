@@ -67,7 +67,7 @@ object Library {
   val jackson: Seq[ModuleID] = Seq(
     "com.fasterxml.jackson.core" % "jackson-databind" % Version.jackson,
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % Version.jackson,
-    //"javax.xml.bind" % "jaxb-api" % Version.jaxb,
+    // "javax.xml.bind" % "jaxb-api" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-core" % Version.jaxb,
     "com.sun.xml.bind" % "jaxb-impl" % Version.jaxb,
     "com.sun.activation" % "javax.activation" % Version.activation
@@ -102,7 +102,7 @@ object Library {
   ).map(_.cross(CrossVersion.for3Use2_13))
 
   val sprayJson: Seq[ModuleID] = Seq(
-    "io.spray" %%  "spray-json" % Version.sprayJson
+    "io.spray" %% "spray-json" % Version.sprayJson
   ).map(_.cross(CrossVersion.for3Use2_13))
 
   val cats: Seq[ModuleID] = Seq(

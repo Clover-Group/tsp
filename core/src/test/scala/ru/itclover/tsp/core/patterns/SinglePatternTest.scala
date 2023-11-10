@@ -32,7 +32,7 @@ class SinglePatternTest extends AnyFlatSpec with Matchers {
       def apply[T](a: EInt, sym: String)(implicit d: Decoder[Int, T]): T = d(a.row)
     }
 
-    //val pat = new ExtractingPattern[EInt, String, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
+    // val pat = new ExtractingPattern[EInt, String, Int, Int, Int] ('and, 'or)(extractor, MyExtractor, dec)
     val pat = new ExtractingPattern("and")(Event.extractor, MyExtractor, dec)
 
     val _ = StateMachine[Id].run(pat, Seq(event), pat.initialState())

@@ -38,4 +38,5 @@ object JdbcService {
       }.toStream.map(String(_)).toSet
     }
   }
+
 }

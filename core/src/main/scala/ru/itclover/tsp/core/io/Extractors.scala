@@ -12,6 +12,7 @@ trait Extractor[Event, EKey, EItem] extends Serializable {
       override def apply[T](e: A, k: EKey)(implicit d: Decoder[EItem, T]): T = thisApply(f(e), k)(d)
     }
   }
+
 }
 
 trait KVExtractor[Event, EKey, EItem] extends Serializable {
@@ -26,6 +27,7 @@ trait TimeExtractor[Event] extends Serializable {
 }
 
 object TimeExtractor {
+
   implicit class GetTime[T](private val event: T) extends AnyVal {
     def time(implicit te: TimeExtractor[T]): Time = te.apply(event)
   }
@@ -33,6 +35,7 @@ object TimeExtractor {
   def of[E](f: E => Time): TimeExtractor[E] = new TimeExtractor[E] {
     override def apply(e: E): Time = f(e)
   }
+
 }
 
 trait Extractors[Event] {

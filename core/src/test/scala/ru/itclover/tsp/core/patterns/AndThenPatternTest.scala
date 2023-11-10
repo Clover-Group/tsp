@@ -27,9 +27,11 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
 
     val pattern = p.assert(field(_.row) > const(0)).andThen(p.assert(field(_.col) =!= const(0)))
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 100)
 
     val out = new ArrayBuffer[IdxValue[_]]()
@@ -54,16 +56,18 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
         )
       )
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 100)
 
     val out = new ArrayBuffer[IdxValue[_]]()
     StateMachine[Id].run(pattern, events, pattern.initialState(), (x: IdxValue[_]) => out += x, 1)
 
     out.size shouldBe 100
-    //out.foreach(_.value shouldBe "isFail")
+    // out.foreach(_.value shouldBe "isFail")
 
   }
 
@@ -83,9 +87,11 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
         )
       )
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Change(from = 0.0, to = 100.0, 100.seconds).after(Constant(1))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 100)
 
     val out = new ArrayBuffer[IdxValue[_]]()
@@ -93,17 +99,19 @@ class AndThenPatternTest extends AnyFlatSpec with Matchers {
 
     out.size shouldBe 100
     val (fails, successes) = out.splitAt(10)
-    //fails.foreach(_.value shouldBe "isFail")
-    //successes.foreach(_.value shouldBe "isSuccess")
+    // fails.foreach(_.value shouldBe "isFail")
+    // successes.foreach(_.value shouldBe "isSuccess")
 
   }
 
   it should "parse complex rule" in {
     val pattern1 = p.field(_.row > 50).and(p.truthCount(p.assert(p.field(_.row) > p.const(10)), Window(10)) > p.const(0))
 
-    val events = (for (time <- Timer(from = Instant.now());
-                       idx  <- Increment;
-                       row  <- Constant(51).timed(10.seconds).after(Constant(10)))
+    val events = (for (
+      time <- Timer(from = Instant.now());
+      idx  <- Increment;
+      row  <- Constant(51).timed(10.seconds).after(Constant(10))
+    )
       yield Event[Int](time.toEpochMilli, idx.toLong, row.toInt, 0)).run(seconds = 11)
 
     val out = new ArrayBuffer[IdxValue[_]]()

@@ -26,15 +26,21 @@ trait OutputConf[Event] {
   def rowSchema: EventSchema
 }
 
-/**
-  * Sink for anything that support JDBC connection
-  * @param rowSchema schema of writing rows
-  * @param jdbcUrl example - "jdbc:clickhouse://localhost:8123/default?"
-  * @param driverName example - "com.clickhouse.jdbc.ClickHouseDriver"
-  * @param userName for JDBC auth
-  * @param password for JDBC auth
-  * @param batchInterval batch size for writing found incidents
-  * @param parallelism num of parallel task to write data
+/** Sink for anything that support JDBC connection
+  * @param rowSchema
+  *   schema of writing rows
+  * @param jdbcUrl
+  *   example - "jdbc:clickhouse://localhost:8123/default?"
+  * @param driverName
+  *   example - "com.clickhouse.jdbc.ClickHouseDriver"
+  * @param userName
+  *   for JDBC auth
+  * @param password
+  *   for JDBC auth
+  * @param batchInterval
+  *   batch size for writing found incidents
+  * @param parallelism
+  *   num of parallel task to write data
   */
 case class JDBCOutputConf(
   tableName: String,
@@ -46,10 +52,11 @@ case class JDBCOutputConf(
   userName: Option[String] = None,
   parallelism: Option[Int] = Some(1)
 ) extends OutputConf[Row] {
+
   def fixedDriverName: String = driverName match {
     case "ru.yandex.clickhouse.ClickHouseDriver" => "com.clickhouse.jdbc.ClickHouseDriver"
-    case _ => driverName
-  }  
+    case _                                       => driverName
+  }
 
   override def getSink: Pipe[IO, Row, Unit] =
     source => fuseMap(source, insertQuery)(transactor).drain
@@ -69,38 +76,36 @@ case class JDBCOutputConf(
       val params = query
         .split("&")
         .map(kv => kv.split("=", 2))
-        .map{ 
-          case Array(k) => (k, "")
-          case Array(k, v) => (k, v)
+        .map {
+          case Array(k)        => (k, "")
+          case Array(k, v)     => (k, v)
           case Array(k, v, _*) => (k, v)
         }
         .toMap
       (params.getOrElse("user", ""), params.getOrElse("password", ""))
-    }
-    catch {
-      case e: Exception => 
+    } catch {
+      case e: Exception =>
         ("", "")
     }
   }
-
 
   def insertQuery(data: Row): ConnectionIO[Int] = {
     val fields = rowSchema.fieldsNames.mkString(", ")
     (
       fr"""insert into """
-      ++ Fragment.const(s"$tableName ($fields)")
-      ++ fr"values ("
-      ++ data.toList.zip(rowSchema.fieldsTypes).map((x, t) => fragmentForDataValue(x, t)).intercalate(fr",")
-      ++ fr")"
+        ++ Fragment.const(s"$tableName ($fields)")
+        ++ fr"values ("
+        ++ data.toList.zip(rowSchema.fieldsTypes).map((x, t) => fragmentForDataValue(x, t)).intercalate(fr",")
+        ++ fr")"
     ).update.run
   }
 
   def fragmentForDataValue(x: Object, t: Int): Fragment = {
     t match {
       case Types.INTEGER => fr"${x.toString.toInt}"
-      case Types.FLOAT => fr"${x.toString.toFloat}"
-      case Types.DOUBLE => fr"${x.toString.toDouble}"
-      case _ => fr"${x.toString}"
+      case Types.FLOAT   => fr"${x.toString.toFloat}"
+      case Types.DOUBLE  => fr"${x.toString.toDouble}"
+      case _             => fr"${x.toString}"
     }
   }
 
@@ -118,8 +123,8 @@ case class JDBCOutputConf(
     sink: B => ConnectionIO[C]
   )(
     sinkTransactor: Transactor[F]
-  )(
-    implicit ev: MonadCancelThrow[F]
+  )(implicit
+    ev: MonadCancelThrow[F]
   ): fs2.Stream[F, C] = {
 
     // Interpret a ConnectionIO into a Kleisli arrow for F via the sink interpreter.
@@ -139,11 +144,11 @@ case class JDBCOutputConf(
 
       // And can thus lift all the sink operations into Stream of F
       val sinkEval: A => fs2.Stream[F, C] = (a: A) => evalS(sink(sourceToSink(a)))
-      //val before = evalS(sinkXA.strategy.before)
-      //val after  = evalS(sinkXA.strategy.after )
+      // val before = evalS(sinkXA.strategy.before)
+      // val after  = evalS(sinkXA.strategy.after )
 
       // And construct our final stream.
-      //before ++ source.flatMap(sinkEval) ++ after
+      // before ++ source.flatMap(sinkEval) ++ after
       source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
     }
 
@@ -151,6 +156,7 @@ case class JDBCOutputConf(
     fs2.Stream.resource(conn).flatMap(mkStream)
 
   }
+
 }
 
 ///**
@@ -162,14 +168,19 @@ case class JDBCOutputConf(
 //  override def parallelism: Option[Int] = Some(1)
 //}
 
-/**
-  * Sink for kafka connection
-  * @param broker host and port for kafka broker
-  * @param topic where is data located
-  * @param serializer format of data in kafka
-  * @param rowSchema schema of writing rows
-  * @param parallelism num of parallel task to write data
-  * @author trolley813
+/** Sink for kafka connection
+  * @param broker
+  *   host and port for kafka broker
+  * @param topic
+  *   where is data located
+  * @param serializer
+  *   format of data in kafka
+  * @param rowSchema
+  *   schema of writing rows
+  * @param parallelism
+  *   num of parallel task to write data
+  * @author
+  *   trolley813
   */
 case class KafkaOutputConf(
   broker: String,
@@ -205,23 +216,28 @@ case class KafkaOutputConf(
 
     eventSchema match {
       case newRowSchema: NewRowSchema =>
-        newRowSchema.data.foreach {
-          case (k, v) =>
-            putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(String(k))))
+        newRowSchema.data.foreach { case (k, v) =>
+          putValueToObjectNode(k, v, root, output(newRowSchema.fieldsIndices(String(k))))
         }
     }
 
     def putValueToObjectNode(k: String, v: EventSchemaValue, root: ObjectNode, value: Object): Unit = {
       v.`type` match {
-        case "int8"      => root.put(k, value.asInstanceOf[Byte])
-        case "int16"     => root.put(k, value.asInstanceOf[Short])
-        case "int32"     => root.put(k, value.asInstanceOf[Int])
-        case "int64"     => root.put(k, value.asInstanceOf[Long])
-        case "float32"   => root.put(k, value.asInstanceOf[Float])
-        case "float64"   => root.put(k, value.asInstanceOf[Double])
-        case "boolean"   => root.put(k, value.asInstanceOf[Boolean])
-        case "string"    => root.put(k, value.asInstanceOf[String])
-        case "timestamp" => root.put(k, DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.of("UTC")).format(value.asInstanceOf[Timestamp].toInstant()))
+        case "int8"    => root.put(k, value.asInstanceOf[Byte])
+        case "int16"   => root.put(k, value.asInstanceOf[Short])
+        case "int32"   => root.put(k, value.asInstanceOf[Int])
+        case "int64"   => root.put(k, value.asInstanceOf[Long])
+        case "float32" => root.put(k, value.asInstanceOf[Float])
+        case "float64" => root.put(k, value.asInstanceOf[Double])
+        case "boolean" => root.put(k, value.asInstanceOf[Boolean])
+        case "string"  => root.put(k, value.asInstanceOf[String])
+        case "timestamp" =>
+          root.put(
+            k,
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME
+              .withZone(ZoneId.of("UTC"))
+              .format(value.asInstanceOf[Timestamp].toInstant())
+          )
         case "object" =>
           val data = value.toString
           val parsedJson = mapper.readTree(data)
@@ -232,4 +248,5 @@ case class KafkaOutputConf(
     mapper.writeValueAsString(root)
 
   }
+
 }

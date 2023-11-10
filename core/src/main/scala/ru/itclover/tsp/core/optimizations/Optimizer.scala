@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core.optimizations
+
 import cats.kernel.Group
 import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.{
@@ -50,7 +51,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   private def coupleOfTwoSimple[T]: OptimizeRule[T] = {
     // couple(simple, simple) => simple
     case Pat(
-        x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(SimplePattern(fright: (E => Result[_]))))
+          x @ CouplePattern(Pat(SimplePattern(fleft: (E => Result[_]))), Pat(SimplePattern(fright: (E => Result[_]))))
         ) =>
       SimplePattern[E, T](event => x.func.apply(fleft.apply(event), fright.apply(event)))
     // couple(simple, const) => simple
@@ -67,18 +68,16 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
       MapPattern(forceState(right))(t => x.func.apply(l, Result.succ(t)))
   }
 
-  private def mapOfConst[T]: OptimizeRule[T] = {
-    case Pat(map @ MapPattern(Pat(ConstPattern(x)))) => ConstPattern[E, T](x.flatMap(map.func))
+  private def mapOfConst[T]: OptimizeRule[T] = { case Pat(map @ MapPattern(Pat(ConstPattern(x)))) =>
+    ConstPattern[E, T](x.flatMap(map.func))
   }
 
-  private def mapOfSimple[T]: OptimizeRule[T] = {
-    case Pat(map @ MapPattern(Pat(simple: SimplePattern[E, _]))) =>
-      SimplePattern[E, T](e => simple.f(e).flatMap(map.func))
+  private def mapOfSimple[T]: OptimizeRule[T] = { case Pat(map @ MapPattern(Pat(simple: SimplePattern[E, _]))) =>
+    SimplePattern[E, T](e => simple.f(e).flatMap(map.func))
   }
 
-  private def mapOfMap[T]: OptimizeRule[T] = {
-    case Pat(map @ MapPattern(Pat(innerMap @ MapPattern(inner)))) =>
-      MapPattern(forceState(inner))(t => innerMap.func(t).flatMap(map.func))
+  private def mapOfMap[T]: OptimizeRule[T] = { case Pat(map @ MapPattern(Pat(innerMap @ MapPattern(inner)))) =>
+    MapPattern(forceState(inner))(t => innerMap.func(t).flatMap(map.func))
   }
 
   private def optimizeInners[T]: OptimizeRule[T] = {
@@ -121,6 +120,7 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable {
   // unmet restrictions.
   private def forceState[T](pat: Pat[E, T]): Pattern[E, S[T], T] =
     pat.asInstanceOf[Pattern[E, S[T], T]]
+
 }
 
 object Optimizer {

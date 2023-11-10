@@ -7,8 +7,7 @@ object ErrorsADT {
     val errorCode: Int
   }
 
-  /**
-    * Represents errors on configuration stage. It is guaranteed that no events is written in sink if error occurs.
+  /** Represents errors on configuration stage. It is guaranteed that no events is written in sink if error occurs.
     */
   sealed trait ConfigErr extends Err
 
@@ -26,8 +25,7 @@ object ErrorsADT {
     override val error = Option(ex.getMessage).getOrElse(ex.toString)
   }
 
-  /**
-    * Represents errors on run-time stage. Some data could be already written in the sink.
+  /** Represents errors on run-time stage. Some data could be already written in the sink.
     */
   sealed trait RuntimeErr extends Err
 

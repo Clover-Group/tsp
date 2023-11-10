@@ -1,4 +1,5 @@
 package ru.itclover.tsp.core
+
 import cats.kernel.Order
 import ru.itclover.tsp.core.Pattern.Idx
 
@@ -25,17 +26,18 @@ object QueueUtils {
       inner(m.ArrayDeque.empty, queue)
     }
 
-  /**
-    * Splits inner `q` at point idx, so all records with id < idx are in first returned queue, and all with id >= idx are in second.
+  /** Splits inner `q` at point idx, so all records with id < idx are in first returned queue, and all with id >= idx are
+    * in second.
     */
-  def splitAtIdx(q: m.ArrayDeque[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(
-    implicit ord: Order[Idx]
+  def splitAtIdx(q: m.ArrayDeque[(Idx, Time)], idx: Idx, marginToFirst: Boolean = false)(implicit
+    ord: Order[Idx]
   ): (m.ArrayDeque[(Idx, Time)], m.ArrayDeque[(Idx, Time)]) = {
     takeWhileFromQueue(q) {
-      if (marginToFirst) {
-        case (idx1: Idx, _: Time) => ord.lteqv(idx1, idx)
-      } else {
-        case (idx1: Idx, _: Time) => ord.lt(idx1, idx)
+      if (marginToFirst) { case (idx1: Idx, _: Time) =>
+        ord.lteqv(idx1, idx)
+      }
+      else { case (idx1: Idx, _: Time) =>
+        ord.lt(idx1, idx)
       }
     }
   }
