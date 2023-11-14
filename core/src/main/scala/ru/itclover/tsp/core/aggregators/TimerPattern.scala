@@ -22,8 +22,8 @@ case class TimerPattern[Event: IdxExtractor: TimeExtractor, S, T](
   override def initialState(): AggregatorPState[S, T, TimerAccumState[T]] = AggregatorPState(
     inner.initialState(),
     innerQueue = PQueue.empty,
-    astate = TimerAccumState(m.Queue.empty, (0L, Time(0L)), Fail, eventsMaxGapMs),
-    indexTimeMap = m.Queue.empty
+    astate = TimerAccumState(m.ArrayDeque.empty, (0L, Time(0L)), Fail, eventsMaxGapMs),
+    indexTimeMap = m.ArrayDeque.empty
   )
 
 }
@@ -44,6 +44,7 @@ case class TimerAccumState[T](
     idxValue: IdxValue[T]
   ): (TimerAccumState[T], QI[Boolean]) = {
 
+    log.debug(s"Current state: $this")
     log.debug(s"Received event: $idxValue with times: $times")
     idxValue.value match {
       // clean queue in case of fail. Return fails for all arrived events
@@ -110,6 +111,7 @@ case class TimerAccumState[T](
             newResults
           )
         } else {
+          log.debug(s"Removing old data from queue: $oldOutputs")
           // return Success for the points late enough
           val startingPoint = oldOutputs.head._2.plus(window)
           val startingIdx = times.find(_._2 >= startingPoint).map(_._1).get // this will always be non-empty by def.

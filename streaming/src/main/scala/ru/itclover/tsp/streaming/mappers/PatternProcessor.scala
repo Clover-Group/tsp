@@ -11,7 +11,7 @@ import scala.collection.mutable.ListBuffer
 case class PatternProcessor[E: TimeExtractor, State, Out](
   pattern: Pattern[E, State, Out],
   eventsMaxGapMs: Long,
-  initialState: State
+  initialState: () => State
 ) {
 
   private val log = Logger("PatternLogger")
@@ -31,7 +31,7 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
     val firstElement = elements.head
     // if the last event occurred so long ago, clear the state
     if (lastState == null || timeExtractor(firstElement).toMillis - lastTime.toMillis > eventsMaxGapMs) {
-      lastState = initialState
+      lastState = initialState()
     }
 
     // Split the different time sequences if they occurred in the same time window
@@ -45,11 +45,11 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
 
     val consume: IdxValue[Out] => Unit = x => x.value.foreach(v => data.append(v))
 
-    val seedStates = lastState +: Stream.continually(initialState)
+    val seedStates = lastState +: Stream.continually(initialState())
 
     // this step has side-effect = it calls `consume` for each output event. We need to process
     // events sequentually, that's why I use foldLeft here
-    lastState = sequences.zip(seedStates).foldLeft(initialState) { case (_, (events, seedState)) =>
+    lastState = sequences.zip(seedStates).foldLeft(initialState()) { case (_, (events, seedState)) =>
       machine.run(pattern, events, seedState, consume)
     }
 

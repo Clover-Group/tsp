@@ -118,7 +118,7 @@ case class PatternsSearchJob[In, InKey, InItem](
         PatternProcessor[In, Optimizer.S[Segment], Incident](
           incidentPattern,
           source.conf.eventsMaxGapMs.getOrElse(60000L),
-          stateOption.flatMap(_.states.get(rawP)).getOrElse(incidentPattern.initialState())
+          () => stateOption.flatMap(_.states.get(rawP)).getOrElse(incidentPattern.initialState())
         )
     }
     // TODO: Partitioning does not work due to non-laziness of the operator (all data kept in memory)
