@@ -153,8 +153,8 @@ case class PatternsSearchJob[In, InKey, InItem](
     val processed = windowed
       .map(_.map(c => combinator.process(c)))
       .pipe(x =>
-        if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get)
-        else x.parJoinUnbounded
+        /*if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get)
+        else*/ x.parJoinUnbounded
       )
       // .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
@@ -299,7 +299,7 @@ object PatternsSearchJob {
       // .reduce { _ |+| _ }
       }
       // .parJoinUnbounded
-      .pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
+      .pipe(x => /*if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else*/ x.parJoinUnbounded)
 
     // .name("Uniting adjacent incidents")
 

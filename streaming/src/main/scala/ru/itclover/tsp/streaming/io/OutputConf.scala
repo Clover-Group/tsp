@@ -67,7 +67,8 @@ case class JDBCOutputConf(
     fixedDriverName,
     jdbcUrl,
     userName.getOrElse(queryUserName),
-    password.getOrElse(queryPassword)
+    password.getOrElse(queryPassword),
+    None
   )
 
   def getCreds: (String, String) = {
