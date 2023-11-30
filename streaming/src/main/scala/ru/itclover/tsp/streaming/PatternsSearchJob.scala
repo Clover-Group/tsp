@@ -152,11 +152,11 @@ case class PatternsSearchJob[In, InKey, InItem](
     )
     val processed = windowed
       .map(_.map(c => combinator.process(c)))
-      .pipe(x =>
-        /*if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get)
-        else*/ x.parJoinUnbounded
-      )
-      // .parJoinUnbounded
+      // .pipe(x =>
+      //   if (source.conf.patternsParallelism.getOrElse(0) > 0) x.parJoin(source.conf.patternsParallelism.get)
+      //   else x.parJoinUnbounded
+      // )
+      .parJoinUnbounded
       .flatMap(c => fs2.Stream.chunk(c))
 
     // log.debug("incidentsFromPatterns finished")
@@ -175,7 +175,7 @@ case class PatternsSearchJob[In, InKey, InItem](
       forwardedFields,
       useWindowing
     )
-    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents, source.conf.parallelism)
+    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)
     else singleIncidents
   }
 
@@ -260,7 +260,7 @@ object PatternsSearchJob {
     res
   }
 
-  def reduceIncidents(incidents: fs2.Stream[IO, Incident], maxParallelism: Option[Int]): fs2.Stream[IO, Incident] = {
+  def reduceIncidents(incidents: fs2.Stream[IO, Incident]): fs2.Stream[IO, Incident] = {
     log.debug("reduceIncidents started")
 
     val res = incidents
@@ -298,8 +298,8 @@ object PatternsSearchJob {
           .unNone
       // .reduce { _ |+| _ }
       }
-      // .parJoinUnbounded
-      .pipe(x => /*if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else*/ x.parJoinUnbounded)
+      .parJoinUnbounded
+      //.pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
 
     // .name("Uniting adjacent incidents")
 

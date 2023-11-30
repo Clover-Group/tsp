@@ -207,8 +207,7 @@ case class JdbcSource(
     conf.fixedDriverName,
     conf.jdbcUrl,
     conf.userName.getOrElse(userName),
-    conf.password.getOrElse(password),
-    None
+    conf.password.getOrElse(password)
   )
 
   def getCreds: (String, String) = {
