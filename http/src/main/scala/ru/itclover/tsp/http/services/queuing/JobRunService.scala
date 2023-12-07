@@ -210,13 +210,14 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
 
         val f = Future {
           while (runningStreams.get(uuid).map(_.get).getOrElse(false)) {
-            // log.error(s"Stream $uuid running")
+            //log.info(s"Stream $uuid running")
             Thread.sleep(5000)
           }
         }
 
         val cancel = IO.async_ { cb =>
           f.onComplete(t => cb(t.toEither))
+          IO.pure(Some(IO.unit))
         }
           >> cancelToken.complete(Right(()))
 

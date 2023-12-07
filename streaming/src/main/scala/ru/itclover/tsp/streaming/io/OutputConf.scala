@@ -4,7 +4,7 @@ import cats.effect.{IO, MonadCancelThrow, Resource}
 import cats.implicits._
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import doobie.WeakAsync.doobieWeakAsyncForAsync
+//import doobie.WeakAsync.doobieWeakAsyncForAsync
 import doobie.{ConnectionIO, Transactor}
 import doobie.implicits._
 import doobie.util.fragment.Fragment
@@ -16,6 +16,9 @@ import java.sql.{Connection, Timestamp}
 import java.time.{ZoneId, ZonedDateTime}
 import java.sql.Types
 import java.time.format.DateTimeFormatter
+import doobie.util.log.LogHandler
+import doobie.util.log.LogEvent
+import com.typesafe.scalalogging.Logger
 
 trait OutputConf[Event] {
 
@@ -63,11 +66,20 @@ case class JDBCOutputConf(
 
   lazy val (queryUserName, queryPassword) = getCreds
 
+  lazy val log = Logger[JDBCOutputConf]
+
+  // lazy val logHandler = new LogHandler[IO] {
+
+  //   override def run(logEvent: LogEvent): IO[Unit] = IO { log.debug(logEvent.sql) }
+
+  // }
+
   lazy val transactor = Transactor.fromDriverManager[IO](
     fixedDriverName,
     jdbcUrl,
     userName.getOrElse(queryUserName),
-    password.getOrElse(queryPassword)
+    password.getOrElse(queryPassword),
+    //Some(logHandler)
   )
 
   def getCreds: (String, String) = {
@@ -144,12 +156,12 @@ case class JDBCOutputConf(
 
       // And can thus lift all the sink operations into Stream of F
       val sinkEval: A => fs2.Stream[F, C] = (a: A) => evalS(sink(sourceToSink(a)))
-      // val before = evalS(sinkXA.strategy.before)
-      // val after  = evalS(sinkXA.strategy.after )
+      val before = evalS(sinkTransactor.strategy.before)
+      val after  = evalS(sinkTransactor.strategy.after )
 
       // And construct our final stream.
-      // before ++ source.flatMap(sinkEval) ++ after
-      source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
+      before ++ source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]] ++ after
+      //source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
     }
 
     // And we're done!

@@ -121,10 +121,8 @@ case class PatternsSearchJob[In, InKey, InItem](
           () => stateOption.flatMap(_.states.get(rawP)).getOrElse(incidentPattern.initialState())
         )
     }
-    // TODO: Partitioning does not work due to non-laziness of the operator (all data kept in memory)
     val keyedStream = stream
       .drop(checkpointOption.map(_.readRows).getOrElse(0L))
-      // .assignAscendingTimestamps(timeExtractor(_).toMillis)
       .through(StreamPartitionOps.groupBy(e => IO { source.transformedPartitioner(e) }))
     val windowed: fs2.Stream[IO, fs2.Stream[IO, Chunk[In]]] =
       if (useWindowing) {
@@ -192,11 +190,12 @@ case class PatternsSearchJob[In, InKey, InItem](
               source.patternFields
             )
             str.map(event => {
-              acc.map(event)
-            }) ++ fs2.Stream(Some(acc.getLastEvent))
-          }.unNone
+              Chunk(acc.map(event): _*)
+            }) ++ fs2.Stream(Chunk(acc.getLastEvent))
+          }
         }
         .parJoinUnbounded
+        .unchunks
     // .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
     // .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
     case _ => dataStream

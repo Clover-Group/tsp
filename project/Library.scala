@@ -1,41 +1,41 @@
 import sbt._
 
 object Version {
-  val logback = "1.4.7"
+  val logback = "1.4.14"
   val scalaLogging = "3.9.5"
   val logbackContrib = "0.1.5"
 
-  val config = "1.4.2"
+  val config = "1.4.3"
 
   val influx = "2.15"
 
-  val clickhouse = "0.4.5"
+  val clickhouse = "0.5.0"
 
-  val akka = "2.8.0"
-  val akkaHttp = "10.5.1"
+  val akka = "2.8.5"
+  val akkaHttp = "10.5.3"
   val sprayJson = "1.3.6"
 
-  val cats = "3.4.9"
+  val cats = "3.4.11"
   val fs2 = "3.6.1"
-  val fs2Kafka = "3.0.0"
+  val fs2Kafka = "3.0.1"
   val doobie = "1.0.0-RC2"
 
-  val scalaTest = "3.2.15"
-  val scalaCheck = "3.2.15.0"
+  val scalaTest = "3.2.17"
+  val scalaCheck = "3.2.17.0"
   val jmh = "0.3.7"
 
-  val testContainers = "0.40.15"
-  val testContainersKafka = "1.18.0"
-  val postgres = "42.6.0"
+  val testContainers = "0.41.0"
+  val testContainersKafka = "1.19.3"
+  val postgres = "42.7.0"
 
   val avro = "1.8.2"
 
-  val parboiled = "2.4.1"
+  val parboiled = "2.5.1"
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.15.0"
-  val jaxb = "4.0.2"
+  val jackson = "2.16.0"
+  val jaxb = "4.0.4"
   val activation = "1.2.0"
 
   val kindProjector = "0.9.8"
@@ -55,7 +55,7 @@ object Version {
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.20.1"
+  val redissonVersion = "3.24.3"
   val kryoVersion = "5.5.0"
 
   val akkaHttpMetrics = "1.7.1"

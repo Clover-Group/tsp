@@ -68,12 +68,13 @@ trait RoutesProtocols extends SprayJsonSupport with DefaultJsonProtocol {
       "defaultValueColumn",
       "fieldsTimeoutsMs",
       "valueColumnMapping",
-      "defaultTimeout"
+      "defaultTimeout",
+      "regularityInterval"
     )
 
   implicit def wdfFormat[Event, EKey: JsonFormat, EValue: JsonFormat]
     : RootJsonFormat[WideDataFilling[Event, EKey, EValue]] =
-    jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout")
+    jsonFormat(WideDataFilling[Event, EKey, EValue], "fieldsTimeoutsMs", "defaultTimeout", "regularityInterval")
 
   implicit def sdtFormat[Event, EKey: JsonFormat, EValue: JsonFormat]
     : RootJsonFormat[SourceDataTransformation[Event, EKey, EValue]] =

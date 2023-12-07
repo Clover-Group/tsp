@@ -16,8 +16,9 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   fieldsKeysTimeoutsMs: Map[InKey, Long],
   extraFieldNames: Seq[InKey],
   useUnfolding: Boolean,
-  defaultTimeout: Option[Long]
-  /*streamMode: Boolean*/
+  defaultTimeout: Option[Long],
+  eventsMaxGapMs: Long,
+  regularityInterval: Option[Long]
 )(implicit
   extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
@@ -47,10 +48,30 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val log = Logger[SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent]]
 
-  log.info(s"Created accumulator with fields map: ${allFieldsIndexesMap}")
+  log.debug(s"Created accumulator with fields map: ${allFieldsIndexesMap}")
 
-  def map(item: InEvent): Option[OutEvent] = {
+  def map(item: InEvent): Seq[OutEvent] = {
     val time = extractTime(item)
+    val delta = time.toMillis - lastTimestamp.toMillis
+    var generatedEvents = mutable.ListBuffer[OutEvent]()
+    if (regularityInterval.isDefined && lastEvent != null && 0 < delta && delta < eventsMaxGapMs) {
+      // need to output multiple lines
+      val linesCount = delta / regularityInterval.get
+      val times = (1L to linesCount).map(i => lastTimestamp.toMillis + i * regularityInterval.get)
+      times.foreach { t =>
+        dropExpiredKeys(event, Time(t))
+        val list = mutable.ListBuffer.tabulate[(InKey, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
+        val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
+        event.foreach {
+          case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
+          case _                                     => // do nothing
+        }
+        val e = eventCreator.create(list.toSeq, counter.get())
+        counter.incrementAndGet()
+        generatedEvents += e
+      }
+      log.info(s"Generated ${generatedEvents.length} events: $generatedEvents")
+    }
     if (useUnfolding) {
       val (key, value) = extractKeyAndVal(item)
       if (event.get(key).orNull == null || value != null) event(key) = (value, time)
@@ -75,12 +96,13 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
     }
     val outEvent = eventCreator.create(list.toSeq, counter.get())
-    val returnEvent = if (lastTimestamp.toMillis != time.toMillis && lastEvent != null) {
+    val returnEvent = if (delta > 0 && lastEvent != null) {
       log.debug(s"Returning event: ${eventPrinter.prettyPrint(lastEvent)}")
       counter.incrementAndGet()
-      Some(lastEvent)
+      generatedEvents += lastEvent
+      generatedEvents.toSeq
     } else {
-      None
+      Seq.empty
     }
     lastTimestamp = time
     lastEvent = outEvent
@@ -129,7 +151,9 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = true,
-            defaultTimeout = ndu.defaultTimeout
+            defaultTimeout = ndu.defaultTimeout,
+            eventsMaxGapMs = streamSource.conf.eventsMaxGapMs.getOrElse(60000),
+            regularityInterval = ndu.regularityInterval
           )(
             timeExtractor,
             extractKeyVal,
@@ -157,7 +181,9 @@ object SparseRowsDataAccumulator {
             timeouts,
             extraFields.map(streamSource.fieldToEKey),
             useUnfolding = false,
-            defaultTimeout = wdf.defaultTimeout
+            defaultTimeout = wdf.defaultTimeout,
+            eventsMaxGapMs = streamSource.conf.eventsMaxGapMs.getOrElse(60000),
+            regularityInterval = wdf.regularityInterval
           )(
             timeExtractor,
             extractKeyVal,

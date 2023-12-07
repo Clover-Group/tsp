@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import doobie.implicits._
 
 import java.sql.{PreparedStatement, ResultSet}
-import doobie.{ConnectionIO, FC, FPS, FRS, PreparedStatementIO, ResultSetIO, Transactor}
+import doobie.{ConnectionIO, FC, FPS, FRS, HC, PreparedStatementIO, ResultSetIO, Transactor}
 import doobie.util.stream.repeatEvalChunks
 import fs2.kafka.{AutoOffsetReset, ConsumerSettings, Deserializer, KafkaConsumer}
 import ru.itclover.tsp.StreamSource.Row
@@ -28,6 +28,8 @@ import ru.itclover.tsp.streaming.utils.{
 import ru.itclover.tsp.streaming.utils.ErrorsADT._
 import ru.itclover.tsp.streaming.utils.RowOps.{RowSymbolExtractor, RowTsTimeExtractor}
 import ru.itclover.tsp.streaming.utils.EventPrinterInstances
+import doobie.util.log.LogHandler
+import doobie.util.log.LogEvent
 
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
@@ -39,7 +41,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   def fieldsClasses: Seq[(String, Class[_])]
 
   def transformedFieldsClasses: Seq[(String, Class[_])] = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(_, _, _, mapping, _)) =>
+    case Some(NarrowDataUnfolding(_, _, _, mapping, _, _)) =>
       val m: Map[EKey, List[EKey]] = mapping.getOrElse(Map.empty)
       val r = fieldsClasses ++ m.map { case (col, list) =>
         list.map(k =>
@@ -60,7 +62,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   }
 
   def defaultClass: Class[_] = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(_, value, _, _, _)) =>
+    case Some(NarrowDataUnfolding(_, value, _, _, _, _)) =>
       fieldsClasses.find { case (s, _) => fieldToEKey(s) == value }.map(_._2).getOrElse(classOf[Double])
     case _ =>
       classOf[Double]
@@ -93,7 +95,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def itemToKeyDecoder: Decoder[EItem, EKey] // for narrow data widening
 
   implicit def kvExtractor: Event => (EKey, EItem) = conf.dataTransformation match {
-    case Some(NarrowDataUnfolding(key, value, _, mapping, _)) =>
+    case Some(NarrowDataUnfolding(key, value, _, mapping, _, _)) =>
       (r: Event) =>
         // TODO: Maybe optimise that by using intermediate (non-serialised) dictionary
         val extractedKey = extractor.apply[EKey](r, key)
@@ -107,7 +109,7 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
           .getOrElse(value)
         val extractedValue = extractor.apply[EItem](r, valueColumn)
         (extractedKey, extractedValue) // TODO: See that place better
-    case Some(WideDataFilling(_, _)) =>
+    case Some(WideDataFilling(_, _, _)) =>
       (_: Event) => sys.error("Wide data filling does not need K-V extractor")
     case Some(_) =>
       (_: Event) => sys.error("Unsupported data transformation")
@@ -155,7 +157,7 @@ object JdbcSource {
 
   def checkKeysExistence(conf: JDBCInputConf, keys: Set[String]): Either[GenericRuntimeErr, Set[String]] =
     conf.dataTransformation match {
-      case Some(NarrowDataUnfolding(keyColumn, _, _, _, _)) =>
+      case Some(NarrowDataUnfolding(keyColumn, _, _, _, _, _)) =>
         JdbcService
           .fetchAvailableKeys(conf.fixedDriverName, conf.jdbcUrl, conf.query, keyColumn)
           .toEither
@@ -203,11 +205,18 @@ case class JdbcSource(
 
   lazy val (userName, password) = getCreds
 
+  // lazy val logHandler = new LogHandler[IO] {
+
+  //   override def run(logEvent: LogEvent): IO[Unit] = IO { log.debug(logEvent.sql) }
+
+  // }
+
   lazy val transactor = Transactor.fromDriverManager[IO](
     conf.fixedDriverName,
     conf.jdbcUrl,
     conf.userName.getOrElse(userName),
-    conf.password.getOrElse(password)
+    conf.password.getOrElse(password),
+    //Some(logHandler)
   )
 
   def getCreds: (String, String) = {
@@ -275,7 +284,7 @@ case class JdbcSource(
     liftProcessGeneric(
       1000,
       FC.prepareStatement(conf.query),
-      ().pure[PreparedStatementIO](cats.free.Free.catsFreeMonadForFree),
+      ().pure[PreparedStatementIO],
       FPS.executeQuery
     ).zipWithIndex
       .map { case (r, i) => RowWithIdx(i + 1, r) }
