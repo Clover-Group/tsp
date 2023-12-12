@@ -97,7 +97,7 @@ case class TimerAccumState[T](
 
         // if the window is not full yet, return Fail on the earlier lines but keep them in the queue
         val (oldOutputs, cleanedWindowQueue) = takeWhileFromQueue(windowQueueWithNewPoints) { case (_, t) =>
-          t < end.minus(window)
+          t <= end.minus(window)
         }
 
         if (oldOutputs.isEmpty) {
