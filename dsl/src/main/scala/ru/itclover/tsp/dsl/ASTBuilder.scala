@@ -307,13 +307,19 @@ class ASTBuilder(
 
   def timeUnit: Rule1[Int] = rule {
     (ignoreCase("seconds") ~> (() => 1000)
+    | ignoreCase("second") ~> (() => 1000)
     | ignoreCase("sec") ~> (() => 1000)
     | ignoreCase("minutes") ~> (() => 60000)
+    | ignoreCase("minute") ~> (() => 60000)
     | ignoreCase("min") ~> (() => 60000)
     | ignoreCase("milliseconds") ~> (() => 1)
+    | ignoreCase("millisecond") ~> (() => 1)
     | ignoreCase("ms") ~> (() => 1)
     | ignoreCase("hours") ~> (() => 3600000)
-    | ignoreCase("hr") ~> (() => 3600000))
+    | ignoreCase("hour") ~> (() => 3600000)
+    | ignoreCase("hr") ~> (() => 3600000)
+    | ignoreCase("days") ~> (() => 86400000)
+    | ignoreCase("day") ~> (() => 86400000))
   }
 
   def real: Rule1[Constant[Double]] = rule {
