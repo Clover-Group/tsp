@@ -68,18 +68,18 @@ case class JDBCOutputConf(
 
   lazy val log = Logger[JDBCOutputConf]
 
-  // lazy val logHandler = new LogHandler[IO] {
+  lazy val logHandler = new LogHandler[IO] {
 
-  //   override def run(logEvent: LogEvent): IO[Unit] = IO { log.debug(logEvent.sql) }
+    override def run(logEvent: LogEvent): IO[Unit] = IO { log.debug(logEvent.sql) }
 
-  // }
+  }
 
   lazy val transactor = Transactor.fromDriverManager[IO](
     fixedDriverName,
     jdbcUrl,
     userName.getOrElse(queryUserName),
     password.getOrElse(queryPassword),
-    //Some(logHandler)
+    Some(logHandler)
   )
 
   def getCreds: (String, String) = {
@@ -157,11 +157,11 @@ case class JDBCOutputConf(
       // And can thus lift all the sink operations into Stream of F
       val sinkEval: A => fs2.Stream[F, C] = (a: A) => evalS(sink(sourceToSink(a)))
       val before = evalS(sinkTransactor.strategy.before)
-      val after  = evalS(sinkTransactor.strategy.after )
+      val after = evalS(sinkTransactor.strategy.after)
 
       // And construct our final stream.
       before ++ source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]] ++ after
-      //source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
+      // source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
     }
 
     // And we're done!

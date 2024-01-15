@@ -32,6 +32,7 @@ case class CoordinatorService(
     jobId: String,
     success: Boolean,
     error: String,
+    fatal: Boolean,
     rowsRead: Long,
     rowsWritten: Long
   )
@@ -39,7 +40,7 @@ case class CoordinatorService(
   object MessageJsonProtocol extends DefaultJsonProtocol {
     implicit val versionMessageFormat: RootJsonFormat[RegisterMessage] = jsonFormat4(RegisterMessage.apply)
     implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage.apply)
-    implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat5(JobCompletedMessage.apply)
+    implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat6(JobCompletedMessage.apply)
   }
 
   import MessageJsonProtocol._
@@ -113,7 +114,8 @@ case class CoordinatorService(
     log.warn(s"Job $jobId completed: notifying coordinator to $uri...")
 
     val success = exception.isEmpty
-    val error = exception.map(_.getMessage).getOrElse("")
+    val error = exception.map(_.toString).getOrElse("")
+    val fatal = false // TODO: which exceptions are fatal
 
     val metrics = CheckpointingService.getCheckpoint(jobId)
     val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.totalWrittenRows)).getOrElse((0L, 0L))
@@ -124,7 +126,7 @@ case class CoordinatorService(
         uri = uri,
         entity = HttpEntity(
           ContentTypes.`application/json`,
-          JobCompletedMessage(jobId, success, error, rowsRead, rowsWritten).toJson.compactPrint
+          JobCompletedMessage(jobId, success, error, fatal, rowsRead, rowsWritten).toJson.compactPrint
         )
       )
     )

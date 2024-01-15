@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import cats.effect.unsafe.implicits.global
 import cats.implicits.toTraverseOps
 import com.typesafe.scalalogging.Logger
@@ -178,7 +178,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     inputConf: InputConf[E, EKey, EItem],
     outConf: Seq[OutputConf[Row]],
     source: StreamSource[E, EKey, EItem]
-  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.ConfigErr, fs2.Stream[IO, Unit]] = {
+  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.ConfigErr, Resource[IO, fs2.Stream[IO, Unit]]] = {
 
     log.debug("createStream started")
 
@@ -199,7 +199,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     }
   }
 
-  def runStream(uuid: String, stream: fs2.Stream[IO, Unit]): Either[RuntimeErr, Option[String]] = {
+  def runStream(uuid: String, stream: Resource[IO, fs2.Stream[IO, Unit]]): Either[RuntimeErr, Option[String]] = {
     log.debug("runStream started")
     CoordinatorService.notifyJobStarted(uuid)
 
@@ -210,21 +210,23 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
 
         val f = Future {
           while (runningStreams.get(uuid).map(_.get).getOrElse(false)) {
-            //log.info(s"Stream $uuid running")
+            log.info(s"Stream $uuid running")
             Thread.sleep(5000)
           }
         }
 
-        val cancel = IO.async_ { cb =>
+        val cancel = IO.async { cb =>
           f.onComplete(t => cb(t.toEither))
           IO.pure(Some(IO.unit))
         }
-          >> cancelToken.complete(Right(()))
+          >> {
+            log.info(s"Stream $uuid finished")
+            cancelToken.complete(Right(()))
+          }
 
-        val program = stream
-          .interruptWhen(cancelToken)
-          .compile
-          .drain
+        val program = stream.use {
+          _.interruptWhen(cancelToken).compile.drain
+        }
 
         log.debug("runStream finished")
 

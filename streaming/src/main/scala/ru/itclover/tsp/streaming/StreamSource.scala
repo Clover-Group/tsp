@@ -1,9 +1,13 @@
 package ru.itclover.tsp
 
-import cats.effect.IO
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import cats.effect._
 import cats.implicits._
 import com.typesafe.scalalogging.Logger
 import doobie.implicits._
+import doobie.hikari._
+import com.zaxxer.hikari.HikariConfig
 
 import java.sql.{PreparedStatement, ResultSet}
 import doobie.{ConnectionIO, FC, FPS, FRS, HC, PreparedStatementIO, ResultSetIO, Transactor}
@@ -34,7 +38,7 @@ import doobie.util.log.LogEvent
 // Fields types are only known at runtime, so we have to use Any here
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
-  def createStream: fs2.Stream[IO, Event]
+  def createStream: Resource[IO, fs2.Stream[IO, Event]]
 
   def conf: InputConf[Event, EKey, EItem]
 
@@ -211,13 +215,27 @@ case class JdbcSource(
 
   // }
 
-  lazy val transactor = Transactor.fromDriverManager[IO](
+  /*lazy val transactor = Transactor.fromDriverManager[IO](
     conf.fixedDriverName,
     conf.jdbcUrl,
     conf.userName.getOrElse(userName),
     conf.password.getOrElse(password),
     //Some(logHandler)
-  )
+  )*/
+
+  val transactor: Resource[IO, HikariTransactor[IO]] =
+    for {
+      hikariConfig <- Resource.pure {
+        // For the full list of hikari configurations see https://github.com/brettwooldridge/HikariCP#gear-configuration-knobs-baby
+        val config = new HikariConfig()
+        config.setDriverClassName(conf.fixedDriverName)
+        config.setJdbcUrl(conf.jdbcUrl)
+        config.setUsername(conf.userName.getOrElse(userName))
+        config.setPassword(conf.password.getOrElse(password))
+        config
+      }
+      xa <- HikariTransactor.fromHikariConfig[IO](hikariConfig)
+    } yield xa
 
   def getCreds: (String, String) = {
     try {
@@ -280,15 +298,17 @@ case class JdbcSource(
 
   }
 
-  override def createStream: fs2.Stream[IO, RowWithIdx] =
-    liftProcessGeneric(
-      1000,
-      FC.prepareStatement(conf.query),
-      ().pure[PreparedStatementIO],
-      FPS.executeQuery
-    ).zipWithIndex
-      .map { case (r, i) => RowWithIdx(i + 1, r) }
-      .transact(transactor)
+  override def createStream: Resource[IO, fs2.Stream[IO, RowWithIdx]] =
+    transactor.map { xa =>
+      liftProcessGeneric(
+        1000,
+        FC.prepareStatement(conf.query),
+        ().pure[PreparedStatementIO],
+        FPS.executeQuery
+      ).zipWithIndex
+        .map { case (r, i) => RowWithIdx(i + 1, r) }
+        .transact(xa)
+    }
 
   override def fieldToEKey = { (fieldId: String) =>
     fieldId
@@ -421,16 +441,20 @@ case class KafkaSource(
     .withGroupId(conf.group)
     .withAutoOffsetReset(AutoOffsetReset.Latest)
 
-  def createStream: fs2.Stream[IO, RowWithIdx] =
-    KafkaConsumer
-      .stream(consumerSettings)
-      .subscribeTo(conf.topic)
-      .records
-      .map { committable =>
-        committable.record.value
-      }
-      .zipWithIndex
-      .map { case (r, i) => RowWithIdx(i + 1, r) }
+  override def createStream: Resource[IO, fs2.Stream[IO, RowWithIdx]] = Resource.eval(
+    // TODO: Maybe actual resource acquire/release
+    IO.pure {
+      KafkaConsumer
+        .stream(consumerSettings)
+        .subscribeTo(conf.topic)
+        .records
+        .map { committable =>
+          committable.record.value
+        }
+        .zipWithIndex
+        .map { case (r, i) => RowWithIdx(i + 1, r) }
+    }
+  )
 
   def partitionsIdx = conf.partitionFields.filter(fieldsIdxMap.contains).map(fieldsIdxMap)
   def transformedPartitionsIdx = conf.partitionFields.map(transformedFieldsIdxMap)

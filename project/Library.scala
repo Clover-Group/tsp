@@ -15,10 +15,10 @@ object Version {
   val akkaHttp = "10.5.3"
   val sprayJson = "1.3.6"
 
-  val cats = "3.4.11"
-  val fs2 = "3.6.1"
-  val fs2Kafka = "3.0.1"
-  val doobie = "1.0.0-RC2"
+  val cats = "3.5.2"
+  val fs2 = "3.9.3"
+  val fs2Kafka = "3.2.0"
+  val doobie = "1.0.0-RC5"
 
   val scalaTest = "3.2.17"
   val scalaCheck = "3.2.17.0"
@@ -26,7 +26,7 @@ object Version {
 
   val testContainers = "0.41.0"
   val testContainersKafka = "1.19.3"
-  val postgres = "42.7.0"
+  val postgres = "42.7.1"
 
   val avro = "1.8.2"
 
@@ -34,7 +34,7 @@ object Version {
 
   val shapeless = "2.3.3"
 
-  val jackson = "2.16.0"
+  val jackson = "2.16.1"
   val jaxb = "4.0.4"
   val activation = "1.2.0"
 
@@ -55,8 +55,8 @@ object Version {
 
   val strawmanVersion = "0.9.0"
 
-  val redissonVersion = "3.24.3"
-  val kryoVersion = "5.5.0"
+  val redissonVersion = "3.25.2"
+  val kryoVersion = "5.6.0"
 
   val akkaHttpMetrics = "1.7.1"
 
@@ -119,7 +119,8 @@ object Library {
   )
 
   val doobie: Seq[ModuleID] = Seq(
-    "org.tpolecat" %% "doobie-core" % Version.doobie
+    "org.tpolecat" %% "doobie-core" % Version.doobie,
+    "org.tpolecat" %% "doobie-hikari" % Version.doobie
   )
 
   val scrum: Seq[ModuleID] = Seq(

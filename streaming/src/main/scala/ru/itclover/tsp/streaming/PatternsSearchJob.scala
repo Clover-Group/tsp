@@ -2,7 +2,7 @@ package ru.itclover.tsp.streaming
 
 import cats.Traverse
 import cats.data.Validated
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import cats.implicits.catsSyntaxSemigroup
 import com.typesafe.scalalogging.Logger
 import fs2.Chunk
@@ -43,7 +43,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     rawPatterns: Seq[RawPattern],
     outputConf: Seq[OutputConf[OutE]],
     resultMappers: Seq[PatternsToRowMapper[Incident, OutE]]
-  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], fs2.Stream[IO, Unit])] = {
+  ): Either[ConfigErr, (Seq[RichPattern[In, Segment, AnyState[Segment]]], Resource[IO, fs2.Stream[IO, Unit]])] = {
     import source.{idxExtractor, transformedExtractor, transformedTimeExtractor}
     preparePatterns[In, S, InKey, InItem](
       rawPatterns,
@@ -55,7 +55,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     ).map { patterns =>
       val forwardFields = Seq.empty
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
-      val incidents = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
+      val incidentsResource = cleanIncidentsFromPatterns(patterns, forwardFields, useWindowing)
       // val mapped = resultMappers.map(
       //   resultMapper =>
       //     incidents
@@ -63,17 +63,18 @@ case class PatternsSearchJob[In, InKey, InItem](
       //       .map(_.map(resultMapper.map(_).asInstanceOf[OutE]))
       //       .flatMap(c => fs2.Stream.chunk(c))
       // )
-      val saved = incidents
-        .chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
-        .broadcastThrough(
-          resultMappers
-            .zip(outputConf)
-            .zipWithIndex
-            .map { case ((m, c), idx) =>
-              saveStream(jobId, c, idx).compose(applyResultMapper(m))
-            }: _*
-        )
-      (patterns, saved)
+      val savedResource = incidentsResource.map {
+        _.chunkLimit(source.conf.processingBatchSize.getOrElse(10000))
+          .broadcastThrough(
+            resultMappers
+              .zip(outputConf)
+              .zipWithIndex
+              .map { case ((m, c), idx) =>
+                saveStream(jobId, c, idx).compose(applyResultMapper(m))
+              }: _*
+          )
+      }
+      (patterns, savedResource)
     }
   }
 
@@ -165,16 +166,18 @@ case class PatternsSearchJob[In, InKey, InItem](
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
     forwardedFields: Seq[(String, InKey)],
     useWindowing: Boolean
-  ): fs2.Stream[IO, Incident] = {
-    val stream = source.createStream
-    val singleIncidents = incidentsFromPatterns(
-      applyTransformation(stream),
-      richPatterns,
-      forwardedFields,
-      useWindowing
-    )
-    if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)
-    else singleIncidents
+  ): Resource[IO, fs2.Stream[IO, Incident]] = {
+    val streamResource = source.createStream
+    streamResource.map { stream =>
+      val singleIncidents = incidentsFromPatterns(
+        applyTransformation(stream),
+        richPatterns,
+        forwardedFields,
+        useWindowing
+      )
+      if (source.conf.defaultEventsGapMs.getOrElse(2000L) > 0L) reduceIncidents(singleIncidents)
+      else singleIncidents
+    }
   }
 
   def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
@@ -183,8 +186,8 @@ case class PatternsSearchJob[In, InKey, InItem](
 
       dataStream
         .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
-        .map { case (_, str) =>
-          {
+        .map {
+          case (_, str) => {
             val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
               source.asInstanceOf[StreamSource[In, InKey, InItem]],
               source.patternFields
@@ -298,7 +301,7 @@ object PatternsSearchJob {
       // .reduce { _ |+| _ }
       }
       .parJoinUnbounded
-      //.pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
+    // .pipe(x => if (maxParallelism.getOrElse(0) > 0) x.parJoin(maxParallelism.get) else x.parJoinUnbounded)
 
     // .name("Uniting adjacent incidents")
 
