@@ -12,6 +12,7 @@ import spray.json.DefaultJsonProtocol._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
+import ru.itclover.tsp.http.services.queuing.StreamRunException
 
 case class CoordinatorService(
   coordUri: String,
@@ -115,7 +116,7 @@ case class CoordinatorService(
 
     val success = exception.isEmpty
     val error = exception.map(_.toString).getOrElse("")
-    val fatal = false // TODO: which exceptions are fatal
+    val fatal = exception.map(errorIsFatal(_)).getOrElse(false)
 
     val metrics = CheckpointingService.getCheckpoint(jobId)
     val (rowsRead, rowsWritten) = metrics.map(m => (m.readRows, m.totalWrittenRows)).getOrElse((0L, 0L))
@@ -138,6 +139,17 @@ case class CoordinatorService(
         }
         case Failure(ex) => log.error(s"Cannot connect to $uri: $ex")
       }
+  }
+
+  def errorIsFatal(error: Throwable): Boolean = {
+    // TODO: which exceptions are fatal
+    error match {
+      case se: java.net.SocketException => false
+      case se: java.sql.SQLException    => true // TODO: message?
+      case re: StreamRunException       => true // TODO: maybe not all
+      case cf: fs2.CompositeFailure     => cf.all.map(errorIsFatal(_)).foldLeft(false)(_ || _)
+      case _                            => false
+    }
   }
 
 }

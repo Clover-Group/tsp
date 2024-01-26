@@ -33,6 +33,14 @@ import scala.util.{Failure, Success}
 import cats.effect.kernel.Deferred
 import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.atomic.AtomicBoolean
+import ru.itclover.tsp.streaming.utils.ErrorsADT.Err
+
+class StreamRunException(error: Err) extends Exception {
+
+  override def getMessage(): String =
+    s"Stream run error ${error.errorCode} - ${error.getClass().getName()}: ${error.error}"
+
+}
 
 class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecutor)(implicit
   executionContext: ExecutionContextExecutor,
@@ -101,7 +109,7 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     resultOrErr match {
       case Left(error) =>
         log.error(s"Cannot run request. Reason: $error")
-        CoordinatorService.notifyJobCompleted(uuid, Some(new Exception(error.toString)))
+        CoordinatorService.notifyJobCompleted(uuid, Some(new StreamRunException(error)))
       case Right(_) => log.info(s"Stream successfully started!")
     }
   }
