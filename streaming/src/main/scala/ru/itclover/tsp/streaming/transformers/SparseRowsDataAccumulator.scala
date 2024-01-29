@@ -111,6 +111,12 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   def getLastEvent: OutEvent = lastEvent
 
+  lazy val fieldNames: List[InKey] = {
+    val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
+    val byIndex = indexesMap.map(_.swap)
+    (0 to arity - 1).map(byIndex.getOrElse(_, keyCreator.create("undefined"))).toList
+  }
+
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
     event.retain((k, v) =>
       currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))

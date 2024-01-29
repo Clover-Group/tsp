@@ -34,6 +34,7 @@ import cats.effect.kernel.Deferred
 import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.atomic.AtomicBoolean
 import ru.itclover.tsp.streaming.utils.ErrorsADT.Err
+import ru.itclover.tsp.streaming.utils.EventToList
 
 class StreamRunException(error: Err) extends Exception {
 
@@ -186,7 +187,10 @@ class JobRunService(id: String, blockingExecutionContext: ExecutionContextExecut
     inputConf: InputConf[E, EKey, EItem],
     outConf: Seq[OutputConf[Row]],
     source: StreamSource[E, EKey, EItem]
-  )(implicit decoders: BasicDecoders[EItem]): Either[ErrorsADT.ConfigErr, Resource[IO, fs2.Stream[IO, Unit]]] = {
+  )(implicit
+    decoders: BasicDecoders[EItem],
+    eventToList: EventToList[E]
+  ): Either[ErrorsADT.ConfigErr, Resource[IO, fs2.Stream[IO, Unit]]] = {
 
     log.debug("createStream started")
 

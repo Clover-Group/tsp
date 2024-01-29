@@ -60,6 +60,8 @@ object Version {
 
   val akkaHttpMetrics = "1.7.1"
 
+  val scalaCSV = "1.3.10"
+
 }
 
 object Library {
@@ -166,6 +168,10 @@ object Library {
   val redisson: Seq[ModuleID] = Seq(
     "org.redisson" % "redisson" % Version.redissonVersion,
     "com.esotericsoftware" % "kryo" % Version.kryoVersion
+  )
+
+  val csv: Seq[ModuleID] = Seq(
+    "com.github.tototoshi" %% "scala-csv" % Version.scalaCSV
   )
 
 }

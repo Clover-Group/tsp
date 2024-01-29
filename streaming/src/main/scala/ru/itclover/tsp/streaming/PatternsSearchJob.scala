@@ -32,12 +32,17 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
 import scala.util.chaining._
+import com.github.tototoshi.csv.{CSVWriter, defaultCSVFormat}
+import java.io.File
+import ru.itclover.tsp.streaming.utils.EventToList
 
-case class PatternsSearchJob[In, InKey, InItem](
+case class PatternsSearchJob[In: EventToList, InKey, InItem](
   jobId: String,
   source: StreamSource[In, InKey, InItem],
   decoders: BasicDecoders[InItem]
 ) {
+
+  val logger = Logger[PatternsSearchJob[In, InKey, InItem]]
 
   def patternsSearchStream[OutE, OutKey, S](
     rawPatterns: Seq[RawPattern],
@@ -166,7 +171,7 @@ case class PatternsSearchJob[In, InKey, InItem](
     richPatterns: Seq[RichPattern[In, Segment, AnyState[Segment]]],
     forwardedFields: Seq[(String, InKey)],
     useWindowing: Boolean
-  ): Resource[IO, fs2.Stream[IO, Incident]] = {
+  )(implicit eventToList: EventToList[In]): Resource[IO, fs2.Stream[IO, Incident]] = {
     val streamResource = source.createStream
     streamResource.map { stream =>
       val singleIncidents = incidentsFromPatterns(
@@ -180,29 +185,41 @@ case class PatternsSearchJob[In, InKey, InItem](
     }
   }
 
-  def applyTransformation(dataStream: fs2.Stream[IO, In]): fs2.Stream[IO, In] = source.conf.dataTransformation match {
-    case Some(_) =>
-      import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator, eventPrinter}
+  def applyTransformation(dataStream: fs2.Stream[IO, In])(implicit eventToList: EventToList[In]): fs2.Stream[IO, In] =
+    source.conf.dataTransformation match {
+      case Some(_) =>
+        import source.{extractor, timeExtractor, eventCreator, kvExtractor, keyCreator, eventPrinter}
 
-      dataStream
-        .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
-        .map {
-          case (_, str) => {
-            val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
-              source.asInstanceOf[StreamSource[In, InKey, InItem]],
-              source.patternFields
-            )
-            str.map(event => {
-              Chunk(acc.map(event): _*)
-            }) ++ fs2.Stream(Chunk(acc.getLastEvent))
+        dataStream
+          .through(StreamPartitionOps.groupBy(p => IO { source.partitioner(p) }))
+          .map {
+            case (part, str) => {
+              val acc = SparseRowsDataAccumulator[In, InKey, InItem, In](
+                source.asInstanceOf[StreamSource[In, InKey, InItem]],
+                source.patternFields
+              )
+              var csv: CSVWriter = null
+              logger.whenDebugEnabled {
+                csv = CSVWriter.open(new File(s"/tmp/sparse_intermediate/${jobId}_${part}.csv"))
+                // write header
+                csv.writeRow("ROW_IDX" :: acc.fieldNames)
+              }
+              str.map(event => {
+                val results = acc.map(event)
+                logger.whenDebugEnabled {
+                  csv.writeAll(results.map(eventToList.toList(_)))
+                  csv.flush()
+                }
+                Chunk(results: _*)
+              }) ++ fs2.Stream(Chunk(acc.getLastEvent))
+            }
           }
-        }
-        .parJoinUnbounded
-        .unchunks
-    // .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
-    // .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
-    case _ => dataStream
-  }
+          .parJoinUnbounded
+          .unchunks
+      // .pipe(x => if (source.conf.parallelism.getOrElse(0) > 0) x.parJoin(source.conf.parallelism.get) else x.parJoinUnbounded)
+      // .setParallelism(1) // SparseRowsDataAccumulator cannot work in parallel
+      case _ => dataStream
+    }
 
 }
 
