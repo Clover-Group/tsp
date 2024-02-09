@@ -178,7 +178,7 @@ lazy val config = project.in(file("config"))
 lazy val streaming = project.in(file("streaming"))
   .settings(commonSettings)
   .settings(
-    libraryDependencies ++= Library.fs2 ++ Library.fs2Kafka ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson ++ Library.sprayJson ++ Library.csv,
+    libraryDependencies ++= Library.fs2 ++ Library.fs2Kafka ++ Library.doobie ++ Library.scalaTest ++ Library.dbDrivers ++ Library.redisson ++ Library.logging ++ Library.jackson ++ Library.sprayJson ++ Library.csv ++ Library.apacheHttp,
     //dependencyOverrides += "com.fasterxml.jackson.core" % "jackson-core" % "2.10.0"
   )
   .dependsOn(core, config, dsl)

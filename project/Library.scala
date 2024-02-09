@@ -62,6 +62,8 @@ object Version {
 
   val scalaCSV = "1.3.10"
 
+  val apacheHttp = "5.3.1"
+
 }
 
 object Library {
@@ -172,6 +174,10 @@ object Library {
 
   val csv: Seq[ModuleID] = Seq(
     "com.github.tototoshi" %% "scala-csv" % Version.scalaCSV
+  )
+
+  val apacheHttp: Seq[ModuleID] = Seq(
+    "org.apache.httpcomponents.client5" % "httpclient5" % Version.apacheHttp
   )
 
 }
