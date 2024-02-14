@@ -64,6 +64,8 @@ object Version {
 
   val apacheHttp = "5.3.1"
 
+  val ztZip = "1.17"
+
 }
 
 object Library {
@@ -178,6 +180,10 @@ object Library {
 
   val apacheHttp: Seq[ModuleID] = Seq(
     "org.apache.httpcomponents.client5" % "httpclient5" % Version.apacheHttp
+  )
+
+  val ztZip: Seq[ModuleID] = Seq(
+    "org.zeroturnaround" % "zt-zip" % Version.ztZip
   )
 
 }

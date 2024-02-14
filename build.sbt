@@ -187,7 +187,7 @@ lazy val http = project.in(file("http"))
   .settings(commonSettings)
   .settings(
     libraryDependencies ++= Library.scalaTest ++ Library.akka ++
-      Library.akkaHttp ++ Library.logging
+      Library.akkaHttp ++ Library.logging ++ Library.ztZip
   )
   .dependsOn(core, config, streaming, dsl)
 

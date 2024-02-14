@@ -35,6 +35,8 @@ import scala.util.chaining._
 import com.github.tototoshi.csv.{CSVWriter, defaultCSVFormat}
 import java.io.File
 import ru.itclover.tsp.streaming.utils.EventToList
+import java.nio.file.Files
+import java.nio.file.Paths
 
 case class PatternsSearchJob[In: EventToList, InKey, InItem](
   jobId: String,
@@ -200,7 +202,8 @@ case class PatternsSearchJob[In: EventToList, InKey, InItem](
               )
               var csv: CSVWriter = null
               logger.whenDebugEnabled {
-                csv = CSVWriter.open(new File(s"/tmp/sparse_intermediate/${jobId}_${part}.csv"))
+                Files.createDirectories(Paths.get(s"/tmp/sparse_intermediate/${jobId}"))
+                csv = CSVWriter.open(new File(s"/tmp/sparse_intermediate/${jobId}/${jobId}_${part}.csv"))
                 // write header
                 csv.writeRow("ROW_IDX" :: acc.fieldNames)
               }

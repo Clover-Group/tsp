@@ -20,6 +20,12 @@ import spray.json._
 import scala.concurrent.ExecutionContextExecutor
 import ru.itclover.tsp.RowWithIdx
 import ru.itclover.tsp.http.services.coordinator.CoordinatorService
+import ru.itclover.tsp.http.utils.ArchiveUtils
+import akka.http.scaladsl.model.HttpEntity
+import java.io.File
+import akka.http.scaladsl.model.MediaTypes
+import akka.http.scaladsl.server.StandardRoute
+import scala.util.Try
 
 object MonitoringRoutes {
 
@@ -52,6 +58,8 @@ trait MonitoringRoutes extends RoutesProtocols {
   implicit val actors: ActorSystem
   implicit val materializer: Materializer
 
+  val logger = Logger[MonitoringRoutes]
+
   val route: Route = path("job" / Segment / "status") { uuid =>
     CheckpointingService.getCheckpoint(uuid) match {
       case Some(details) =>
@@ -82,6 +90,24 @@ trait MonitoringRoutes extends RoutesProtocols {
     }
   } ~ path("jobs" / "overview") {
     complete(jrs.getRunningJobsIds.toJson)
+  } ~ path("jobs" / Segment / "csvs") { uuid =>
+    var r: StandardRoute = complete(
+      (BadRequest, FailureResponse(4007, "Debug not enabled, set TSP_LOG_LEVEL to debug to see CSVs", Seq.empty))
+    )
+    logger.whenDebugEnabled {
+      val result = Try(ArchiveUtils.packCSV(uuid))
+      if (result.isSuccess) {
+        r = complete(HttpEntity.fromFile(MediaTypes.`application/zip`, new File(s"/tmp/sparse_intermediate/$uuid.zip")))
+      } else {
+        r = complete(
+          (
+            BadRequest,
+            FailureResponse(4008, "Error occurred during archiving CSV outputs, job may not exist", Seq.empty)
+          )
+        )
+      }
+    }
+    r
   } ~
     path("metainfo" / "getVersion") {
       complete(
