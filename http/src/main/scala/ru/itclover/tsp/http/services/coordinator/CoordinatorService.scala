@@ -145,7 +145,7 @@ case class CoordinatorService(
     // TODO: which exceptions are fatal
     error match {
       case se: java.net.SocketException => false
-      case se: java.sql.SQLException    => true // TODO: message?
+      case se: java.sql.SQLException    => false // TODO: message?
       case re: StreamRunException       => true // TODO: maybe not all
       case cf: fs2.CompositeFailure     => cf.all.map(errorIsFatal(_)).foldLeft(false)(_ || _)
       case _                            => false
