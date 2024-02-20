@@ -99,7 +99,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     val returnEvent = if (delta > 0 && lastEvent != null) {
       log.debug(s"Returning event: ${eventPrinter.prettyPrint(lastEvent)}")
       counter.incrementAndGet()
-      generatedEvents += lastEvent
+      generatedEvents.prepend(lastEvent)
       generatedEvents.toSeq
     } else {
       Seq.empty
