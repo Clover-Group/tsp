@@ -205,12 +205,12 @@ case class PatternsSearchJob[In: EventToList, InKey, InItem](
                 Files.createDirectories(Paths.get(s"/tmp/sparse_intermediate/${jobId}"))
                 csv = CSVWriter.open(new File(s"/tmp/sparse_intermediate/${jobId}/${jobId}_${part}.csv"))
                 // write header
-                csv.writeRow("ROW_IDX" :: acc.fieldNames)
+                csv.writeRow("ROW_IDX" :: "EVENT_TIME" :: acc.fieldNames)
               }
               str.map(event => {
                 val results = acc.map(event)
                 logger.whenDebugEnabled {
-                  csv.writeAll(results.map(eventToList.toList(_)))
+                  csv.writeAll(results.map(eventToList.toList(_)(source.transformedTimeExtractor)))
                   csv.flush()
                 }
                 Chunk(results: _*)
