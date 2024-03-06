@@ -13,6 +13,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import java.util.concurrent.{ScheduledThreadPoolExecutor, ScheduledFuture, TimeUnit}
 import ru.itclover.tsp.http.services.queuing.StreamRunException
+import ru.itclover.tsp.streaming.utils.ErrorsADT.SourceUnavailable
+import ru.itclover.tsp.streaming.utils.ErrorsADT.SinkUnavailable
 
 case class CoordinatorService(
   coordUri: String,
@@ -146,9 +148,10 @@ case class CoordinatorService(
     error match {
       case se: java.net.SocketException => false
       case se: java.sql.SQLException    => false // TODO: message?
-      case re: StreamRunException       => true // TODO: maybe not all
-      case cf: fs2.CompositeFailure     => cf.all.map(errorIsFatal(_)).foldLeft(false)(_ || _)
-      case _                            => false
+      case re: StreamRunException =>
+        re.error.isInstanceOf[SourceUnavailable] || re.error.isInstanceOf[SinkUnavailable]
+      case cf: fs2.CompositeFailure => cf.all.map(errorIsFatal(_)).foldLeft(false)(_ || _)
+      case _                        => false
     }
   }
 

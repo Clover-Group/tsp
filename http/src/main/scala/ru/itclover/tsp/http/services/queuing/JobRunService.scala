@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import ru.itclover.tsp.streaming.utils.ErrorsADT.Err
 import ru.itclover.tsp.streaming.utils.EventToList
 
-class StreamRunException(error: Err) extends Exception {
+class StreamRunException(val error: Err) extends Exception {
 
   override def getMessage(): String =
     s"Stream run error ${error.errorCode} - ${error.getClass().getName()}: ${error.error}"

@@ -19,6 +19,7 @@ import java.time.format.DateTimeFormatter
 import doobie.util.log.LogHandler
 import doobie.util.log.LogEvent
 import com.typesafe.scalalogging.Logger
+import java.sql.JDBCType
 
 trait OutputConf[Event] {
 
@@ -112,6 +113,23 @@ case class JDBCOutputConf(
     ).update.run
   }
 
+  def createTableQuery: ConnectionIO[Int] = {
+    val fieldsWithTypes = rowSchema.fieldsNames
+      .zip(rowSchema.fieldsTypes)
+      .map { case (f, t) =>
+        Fragment.const(s"$f ${JDBCType.valueOf(t).getName()}")
+      }
+      .intercalate(fr",")
+    var fragment =
+      fr"create table if not exists"
+        ++ Fragment.const(s"$tableName")
+        ++ fr"(" ++ fieldsWithTypes ++ fr")"
+    if (driverName.toLowerCase().contains("clickhouse")) {
+      fragment ++= fr"engine = Log()"
+    }
+    fragment.update.run
+  }
+
   def fragmentForDataValue(x: Object, t: Int): Fragment = {
     t match {
       case Types.INTEGER => fr"${x.toString.toInt}"
@@ -156,11 +174,12 @@ case class JDBCOutputConf(
 
       // And can thus lift all the sink operations into Stream of F
       val sinkEval: A => fs2.Stream[F, C] = (a: A) => evalS(sink(sourceToSink(a)))
+      val create = evalS(createTableQuery)
       val before = evalS(sinkTransactor.strategy.before)
       val after = evalS(sinkTransactor.strategy.after)
 
       // And construct our final stream.
-      before ++ source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]] ++ after
+      create ++ before ++ source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]] ++ after
       // source.flatMap(sinkEval).asInstanceOf[fs2.Stream[F, C]]
     }
 
