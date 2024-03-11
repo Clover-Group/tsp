@@ -16,7 +16,9 @@ final case class ToIncidentsMapper[E, EKey, EItem](
 )(implicit extractor: Extractor[E, EKey, EItem], decoder: Decoder[EItem, Any]) {
 
   def apply(event: E): Segment => Incident = {
-    val incidentId = s"P#$patternId;" + partitionFields.map(f => f -> extractor[Any](event, f)).mkString
+    val partitionFieldsValues: Seq[(EKey, Any)] =
+      partitionFields.map(f => f -> extractor[Any](event, f))
+    val incidentId = s"P#$patternId;" + partitionFieldsValues.mkString
     val unit = Try(extractor[Any](event, unitIdField).toString.toInt).getOrElse(Int.MinValue)
     segment =>
       Incident(
@@ -27,7 +29,8 @@ final case class ToIncidentsMapper[E, EKey, EItem](
         segment,
         unit,
         subunit,
-        patternMetadata
+        patternMetadata,
+        partitionFieldsValues.map { case (k, v) => (k.toString, v.toString) }.toMap
       )
   }
 

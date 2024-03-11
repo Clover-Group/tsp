@@ -23,7 +23,8 @@ case class Incident(
   segment: Segment,
   patternUnit: Int,
   patternSubunit: Int,
-  patternMetadata: Map[String, String]
+  patternMetadata: Map[String, String],
+  partitionFieldsValues: Map[String, String]
 ) extends Product
     with Serializable
 
@@ -46,7 +47,8 @@ object IncidentInstances {
         Segment(from, to),
         b.patternUnit,
         b.patternSubunit,
-        b.patternMetadata
+        b.patternMetadata,
+        b.partitionFieldsValues
       )
     }
 

@@ -65,9 +65,22 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
       .replace("$$", "$")
 
     // Replace pattern metadata
-    incident.patternMetadata.foldLeft(replaced) { case (r, (k, v)) =>
+    val replacedMetadataKeys = incident.patternMetadata.foldLeft(replaced) { case (r, (k, v)) =>
       r.replace(s"$$PatternMetadata@$k", v)
     }
+
+    // Replace partition fields values
+    val replacedPFV = incident.partitionFieldsValues.foldLeft(replaced) { case (r, (k, v)) =>
+      r.replace(s"$$PartitionFieldsValues@$k", v)
+    }
+
+    replacedPFV
+      .replace(
+        "$PatternMetadataAndPartitionFieldsValues",
+        (incident.patternMetadata ++ incident.partitionFieldsValues).toJson.compactPrint
+      )
+      .replace("$PatternMetadata", incident.patternMetadata.toJson.compactPrint)
+      .replace("$PartitionFieldsValues", incident.partitionFieldsValues.toJson.compactPrint)
   }
 
   def convertFromInt(value: Long, toType: String): Any = {
