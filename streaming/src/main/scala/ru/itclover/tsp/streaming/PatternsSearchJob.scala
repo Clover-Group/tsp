@@ -37,6 +37,7 @@ import java.io.File
 import ru.itclover.tsp.streaming.utils.EventToList
 import java.nio.file.Files
 import java.nio.file.Paths
+import scala.util.Properties
 
 case class PatternsSearchJob[In: EventToList, InKey, InItem](
   jobId: String,
@@ -201,7 +202,7 @@ case class PatternsSearchJob[In: EventToList, InKey, InItem](
                 source.patternFields
               )
               var csv: CSVWriter = null
-              logger.whenDebugEnabled {
+              if (Properties.envOrElse("CSV_OUTPUT_ENABLED", "0") == "1") {
                 Files.createDirectories(Paths.get(s"/tmp/sparse_intermediate/${jobId}"))
                 csv = CSVWriter.open(new File(s"/tmp/sparse_intermediate/${jobId}/${jobId}_${part}.csv"))
                 // write header
@@ -209,7 +210,7 @@ case class PatternsSearchJob[In: EventToList, InKey, InItem](
               }
               str.map(event => {
                 val results = acc.map(event)
-                logger.whenDebugEnabled {
+                if (Properties.envOrElse("CSV_OUTPUT_ENABLED", "0") == "1") {
                   csv.writeAll(results.map(eventToList.toList(_)(source.transformedTimeExtractor)))
                   csv.flush()
                 }

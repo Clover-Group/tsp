@@ -22,7 +22,7 @@ lazy val launcher = "ru.itclover.tsp.http.Launcher"
 lazy val commonSettings = Seq(
   // Improved type inference via the fix for SI-2712 (for Cats dep.)
   // Remove StringPlusAny wart because of false alarming on s-strings
-  // wartremoverWarnings ++= Warts.unsafe.filter(w => w != Wart.DefaultArguments & w != Wart.StringPlusAny),
+  wartremoverWarnings ++= Warts.unsafe.filter(w => w != Wart.DefaultArguments & w != Wart.StringPlusAny),
   ghreleaseNotes := Utils.releaseNotes,
   ghreleaseRepoOrg := "Clover-Group",
   ghreleaseRepoName := "tsp",

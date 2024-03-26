@@ -26,6 +26,7 @@ import java.io.File
 import akka.http.scaladsl.model.MediaTypes
 import akka.http.scaladsl.server.StandardRoute
 import scala.util.Try
+import scala.util.Properties
 
 object MonitoringRoutes {
 
@@ -92,9 +93,9 @@ trait MonitoringRoutes extends RoutesProtocols {
     complete(jrs.getRunningJobsIds.toJson)
   } ~ path("jobs" / Segment / "csvs") { uuid =>
     var r: StandardRoute = complete(
-      (BadRequest, FailureResponse(4007, "Debug not enabled, set TSP_LOG_LEVEL to debug to see CSVs", Seq.empty))
+      (BadRequest, FailureResponse(4007, "CSV output not enabled, set CSV_OUTPUT_ENABLED to 1 to see CSVs", Seq.empty))
     )
-    logger.whenDebugEnabled {
+    if (Properties.envOrElse("CSV_OUTPUT_ENABLED", "0") == "1") {
       val result = Try(ArchiveUtils.packCSV(uuid))
       if (result.isSuccess) {
         r = complete(HttpEntity.fromFile(MediaTypes.`application/zip`, new File(s"/tmp/sparse_intermediate/$uuid.zip")))

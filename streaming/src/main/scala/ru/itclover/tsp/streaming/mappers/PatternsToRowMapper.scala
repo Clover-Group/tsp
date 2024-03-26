@@ -70,7 +70,7 @@ case class PatternsToRowMapper[Event, EKey](schema: EventSchema) {
     }
 
     // Replace partition fields values
-    val replacedPFV = incident.partitionFieldsValues.foldLeft(replaced) { case (r, (k, v)) =>
+    val replacedPFV = incident.partitionFieldsValues.foldLeft(replacedMetadataKeys) { case (r, (k, v)) =>
       r.replace(s"$$PartitionFieldsValues@$k", v)
     }
 

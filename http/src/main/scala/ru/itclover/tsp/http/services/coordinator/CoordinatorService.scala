@@ -149,7 +149,7 @@ case class CoordinatorService(
       case se: java.net.SocketException => false
       case se: java.sql.SQLException    => false // TODO: message?
       case re: StreamRunException =>
-        re.error.isInstanceOf[SourceUnavailable] || re.error.isInstanceOf[SinkUnavailable]
+        !(re.error.isInstanceOf[SourceUnavailable] || re.error.isInstanceOf[SinkUnavailable])
       case cf: fs2.CompositeFailure => cf.all.map(errorIsFatal(_)).foldLeft(false)(_ || _)
       case _                        => false
     }
