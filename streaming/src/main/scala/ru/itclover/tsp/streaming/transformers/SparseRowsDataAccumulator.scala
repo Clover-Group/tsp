@@ -18,7 +18,9 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   useUnfolding: Boolean,
   defaultTimeout: Option[Long],
   eventsMaxGapMs: Long,
-  regularityInterval: Option[Long]
+  regularityInterval: Option[Long],
+  timeColumn: InKey,
+  partitionsColumns: Seq[InKey]
 )(implicit
   extractTime: TimeExtractor[InEvent],
   extractKeyAndVal: InEvent => (InKey, Value),
@@ -59,12 +61,21 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       val linesCount = delta / regularityInterval.get
       val times = (1L to linesCount).map(i => lastTimestamp.toMillis + i * regularityInterval.get)
       times.foreach { t =>
-        dropExpiredKeys(event, Time(t))
+        val partitionsColumnsValues = partitionsColumns.map(k => (k, extractValue(item, k))).toMap
         val list = mutable.ListBuffer.tabulate[(InKey, AnyRef)](arity)(x => (keyCreator.create(s"empty_$x"), null))
+        list(allFieldsIndexesMap(timeColumn)) = (
+          timeColumn,
+          new java.lang.Double(t.toDouble / 1000.0)
+        )
+        partitionsColumns.foreach { key =>
+          list(allFieldsIndexesMap(key)) = (key, partitionsColumnsValues(key).asInstanceOf[AnyRef])
+        }
+        dropExpiredKeys(event, Time(t))
         val indexesMap = if (defaultTimeout.isDefined) allFieldsIndexesMap else keysIndexesMap
         event.foreach {
-          case (k, (v, _)) if indexesMap.contains(k) => list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
-          case _                                     => // do nothing
+          case (k, (v, _)) if indexesMap.contains(k) && k != timeColumn && !partitionsColumns.contains(k) =>
+            list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
+          case _ => // do nothing
         }
         val e = eventCreator.create(list.toSeq, counter.get())
         counter.incrementAndGet()
@@ -159,7 +170,9 @@ object SparseRowsDataAccumulator {
             useUnfolding = true,
             defaultTimeout = ndu.defaultTimeout,
             eventsMaxGapMs = streamSource.conf.eventsMaxGapMs.getOrElse(60000),
-            regularityInterval = ndu.regularityInterval
+            regularityInterval = ndu.regularityInterval,
+            timeColumn = streamSource.timeColumn,
+            partitionsColumns = streamSource.partitionsColumns
           )(
             timeExtractor,
             extractKeyVal,
@@ -189,7 +202,9 @@ object SparseRowsDataAccumulator {
             useUnfolding = false,
             defaultTimeout = wdf.defaultTimeout,
             eventsMaxGapMs = streamSource.conf.eventsMaxGapMs.getOrElse(60000),
-            regularityInterval = wdf.regularityInterval
+            regularityInterval = wdf.regularityInterval,
+            timeColumn = streamSource.timeColumn,
+            partitionsColumns = streamSource.partitionsColumns
           )(
             timeExtractor,
             extractKeyVal,

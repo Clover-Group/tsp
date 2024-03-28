@@ -128,6 +128,10 @@ trait StreamSource[Event, EKey, EItem] extends Product with Serializable {
   implicit def eventPrinter: EventPrinter[Event]
 
   def patternFields: Set[EKey]
+
+  def timeColumn: EKey
+
+  def partitionsColumns: Seq[EKey]
 }
 
 object StreamSource {
@@ -372,6 +376,10 @@ case class JdbcSource(
 
   // todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
+
+  override def partitionsColumns: Seq[String] = conf.partitionFields
+
+  override def timeColumn: String = conf.datetimeField
 }
 
 // Fields types are only known at runtime, so we have to use Any here
@@ -503,4 +511,7 @@ case class KafkaSource(
   // todo refactor everything related to idxExtractor
   implicit override def idxExtractor: IdxExtractor[RowWithIdx] = IdxExtractor.of(_.idx)
 
+  override def partitionsColumns: Seq[String] = conf.partitionFields
+
+  override def timeColumn: String = conf.datetimeField
 }
