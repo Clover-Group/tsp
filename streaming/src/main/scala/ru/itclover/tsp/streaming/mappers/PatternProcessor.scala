@@ -32,9 +32,8 @@ case class PatternProcessor[E: TimeExtractor, State, Out](
 
     val firstElement = elements.head
     // if the last event occurred so long ago, clear the state
-    if (lastState == null || timeExtractor(firstElement).toMillis - lastTime.toMillis > eventsMaxGapMs) {
-      lastState = initialState()
-    }
+    val delta = timeExtractor(firstElement).toMillis - lastTime.toMillis
+    if lastState == null || delta > eventsMaxGapMs || delta < 0 then lastState = initialState()
 
     // Split the different time sequences if they occurred in the same time window
     val sequences = PatternProcessor.splitByCondition(elements.toSeq)((next, prev) =>
