@@ -63,7 +63,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
     times: List[(Idx, Time)],
     secondWindowMs: Window
   ): (QI[Boolean], Option[Idx]) =
-    // @tailrec
+    @tailrec
     def inner(
       inputQ: DoubleQueue[T1, T2],
       outputQ: QI[Boolean],
@@ -71,7 +71,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
       lastSuccess: Boolean
     ): (QI[Boolean], Option[Idx], Boolean) =
       // println(s"AT: head = ${inputQ.headOptzion}")
-      val res: (QI[Boolean], Option[Idx], Boolean) = inputQ.headOption match
+      inputQ.headOption match
         case Some(start, end, (value1, value2)) =>
           val newSecondSuccStart = secondSuccStart.orElse(Some(start))
           val outputSuccStart =
@@ -142,8 +142,6 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
                   )
               inner(inputQ.tail, outputQ.enqueue(events*), newSecondSuccStart, true)
         case None => (outputQ, secondSuccStart, false)
-      // println(s"res = $res")
-      res
 
     val res = inner(unitedQueue, totalQ, secondSuccStart, lastSuccess)
     (res._1, res._2)
