@@ -18,14 +18,16 @@ import ru.itclover.tsp.streaming.utils.ErrorsADT.SinkUnavailable
 case class CoordinatorService(
   coordUri: String,
   advHost: Option[String],
-  advPort: Option[Int]
+  advPort: Option[Int],
+  maxJobCount: Int
 )(implicit as: ActorSystem, execCtx: ExecutionContext):
 
   case class RegisterMessage(
     version: String,
     uuid: String,
     advertisedIP: Option[String],
-    advertisedPort: Option[Int]
+    advertisedPort: Option[Int],
+    jobLimit: Option[Int]
   )
 
   case class UnregisterMessage(uuid: String)
@@ -42,7 +44,7 @@ case class CoordinatorService(
   )
 
   object MessageJsonProtocol extends DefaultJsonProtocol:
-    implicit val registerMessageFormat: RootJsonFormat[RegisterMessage] = jsonFormat4(RegisterMessage.apply)
+    implicit val registerMessageFormat: RootJsonFormat[RegisterMessage] = jsonFormat5(RegisterMessage.apply)
     implicit val unregisterMessageFormat: RootJsonFormat[UnregisterMessage] = jsonFormat1(UnregisterMessage.apply)
     implicit val jobStartedMessageFormat: RootJsonFormat[JobStartedMessage] = jsonFormat1(JobStartedMessage.apply)
     implicit val jobCompletedMessageFormat: RootJsonFormat[JobCompletedMessage] = jsonFormat6(JobCompletedMessage.apply)
@@ -75,7 +77,8 @@ case class CoordinatorService(
             BuildInfo.version,
             uuid,
             advHost,
-            advPort
+            advPort,
+            Some(maxJobCount)
           ).toJson.compactPrint
         )
       )
@@ -178,7 +181,7 @@ case class CoordinatorService(
 object CoordinatorService:
   private var service: Option[CoordinatorService] = None
 
-  def getOrCreate(coordUri: String, advHost: Option[String], advPort: Option[Int])(implicit
+  def getOrCreate(coordUri: String, advHost: Option[String], advPort: Option[Int], maxJobCount: Int)(implicit
     as: ActorSystem,
     execCtx: ExecutionContext
   ): CoordinatorService =
@@ -186,7 +189,7 @@ object CoordinatorService:
       case Some(value) =>
         value
       case None =>
-        val srv = CoordinatorService(coordUri, advHost, advPort)
+        val srv = CoordinatorService(coordUri, advHost, advPort, maxJobCount)
         service = Some(srv)
         srv
 

@@ -82,7 +82,9 @@ object Launcher extends App with HttpService:
         if getEnvVarOrNone("TSP_ADVERTISE_LOCAL_IP").isDefined then Some(InetAddress.getLocalHost.getHostAddress)
         else getEnvVarOrNone("TSP_ADVERTISED_HOST")
       val advPort = getEnvVarOrNone("TSP_ADVERTISED_PORT")
-      CoordinatorService.getOrCreate(uri, advHost, advPort.flatMap(_.toIntOption)).notifyRegister()
+      CoordinatorService
+        .getOrCreate(uri, advHost, advPort.flatMap(_.toIntOption), getMaxTotalJobCount)
+        .notifyRegister()
     else log.warn("TSP coordinator connection disabled.")
   }
 

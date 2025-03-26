@@ -86,6 +86,7 @@ class JobRunService(val maxJobsCount: Int)(implicit
         (r, confClassTagToString(ClassTag(r.inputConf.getClass)))
       )
       log.info(s"Job ${r.uuid} received.")
+      if resultOrErr.isLeft then finishedJobsCount.incrementAndGet()
       resultOrErr
 
   def confClassTagToString(ct: ClassTag[?]): String = ct.runtimeClass match
