@@ -30,6 +30,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
   eventPrinter: EventPrinter[OutEvent],
   keyCreator: KeyCreator[InKey]
 ):
+  val changedFieldsColumnName = keyCreator.create("_CHANGED_FIELDS")
+
   val event: mutable.Map[InKey, (Value, Time)] = mutable.Map.empty
   val targetKeySet: Set[InKey] = fieldsKeysTimeoutsMs.keySet
   val keysIndexesMap: Map[InKey, Int] = targetKeySet.zip(0 until targetKeySet.size).toMap
@@ -41,8 +43,11 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     )
     .toMap
 
-  val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
-  val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
+  val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap ++ Map(
+    changedFieldsColumnName -> (fieldsKeysTimeoutsMs.size + extraFieldNames.size)
+  )
+
+  val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size + 1
 
   var lastTimestamp = Time(Long.MinValue)
   var lastEvent: OutEvent = scala.compiletime.uninitialized
@@ -85,6 +90,12 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     if useUnfolding then
       val (key, value) = extractKeyAndVal(item)
       if event.get(key).orNull == null || value != null then event(key) = (value, time)
+      if event.get(changedFieldsColumnName).orNull == null then
+        event(changedFieldsColumnName) = (List.empty[InKey].asInstanceOf[Value], time)
+      else if event.get(changedFieldsColumnName).map(x => x._2 == time).getOrElse(false) then
+        event(changedFieldsColumnName) =
+          ((key :: event(changedFieldsColumnName)._1.asInstanceOf[List[InKey]]).asInstanceOf[Value], time)
+      else event(changedFieldsColumnName) = (List(key).asInstanceOf[Value], time)
     else
       allFieldsIndexesMap.keySet.foreach { key =>
         val newValue = Try(extractValue(item, key))
