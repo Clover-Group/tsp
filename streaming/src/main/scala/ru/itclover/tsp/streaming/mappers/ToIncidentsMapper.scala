@@ -33,9 +33,14 @@ final case class ToIncidentsMapper[E, EKey, EItem](
         unit,
         subunit,
         patternMetadata,
-        partitionFieldsValues.map { case (k, v) => (k.toString, v.toString) }.toMap,
-        additionalFieldsValues.map { case (k, v) => (k.toString, v.toString) }.toMap
+        partitionFieldsValues.map { case (k, v) => (k.toString, anyToString(v)) }.toMap,
+        additionalFieldsValues.map { case (k, v) => (k.toString, anyToString(v)) }.toMap
       )
+  }
+
+  @inline def anyToString(value: Any): String = value match {
+    case null => "[NULL]"
+    case _    => value.toString
   }
 
 }
