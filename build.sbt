@@ -47,7 +47,7 @@ lazy val commonSettings = Seq(
 )
 
 lazy val assemblySettings = Seq(
-  assemblyJarName := s"TSP_v${version.value}.jar",
+  assemblyJarName := s"TSP_v${version.value.replace("\n", "")}.jar",
   javaOptions += "--add-modules=java.xml.bind"
 )
 

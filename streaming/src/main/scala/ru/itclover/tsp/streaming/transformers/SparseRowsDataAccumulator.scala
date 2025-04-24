@@ -49,6 +49,8 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size + 1
 
+  val allTimeouts = fieldsKeysTimeoutsMs ++ extraFieldNames.map(f => f -> Long.MaxValue).toMap
+
   var lastTimestamp = Time(Long.MinValue)
   var lastEvent: OutEvent = scala.compiletime.uninitialized
   val counter: AtomicLong = AtomicLong(1)
@@ -56,7 +58,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val log = Logger[SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent]]
 
-  log.debug(s"Created accumulator with fields map: ${allFieldsIndexesMap}")
+  log.debug(
+    s"Created accumulator with fields map: ${allFieldsIndexesMap} " +
+      s"(keys: ${keysIndexesMap}, extra ${extraFieldsIndexesMap}) and key timeouts ${allTimeouts}"
+  )
 
   def map(item: InEvent): Seq[OutEvent] =
     val time = extractTime(item)
@@ -82,8 +87,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
           case (k, (v, _)) if indexesMap.contains(k) && k != timeColumn && !partitionsColumns.contains(k) =>
             list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
           case _ => // do nothing
-        val e = eventCreator.create(list.toSeq, counter.get())
-        counter.incrementAndGet()
+        val e = eventCreator.create(list.toSeq, counter.incrementAndGet())
         generatedEvents += e
       }
       log.info(s"Generated ${generatedEvents.length} events: $generatedEvents")
@@ -111,7 +115,9 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
       case _                                     =>
     extraFieldNames.foreach { name =>
       val value = extractValue(item, name)
-      if value != null then list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+      if (value != null) then
+        list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+        event(name) = (value.asInstanceOf[Value], time)
     }
     val outEvent = eventCreator.create(list.toSeq, counter.get())
     val returnEvent = if delta > 0 && lastEvent != null then
@@ -133,7 +139,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit =
     event.filterInPlace((k, v) =>
-      currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
+      currentRowTime.toMillis - v._2.toMillis < allTimeouts.getOrElse(k, defaultTimeout.getOrElse(0L))
     )
 
 object SparseRowsDataAccumulator:
