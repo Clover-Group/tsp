@@ -43,6 +43,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val allFieldsIndexesMap: Map[InKey, Int] = keysIndexesMap ++ extraFieldsIndexesMap
   val arity: Int = fieldsKeysTimeoutsMs.size + extraFieldNames.size
+  val allTimeouts = fieldsKeysTimeoutsMs ++ extraFieldNames.map(f => f -> Long.MaxValue).toMap
 
   var lastTimestamp = Time(Long.MinValue)
   var lastEvent: OutEvent = _
@@ -51,7 +52,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   val log = Logger[SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent]]
 
-  log.debug(s"Created accumulator with fields map: ${allFieldsIndexesMap}")
+  log.debug(
+    s"Created accumulator with fields map: ${allFieldsIndexesMap} " +
+      s"(keys: ${keysIndexesMap}, extra ${extraFieldsIndexesMap}) and key timeouts ${allTimeouts}"
+  )
 
   def map(item: InEvent): Seq[OutEvent] = {
     val time = extractTime(item)
@@ -78,8 +82,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
             list(indexesMap(k)) = (k, v.asInstanceOf[AnyRef])
           case _ => // do nothing
         }
-        val e = eventCreator.create(list.toSeq, counter.get())
-        counter.incrementAndGet()
+        val e = eventCreator.create(list.toSeq, counter.incrementAndGet())
         generatedEvents += e
       }
       log.info(s"Generated ${generatedEvents.length} events: $generatedEvents")
@@ -105,7 +108,10 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
     }
     extraFieldNames.foreach { name =>
       val value = extractValue(item, name)
-      if (value != null) list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+      if (value != null) {
+        list(extraFieldsIndexesMap(name)) = (name, value.asInstanceOf[AnyRef])
+        event(name) = (value.asInstanceOf[Value], time)
+      }
     }
     val outEvent = eventCreator.create(list.toSeq, counter.get())
     val returnEvent = if (delta > 0 && lastEvent != null) {
@@ -131,7 +137,7 @@ class SparseRowsDataAccumulator[InEvent, InKey, Value, OutEvent](
 
   private def dropExpiredKeys(event: mutable.Map[InKey, (Value, Time)], currentRowTime: Time): Unit = {
     event.retain((k, v) =>
-      currentRowTime.toMillis - v._2.toMillis < fieldsKeysTimeoutsMs.getOrElse(k, defaultTimeout.getOrElse(0L))
+      currentRowTime.toMillis - v._2.toMillis < allTimeouts.getOrElse(k, defaultTimeout.getOrElse(0L))
     )
   }
 
