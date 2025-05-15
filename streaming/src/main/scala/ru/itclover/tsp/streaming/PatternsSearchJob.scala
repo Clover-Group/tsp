@@ -12,6 +12,7 @@ import ru.itclover.tsp.core.Pattern.IdxExtractor
 import ru.itclover.tsp.core.aggregators.TimestampsAdderPattern
 import ru.itclover.tsp.core.{Incident, Pattern, RawPattern, Segment, SegmentizerPattern}
 import ru.itclover.tsp.core.io.{BasicDecoders, Extractor, TimeExtractor}
+import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 import ru.itclover.tsp.core.optimizations.Optimizer
 import ru.itclover.tsp.dsl.{ASTPatternGenerator, AnyState, PatternFieldExtractor, PatternMetadata}
 import ru.itclover.tsp.streaming.PatternsSearchJob.{RichPattern, preparePatterns, reduceIncidents}
@@ -38,6 +39,13 @@ import ru.itclover.tsp.streaming.utils.EventToList
 import java.nio.file.Files
 import java.nio.file.Paths
 import scala.util.Properties
+import ru.itclover.tsp.streaming.io.NarrowDataUnfolding
+import ru.itclover.tsp.core.CouplePattern
+import ru.itclover.tsp.core.MapPattern
+import ru.itclover.tsp.core.ExtractingPattern
+import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
+import ru.itclover.tsp.core.Result
+import ru.itclover.tsp.core.Succ
 
 case class PatternsSearchJob[In: EventToList, InKey, InItem](
   jobId: String,
@@ -59,7 +67,8 @@ case class PatternsSearchJob[In: EventToList, InKey, InItem](
       0,
       source.conf.eventsMaxGapMs.getOrElse(60000L),
       source.transformedFieldsClasses.map { case (s, c) => s -> ClassTag(c) }.toMap,
-      source.patternFields
+      source.patternFields,
+      source.conf.dataTransformation.map(_.isInstanceOf[NarrowDataUnfolding[?, ?, ?]]).getOrElse(false)
     ).map { patterns =>
       val forwardFields = Seq.empty
       val useWindowing = !source.conf.isInstanceOf[KafkaInputConf]
@@ -244,7 +253,8 @@ object PatternsSearchJob {
     toleranceFraction: Double,
     eventsMaxGapMs: Long,
     fieldsTags: Map[String, ClassTag[_]],
-    patternFields: Set[EKey]
+    patternFields: Set[EKey],
+    isNarrow: Boolean
   )(implicit
     extractor: Extractor[E, EKey, EItem],
     getTime: TimeExtractor[E],
@@ -265,22 +275,37 @@ object PatternsSearchJob {
       extractor,
       implicitly[Conversion[String, EKey]]
     )
-    val res = Traverse[List]
-      .traverse(filteredPatterns.toList)(p =>
-        Validated
-          .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
-          .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
-          .map(p =>
-            (
-              new TimestampsAdderPattern(SegmentizerPattern(p._1))
-                .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
-              p._2
+    val res =
+      Traverse[List]
+        .traverse(filteredPatterns.toList)(p =>
+          Validated
+            .fromEither(pGenerator.build(p.sourceCode, toleranceFraction, eventsMaxGapMs, fieldsTags))
+            .leftMap(err => List(s"PatternID#${p.id}, error: ${err.getMessage}"))
+            .map(pa =>
+              val fields = PatternFieldExtractor.extract[E, EKey, EItem](List(p))
+              val pat =
+                if isNarrow then
+                  CouplePattern(
+                    MapPattern(
+                      new ExtractingPattern[E, EKey, EItem, Any, AnyState[Any]]("_CHANGED_FIELDS")
+                    )(x => Result.succ(fields.intersect(x.asInstanceOf[List[EKey]].toSet).nonEmpty)),
+                    pa._1
+                  )((p1, p2) =>
+                    (p1, p2) match
+                      case (Succ(v1), Succ(v2)) => Result.succ(v1.asInstanceOf[Boolean] && v2.asInstanceOf[Boolean])
+                      case _                    => Result.fail
+                  )
+                else pa._1
+              (
+                new TimestampsAdderPattern(SegmentizerPattern(pat))
+                  .asInstanceOf[Pattern[E, AnyState[Segment], Segment]],
+                pa._2
+              )
             )
-          )
-      )
-      .leftMap[ConfigErr](InvalidPatternsCode(_))
-      .map(_.zip(filteredPatterns))
-      .toEither
+        )
+        .leftMap[ConfigErr](InvalidPatternsCode(_))
+        .map(_.zip(filteredPatterns))
+        .toEither
 
     log.debug("preparePatterns finished")
 
