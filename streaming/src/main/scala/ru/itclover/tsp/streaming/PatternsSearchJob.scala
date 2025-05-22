@@ -43,6 +43,7 @@ import scala.util.Properties
 import ru.itclover.tsp.streaming.io.NarrowDataUnfolding
 import ru.itclover.tsp.core.CouplePattern
 import ru.itclover.tsp.core.MapPattern
+import ru.itclover.tsp.core.SuccessStatPattern
 import ru.itclover.tsp.core.ExtractingPattern
 import ru.itclover.tsp.core.io.AnyDecodersInstances.decodeToAny
 import ru.itclover.tsp.core.Result
@@ -278,9 +279,12 @@ object PatternsSearchJob:
               val pat =
                 if isNarrow then
                   CouplePattern(
-                    MapPattern(
-                      new ExtractingPattern[E, EKey, EItem, Any, AnyState[Any]]("_CHANGED_FIELDS")
-                    )(x => Result.succ(fields.intersect(x.asInstanceOf[List[EKey]].toSet).nonEmpty)),
+                    SuccessStatPattern(
+                      p.id,
+                      MapPattern(
+                        new ExtractingPattern[E, EKey, EItem, Any, AnyState[Any]]("_CHANGED_FIELDS")
+                      )(x => Result.succ(fields.intersect(x.asInstanceOf[List[EKey]].toSet).nonEmpty))
+                    ),
                     pa._1
                   )((p1, p2) =>
                     (p1, p2) match
