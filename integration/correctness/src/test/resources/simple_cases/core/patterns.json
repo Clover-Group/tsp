@@ -134,7 +134,7 @@
   },
   {
     "id": 45,
-    "sourceCode": "wait(1 sec, abs(POilDieselOut + 0.13) < 0.00001 for 1 sec 1 to 3 times)",
+    "sourceCode": "wait(1 sec, POilDieselOut < 0 and abs(POilDieselOut + 0.13) < 0.00001 for 1 sec 1 to 3 times)",
     "payload": {},
     "subunit": 1,
     "forwardedFields": []
