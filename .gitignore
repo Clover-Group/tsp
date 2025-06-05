@@ -20,3 +20,5 @@ docs/vendor/**
 
 null/
 .bsp
+
+*.log

@@ -299,18 +299,19 @@ object DefaultFunctions extends LazyLogging:
     val btype = BooleanASTType
 
     def func(sym: String, xs: Seq[Any])(implicit l: Logical[Any]): Result[Boolean] =
-      // log.info(s"FUNREG: func($sym): Arg0 = ${xs.head}, Arg1 = ${xs(1)}")
-      // log.info(s"FUNREG: Args = ${(xs.head, xs.lift(1).getOrElse(()))}")
-      // log.info(s"FUNREG: Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(())))}")
-      (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(()))) match
+      // log.info(s"FUNREG :func($sym): Args = ${(xs.head, xs.lift(1).getOrElse("no argument"))}")
+      // log.info(
+      //   s"FUNREG: Arg results = ${(toResult[Boolean](xs.head), toResult[Boolean](xs.lift(1).getOrElse(())))}"
+      // )
+      val res = (toResult[Boolean](xs(0)), toResult[Boolean](xs.lift(1).getOrElse(false))) match
         case (Succ(x0), Succ(x1)) =>
           sym match
-
             case "and" => Result.succ(l.and(x0, x1))
             case "or"  => Result.succ(l.or(x0, x1))
             case "xor" => Result.succ(l.xor(x0, x1))
             case "eq"  => Result.succ(l.eq(x0, x1))
             case "neq" => Result.succ(l.neq(x0, x1))
+            case "not" => Result.succ(l.not(x0))
             case _     => Result.fail
         case (Wait, Fail) | (Fail, Wait) =>
           sym match
@@ -338,6 +339,8 @@ object DefaultFunctions extends LazyLogging:
             case "not" => Result.succ(true) // negating a fail returns a success
             case _     => Result.fail
         case _ => Result.fail
+        // log.info(s"FUNREG: func($sym): Result = $res")
+      res
 
     Map(
       // ('and , Seq(btype, btype))  -> (((xs: Seq[Any]) => xs.foldLeft(true) {_.asInstanceOf[Boolean] && _.asInstanceOf[Boolean]}, btype)),

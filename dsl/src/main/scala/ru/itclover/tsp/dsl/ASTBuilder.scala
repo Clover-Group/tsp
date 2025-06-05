@@ -47,11 +47,13 @@ class ASTBuilder(
     | trileanFactor ~ ignoreCase("until") ~ ws ~ booleanExpr ~ optional(range) ~ ws ~>
     // ((c: AST, b: AST, r: Option[Any]) => {
     ((c: AST, b: AST, _) => {
-
-      val until = Assert(FunctionCall("not", Seq(b)))
-      // val window = Window(86400000) // 24 hours
-      val timedCondition = Timer(c, TimeInterval(MaxWindow, MaxWindow), eventsMaxGapMs, Some(MinWindow))
-      FunctionCall("and", Seq(timedCondition, until))
+      // B
+      val until = Assert(b)
+      // C and not B for 1 ms
+      val window = Window(toMillis = 1L)
+      val cond = Assert(FunctionCall("and", Seq(c, FunctionCall("not", Seq(b)))))
+      val timedCondition = Timer(cond, TimeInterval(window, window), eventsMaxGapMs, Some(window))
+      AndThen(timedCondition, until, Some(window.toMillis))
     })
     | trileanFactor)
   /*_*/

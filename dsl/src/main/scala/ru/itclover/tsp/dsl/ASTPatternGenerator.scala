@@ -156,7 +156,11 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(implicit
               ac.window
             )
       case at: AndThen =>
-        AndThenPattern(generatePattern(at.first), generatePattern(at.second), at.second.metadata.sumWindowsMs)
+        AndThenPattern(
+          generatePattern(at.first),
+          generatePattern(at.second),
+          at.window.getOrElse(at.second.metadata.sumWindowsMs)
+        )
       // TODO: Window -> TimeInterval in TimerPattern
       case t: Timer =>
         TimerPattern(generatePattern(t.cond), Window(t.interval.max), t.maxGapMs)
@@ -198,7 +202,8 @@ case class ASTPatternGenerator[Event, EKey, EItem]()(implicit
 
       case Assert(inner) if inner.valueType == BooleanASTType =>
         MapPattern(generatePattern(inner))({ innerBool =>
-          if innerBool.asInstanceOf[Boolean] then Result.succ(innerBool) else Result.fail
+          if innerBool.asInstanceOf[Boolean] || innerBool.asInstanceOf[java.lang.Boolean] then Result.succ(true)
+          else Result.fail
         })
       case Assert(inner) if inner.valueType != BooleanASTType =>
         sys.error(s"Invalid pattern, non-boolean pattern inside of Assert - $inner")

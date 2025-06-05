@@ -70,7 +70,7 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
       secondSuccStart: Option[Idx],
       lastSuccess: Boolean
     ): (QI[Boolean], Option[Idx], Boolean) =
-      // println(s"AT: head = ${inputQ.headOptzion}")
+      // println(s"AT: head = ${inputQ.headOption}")
       inputQ.headOption match
         case Some(start, end, (value1, value2)) =>
           val newSecondSuccStart = secondSuccStart.orElse(Some(start))
@@ -88,10 +88,12 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
                 newSecondSuccStart,
                 false
               )
-            case (Fail, Succ(_)) =>
+            case (Fail, Succ(y)) =>
               inner(
                 inputQ.tail,
-                outputQ.enqueue(IdxValue(start, end, if lastSuccess then Result.succ(true) else Result.fail)),
+                outputQ.enqueue(
+                  IdxValue(start, end, if lastSuccess then Result.succ(y.asInstanceOf[Boolean]) else Result.fail)
+                ),
                 newSecondSuccStart,
                 lastSuccess
               )
@@ -104,16 +106,16 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
                 newSecondSuccStart,
                 false
               )
-            case (Wait, Succ(_)) =>
+            case (Wait, Succ(y)) =>
               val events =
                 if outputSuccStart.map(_ <= start).getOrElse(false) then
-                  List(IdxValue(start, end, if lastSuccess then Result.succ(true) else Result.wait))
+                  List(IdxValue(start, end, if lastSuccess then Result.succ(y.asInstanceOf[Boolean]) else Result.wait))
                 else if outputSuccStart.map(_ > end).getOrElse(true) then List(IdxValue(start, end, Result.wait))
                 else
                   val splitIdx = outputSuccStart.get
                   List(
                     IdxValue(start, splitIdx - 1, Result.wait),
-                    IdxValue(splitIdx, end, if lastSuccess then Result.succ(true) else Result.wait)
+                    IdxValue(splitIdx, end, if lastSuccess then Result.succ(y.asInstanceOf[Boolean]) else Result.wait)
                   )
               inner(
                 inputQ.tail,
@@ -130,20 +132,22 @@ case class AndThenPattern[Event: IdxExtractor: TimeExtractor, T1, T2, S1, S2](
                 newSecondSuccStart,
                 true
               )
-            case (Succ(_), Succ(_)) =>
+            case (Succ(x), Succ(y)) =>
               val events =
-                if outputSuccStart.map(_ <= start).getOrElse(false) then List(IdxValue(start, end, Result.succ(true)))
+                if outputSuccStart.map(_ <= start).getOrElse(false) then
+                  List(IdxValue(start, end, Result.succ(x.asInstanceOf[Boolean] && y.asInstanceOf[Boolean])))
                 else if outputSuccStart.map(_ > end).getOrElse(true) then List(IdxValue(start, end, Result.wait))
                 else
                   val splitIdx = outputSuccStart.get
                   List(
                     IdxValue(start, splitIdx - 1, Result.wait),
-                    IdxValue(splitIdx, end, Result.succ(true))
+                    IdxValue(splitIdx, end, Result.succ(x.asInstanceOf[Boolean] && y.asInstanceOf[Boolean]))
                   )
               inner(inputQ.tail, outputQ.enqueue(events*), newSecondSuccStart, true)
         case None => (outputQ, secondSuccStart, false)
 
     val res = inner(unitedQueue, totalQ, secondSuccStart, lastSuccess)
+    // println(s"AT: Result: $res")
     (res._1, res._2)
 
   type DoubleQueue[T1, T2] = mutable.ArrayDeque[(Idx, Idx, (Result[T1], Result[T2]))]

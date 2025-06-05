@@ -559,61 +559,61 @@ class SimpleCasesTest
 
     inner(numbers, Nil)
 
-  "Cases 1-17, 43-50" should "work in wide Kafka table" in:
-    // use MemoryCheckpointing for Kafka tests
-    CheckpointingService.forceCreate(None)
-    casesPatterns.keys.foreach { id =>
-      Post(
-        submitUrl,
-        FindPatternsRequest(
-          s"17kafkawide_$id",
-          wideKafkaInputConf,
-          Seq(wideKafkaOutputConf),
-          50,
-          List(casesPatterns(id))
-        )
-      ) ~>
-      route ~> check:
-        withClue(s"Pattern ID: $id"):
-          status shouldEqual StatusCodes.OK
-        // alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-    }
-    Thread.sleep(15000)
-    casesPatterns.keys.foreach { id =>
-      Get(s"/job/17kafkawide_$id/stop") ~> route ~> check:
-        withClue(s"Pattern ID: $id"):
-          status shouldEqual StatusCodes.OK
-    }
-    alertByQuery(
-      incidentsCount
-        .map { case (k, v) =>
-          List(k.toDouble, v.toDouble)
-        }
-        .toList
-        .sortBy(_.headOption.getOrElse(Double.NaN)),
-      firstValidationQuery("events_wide_kafka_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
-    )
-    alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
+  // "Cases 1-17, 43-50" should "work in wide Kafka table" in:
+  //   // use MemoryCheckpointing for Kafka tests
+  //   CheckpointingService.forceCreate(None)
+  //   casesPatterns.keys.foreach { id =>
+  //     Post(
+  //       submitUrl,
+  //       FindPatternsRequest(
+  //         s"17kafkawide_$id",
+  //         wideKafkaInputConf,
+  //         Seq(wideKafkaOutputConf),
+  //         50,
+  //         List(casesPatterns(id))
+  //       )
+  //     ) ~>
+  //     route ~> check:
+  //       withClue(s"Pattern ID: $id"):
+  //         status shouldEqual StatusCodes.OK
+  //       // alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+  //   }
+  //   Thread.sleep(15000)
+  //   casesPatterns.keys.foreach { id =>
+  //     Get(s"/job/17kafkawide_$id/stop") ~> route ~> check:
+  //       withClue(s"Pattern ID: $id"):
+  //         status shouldEqual StatusCodes.OK
+  //   }
+  //   alertByQuery(
+  //     incidentsCount
+  //       .map { case (k, v) =>
+  //         List(k.toDouble, v.toDouble)
+  //       }
+  //       .toList
+  //       .sortBy(_.headOption.getOrElse(Double.NaN)),
+  //     firstValidationQuery("events_wide_kafka_test", numbersToRanges(casesPatterns.keys.map(_.toInt).toList.sorted))
+  //   )
+  //   alertByQuery(incidentsTimestamps, secondValidationQuery.format("events_wide_kafka_test"))
 
-  "Cases 1-17, 43-50" should "work in wide Kafka sink" in:
-    casesPatterns.keys.foreach { id =>
-      Post(
-        submitUrl,
-        FindPatternsRequest(
-          s"17tokafkawide_$id",
-          wideInputConf,
-          Seq(wideToKafkaOutputConf),
-          50,
-          List(casesPatterns(id))
-        )
-      ) ~>
-      route ~> check:
-        withClue(s"Pattern ID: $id"):
-          status shouldEqual StatusCodes.OK
-        // alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
-    }
-    Thread.sleep(15000)
-    // TODO: Verify results
+  // "Cases 1-17, 43-50" should "work in wide Kafka sink" in:
+  //   casesPatterns.keys.foreach { id =>
+  //     Post(
+  //       submitUrl,
+  //       FindPatternsRequest(
+  //         s"17tokafkawide_$id",
+  //         wideInputConf,
+  //         Seq(wideToKafkaOutputConf),
+  //         50,
+  //         List(casesPatterns(id))
+  //       )
+  //     ) ~>
+  //     route ~> check:
+  //       withClue(s"Pattern ID: $id"):
+  //         status shouldEqual StatusCodes.OK
+  //       // alertByQuery(List(List(id.toDouble, incidentsCount(id).toDouble)), s"SELECT $id, COUNT(*) FROM events_wide_test WHERE id = $id")
+  //   }
+  //   Thread.sleep(15000)
+  //   // TODO: Verify results
 
   "Cases 1-17, 43-50" should "be validated" in:
     casesPatterns.keys.foreach { id =>

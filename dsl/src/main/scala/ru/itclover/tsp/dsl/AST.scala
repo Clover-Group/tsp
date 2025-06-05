@@ -84,7 +84,7 @@ case class ReducerFunctionCall(functionName: String, @transient cond: Result[Any
           s"and type ${arguments(0).valueType}"
       )
 
-case class AndThen(first: AST, second: AST) extends AST:
+case class AndThen(first: AST, second: AST, window: Option[Long] = None) extends AST:
   first.requireType(BooleanASTType, s"1st argument '$first' must be boolean in '$this'")
   second.requireType(BooleanASTType, s"2nd argument '$second' must be boolean in '$this'")
   override def metadata = first.metadata |+| second.metadata
