@@ -41,7 +41,7 @@ class ASTBuilder(
   /*_*/
   def trileanTerm: Rule1[AST] = rule {
     // Exactly is default and ignored for now
-    (nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
+    (trileanFactor ~ ignoreCase("for") ~ ws ~ optional(ignoreCase("exactly") ~ ws ~> (() => true)) ~
     time ~ range ~ ws ~ optional(ignoreCase("fromstart") ~ ws ~> (() => true)) ~> (ForWithInterval(_, _, _, _, _))
     | nonFatalTrileanFactor ~ ignoreCase("for") ~ ws ~
     (timeWithTolerance | timeBoundedRange) ~ ws
@@ -74,7 +74,7 @@ class ASTBuilder(
   }
 
   def trileanFactor: Rule1[AST] = rule {
-    waitRule | booleanFactor ~> { (b: AST) => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws 
+    waitRule | booleanFactor ~> { (b: AST) => Assert(b) } | '(' ~ trileanExpr ~ ')' ~ ws
   }
 
   def booleanExpr: Rule1[AST] = rule {
