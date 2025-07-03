@@ -119,6 +119,8 @@ class Optimizer[E: IdxExtractor: TimeExtractor]() extends Serializable:
     case WindowStatistic(inner, window) if optimizable(inner) => WindowStatistic(forceState(optimizePat(inner)), window)
     case SegmentizerPattern(inner) if optimizable(inner)      => SegmentizerPattern(forceState(optimizePat(inner)))
     case WaitPattern(inner, window) if optimizable(inner)     => WaitPattern(forceState(optimizePat(inner)), window)
+    case SuccessStatPattern(patternId, inner) if optimizable(inner) =>
+      SuccessStatPattern(patternId, forceState(optimizePat(inner)))
 
   // Need to cast Pat[E,T] to some Pattern type. Pattern has restriction on State
   // type parameters which is constant, so simple asInstanceOf complains on
